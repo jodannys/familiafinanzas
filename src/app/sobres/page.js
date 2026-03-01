@@ -15,8 +15,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    setMounted(true) // <-- Esto evita el error de Hydration
     async function cargar() {
-      // Traemos movimientos y metas de la base de datos
       const [{ data: m }, { data: mt }] = await Promise.all([
         supabase.from('movimientos').select('*').order('fecha', { ascending: false }),
         supabase.from('metas').select('*').order('created_at'),
@@ -28,6 +28,7 @@ export default function Dashboard() {
     cargar()
   }, [])
 
+  
   const now = new Date()
   const mesActual = now.getMonth()
   const añoActual = now.getFullYear()
