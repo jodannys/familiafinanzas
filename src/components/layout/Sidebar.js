@@ -8,14 +8,14 @@ import {
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
 
 const NAV = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard, color: '#4A6FA5' },
-  { href: '/presupuesto', label: 'Mi Presupuesto', icon: PieChart, color: '#2D7A5F' },
-  { href: '/gastos', label: 'Ingresos & Egresos', icon: ArrowLeftRight, color: '#7A5FA5' },
-  { href: '/sobres', label: 'Sobres Diarios', icon: Wallet, color: '#2D7A5F' },
-  { href: '/metas', label: 'Metas de Ahorro', icon: Target, color: '#C17A3A' },
-  { href: '/inversiones', label: 'Inversiones', icon: TrendingUp, color: '#2D7A5F' },
-  { href: '/deudas', label: 'Deudas', icon: CreditCard, color: '#C0605A' },
-  { href: '/reportes', label: 'Reportes', icon: BarChart3, color: '#4A6FA5' },
+  { href: '/',            label: 'Dashboard',          icon: LayoutDashboard, color: '#4A6FA5' },
+  { href: '/presupuesto', label: 'Mi Presupuesto',     icon: PieChart,        color: '#2D7A5F' },
+  { href: '/gastos',      label: 'Ingresos & Egresos',  icon: ArrowLeftRight,  color: '#7A5FA5' },
+  { href: '/sobres',      label: 'Sobres Diarios',      icon: Wallet,          color: '#2D7A5F' },
+  { href: '/metas',       label: 'Metas de Ahorro',     icon: Target,          color: '#C17A3A' },
+  { href: '/inversiones', label: 'Inversiones',         icon: TrendingUp,      color: '#2D7A5F' },
+  { href: '/deudas',      label: 'Deudas',              icon: CreditCard,      color: '#C0605A' },
+  { href: '/reportes',    label: 'Reportes',            icon: BarChart3,       color: '#4A6FA5' },
 ]
 
 export default function Sidebar({ onClose }) {
@@ -27,12 +27,9 @@ export default function Sidebar({ onClose }) {
 
       {/* Logo */}
       <div className="px-6 py-7 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-          <Coins size={18} className="text-white" />
-        </div>
+        <img src="/icon.svg" alt="Familia Finanzas" style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0 }} />
         <div>
-          <p className="text-sm leading-tight" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Familia</p>
+           <p className="text-sm leading-tight" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Familia</p>
           <p className="text-xs font-bold tracking-widest" style={{ color: 'var(--accent-green)' }}>Quintero Brito</p>
         </div>
       </div>
@@ -71,7 +68,7 @@ export default function Sidebar({ onClose }) {
         <div className="flex items-center gap-3 mb-3 px-1">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
             style={{ background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))' }}>
-            QB
+            FF
           </div>
           <div>
             <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Cuenta Familiar</p>

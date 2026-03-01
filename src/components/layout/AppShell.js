@@ -45,13 +45,8 @@ export default function AppShell({ children }) {
             <Menu size={18} style={{ color: 'var(--text-primary)' }} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 8,
-              background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 800, color: 'white'
-            }}>F</div>
-            <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>Finanzas Personales</span>
+            <img src="/icon.svg" alt="Logo" style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0 }} />
+            <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>Finanzas Pesonales</span>
           </div>
         </div>
 
