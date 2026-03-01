@@ -2,7 +2,7 @@ import './globals.css'
 import Providers from './providers'
 
 export const metadata = {
-  title: 'Familia Finanzas',
+  title: 'Finanzas Personales',
   description: 'Gestión financiera familiar inteligente',
 }
 

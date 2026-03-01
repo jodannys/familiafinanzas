@@ -51,7 +51,7 @@ export default function AppShell({ children }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 12, fontWeight: 800, color: 'white'
             }}>F</div>
-            <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>Familia Finanzas</span>
+            <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>Finanzas Personales</span>
           </div>
         </div>
 
