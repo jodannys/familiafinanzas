@@ -70,7 +70,7 @@ export default function Sidebar({ onClose }) {
         <div className="flex items-center gap-3 mb-3 px-1">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
             style={{ background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))' }}>
-            FF
+            QB
           </div>
           <div>
             <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Cuenta Familiar</p>
