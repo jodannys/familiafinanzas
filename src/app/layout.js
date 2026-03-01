@@ -1,18 +1,42 @@
 import './globals.css'
-import Providers from './providers'
+import { ThemeProvider } from '@/lib/themes'
 
 export const metadata = {
-  title: 'Finanzas Personales',
+  title: 'Familia Finanzas',
   description: 'Gestión financiera familiar inteligente',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Familia Finanzas',
+  },
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
+}
+
+export const viewport = {
+  themeColor: '#2D7A5F',
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Familia Finanzas" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
+      </head>
       <body>
-        <Providers>
+        <ThemeProvider>
           {children}
-        </Providers>
+        </ThemeProvider>
       </body>
     </html>
   )
