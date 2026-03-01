@@ -3,14 +3,14 @@ import { useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar, Badge } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, Target, CheckCircle, Pause, ChevronRight, TrendingUp } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 const DEMO_METAS = [
   { id:1, nombre:'Fondo de Emergencia', emoji:'🛡️', meta:5000,  actual:3200, pct_mensual:10, estado:'activa',    color:'#10b981', prioridad:1 },
   { id:2, nombre:'Casa',                emoji:'🏠', meta:30000, actual:8500, pct_mensual:15, estado:'activa',    color:'#f59e0b', prioridad:2 },
   { id:3, nombre:'Vacaciones',          emoji:'✈️', meta:2000,  actual:650,  pct_mensual:5,  estado:'activa',    color:'#8b5cf6', prioridad:3 },
-  { id:4, nombre:'Carro',              emoji:'🚗', meta:15000, actual:1200, pct_mensual:5,  estado:'pausada',   color:'#38bdf8', prioridad:4 },
+  { id:4, nombre:'Carro',               emoji:'🚗', meta:15000, actual:1200, pct_mensual:5,  estado:'pausada',   color:'#38bdf8', prioridad:4 },
   { id:5, nombre:'Laptop nueva',        emoji:'💻', meta:1200,  actual:1200, pct_mensual:0,  estado:'completada',color:'#34d399', prioridad:5 },
 ]
 
@@ -50,15 +50,16 @@ export default function MetasPage() {
     setForm({ nombre:'', emoji:'🎯', meta:'', pct_mensual:'', color:'#10b981' })
   }
 
-  const estadoBadge = { activa:'emerald', pausada:'gold', completada:'sky' }
+  const estadoBadge = { activa:'green', pausada:'gold', completada:'sky' }
   const estadoLabel = { activa:'Activa', pausada:'Pausada', completada:'Completada ✓' }
 
   return (
     <AppShell>
+      {/* Header */}
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
           <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
-       <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Metas de Ahorro</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Metas de Ahorro</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} /> Nueva meta
@@ -66,11 +67,11 @@ export default function MetasPage() {
       </div>
 
       {/* Stats */}
-   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          { label:'Total ahorrado',   value: formatCurrency(totalAhorrado), color:'#10b981' },
-          { label:'% del ingreso destinado', value: `${totalPct}%`, color: totalPct > 30 ? '#10b981' : '#f59e0b' },
-          { label:'Metas activas',    value: `${activas.length}`, color:'#38bdf8' },
+          { label:'Total ahorrado',      value: formatCurrency(totalAhorrado), color:'#10b981' },
+          { label:'% ingreso destinado', value: `${totalPct}%`,               color: totalPct > 30 ? '#10b981' : '#f59e0b' },
+          { label:'Metas activas',       value: `${activas.length}`,           color:'#38bdf8' },
         ].map((s,i) => (
           <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay:`${i*0.05}s` }}>
             <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold mb-2">{s.label}</p>
@@ -84,69 +85,76 @@ export default function MetasPage() {
         {metas.map((meta, i) => {
           const pct = Math.min(100, Math.round((meta.actual / meta.meta) * 100))
           const restante = meta.meta - meta.actual
+          const tiempo = mesesRestantes(meta.actual, meta.meta, meta.pct_mensual)
           return (
-            <Card key={meta.id} className={`animate-enter group hover:border-white/15 transition-all cursor-pointer`}
-              style={{ animationDelay:`${i*0.05}s`, borderColor: meta.estado==='completada' ? 'rgba(52,211,153,0.2)' : undefined }}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                {/* Emoji */}
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+            <Card key={meta.id} className="animate-enter transition-all cursor-pointer"
+              style={{ animationDelay:`${i*0.05}s` }}>
+
+              {/* Fila 1: emoji + nombre + badge + porcentaje */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                   style={{ background:`${meta.color}18` }}>
                   {meta.emoji}
                 </div>
-
-                {/* Info */}
-              <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-bold text-stone-800">{meta.nombre}</h3>
                     <Badge color={estadoBadge[meta.estado]}>{estadoLabel[meta.estado]}</Badge>
                   </div>
-                  <div className="flex items-center gap-4 mb-3">
-                    <span className="text-sm font-bold" style={{ color:meta.color }}>{formatCurrency(meta.actual)}</span>
-                    <span className="text-sm text-stone-400">de {formatCurrency(meta.meta)}</span>
-                    {meta.estado !== 'completada' && (
-                      <span className="text-xs text-stone-400">• Faltan {formatCurrency(restante)}</span>
-                    )}
-                  </div>
-                  <ProgressBar value={meta.actual} max={meta.meta} color={meta.color} />
                 </div>
+                <p className="text-xl font-bold flex-shrink-0" style={{ color: meta.color }}>
+                  {pct}%
+                </p>
+              </div>
 
-                {/* Right stats */}
-                <div className="text-right flex-shrink-0 sm:ml-6 space-y-1 self-end sm:self-auto">
-                  <p className="text-2xl font-bold text-stone-800" style={{ letterSpacing:'-0.02em' }}>{pct}%</p>
-                  <p className="text-xs text-stone-400">{meta.pct_mensual}% ingreso/mes</p>
-                  <p className="text-xs" style={{ color:meta.color }}>
-                    {mesesRestantes(meta.actual, meta.meta, meta.pct_mensual)}
-                  </p>
+              {/* Barra de progreso */}
+              <ProgressBar value={meta.actual} max={meta.meta} color={meta.color} className="mb-3" />
+
+              {/* Fila 3: montos + tiempo */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold" style={{ color: meta.color }}>
+                    {formatCurrency(meta.actual)}
+                  </span>
+                  <span className="text-xs text-stone-400">de {formatCurrency(meta.meta)}</span>
+                  {meta.estado !== 'completada' && restante > 0 && (
+                    <span className="text-xs text-stone-400">· faltan {formatCurrency(restante)}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-stone-400">
+                  <span>{meta.pct_mensual}% /mes</span>
+                  <span className="font-semibold" style={{ color: meta.color }}>{tiempo}</span>
                 </div>
               </div>
+
             </Card>
           )
         })}
       </div>
 
-      {/* Add modal */}
+      {/* Modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="Nueva Meta de Ahorro">
         <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div>
               <label className="ff-label">Emoji</label>
               <input className="ff-input text-center text-xl" maxLength={2} value={form.emoji}
                 onChange={e => setForm({...form, emoji:e.target.value})} />
             </div>
             <div className="col-span-3">
-              <label className="ff-label">Nombre de la meta</label>
-              <input className="ff-input" placeholder="Ej: Casa, Vacaciones, Carro..." required
+              <label className="ff-label">Nombre</label>
+              <input className="ff-input" placeholder="Ej: Casa, Vacaciones..." required
                 value={form.nombre} onChange={e => setForm({...form, nombre:e.target.value})} />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="ff-label">Monto objetivo (€)</label>
+              <label className="ff-label">Monto objetivo</label>
               <input className="ff-input" type="number" min="1" step="0.01" placeholder="0.00" required
                 value={form.meta} onChange={e => setForm({...form, meta:e.target.value})} />
             </div>
             <div>
-              <label className="ff-label">% del ingreso mensual</label>
+              <label className="ff-label">% ingreso mensual</label>
               <input className="ff-input" type="number" min="1" max="100" placeholder="10" required
                 value={form.pct_mensual} onChange={e => setForm({...form, pct_mensual:e.target.value})} />
             </div>
@@ -157,7 +165,7 @@ export default function MetasPage() {
               {['#10b981','#f59e0b','#8b5cf6','#38bdf8','#fb7185','#fb923c'].map(c => (
                 <button type="button" key={c} onClick={() => setForm({...form, color:c})}
                   className="w-8 h-8 rounded-full transition-all"
-                  style={{ background:c, boxShadow: form.color===c ? `0 0 0 3px rgba(255,255,255,0.3)` : 'none' }} />
+                  style={{ background:c, outline: form.color===c ? `3px solid ${c}` : 'none', outlineOffset: 2 }} />
               ))}
             </div>
           </div>
