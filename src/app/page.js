@@ -6,8 +6,10 @@ import { TrendingUp, TrendingDown, Wallet, Target, ArrowUpRight, Loader2 } from 
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts'
+import { formatCurrency, getFlagEmoji } from '@/lib/utils' // Añade getFlagEmoji aquí
 
-const MESES_LABEL = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+
+const MESES_LABEL = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 export default function Dashboard() {
   const [movs, setMovs] = useState([])
@@ -78,8 +80,10 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <p className="text-sm text-stone-400 font-medium mb-1 uppercase tracking-wider">Resumen Real</p>
-          <h1 className="text-xl md:text-3xl font-bold text-stone-800 capitalize">
+          <p className="text-sm font-medium mb-1 uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+            Resumen Real
+          </p>
+          <h1 className="text-xl md:text-3xl font-bold capitalize" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
           </h1>
         </div>
@@ -100,11 +104,13 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Gráfico de flujo real (últimos 6 meses) */}
         <Card className="col-span-1 lg:col-span-2">
-          <h3 className="font-bold text-stone-800 mb-6">Flujo Mensual</h3>
+          <h3 className="font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
+            Flujo Mensual
+          </h3>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={generarHistorico(movs)} margin={{ left: -20 }}>
               <XAxis dataKey="mes" fontSize={11} axisLine={false} tickLine={false} />
-              <YAxis fontSize={11} axisLine={false} tickLine={false} tickFormatter={v => `€${v/1000}k`} />
+              <YAxis fontSize={11} axisLine={false} tickLine={false} tickFormatter={v => `€${v / 1000}k`} />
               <Tooltip />
               <Area type="monotone" dataKey="ingresos" stroke="#10b981" fill="#10b98120" />
               <Area type="monotone" dataKey="gastos" stroke="#fb7185" fill="#fb718520" />
@@ -114,7 +120,9 @@ export default function Dashboard() {
 
         {/* Distribución real */}
         <Card>
-          <h3 className="font-bold text-stone-800 mb-4 text-sm uppercase">Distribución de Gastos</h3>
+          <h3 className="font-bold mb-4 text-sm uppercase" style={{ color: 'var(--text-primary)' }}>
+            Distribución de Gastos
+          </h3>
           {distribucionReal.length > 0 ? (
             <div className="space-y-4">
               {distribucionReal.map(d => (
@@ -134,14 +142,16 @@ export default function Dashboard() {
       {/* Metas REALES */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="col-span-1 lg:col-span-2">
-          <h3 className="font-bold text-stone-800 mb-6">Progreso de Metas</h3>
+          <h3 className="font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Progreso de Metas</h3>
           <div className="space-y-6">
             {metas.length > 0 ? metas.map(m => {
               const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
               return (
                 <div key={m.id}>
                   <div className="flex justify-between text-xs mb-2 font-bold uppercase tracking-tighter">
-                    <span>{m.emoji} {m.nombre}</span>
+                    <span style={{ color: 'var(--text-primary)' }}>
+                      {getFlagEmoji(m.emoji)} {m.nombre}
+                    </span>
                     <span className="text-stone-400">{formatCurrency(m.actual)} / {formatCurrency(m.meta)}</span>
                   </div>
                   <ProgressBar value={m.actual || 0} max={m.meta || 1} color={m.color} />

@@ -6,6 +6,7 @@ import Modal from '@/components/ui/Modal'
 import { Plus, Loader2, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { formatCurrency, getFlagEmoji } from '@/lib/utils' // Añade getFlagEmoji aquí
 
 function mesesRestantes(actual, meta, pctMensual, ingresoMensual = 5500) {
   const aporteMensual = (pctMensual / 100) * ingresoMensual
@@ -25,7 +26,7 @@ export default function MetasPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [modal, setModal] = useState(false)
-  const [form, setForm] = useState({ nombre:'', emoji:'🎯', meta:'', pct_mensual:'', color:'#10b981' })
+  const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: '#10b981' })
 
   useEffect(() => { cargar() }, [])
 
@@ -45,7 +46,7 @@ export default function MetasPage() {
       .insert([{ nombre: form.nombre, emoji: form.emoji, meta: parseFloat(form.meta), actual: 0, estado: 'activa', color: form.color, pct_mensual: parseFloat(form.pct_mensual) }])
       .select()
     if (error) setError(error.message)
-    else { setMetas(prev => [...prev, data[0]]); setModal(false); setForm({ nombre:'', emoji:'🎯', meta:'', pct_mensual:'', color:'#10b981' }) }
+    else { setMetas(prev => [...prev, data[0]]); setModal(false); setForm({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: '#10b981' }) }
     setSaving(false)
   }
 
@@ -63,8 +64,8 @@ export default function MetasPage() {
   const totalPct = activas.reduce((s, m) => s + (m.pct_mensual || 0), 0)
   const totalAhorrado = metas.reduce((s, m) => s + (m.actual || 0), 0)
 
-  const estadoBadge = { activa:'emerald', pausada:'gold', completada:'sky' }
-  const estadoLabel = { activa:'Activa', pausada:'Pausada', completada:'Completada ✓' }
+  const estadoBadge = { activa: 'emerald', pausada: 'gold', completada: 'sky' }
+  const estadoLabel = { activa: 'Activa', pausada: 'Pausada', completada: 'Completada ✓' }
 
   return (
     <AppShell>
@@ -88,13 +89,13 @@ export default function MetasPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          { label:'Total ahorrado',      value: formatCurrency(totalAhorrado), color:'#10b981' },
-          { label:'% ingreso destinado', value: `${totalPct}%`,               color: totalPct > 30 ? '#10b981' : '#f59e0b' },
-          { label:'Metas activas',       value: `${activas.length}`,           color:'#38bdf8' },
-        ].map((s,i) => (
-          <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay:`${i*0.05}s` }}>
+          { label: 'Total ahorrado', value: formatCurrency(totalAhorrado), color: '#10b981' },
+          { label: '% ingreso destinado', value: `${totalPct}%`, color: totalPct > 30 ? '#10b981' : '#f59e0b' },
+          { label: 'Metas activas', value: `${activas.length}`, color: '#38bdf8' },
+        ].map((s, i) => (
+          <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold mb-2">{s.label}</p>
-            <p className="text-2xl font-bold" style={{ color:s.color, letterSpacing:'-0.02em' }}>{s.value}</p>
+            <p className="text-2xl font-bold" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -117,15 +118,18 @@ export default function MetasPage() {
             const restante = meta.meta - (meta.actual || 0)
             const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0)
             return (
-              <Card key={meta.id} className="animate-enter group" style={{ animationDelay:`${i*0.05}s` }}>
+              <Card key={meta.id} className="animate-enter group" style={{ animationDelay: `${i * 0.05}s` }}>
                 <div className="flex items-center gap-3 mb-3">
+                  {/* AHORA PON ESTO: */}
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background:`${meta.color}18` }}>
-                    {meta.emoji}
+                    style={{ background: `${meta.color}18` }}>
+                    {getFlagEmoji(meta.emoji)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-stone-800">{meta.nombre}</h3>
+                      <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                        {meta.nombre}
+                      </h3>
                       <Badge color={estadoBadge[meta.estado]}>{estadoLabel[meta.estado]}</Badge>
                     </div>
                   </div>
@@ -185,33 +189,33 @@ export default function MetasPage() {
             <div>
               <label className="ff-label">Emoji</label>
               <input className="ff-input text-center text-xl" maxLength={2} value={form.emoji}
-                onChange={e => setForm({...form, emoji:e.target.value})} />
+                onChange={e => setForm({ ...form, emoji: e.target.value })} />
             </div>
             <div className="col-span-3">
               <label className="ff-label">Nombre</label>
               <input className="ff-input" placeholder="Ej: Casa, Vacaciones..." required
-                value={form.nombre} onChange={e => setForm({...form, nombre:e.target.value})} />
+                value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Monto objetivo</label>
               <input className="ff-input" type="number" min="1" step="0.01" placeholder="0.00" required
-                value={form.meta} onChange={e => setForm({...form, meta:e.target.value})} />
+                value={form.meta} onChange={e => setForm({ ...form, meta: e.target.value })} />
             </div>
             <div>
               <label className="ff-label">% ingreso mensual</label>
               <input className="ff-input" type="number" min="0" max="100" placeholder="10" required
-                value={form.pct_mensual} onChange={e => setForm({...form, pct_mensual:e.target.value})} />
+                value={form.pct_mensual} onChange={e => setForm({ ...form, pct_mensual: e.target.value })} />
             </div>
           </div>
           <div>
             <label className="ff-label">Color</label>
             <div className="flex gap-3 flex-wrap">
-              {['#10b981','#f59e0b','#8b5cf6','#38bdf8','#fb7185','#fb923c'].map(c => (
-                <button type="button" key={c} onClick={() => setForm({...form, color:c})}
+              {['#10b981', '#f59e0b', '#8b5cf6', '#38bdf8', '#fb7185', '#fb923c'].map(c => (
+                <button type="button" key={c} onClick={() => setForm({ ...form, color: c })}
                   className="w-8 h-8 rounded-full transition-all"
-                  style={{ background:c, outline: form.color===c ? `3px solid ${c}` : 'none', outlineOffset: 2 }} />
+                  style={{ background: c, outline: form.color === c ? `3px solid ${c}` : 'none', outlineOffset: 2 }} />
               ))}
             </div>
           </div>
