@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { StatCard, Card, ProgressBar, Badge } from '@/components/ui/Card'
 import { TrendingUp, TrendingDown, Wallet, Target, ArrowUpRight, Loader2 } from 'lucide-react'
-import { supabase,getFlagEmoji } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase' // Quitamos getFlagEmoji de aquí
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts'
-import { formatCurrency, getFlagEmoji } from '@/lib/utils'
+import { formatCurrency, getFlagEmoji } from '@/lib/utils' // Se queda solo aquí
 
 const MESES_LABEL = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -129,7 +129,7 @@ export default function Dashboard() {
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
                     <span className="text-xs text-stone-500 capitalize">{d.name}</span>
                   </div>
-                  <span className="text-xs font-bold text-stone-800">{d.value}%</span>
+                 <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
                 </div>
               ))}
             </div>
@@ -150,7 +150,7 @@ export default function Dashboard() {
                     <span style={{ color: 'var(--text-primary)' }}>
                       {getFlagEmoji(m.emoji)} {m.nombre}
                     </span>
-                    <span className="text-stone-400">{formatCurrency(m.actual)} / {formatCurrency(m.meta)}</span>
+                   <span style={{ color: 'var(--text-muted)' }}>{formatCurrency(m.actual)} / {formatCurrency(m.meta)}</span>
                   </div>
                   <ProgressBar value={m.actual || 0} max={m.meta || 1} color={m.color} />
                 </div>

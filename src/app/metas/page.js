@@ -4,9 +4,8 @@ import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar, Badge } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import { Plus, Loader2, Trash2 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, getFlagEmoji } from '@/lib/utils' // Añade getFlagEmoji aquí
+import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 
 function mesesRestantes(actual, meta, pctMensual, ingresoMensual = 5500) {
   const aporteMensual = (pctMensual / 100) * ingresoMensual
@@ -120,7 +119,6 @@ export default function MetasPage() {
             return (
               <Card key={meta.id} className="animate-enter group" style={{ animationDelay: `${i * 0.05}s` }}>
                 <div className="flex items-center gap-3 mb-3">
-                  {/* AHORA PON ESTO: */}
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                     style={{ background: `${meta.color}18` }}>
                     {getFlagEmoji(meta.emoji)}
