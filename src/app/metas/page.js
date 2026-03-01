@@ -66,7 +66,7 @@ export default function MetasPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           { label:'Total ahorrado',   value: formatCurrency(totalAhorrado), color:'#10b981' },
           { label:'% del ingreso destinado', value: `${totalPct}%`, color: totalPct > 30 ? '#10b981' : '#f59e0b' },
@@ -87,7 +87,7 @@ export default function MetasPage() {
           return (
             <Card key={meta.id} className={`animate-enter group hover:border-white/15 transition-all cursor-pointer`}
               style={{ animationDelay:`${i*0.05}s`, borderColor: meta.estado==='completada' ? 'rgba(52,211,153,0.2)' : undefined }}>
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 {/* Emoji */}
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
                   style={{ background:`${meta.color}18` }}>
@@ -96,7 +96,7 @@ export default function MetasPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
+           <div className="text-right flex-shrink-0 sm:ml-6 space-y-1 self-end sm:self-auto">
                     <h3 className="font-bold text-stone-800">{meta.nombre}</h3>
                     <Badge color={estadoBadge[meta.estado]}>{estadoLabel[meta.estado]}</Badge>
                   </div>
