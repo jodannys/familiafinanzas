@@ -84,7 +84,7 @@ export default function GastosPage() {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-          <input className="ff-input pl-9 h-10" placeholder="Buscar movimiento..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="ff-input pl-9 h-10" placeholder="  Buscar movimiento..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-2 flex-wrap">
           {[
