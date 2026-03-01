@@ -56,7 +56,7 @@ export default function GastosPage() {
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
           <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Ingresos & Egresos</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Ingresos & Egresos</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} /> Nuevo registro
@@ -64,7 +64,7 @@ export default function GastosPage() {
       </div>
 
       {/* Totals */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           { label:'Ingresos del mes', value: formatCurrency(ingresos), icon: ArrowUpRight, color:'#10b981' },
           { label:'Egresos del mes',  value: formatCurrency(egresos),  icon: ArrowDownRight, color:'#fb7185' },

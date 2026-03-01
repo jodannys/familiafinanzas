@@ -80,7 +80,7 @@ export default function ReportesPage() {
     <AppShell>
       <div className="mb-8 animate-enter">
         <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
-        <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Reportes & Analítica</h1>
+     <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Reportes & Analítica</h1>
         <p className="text-sm text-stone-400 mt-1">Año 2026 — análisis completo de tu gasto</p>
       </div>
 

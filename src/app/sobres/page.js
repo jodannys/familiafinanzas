@@ -65,7 +65,7 @@ export default function SobresPage() {
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
           <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Sobres Digitales</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Sobres Digitales</h1>
           <p className="text-sm text-stone-400 mt-1">Control de gastos diarios por categoría</p>
         </div>
         <button onClick={() => setModalSobre(true)} className="ff-btn-primary flex items-center gap-2">

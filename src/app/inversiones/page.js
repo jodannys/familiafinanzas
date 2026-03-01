@@ -14,21 +14,27 @@ const DEMO = [
   { id:2, nombre:'ETF Europa',            capital:2000, aporte:200, tasa:7, años:15, bolaNieve:true,  color:'#38bdf8', emoji:'🌍' },
   { id:3, nombre:'Negocio Familiar',      capital:8000, aporte:0,   tasa:12,años:5,  bolaNieve:false, color:'#f59e0b', emoji:'🏪' },
 ]
-
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
+  
   return (
-    <div style={{ background:'var(--bg-card)', border:'1px solid var(--border-glass))', borderRadius:12, padding:'10px 14px' }}>
-      <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)'">Año {label}</p>
+    <div style={{ 
+      background: 'var(--bg-card)', 
+      border: '1px solid var(--border-glass)', 
+      borderRadius: 12, 
+      padding: '10px 14px' 
+    }}>
+      <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+        Año {label}
+      </p>
       {payload.map(p => (
-        <p key={p.name} className="text-xs font-semibold" style={{ color:p.color }}>
+        <p key={p.name} className="text-xs font-semibold" style={{ color: p.color }}>
           {p.name === 'contributed' ? 'Aportado' : 'Balance'}: {formatCurrency(p.value)}
         </p>
       ))}
     </div>
   )
 }
-
 export default function InversionesPage() {
   const [inversiones, setInversiones] = useState(DEMO)
   const [selected, setSelected] = useState(DEMO[0])
@@ -63,7 +69,7 @@ export default function InversionesPage() {
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
           <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Inversiones</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Inversiones</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} /> Nueva inversión
@@ -103,7 +109,7 @@ export default function InversionesPage() {
         {/* Detail & chart */}
         <div className="col-span-1 lg:col-span-2 space-y-6">
           {/* KPIs */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label:'Balance final',       value: formatCurrency(calc.finalBalance),   color: selected.color },
               { label:'Total aportado',      value: formatCurrency(calc.totalContributed), color:'var(--text-secondary)' },
