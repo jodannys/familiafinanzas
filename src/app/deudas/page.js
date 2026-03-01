@@ -55,7 +55,7 @@ export default function DeudasPage() {
       </div>
 
       {/* Totals */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <div className="glass-card p-5 animate-enter" style={{ borderColor:'rgba(251,113,133,0.2)' }}>
           <p className="text-xs text-rose-400 uppercase tracking-wider font-semibold mb-2">Total que debo</p>
           <p className="text-3xl font-bold text-rose-400" style={{ letterSpacing:'-0.03em' }}>{formatCurrency(totalDebo)}</p>
@@ -107,7 +107,7 @@ export default function DeudasPage() {
                   </div>
                   <p className="text-xs text-stone-400 mb-4">{d.entidad}{d.venceDia > 0 && ` · Pago el día ${d.venceDia} de cada mes`}</p>
 
-                  <div className="grid grid-cols-4 gap-4 mb-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-xs">
                     <div><p className="text-stone-400 mb-1">Original</p><p className="font-bold text-stone-800">{formatCurrency(d.monto)}</p></div>
                     <div><p className="text-stone-400 mb-1">Pendiente</p><p className="font-bold" style={{ color:d.color }}>{formatCurrency(d.pendiente)}</p></div>
                     <div><p className="text-stone-400 mb-1">Cuota/mes</p><p className="font-bold text-stone-800">{formatCurrency(d.cuota)}</p></div>
@@ -133,7 +133,7 @@ export default function DeudasPage() {
 
       <Modal open={modal} onClose={() => setModal(false)} title="Registrar Deuda">
         <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Tipo</label>
               <select className="ff-input" value={form.tipo} onChange={e => setForm({...form, tipo:e.target.value})}>
@@ -152,7 +152,7 @@ export default function DeudasPage() {
             <input className="ff-input" placeholder="Ej: Banco Nacional, Carlos..."
               value={form.entidad} onChange={e => setForm({...form, entidad:e.target.value})} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Monto total (€)</label>
               <input className="ff-input" type="number" min="0" step="0.01" required
@@ -171,7 +171,7 @@ export default function DeudasPage() {
             <label htmlFor="interes" className="text-sm text-stone-600 cursor-pointer">¿Tiene interés?</label>
           </div>
           {form.tieneInteres && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="ff-label">Tasa anual (%)</label>
                 <input className="ff-input" type="number" min="0" step="0.1"

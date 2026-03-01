@@ -64,7 +64,7 @@ export default function GastosPage() {
       </div>
 
       {/* Totals */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
         {[
           { label:'Ingresos del mes', value: formatCurrency(ingresos), icon: ArrowUpRight, color:'#10b981' },
           { label:'Egresos del mes',  value: formatCurrency(egresos),  icon: ArrowDownRight, color:'#fb7185' },
@@ -138,7 +138,7 @@ export default function GastosPage() {
       {/* Add modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="Nuevo Registro">
         <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Tipo</label>
               <select className="ff-input" value={form.tipo} onChange={e => setForm({...form, tipo:e.target.value})}>
@@ -157,7 +157,7 @@ export default function GastosPage() {
             <input className="ff-input" placeholder="Ej: Arriendo, Sueldo, Mercado..." required
               value={form.descripcion} onChange={e => setForm({...form, descripcion:e.target.value})} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Categoría</label>
               <select className="ff-input" value={form.categoria} onChange={e => setForm({...form, categoria:e.target.value})}>

@@ -73,7 +73,7 @@ export default function SobresPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sobre list */}
         <div className="space-y-3">
           {sobres.map(s => {
@@ -108,7 +108,7 @@ export default function SobresPage() {
         </div>
 
         {/* Detail */}
-        <div className="col-span-2 space-y-5">
+        <div className="col-span-1 lg:col-span-2 space-y-5">
           {/* Header card */}
           <div className="glass-card p-6" style={{ borderColor:`${sobreActual.color}30` }}>
             <div className="flex items-center gap-4 mb-5">
@@ -121,7 +121,7 @@ export default function SobresPage() {
                 <Plus size={14} /> Anotar gasto
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
               <div>
                 <p className="text-xs text-stone-400 mb-1">Gastado</p>
                 <p className="text-xl font-bold text-rose-400">{formatCurrency(sobreActual.gastado)}</p>
@@ -172,7 +172,7 @@ export default function SobresPage() {
       {/* Add sobre modal */}
       <Modal open={modalSobre} onClose={() => setModalSobre(false)} title="Nuevo Sobre Digital">
         <form onSubmit={handleAddSobre} className="space-y-4">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="ff-label">Emoji</label>
               <input className="ff-input text-center text-xl" maxLength={2} value={formSobre.emoji}

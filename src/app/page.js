@@ -41,24 +41,21 @@ const alertas = [
 
 // ─── Custom tooltip ────────────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
+  if (!active || !payload?.length) return null;
+  
   return (
-    // Error 1: Tenías un paréntesis de más en 'var(--border-glass))'
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 12, padding: '10px 14px' }}>
-      
-      {/* Error 2: Faltaba una coma después de 'var(--text-secondary)' */}
-      <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 'semibold' }}>
+      <p className="text-xs mb-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>
         {label}
       </p>
-
       {payload.map((p) => (
         <p key={p.name} className="text-sm font-semibold" style={{ color: p.color }}>
           {p.name === 'ingresos' ? '↑' : '↓'} {formatCurrency(p.value)}
         </p>
       ))}
     </div>
-  )
-}
+  );
+};
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const saldo = 5500 - 3900
@@ -83,7 +80,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           label="Ingresos del mes"
           value={formatCurrency(5500)}
@@ -118,10 +115,10 @@ export default function Dashboard() {
       </div>
 
       {/* Main grid */}
-      <div className="grid grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
         {/* Flow chart */}
-        <Card className="col-span-2 animate-enter animate-enter-delay-1">
+        <Card className="col-span-1 lg:col-span-2 animate-enter animate-enter-delay-1">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="font-bold text-stone-800">Flujo Mensual</h3>
@@ -177,10 +174,10 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Metas de ahorro */}
-        <Card className="col-span-2 animate-enter animate-enter-delay-3">
+        <Card className="col-span-1 lg:col-span-2 animate-enter animate-enter-delay-3">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-bold text-stone-800">Progreso de Metas</h3>
             <a href="/metas" className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">

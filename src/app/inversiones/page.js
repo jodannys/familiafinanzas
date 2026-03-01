@@ -18,22 +18,17 @@ const DEMO = [
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    // Error 1: Sobraba un paréntesis en 'var(--border-glass))'
-    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 12, padding: '10px 14px' }}>
-      
-      {/* Error 2: Tenías un " al final del style que rompía la etiqueta */}
-      <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
-        Año {label}
-      </p>
-
+    <div style={{ background:'var(--bg-card)', border:'1px solid var(--border-glass))', borderRadius:12, padding:'10px 14px' }}>
+      <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)'">Año {label}</p>
       {payload.map(p => (
-        <p key={p.name} className="text-xs font-semibold" style={{ color: p.color }}>
+        <p key={p.name} className="text-xs font-semibold" style={{ color:p.color }}>
           {p.name === 'contributed' ? 'Aportado' : 'Balance'}: {formatCurrency(p.value)}
         </p>
       ))}
     </div>
   )
 }
+
 export default function InversionesPage() {
   const [inversiones, setInversiones] = useState(DEMO)
   const [selected, setSelected] = useState(DEMO[0])
@@ -75,7 +70,7 @@ export default function InversionesPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lista */}
         <div className="space-y-3">
           {inversiones.map(inv => {
@@ -106,9 +101,9 @@ export default function InversionesPage() {
         </div>
 
         {/* Detail & chart */}
-        <div className="col-span-2 space-y-6">
+        <div className="col-span-1 lg:col-span-2 space-y-6">
           {/* KPIs */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {[
               { label:'Balance final',       value: formatCurrency(calc.finalBalance),   color: selected.color },
               { label:'Total aportado',      value: formatCurrency(calc.totalContributed), color:'var(--text-secondary)' },
@@ -184,7 +179,7 @@ export default function InversionesPage() {
 
       <Modal open={modal} onClose={() => setModal(false)} title="Nueva Inversión">
         <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="ff-label">Emoji</label>
               <input className="ff-input text-center text-xl" maxLength={2} value={form.emoji}
@@ -196,7 +191,7 @@ export default function InversionesPage() {
                 value={form.nombre} onChange={e => setForm({...form, nombre:e.target.value})} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Capital inicial (€)</label>
               <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
@@ -208,7 +203,7 @@ export default function InversionesPage() {
                 value={form.aporte} onChange={e => setForm({...form, aporte:e.target.value})} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="ff-label">% Rendimiento anual estimado</label>
               <input className="ff-input" type="number" min="0.1" max="100" step="0.1" placeholder="8" required

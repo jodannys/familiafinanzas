@@ -84,7 +84,7 @@ export default function ReportesPage() {
         <p className="text-sm text-stone-400 mt-1">Año 2026 — análisis completo de tu gasto</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Subcategory list */}
         <div>
           <div className="flex gap-2 mb-4 flex-wrap">
@@ -122,9 +122,9 @@ export default function ReportesPage() {
         </div>
 
         {/* Detail chart */}
-        <div className="col-span-2 space-y-5">
+        <div className="col-span-1 lg:col-span-2 space-y-5">
           {/* KPIs for selected subcat */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
               { l:'Total anual',     v:formatCurrency(total),   c:'#f1f5f9' },
               { l:'Promedio/mes',    v:formatCurrency(prom),    c:'#94a3b8' },
@@ -161,7 +161,7 @@ export default function ReportesPage() {
           {/* Tabla mensual */}
           <Card>
             <h3 className="font-bold text-stone-800 mb-4">Detalle mensual — {subcatSelected}</h3>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               {MESES.map((m, i) => {
                 const v = datos[i]
                 const isMax = v === max

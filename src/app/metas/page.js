@@ -66,7 +66,7 @@ export default function MetasPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
         {[
           { label:'Total ahorrado',   value: formatCurrency(totalAhorrado), color:'#10b981' },
           { label:'% del ingreso destinado', value: `${totalPct}%`, color: totalPct > 30 ? '#10b981' : '#f59e0b' },
@@ -127,7 +127,7 @@ export default function MetasPage() {
       {/* Add modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="Nueva Meta de Ahorro">
         <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="ff-label">Emoji</label>
               <input className="ff-input text-center text-xl" maxLength={2} value={form.emoji}
@@ -139,7 +139,7 @@ export default function MetasPage() {
                 value={form.nombre} onChange={e => setForm({...form, nombre:e.target.value})} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Monto objetivo (€)</label>
               <input className="ff-input" type="number" min="1" step="0.01" placeholder="0.00" required
