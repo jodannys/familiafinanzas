@@ -103,8 +103,7 @@ const ThemeContext = createContext({ theme: 'linen', setTheme: () => { } })
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState('linen')
 
-  // Load from localStorage on mount
-  useEffect(() => {
+useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('ff-theme') : null
     if (saved && THEMES[saved]) setThemeState(saved)
   }, [])
