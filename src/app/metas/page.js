@@ -1,18 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar, Badge } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-
-const DEMO_METAS = [
-  { id:1, nombre:'Fondo de Emergencia', emoji:'🛡️', meta:5000,  actual:3200, pct_mensual:10, estado:'activa',    color:'#10b981', prioridad:1 },
-  { id:2, nombre:'Casa',                emoji:'🏠', meta:30000, actual:8500, pct_mensual:15, estado:'activa',    color:'#f59e0b', prioridad:2 },
-  { id:3, nombre:'Vacaciones',          emoji:'✈️', meta:2000,  actual:650,  pct_mensual:5,  estado:'activa',    color:'#8b5cf6', prioridad:3 },
-  { id:4, nombre:'Carro',               emoji:'🚗', meta:15000, actual:1200, pct_mensual:5,  estado:'pausada',   color:'#38bdf8', prioridad:4 },
-  { id:5, nombre:'Laptop nueva',        emoji:'💻', meta:1200,  actual:1200, pct_mensual:0,  estado:'completada',color:'#34d399', prioridad:5 },
-]
+import { supabase } from '@/lib/supabase'
 
 function mesesRestantes(actual, meta, pctMensual, ingresoMensual = 5500) {
   const aporteMensual = (pctMensual / 100) * ingresoMensual
@@ -27,35 +20,54 @@ function mesesRestantes(actual, meta, pctMensual, ingresoMensual = 5500) {
 }
 
 export default function MetasPage() {
-  const [metas, setMetas] = useState(DEMO_METAS)
+  const [metas, setMetas] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({ nombre:'', emoji:'🎯', meta:'', pct_mensual:'', color:'#10b981' })
 
-  const activas = metas.filter(m => m.estado === 'activa')
-  const totalPct = activas.reduce((s,m) => s+m.pct_mensual, 0)
-  const totalAhorrado = metas.reduce((s,m) => s+m.actual, 0)
+  useEffect(() => { cargar() }, [])
 
-  function handleAdd(e) {
-    e.preventDefault()
-    setMetas(prev => [...prev, {
-      ...form,
-      id: Date.now(),
-      meta: parseFloat(form.meta),
-      pct_mensual: parseFloat(form.pct_mensual),
-      actual: 0,
-      estado: 'activa',
-      prioridad: prev.length + 1,
-    }])
-    setModal(false)
-    setForm({ nombre:'', emoji:'🎯', meta:'', pct_mensual:'', color:'#10b981' })
+  async function cargar() {
+    setLoading(true)
+    const { data, error } = await supabase.from('metas').select('*').order('created_at')
+    if (error) setError(error.message)
+    else setMetas(data || [])
+    setLoading(false)
   }
 
-  const estadoBadge = { activa:'green', pausada:'gold', completada:'sky' }
+  async function handleAdd(e) {
+    e.preventDefault()
+    setSaving(true)
+    const { data, error } = await supabase
+      .from('metas')
+      .insert([{ nombre: form.nombre, emoji: form.emoji, meta: parseFloat(form.meta), actual: 0, estado: 'activa', color: form.color, pct_mensual: parseFloat(form.pct_mensual) }])
+      .select()
+    if (error) setError(error.message)
+    else { setMetas(prev => [...prev, data[0]]); setModal(false); setForm({ nombre:'', emoji:'🎯', meta:'', pct_mensual:'', color:'#10b981' }) }
+    setSaving(false)
+  }
+
+  async function handleDelete(id) {
+    const { error } = await supabase.from('metas').delete().eq('id', id)
+    if (!error) setMetas(prev => prev.filter(m => m.id !== id))
+  }
+
+  async function handleEstado(id, estado) {
+    const { error } = await supabase.from('metas').update({ estado }).eq('id', id)
+    if (!error) setMetas(prev => prev.map(m => m.id === id ? { ...m, estado } : m))
+  }
+
+  const activas = metas.filter(m => m.estado === 'activa')
+  const totalPct = activas.reduce((s, m) => s + (m.pct_mensual || 0), 0)
+  const totalAhorrado = metas.reduce((s, m) => s + (m.actual || 0), 0)
+
+  const estadoBadge = { activa:'emerald', pausada:'gold', completada:'sky' }
   const estadoLabel = { activa:'Activa', pausada:'Pausada', completada:'Completada ✓' }
 
   return (
     <AppShell>
-      {/* Header */}
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
           <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
@@ -65,6 +77,13 @@ export default function MetasPage() {
           <Plus size={16} /> Nueva meta
         </button>
       </div>
+
+      {error && (
+        <div className="mb-6 px-4 py-3 rounded-xl text-sm font-semibold"
+          style={{ background: 'rgba(192,96,90,0.1)', border: '1px solid rgba(192,96,90,0.25)', color: '#C0605A' }}>
+          {error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -80,59 +99,86 @@ export default function MetasPage() {
         ))}
       </div>
 
-      {/* Meta cards */}
-      <div className="grid grid-cols-1 gap-4">
-        {metas.map((meta, i) => {
-          const pct = Math.min(100, Math.round((meta.actual / meta.meta) * 100))
-          const restante = meta.meta - meta.actual
-          const tiempo = mesesRestantes(meta.actual, meta.meta, meta.pct_mensual)
-          return (
-            <Card key={meta.id} className="animate-enter transition-all cursor-pointer"
-              style={{ animationDelay:`${i*0.05}s` }}>
-
-              {/* Fila 1: emoji + nombre + badge + porcentaje */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                  style={{ background:`${meta.color}18` }}>
-                  {meta.emoji}
+      {/* Cards */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20 gap-3">
+          <Loader2 size={20} className="animate-spin text-stone-400" />
+          <span className="text-sm text-stone-400">Cargando metas...</span>
+        </div>
+      ) : metas.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-stone-400 text-sm mb-4">No hay metas aún</p>
+          <button onClick={() => setModal(true)} className="ff-btn-primary">Crear primera meta</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {metas.map((meta, i) => {
+            const pct = Math.min(100, Math.round(((meta.actual || 0) / meta.meta) * 100))
+            const restante = meta.meta - (meta.actual || 0)
+            const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0)
+            return (
+              <Card key={meta.id} className="animate-enter group" style={{ animationDelay:`${i*0.05}s` }}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                    style={{ background:`${meta.color}18` }}>
+                    {meta.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-bold text-stone-800">{meta.nombre}</h3>
+                      <Badge color={estadoBadge[meta.estado]}>{estadoLabel[meta.estado]}</Badge>
+                    </div>
+                  </div>
+                  <p className="text-xl font-bold flex-shrink-0" style={{ color: meta.color }}>{pct}%</p>
                 </div>
-                <div className="flex-1 min-w-0">
+
+                <ProgressBar value={meta.actual || 0} max={meta.meta} color={meta.color} className="mb-3" />
+
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-stone-800">{meta.nombre}</h3>
-                    <Badge color={estadoBadge[meta.estado]}>{estadoLabel[meta.estado]}</Badge>
+                    <span className="text-sm font-bold" style={{ color: meta.color }}>{formatCurrency(meta.actual || 0)}</span>
+                    <span className="text-xs text-stone-400">de {formatCurrency(meta.meta)}</span>
+                    {meta.estado !== 'completada' && restante > 0 && (
+                      <span className="text-xs text-stone-400">· faltan {formatCurrency(restante)}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-stone-400">{meta.pct_mensual || 0}% /mes</span>
+                    <span className="text-xs font-semibold" style={{ color: meta.color }}>{tiempo}</span>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {meta.estado === 'activa' && (
+                        <button onClick={() => handleEstado(meta.id, 'pausada')}
+                          className="text-xs px-2 py-1 rounded-lg"
+                          style={{ background: 'rgba(193,122,58,0.1)', color: '#C17A3A' }}>
+                          Pausar
+                        </button>
+                      )}
+                      {meta.estado === 'pausada' && (
+                        <button onClick={() => handleEstado(meta.id, 'activa')}
+                          className="text-xs px-2 py-1 rounded-lg"
+                          style={{ background: 'rgba(45,122,95,0.1)', color: '#2D7A5F' }}>
+                          Activar
+                        </button>
+                      )}
+                      <button onClick={() => handleEstado(meta.id, 'completada')}
+                        className="text-xs px-2 py-1 rounded-lg"
+                        style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8' }}>
+                        ✓
+                      </button>
+                      <button onClick={() => handleDelete(meta.id)}
+                        className="p-1.5 rounded-lg"
+                        style={{ color: '#C0605A' }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <p className="text-xl font-bold flex-shrink-0" style={{ color: meta.color }}>
-                  {pct}%
-                </p>
-              </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
-              {/* Barra de progreso */}
-              <ProgressBar value={meta.actual} max={meta.meta} color={meta.color} className="mb-3" />
-
-              {/* Fila 3: montos + tiempo */}
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold" style={{ color: meta.color }}>
-                    {formatCurrency(meta.actual)}
-                  </span>
-                  <span className="text-xs text-stone-400">de {formatCurrency(meta.meta)}</span>
-                  {meta.estado !== 'completada' && restante > 0 && (
-                    <span className="text-xs text-stone-400">· faltan {formatCurrency(restante)}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-xs text-stone-400">
-                  <span>{meta.pct_mensual}% /mes</span>
-                  <span className="font-semibold" style={{ color: meta.color }}>{tiempo}</span>
-                </div>
-              </div>
-
-            </Card>
-          )
-        })}
-      </div>
-
-      {/* Modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="Nueva Meta de Ahorro">
         <form onSubmit={handleAdd} className="space-y-4">
           <div className="grid grid-cols-4 gap-4">
@@ -155,7 +201,7 @@ export default function MetasPage() {
             </div>
             <div>
               <label className="ff-label">% ingreso mensual</label>
-              <input className="ff-input" type="number" min="1" max="100" placeholder="10" required
+              <input className="ff-input" type="number" min="0" max="100" placeholder="10" required
                 value={form.pct_mensual} onChange={e => setForm({...form, pct_mensual:e.target.value})} />
             </div>
           </div>
@@ -171,7 +217,10 @@ export default function MetasPage() {
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setModal(false)} className="ff-btn-ghost flex-1">Cancelar</button>
-            <button type="submit" className="ff-btn-primary flex-1">Crear meta</button>
+            <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving ? 'Guardando...' : 'Crear meta'}
+            </button>
           </div>
         </form>
       </Modal>

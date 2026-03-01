@@ -1,192 +1,206 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import { Card, Badge, ProgressBar } from '@/components/ui/Card'
+import { Card, Badge } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import { Plus, Loader2, Trash2, TrendingDown, TrendingUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-
-const DEMO = [
-  { id:1, tipo:'debo',   nombre:'Tarjeta VISA',        monto:3500, pendiente:2800, cuota:350, tasa:18, venceDia:15, estado:'activa',   color:'#fb7185', entidad:'Banco Nacional' },
-  { id:2, tipo:'debo',   nombre:'Préstamo personal',   monto:8000, pendiente:5200, cuota:420, tasa:9,  venceDia:5,  estado:'activa',   color:'#fb7185', entidad:'Caja de Ahorros' },
-  { id:3, tipo:'medeben',nombre:'Préstamo a hermano',  monto:600,  pendiente:400,  cuota:100, tasa:0,  venceDia:1,  estado:'activa',   color:'#10b981', entidad:'Carlos R.' },
-  { id:4, tipo:'medeben',nombre:'Deuda trabajo',       monto:250,  pendiente:0,    cuota:0,   tasa:0,  venceDia:0,  estado:'pagada',   color:'#34d399', entidad:'Empresa ABC' },
-]
+import { supabase } from '@/lib/supabase'
 
 export default function DeudasPage() {
-  const [deudas, setDeudas] = useState(DEMO)
+  const [deudas, setDeudas] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
   const [modal, setModal] = useState(false)
-  const [form, setForm] = useState({ tipo:'debo', nombre:'', entidad:'', monto:'', cuota:'', tasa:'', venceDia:'', tieneInteres:false })
-  const [tab, setTab] = useState('debo')
+  const [form, setForm] = useState({ tipo:'debo', nombre:'', entidad:'', monto:'', pendiente:'', cuota:'', estado:'activa', color:'#fb7185' })
 
-  const activas = deudas.filter(d => d.estado === 'activa')
-  const totalDebo = activas.filter(d=>d.tipo==='debo').reduce((s,d)=>s+d.pendiente,0)
-  const totalMeDeben = activas.filter(d=>d.tipo==='medeben').reduce((s,d)=>s+d.pendiente,0)
+  useEffect(() => { cargar() }, [])
 
-  const filtradas = deudas.filter(d => d.tipo === tab)
-
-  function handleAdd(e) {
-    e.preventDefault()
-    setDeudas(prev => [...prev, {
-      ...form,
-      id: Date.now(),
-      monto: parseFloat(form.monto),
-      pendiente: parseFloat(form.monto),
-      cuota: parseFloat(form.cuota || 0),
-      tasa: form.tieneInteres ? parseFloat(form.tasa || 0) : 0,
-      venceDia: parseInt(form.venceDia || 0),
-      estado: 'activa',
-      color: form.tipo === 'debo' ? '#fb7185' : '#10b981',
-    }])
-    setModal(false)
-    setForm({ tipo:'debo', nombre:'', entidad:'', monto:'', cuota:'', tasa:'', venceDia:'', tieneInteres:false })
+  async function cargar() {
+    setLoading(true)
+    const { data, error } = await supabase.from('deudas').select('*').order('created_at')
+    if (error) setError(error.message)
+    else setDeudas(data || [])
+    setLoading(false)
   }
+
+  async function handleAdd(e) {
+    e.preventDefault()
+    setSaving(true)
+    const { data, error } = await supabase
+      .from('deudas')
+      .insert([{ ...form, monto: parseFloat(form.monto), pendiente: parseFloat(form.pendiente), cuota: parseFloat(form.cuota || 0) }])
+      .select()
+    if (error) setError(error.message)
+    else { setDeudas(prev => [...prev, data[0]]); setModal(false); setForm({ tipo:'debo', nombre:'', entidad:'', monto:'', pendiente:'', cuota:'', estado:'activa', color:'#fb7185' }) }
+    setSaving(false)
+  }
+
+  async function handleDelete(id) {
+    const { error } = await supabase.from('deudas').delete().eq('id', id)
+    if (!error) setDeudas(prev => prev.filter(d => d.id !== id))
+  }
+
+  async function marcarPagada(id) {
+    const { error } = await supabase.from('deudas').update({ estado: 'pagada' }).eq('id', id)
+    if (!error) setDeudas(prev => prev.map(d => d.id === id ? { ...d, estado: 'pagada' } : d))
+  }
+
+  const debo    = deudas.filter(d => d.tipo === 'debo' && d.estado !== 'pagada')
+  const medeben = deudas.filter(d => d.tipo === 'medeben' && d.estado !== 'pagada')
+  const totalDebo    = debo.reduce((s, d) => s + d.pendiente, 0)
+  const totalMedeben = medeben.reduce((s, d) => s + d.pendiente, 0)
+
+  const estadoColor = { activa: 'rose', pagada: 'emerald', mora: 'gold' }
 
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
           <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
-        <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Deudas</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Deudas</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
-          <Plus size={16} /> Registrar deuda
+          <Plus size={16} /> Nueva deuda
         </button>
       </div>
 
-      {/* Totals */}
+      {error && (
+        <div className="mb-6 px-4 py-3 rounded-xl text-sm font-semibold"
+          style={{ background: 'rgba(192,96,90,0.1)', border: '1px solid rgba(192,96,90,0.25)', color: '#C0605A' }}>
+          {error}
+        </div>
+      )}
+
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        <div className="glass-card p-5 animate-enter" style={{ borderColor:'rgba(251,113,133,0.2)' }}>
-          <p className="text-xs text-rose-400 uppercase tracking-wider font-semibold mb-2">Total que debo</p>
-          <p className="text-3xl font-bold text-rose-400" style={{ letterSpacing:'-0.03em' }}>{formatCurrency(totalDebo)}</p>
-          <p className="text-xs text-stone-400 mt-1">{activas.filter(d=>d.tipo==='debo').length} deudas activas</p>
-        </div>
-        <div className="glass-card p-5 animate-enter animate-enter-delay-1" style={{ borderColor:'rgba(16,185,129,0.2)' }}>
-          <p className="text-xs text-emerald-400 uppercase tracking-wider font-semibold mb-2">Total que me deben</p>
-          <p className="text-3xl font-bold text-emerald-400" style={{ letterSpacing:'-0.03em' }}>{formatCurrency(totalMeDeben)}</p>
-          <p className="text-xs text-stone-400 mt-1">{activas.filter(d=>d.tipo==='medeben').length} pendientes de cobro</p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        {[{ v:'debo', l:'Lo que debo' }, { v:'medeben', l:'Lo que me deben' }].map(t => (
-          <button key={t.v} onClick={() => setTab(t.v)}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab===t.v ? 'bg-stone-100 text-stone-800' : 'text-stone-400 hover:text-stone-800'
-            }`}>
-            {t.l}
-          </button>
-        ))}
-      </div>
-
-      {/* Debt cards */}
-      <div className="space-y-4">
-        {filtradas.map((d, i) => {
-          const pct = Math.round(((d.monto - d.pendiente) / d.monto) * 100)
-          const interesAnual = d.tasa > 0 ? d.pendiente * (d.tasa/100) : 0
-          const isOverdue = d.estado === 'mora'
-          return (
-            <Card key={d.id} className="animate-enter" style={{ animationDelay:`${i*0.05}s` }}>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background:`${d.color}18` }}>
-                  {d.estado === 'pagada'
-                    ? <CheckCircle size={18} style={{ color:d.color }} />
-                    : isOverdue
-                      ? <AlertCircle size={18} className="text-rose-400" />
-                      : <Clock size={18} style={{ color:d.color }} />}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-0.5">
-                    <h3 className="font-bold text-stone-800">{d.nombre}</h3>
-                    <Badge color={d.estado==='pagada' ? 'sky' : d.tipo==='medeben' ? 'emerald' : 'rose'}>
-                      {d.estado==='pagada' ? 'Pagada ✓' : d.tipo==='medeben' ? 'Me deben' : 'Activa'}
-                    </Badge>
-                    {d.tasa > 0 && <Badge color="gold">{d.tasa}% interés</Badge>}
-                  </div>
-                  <p className="text-xs text-stone-400 mb-4">{d.entidad}{d.venceDia > 0 && ` · Pago el día ${d.venceDia} de cada mes`}</p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-xs">
-                    <div><p className="text-stone-400 mb-1">Original</p><p className="font-bold text-stone-800">{formatCurrency(d.monto)}</p></div>
-                    <div><p className="text-stone-400 mb-1">Pendiente</p><p className="font-bold" style={{ color:d.color }}>{formatCurrency(d.pendiente)}</p></div>
-                    <div><p className="text-stone-400 mb-1">Cuota/mes</p><p className="font-bold text-stone-800">{formatCurrency(d.cuota)}</p></div>
-                    {d.tasa > 0 && <div><p className="text-stone-400 mb-1">Interés anual</p><p className="font-bold text-amber-400">≈{formatCurrency(interesAnual)}</p></div>}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <ProgressBar value={d.monto - d.pendiente} max={d.monto} color={d.color} className="flex-1" />
-                    <span className="text-xs font-bold text-stone-400 w-10 text-right">{pct}%</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )
-        })}
-        {filtradas.length === 0 && (
-          <div className="text-center py-16 text-stone-400">
-            <p className="text-lg mb-1">No hay registros</p>
-            <p className="text-sm">Agrega una deuda para empezar a controlarla</p>
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingDown size={16} style={{ color: '#C0605A' }} />
+            <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold">Lo que debo</p>
           </div>
-        )}
+          <p className="text-2xl font-bold" style={{ color: '#C0605A', letterSpacing:'-0.02em' }}>{formatCurrency(totalDebo)}</p>
+          <p className="text-xs text-stone-400 mt-1">{debo.length} deuda{debo.length !== 1 ? 's' : ''} activa{debo.length !== 1 ? 's' : ''}</p>
+        </div>
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp size={16} style={{ color: '#2D7A5F' }} />
+            <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold">Me deben</p>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: '#2D7A5F', letterSpacing:'-0.02em' }}>{formatCurrency(totalMedeben)}</p>
+          <p className="text-xs text-stone-400 mt-1">{medeben.length} pendiente{medeben.length !== 1 ? 's' : ''}</p>
+        </div>
       </div>
 
-      <Modal open={modal} onClose={() => setModal(false)} title="Registrar Deuda">
+      {loading ? (
+        <div className="flex items-center justify-center py-20 gap-3">
+          <Loader2 size={20} className="animate-spin text-stone-400" />
+          <span className="text-sm text-stone-400">Cargando deudas...</span>
+        </div>
+      ) : deudas.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-stone-400 text-sm mb-4">No hay deudas registradas</p>
+          <button onClick={() => setModal(true)} className="ff-btn-primary">Agregar deuda</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {deudas.map((d, i) => {
+            const pct = Math.min(100, Math.round(((d.monto - d.pendiente) / d.monto) * 100))
+            return (
+              <Card key={d.id} className="animate-enter group" style={{ animationDelay:`${i*0.05}s` }}>
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: `${d.color}18` }}>
+                    {d.tipo === 'debo' ? <TrendingDown size={16} style={{ color: d.color }} /> : <TrendingUp size={16} style={{ color: '#2D7A5F' }} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="font-bold text-stone-800">{d.nombre}</h3>
+                      {d.entidad && <span className="text-xs text-stone-400">· {d.entidad}</span>}
+                      <Badge color={estadoColor[d.estado]}>{d.estado}</Badge>
+                      <Badge color={d.tipo === 'debo' ? 'rose' : 'emerald'}>{d.tipo === 'debo' ? 'Debo' : 'Me deben'}</Badge>
+                    </div>
+                    {/* Barra progreso pago */}
+                    <div className="w-full h-1.5 rounded-full mb-2" style={{ background: 'var(--progress-track)' }}>
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: d.tipo === 'debo' ? d.color : '#2D7A5F' }} />
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap text-xs text-stone-400">
+                      <span>Pendiente: <span className="font-bold" style={{ color: d.tipo === 'debo' ? d.color : '#2D7A5F' }}>{formatCurrency(d.pendiente)}</span></span>
+                      <span>Total: {formatCurrency(d.monto)}</span>
+                      {d.cuota > 0 && <span>Cuota: {formatCurrency(d.cuota)}/mes</span>}
+                      <span>{pct}% pagado</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    {d.estado !== 'pagada' && (
+                      <button onClick={() => marcarPagada(d.id)}
+                        className="text-xs px-2 py-1 rounded-lg"
+                        style={{ background: 'rgba(45,122,95,0.1)', color: '#2D7A5F' }}>
+                        ✓ Pagada
+                      </button>
+                    )}
+                    <button onClick={() => handleDelete(d.id)} className="p-1.5 rounded-lg" style={{ color: '#C0605A' }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      <Modal open={modal} onClose={() => setModal(false)} title="Nueva Deuda">
         <form onSubmit={handleAdd} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            {['debo','medeben'].map(t => (
+              <button type="button" key={t} onClick={() => setForm({...form, tipo:t})}
+                className="py-3 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  background: form.tipo===t ? (t==='debo' ? 'rgba(192,96,90,0.12)' : 'rgba(45,122,95,0.12)') : 'var(--bg-secondary)',
+                  color: form.tipo===t ? (t==='debo' ? '#C0605A' : '#2D7A5F') : 'var(--text-secondary)',
+                  border: `1px solid ${form.tipo===t ? (t==='debo' ? 'rgba(192,96,90,0.3)' : 'rgba(45,122,95,0.3)') : 'var(--border-glass)'}`,
+                }}>
+                {t === 'debo' ? '↑ Yo debo' : '↓ Me deben'}
+              </button>
+            ))}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="ff-label">Tipo</label>
-              <select className="ff-input" value={form.tipo} onChange={e => setForm({...form, tipo:e.target.value})}>
-                <option value="debo">Lo que debo</option>
-                <option value="medeben">Lo que me deben</option>
-              </select>
-            </div>
             <div>
               <label className="ff-label">Nombre</label>
-              <input className="ff-input" placeholder="Ej: Tarjeta VISA" required
+              <input className="ff-input" placeholder="Ej: Préstamo banco" required
                 value={form.nombre} onChange={e => setForm({...form, nombre:e.target.value})} />
             </div>
-          </div>
-          <div>
-            <label className="ff-label">Entidad / Persona</label>
-            <input className="ff-input" placeholder="Ej: Banco Nacional, Carlos..."
-              value={form.entidad} onChange={e => setForm({...form, entidad:e.target.value})} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="ff-label">Monto total (€)</label>
-              <input className="ff-input" type="number" min="0" step="0.01" required
+              <label className="ff-label">Entidad / Persona</label>
+              <input className="ff-input" placeholder="Ej: Banco, Juan..."
+                value={form.entidad} onChange={e => setForm({...form, entidad:e.target.value})} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="ff-label">Monto total</label>
+              <input className="ff-input" type="number" min="0.01" step="0.01" placeholder="0.00" required
                 value={form.monto} onChange={e => setForm({...form, monto:e.target.value})} />
             </div>
             <div>
-              <label className="ff-label">Cuota mensual (€)</label>
-              <input className="ff-input" type="number" min="0" step="0.01"
+              <label className="ff-label">Pendiente</label>
+              <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
+                value={form.pendiente} onChange={e => setForm({...form, pendiente:e.target.value})} />
+            </div>
+            <div>
+              <label className="ff-label">Cuota /mes</label>
+              <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
                 value={form.cuota} onChange={e => setForm({...form, cuota:e.target.value})} />
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <input type="checkbox" id="interes" checked={form.tieneInteres}
-              onChange={e => setForm({...form, tieneInteres:e.target.checked})}
-              className="w-4 h-4 accent-amber-400" />
-            <label htmlFor="interes" className="text-sm text-stone-600 cursor-pointer">¿Tiene interés?</label>
-          </div>
-          {form.tieneInteres && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="ff-label">Tasa anual (%)</label>
-                <input className="ff-input" type="number" min="0" step="0.1"
-                  value={form.tasa} onChange={e => setForm({...form, tasa:e.target.value})} />
-              </div>
-              <div>
-                <label className="ff-label">Día de pago mensual</label>
-                <input className="ff-input" type="number" min="1" max="31"
-                  value={form.venceDia} onChange={e => setForm({...form, venceDia:e.target.value})} />
-              </div>
-            </div>
-          )}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setModal(false)} className="ff-btn-ghost flex-1">Cancelar</button>
-            <button type="submit" className="ff-btn-primary flex-1">Registrar</button>
+            <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving ? 'Guardando...' : 'Guardar'}
+            </button>
           </div>
         </form>
       </Modal>
