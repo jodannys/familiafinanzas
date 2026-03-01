@@ -63,19 +63,28 @@ export const CATEGORY_CONFIG = {
   deuda:     { label: 'Deudas',          color: '#fb7185', icon: 'CreditCard' },
   remesa:    { label: 'Remesas',         color: '#fb923c', icon: 'Send' },
 }
-// Convierte códigos de país (como "VE") en emojis de banderas reales
+
+
 export function getFlagEmoji(countryCode) {
-  // Si no hay código o es un emoji normal (no letras), lo devuelve tal cual
-  if (!countryCode || countryCode.length !== 2) return countryCode;
-  
-  // Si son dos letras, aplica la conversión de "Regional Indicator Symbols"
-  try {
-    const codePoints = countryCode
-      .toUpperCase()
-      .split('')
-      .map(char => 127397 + char.charCodeAt());
-    return String.fromCodePoint(...codePoints);
-  } catch (e) {
-    return countryCode; // En caso de error, devuelve el texto original
+  // 1. Si no hay código o no son exactamente 2 letras, devolver tal cual
+  if (!countryCode || typeof countryCode !== 'string' || countryCode.length !== 2) {
+    return countryCode;
   }
+
+  // 2. Verificar si son letras de la A a la Z (códigos de país como VE, ES, AR)
+  const isCountryCode = /^[a-zA-Z]{2}$/.test(countryCode);
+  
+  if (isCountryCode) {
+    try {
+      const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt());
+return String.fromCodePoint(...codePoints);
+    } catch (e) {
+      return countryCode; // Si falla el renderizado, muestra "VE" o "ES"
+    }
+  }
+
+  return countryCode; // Si ya era un emoji (ej: 🏠), lo devuelve igual
 }
