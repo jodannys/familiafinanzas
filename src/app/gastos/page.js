@@ -55,8 +55,8 @@ export default function GastosPage() {
     <AppShell>
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-3xl font-bold text-white" style={{ letterSpacing: '-0.03em' }}>Ingresos & Egresos</h1>
+          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
+          <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Ingresos & Egresos</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} /> Nuevo registro
@@ -73,7 +73,7 @@ export default function GastosPage() {
           <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay: `${i*0.05}s` }}>
             <div className="flex items-center gap-2 mb-2">
               {s.icon && <s.icon size={16} style={{ color: s.color }} />}
-              <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{s.label}</span>
+              <span className="text-xs text-stone-400 uppercase tracking-wider font-semibold">{s.label}</span>
             </div>
             <p className="text-2xl font-bold" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
           </div>
@@ -83,7 +83,7 @@ export default function GastosPage() {
       {/* Filters + search */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
           <input className="ff-input pl-9 h-10" placeholder="Buscar movimiento..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -110,7 +110,7 @@ export default function GastosPage() {
         <div className="space-y-1">
           {filtered.map((m, i) => (
             <div key={m.id}
-              className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/4 transition-colors animate-enter"
+              className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-stone-100 transition-colors animate-enter"
               style={{ animationDelay: `${i*0.03}s` }}>
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${m.tipo==='ingreso' ? 'bg-emerald-400/10' : 'bg-rose-400/10'}`}>
                 {m.tipo==='ingreso'
@@ -118,8 +118,8 @@ export default function GastosPage() {
                   : <ArrowDownRight size={14} className="text-rose-400" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{m.descripcion}</p>
-                <p className="text-xs text-slate-500">{new Date(m.fecha).toLocaleDateString('es-ES')} · {m.quien}</p>
+                <p className="text-sm font-semibold text-stone-800 truncate">{m.descripcion}</p>
+                <p className="text-xs text-stone-400">{new Date(m.fecha).toLocaleDateString('es-ES')} · {m.quien}</p>
               </div>
               <Badge color={catColor[m.categoria] || 'slate'}>
                 {CATS.find(c=>c.value===m.categoria)?.label || m.categoria}
@@ -130,7 +130,7 @@ export default function GastosPage() {
             </div>
           ))}
           {filtered.length === 0 && (
-            <p className="text-center text-slate-500 py-12 text-sm">No hay registros con ese filtro</p>
+            <p className="text-center text-stone-400 py-12 text-sm">No hay registros con ese filtro</p>
           )}
         </div>
       </Card>

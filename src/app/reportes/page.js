@@ -37,9 +37,9 @@ const CATS = {
 const CustomBar = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background:'#111d33', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, padding:'10px 14px' }}>
-      <p className="text-xs text-slate-400 mb-1">{label}</p>
-      <p className="text-sm font-bold text-white">{formatCurrency(payload[0].value)}</p>
+    <div style={{ background:'var(--bg-card)', border:'1px solid var(--border-glass))', borderRadius:12, padding:'10px 14px' }}>
+      <p className="text-xs text-stone-400 mb-1">{label}</p>
+      <p className="text-sm font-bold text-stone-800">{formatCurrency(payload[0].value)}</p>
     </div>
   )
 }
@@ -79,9 +79,9 @@ export default function ReportesPage() {
   return (
     <AppShell>
       <div className="mb-8 animate-enter">
-        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Módulo</p>
-        <h1 className="text-3xl font-bold text-white" style={{ letterSpacing:'-0.03em' }}>Reportes & Analítica</h1>
-        <p className="text-sm text-slate-500 mt-1">Año 2026 — análisis completo de tu gasto</p>
+        <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
+        <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Reportes & Analítica</h1>
+        <p className="text-sm text-stone-400 mt-1">Año 2026 — análisis completo de tu gasto</p>
       </div>
 
       <div className="grid grid-cols-3 gap-6">
@@ -91,13 +91,13 @@ export default function ReportesPage() {
             {[{v:'todos',l:'Todos'},{v:'basicos',l:'Básicos'},{v:'deseo',l:'Deseo'},{v:'remesa',l:'Remesas'}].map(f => (
               <button key={f.v} onClick={() => setFiltro(f.v)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  filtro===f.v ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'
+                  filtro===f.v ? 'bg-stone-100 text-stone-800' : 'text-stone-400 hover:text-stone-800'
                 }`}>{f.l}</button>
             ))}
           </div>
 
           <div className="space-y-2">
-            <div className="px-3 py-2 text-xs text-slate-500 font-semibold uppercase tracking-wider">
+            <div className="px-3 py-2 text-xs text-stone-400 font-semibold uppercase tracking-wider">
               Total: {formatCurrency(grandTotal)}
             </div>
             {subcats.map(sc => {
@@ -105,13 +105,13 @@ export default function ReportesPage() {
               const isSelected = subcatSelected === sc.nombre
               return (
                 <div key={sc.nombre} onClick={() => setSubcatSelected(sc.nombre)}
-                  className="p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-all"
+                  className="p-3 rounded-xl cursor-pointer hover:bg-stone-50 transition-all"
                   style={{ background: isSelected ? 'rgba(255,255,255,0.07)' : undefined, borderLeft: isSelected ? `3px solid ${sc.color}` : '3px solid transparent' }}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold text-white">{sc.nombre}</span>
+                    <span className="text-sm font-semibold text-stone-800">{sc.nombre}</span>
                     <span className="text-xs font-bold" style={{ color:sc.color }}>{pct}%</span>
                   </div>
-                  <div className="flex justify-between text-xs text-slate-500">
+                  <div className="flex justify-between text-xs text-stone-400">
                     <span>{formatCurrency(sc.total)}/año</span>
                     <span>≈{formatCurrency(sc.prom)}/mes</span>
                   </div>
@@ -132,7 +132,7 @@ export default function ReportesPage() {
               { l:'Mes más barato',  v:`${minMes} (${formatCurrency(min)})`, c:'#10b981' },
             ].map((s,i) => (
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay:`${i*0.04}s` }}>
-                <p className="text-xs text-slate-500 mb-1">{s.l}</p>
+                <p className="text-xs text-stone-400 mb-1">{s.l}</p>
                 <p className="text-sm font-bold" style={{ color:s.c }}>{s.v}</p>
               </div>
             ))}
@@ -142,14 +142,14 @@ export default function ReportesPage() {
           <Card>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="font-bold text-white">{subcatSelected} — por mes</h3>
-                <p className="text-xs text-slate-500">🔴 Mes más caro · 🟢 Mes más barato</p>
+                <h3 className="font-bold text-stone-800">{subcatSelected} — por mes</h3>
+                <p className="text-xs text-stone-400">🔴 Mes más caro · 🟢 Mes más barato</p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData} margin={{ top:5, right:5, left:-10, bottom:0 }}>
-                <XAxis dataKey="mes" tick={{ fill:'#475569', fontSize:11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill:'#475569', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
+                <XAxis dataKey="mes" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
                 <Tooltip content={<CustomBar />} />
                 <Bar dataKey="monto" radius={[6,6,0,0]}>
                   {chartData.map((d,i) => <Cell key={i} fill={d.fill} />)}
@@ -160,7 +160,7 @@ export default function ReportesPage() {
 
           {/* Tabla mensual */}
           <Card>
-            <h3 className="font-bold text-white mb-4">Detalle mensual — {subcatSelected}</h3>
+            <h3 className="font-bold text-stone-800 mb-4">Detalle mensual — {subcatSelected}</h3>
             <div className="grid grid-cols-4 gap-2">
               {MESES.map((m, i) => {
                 const v = datos[i]
@@ -169,8 +169,8 @@ export default function ReportesPage() {
                 return (
                   <div key={m} className="p-3 rounded-xl text-center"
                     style={{ background: isMax ? 'rgba(251,113,133,0.08)' : isMin ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-xs text-slate-500 mb-1">{m}</p>
-                    <p className={`text-sm font-bold ${isMax ? 'text-rose-400' : isMin ? 'text-emerald-400' : 'text-white'}`}>
+                    <p className="text-xs text-stone-400 mb-1">{m}</p>
+                    <p className={`text-sm font-bold ${isMax ? 'text-rose-400' : isMin ? 'text-emerald-400' : 'text-stone-800'}`}>
                       {formatCurrency(v)}
                     </p>
                     {v > prom

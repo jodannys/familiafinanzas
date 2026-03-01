@@ -64,9 +64,9 @@ export default function SobresPage() {
     <AppShell>
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-3xl font-bold text-white" style={{ letterSpacing:'-0.03em' }}>Sobres Digitales</h1>
-          <p className="text-sm text-slate-500 mt-1">Control de gastos diarios por categoría</p>
+          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
+          <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Sobres Digitales</h1>
+          <p className="text-sm text-stone-400 mt-1">Control de gastos diarios por categoría</p>
         </div>
         <button onClick={() => setModalSobre(true)} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} /> Nuevo sobre
@@ -87,18 +87,18 @@ export default function SobresPage() {
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">{s.emoji}</span>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-white">{s.nombre}</p>
+                    <p className="text-sm font-bold text-stone-800">{s.nombre}</p>
                     <div className="flex items-center gap-2">
                       {agotado
                         ? <span className="text-xs text-rose-400 font-semibold">Agotado</span>
                         : <span className="text-xs font-semibold" style={{ color:s.color }}>€{(s.asignado-s.gastado).toFixed(2)} libres</span>}
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-slate-400">{pct}%</span>
+                  <span className="text-xs font-bold text-stone-400">{pct}%</span>
                 </div>
                 <ProgressBar value={s.gastado} max={s.asignado}
                   color={agotado ? '#fb7185' : s.color} />
-                <div className="flex justify-between text-xs text-slate-500 mt-2">
+                <div className="flex justify-between text-xs text-stone-400 mt-2">
                   <span>€{s.gastado.toFixed(2)} gastado</span>
                   <span>de €{s.asignado.toFixed(2)}</span>
                 </div>
@@ -114,8 +114,8 @@ export default function SobresPage() {
             <div className="flex items-center gap-4 mb-5">
               <span className="text-4xl">{sobreActual.emoji}</span>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-white">{sobreActual.nombre}</h2>
-                <p className="text-sm text-slate-400">Presupuesto mensual: {formatCurrency(sobreActual.asignado)}</p>
+                <h2 className="text-xl font-bold text-stone-800">{sobreActual.nombre}</h2>
+                <p className="text-sm text-stone-400">Presupuesto mensual: {formatCurrency(sobreActual.asignado)}</p>
               </div>
               <button onClick={() => setModalGasto(true)} className="ff-btn-primary flex items-center gap-2">
                 <Plus size={14} /> Anotar gasto
@@ -123,18 +123,18 @@ export default function SobresPage() {
             </div>
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
-                <p className="text-xs text-slate-500 mb-1">Gastado</p>
+                <p className="text-xs text-stone-400 mb-1">Gastado</p>
                 <p className="text-xl font-bold text-rose-400">{formatCurrency(sobreActual.gastado)}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 mb-1">Disponible</p>
+                <p className="text-xs text-stone-400 mb-1">Disponible</p>
                 <p className="text-xl font-bold" style={{ color: disponible < 0 ? '#fb7185' : sobreActual.color }}>
                   {formatCurrency(disponible)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 mb-1">Uso</p>
-                <p className="text-xl font-bold text-white">{pct}%</p>
+                <p className="text-xs text-stone-400 mb-1">Uso</p>
+                <p className="text-xl font-bold text-stone-800">{pct}%</p>
               </div>
             </div>
             <ProgressBar value={sobreActual.gastado} max={sobreActual.asignado}
@@ -143,22 +143,22 @@ export default function SobresPage() {
 
           {/* Movimientos */}
           <Card>
-            <h3 className="font-bold text-white mb-4">Gastos registrados ({sobreActual.movs.length})</h3>
+            <h3 className="font-bold text-stone-800 mb-4">Gastos registrados ({sobreActual.movs.length})</h3>
             {sobreActual.movs.length === 0
-              ? <p className="text-center text-slate-500 py-8 text-sm">No hay gastos registrados en este sobre</p>
+              ? <p className="text-center text-stone-400 py-8 text-sm">No hay gastos registrados en este sobre</p>
               : (
                 <div className="space-y-1">
                   {[...sobreActual.movs].reverse().map((m, i) => (
-                    <div key={m.id} className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-white/4 transition-colors">
+                    <div key={m.id} className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-stone-100 transition-colors">
                       <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ background:`${sobreActual.color}18` }}>
                         <ShoppingCart size={12} style={{ color:sobreActual.color }} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm text-white font-medium">
-                          {m.desc || <span className="text-slate-500 italic">Sin descripción</span>}
+                        <p className="text-sm text-stone-800 font-medium">
+                          {m.desc || <span className="text-stone-400 italic">Sin descripción</span>}
                         </p>
-                        <p className="text-xs text-slate-500">{new Date(m.fecha).toLocaleDateString('es-ES')}</p>
+                        <p className="text-xs text-stone-400">{new Date(m.fecha).toLocaleDateString('es-ES')}</p>
                       </div>
                       <p className="text-sm font-bold text-rose-400">-{formatCurrency(m.monto)}</p>
                     </div>
@@ -214,7 +214,7 @@ export default function SobresPage() {
               value={formGasto.monto} onChange={e => setFormGasto({...formGasto, monto:e.target.value})} />
           </div>
           <div>
-            <label className="ff-label">Descripción <span className="text-slate-600 normal-case font-normal">(opcional)</span></label>
+            <label className="ff-label">Descripción <span className="text-stone-400 normal-case font-normal">(opcional)</span></label>
             <input className="ff-input" placeholder="Ej: Dulces, Café, Revista..."
               value={formGasto.desc} onChange={e => setFormGasto({...formGasto, desc:e.target.value})} />
           </div>

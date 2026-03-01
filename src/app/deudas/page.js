@@ -46,8 +46,8 @@ export default function DeudasPage() {
     <AppShell>
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-3xl font-bold text-white" style={{ letterSpacing:'-0.03em' }}>Deudas</h1>
+          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
+          <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Deudas</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} /> Registrar deuda
@@ -59,12 +59,12 @@ export default function DeudasPage() {
         <div className="glass-card p-5 animate-enter" style={{ borderColor:'rgba(251,113,133,0.2)' }}>
           <p className="text-xs text-rose-400 uppercase tracking-wider font-semibold mb-2">Total que debo</p>
           <p className="text-3xl font-bold text-rose-400" style={{ letterSpacing:'-0.03em' }}>{formatCurrency(totalDebo)}</p>
-          <p className="text-xs text-slate-500 mt-1">{activas.filter(d=>d.tipo==='debo').length} deudas activas</p>
+          <p className="text-xs text-stone-400 mt-1">{activas.filter(d=>d.tipo==='debo').length} deudas activas</p>
         </div>
         <div className="glass-card p-5 animate-enter animate-enter-delay-1" style={{ borderColor:'rgba(16,185,129,0.2)' }}>
           <p className="text-xs text-emerald-400 uppercase tracking-wider font-semibold mb-2">Total que me deben</p>
           <p className="text-3xl font-bold text-emerald-400" style={{ letterSpacing:'-0.03em' }}>{formatCurrency(totalMeDeben)}</p>
-          <p className="text-xs text-slate-500 mt-1">{activas.filter(d=>d.tipo==='medeben').length} pendientes de cobro</p>
+          <p className="text-xs text-stone-400 mt-1">{activas.filter(d=>d.tipo==='medeben').length} pendientes de cobro</p>
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export default function DeudasPage() {
         {[{ v:'debo', l:'Lo que debo' }, { v:'medeben', l:'Lo que me deben' }].map(t => (
           <button key={t.v} onClick={() => setTab(t.v)}
             className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab===t.v ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'
+              tab===t.v ? 'bg-stone-100 text-stone-800' : 'text-stone-400 hover:text-stone-800'
             }`}>
             {t.l}
           </button>
@@ -99,24 +99,24 @@ export default function DeudasPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-0.5">
-                    <h3 className="font-bold text-white">{d.nombre}</h3>
+                    <h3 className="font-bold text-stone-800">{d.nombre}</h3>
                     <Badge color={d.estado==='pagada' ? 'sky' : d.tipo==='medeben' ? 'emerald' : 'rose'}>
                       {d.estado==='pagada' ? 'Pagada ✓' : d.tipo==='medeben' ? 'Me deben' : 'Activa'}
                     </Badge>
                     {d.tasa > 0 && <Badge color="gold">{d.tasa}% interés</Badge>}
                   </div>
-                  <p className="text-xs text-slate-500 mb-4">{d.entidad}{d.venceDia > 0 && ` · Pago el día ${d.venceDia} de cada mes`}</p>
+                  <p className="text-xs text-stone-400 mb-4">{d.entidad}{d.venceDia > 0 && ` · Pago el día ${d.venceDia} de cada mes`}</p>
 
                   <div className="grid grid-cols-4 gap-4 mb-4 text-xs">
-                    <div><p className="text-slate-500 mb-1">Original</p><p className="font-bold text-white">{formatCurrency(d.monto)}</p></div>
-                    <div><p className="text-slate-500 mb-1">Pendiente</p><p className="font-bold" style={{ color:d.color }}>{formatCurrency(d.pendiente)}</p></div>
-                    <div><p className="text-slate-500 mb-1">Cuota/mes</p><p className="font-bold text-white">{formatCurrency(d.cuota)}</p></div>
-                    {d.tasa > 0 && <div><p className="text-slate-500 mb-1">Interés anual</p><p className="font-bold text-amber-400">≈{formatCurrency(interesAnual)}</p></div>}
+                    <div><p className="text-stone-400 mb-1">Original</p><p className="font-bold text-stone-800">{formatCurrency(d.monto)}</p></div>
+                    <div><p className="text-stone-400 mb-1">Pendiente</p><p className="font-bold" style={{ color:d.color }}>{formatCurrency(d.pendiente)}</p></div>
+                    <div><p className="text-stone-400 mb-1">Cuota/mes</p><p className="font-bold text-stone-800">{formatCurrency(d.cuota)}</p></div>
+                    {d.tasa > 0 && <div><p className="text-stone-400 mb-1">Interés anual</p><p className="font-bold text-amber-400">≈{formatCurrency(interesAnual)}</p></div>}
                   </div>
 
                   <div className="flex items-center gap-3">
                     <ProgressBar value={d.monto - d.pendiente} max={d.monto} color={d.color} className="flex-1" />
-                    <span className="text-xs font-bold text-slate-400 w-10 text-right">{pct}%</span>
+                    <span className="text-xs font-bold text-stone-400 w-10 text-right">{pct}%</span>
                   </div>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export default function DeudasPage() {
           )
         })}
         {filtradas.length === 0 && (
-          <div className="text-center py-16 text-slate-500">
+          <div className="text-center py-16 text-stone-400">
             <p className="text-lg mb-1">No hay registros</p>
             <p className="text-sm">Agrega una deuda para empezar a controlarla</p>
           </div>
@@ -168,7 +168,7 @@ export default function DeudasPage() {
             <input type="checkbox" id="interes" checked={form.tieneInteres}
               onChange={e => setForm({...form, tieneInteres:e.target.checked})}
               className="w-4 h-4 accent-amber-400" />
-            <label htmlFor="interes" className="text-sm text-slate-300 cursor-pointer">¿Tiene interés?</label>
+            <label htmlFor="interes" className="text-sm text-stone-600 cursor-pointer">¿Tiene interés?</label>
           </div>
           {form.tieneInteres && (
             <div className="grid grid-cols-2 gap-4">

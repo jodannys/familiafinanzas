@@ -18,17 +18,22 @@ const DEMO = [
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background:'#111d33', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, padding:'10px 14px' }}>
-      <p className="text-xs text-slate-400 mb-2">Año {label}</p>
+    // Error 1: Sobraba un paréntesis en 'var(--border-glass))'
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 12, padding: '10px 14px' }}>
+      
+      {/* Error 2: Tenías un " al final del style que rompía la etiqueta */}
+      <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+        Año {label}
+      </p>
+
       {payload.map(p => (
-        <p key={p.name} className="text-xs font-semibold" style={{ color:p.color }}>
+        <p key={p.name} className="text-xs font-semibold" style={{ color: p.color }}>
           {p.name === 'contributed' ? 'Aportado' : 'Balance'}: {formatCurrency(p.value)}
         </p>
       ))}
     </div>
   )
 }
-
 export default function InversionesPage() {
   const [inversiones, setInversiones] = useState(DEMO)
   const [selected, setSelected] = useState(DEMO[0])
@@ -62,8 +67,8 @@ export default function InversionesPage() {
     <AppShell>
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-3xl font-bold text-white" style={{ letterSpacing:'-0.03em' }}>Inversiones</h1>
+          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
+          <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing:'-0.03em' }}>Inversiones</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} /> Nueva inversión
@@ -82,8 +87,8 @@ export default function InversionesPage() {
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">{inv.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{inv.nombre}</p>
-                    <p className="text-xs text-slate-500">{inv.tasa}% anual · {inv.años} años</p>
+                    <p className="text-sm font-bold text-stone-800 truncate">{inv.nombre}</p>
+                    <p className="text-xs text-stone-400">{inv.tasa}% anual · {inv.años} años</p>
                   </div>
                   {inv.bolaNieve && (
                     <div title="Bola de nieve activa" className="w-6 h-6 rounded-full bg-sky-400/10 flex items-center justify-center">
@@ -92,7 +97,7 @@ export default function InversionesPage() {
                   )}
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">Capital inicial: {formatCurrency(inv.capital)}</span>
+                  <span className="text-stone-400">Capital inicial: {formatCurrency(inv.capital)}</span>
                   <span className="font-bold" style={{ color:inv.color }}>{formatCurrency(c.finalBalance)}</span>
                 </div>
               </div>
@@ -106,11 +111,11 @@ export default function InversionesPage() {
           <div className="grid grid-cols-3 gap-4">
             {[
               { label:'Balance final',       value: formatCurrency(calc.finalBalance),   color: selected.color },
-              { label:'Total aportado',      value: formatCurrency(calc.totalContributed), color:'#94a3b8' },
+              { label:'Total aportado',      value: formatCurrency(calc.totalContributed), color:'var(--text-secondary)' },
               { label:'Ganancias (interés)', value: formatCurrency(calc.totalInterest),  color:'#fbbf24' },
             ].map((s,i) => (
               <div key={i} className="glass-card p-4">
-                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">{s.label}</p>
+                <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold mb-1">{s.label}</p>
                 <p className="text-xl font-bold" style={{ color:s.color, letterSpacing:'-0.02em' }}>{s.value}</p>
               </div>
             ))}
@@ -120,8 +125,8 @@ export default function InversionesPage() {
           <Card>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="font-bold text-white">{selected.nombre}</h3>
-                <p className="text-xs text-slate-500">Proyección a {selected.años} años · {selected.tasa}% anual
+                <h3 className="font-bold text-stone-800">{selected.nombre}</h3>
+                <p className="text-xs text-stone-400">Proyección a {selected.años} años · {selected.tasa}% anual
                   {selected.bolaNieve && ' · 🌨 Bola de nieve activa'}
                 </p>
               </div>
@@ -139,8 +144,8 @@ export default function InversionesPage() {
                     <stop offset="95%" stopColor="#475569" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="year" tick={{ fill:'#475569', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`A${v}`} />
-                <YAxis tick={{ fill:'#475569', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`€${(v/1000).toFixed(0)}k`} />
+                <XAxis dataKey="year" tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`A${v}`} />
+                <YAxis tick={{ fill:'var(--text-muted)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v=>`€${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Area type="monotone" dataKey="balance"     stroke={selected.color} strokeWidth={2} fill="url(#gBalance)" name="balance" />
                 <Area type="monotone" dataKey="contributed" stroke="#475569"        strokeWidth={2} fill="url(#gContrib)" name="contributed" />
@@ -150,11 +155,11 @@ export default function InversionesPage() {
 
           {/* Year by year table */}
           <Card>
-            <h3 className="font-bold text-white mb-4">Tabla año a año</h3>
+            <h3 className="font-bold text-stone-800 mb-4">Tabla año a año</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="text-slate-500 uppercase tracking-wider text-left">
+                  <tr className="text-stone-400 uppercase tracking-wider text-left">
                     <th className="pb-3 font-semibold">Año</th>
                     <th className="pb-3 font-semibold">Aportado</th>
                     <th className="pb-3 font-semibold">Interés</th>
@@ -163,9 +168,9 @@ export default function InversionesPage() {
                 </thead>
                 <tbody>
                   {calc.history.slice(1).map(row => (
-                    <tr key={row.year} className="border-t border-white/5 hover:bg-white/3 transition-colors">
-                      <td className="py-2.5 text-slate-300 font-semibold">Año {row.year}</td>
-                      <td className="py-2.5 text-slate-400">{formatCurrency(row.contributed)}</td>
+                    <tr key={row.year} className="border-t border-white/5 hover:bg-stone-50 transition-colors">
+                      <td className="py-2.5 text-stone-600 font-semibold">Año {row.year}</td>
+                      <td className="py-2.5 text-stone-400">{formatCurrency(row.contributed)}</td>
                       <td className="py-2.5 text-amber-400 font-semibold">+{formatCurrency(row.interest)}</td>
                       <td className="py-2.5 text-right font-bold" style={{ color:selected.color }}>{formatCurrency(row.balance)}</td>
                     </tr>
@@ -219,8 +224,8 @@ export default function InversionesPage() {
             <input type="checkbox" id="bolaNieve" checked={form.bolaNieve}
               onChange={e => setForm({...form, bolaNieve:e.target.checked})}
               className="w-4 h-4 accent-sky-400" />
-            <label htmlFor="bolaNieve" className="text-sm text-slate-300 cursor-pointer">
-              <span className="font-semibold text-white">Activar bola de nieve</span> — las ganancias se reinvierten (interés compuesto)
+            <label htmlFor="bolaNieve" className="text-sm text-stone-600 cursor-pointer">
+              <span className="font-semibold text-stone-800">Activar bola de nieve</span> — las ganancias se reinvierten (interés compuesto)
             </label>
           </div>
           <div className="flex gap-3 pt-2">

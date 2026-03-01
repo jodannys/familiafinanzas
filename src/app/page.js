@@ -43,8 +43,14 @@ const alertas = [
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: '#111d33', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 14px' }}>
-      <p className="text-xs text-slate-400 mb-2 font-semibold">{label}</p>
+    // Error 1: Tenías un paréntesis de más en 'var(--border-glass))'
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 12, padding: '10px 14px' }}>
+      
+      {/* Error 2: Faltaba una coma después de 'var(--text-secondary)' */}
+      <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 'semibold' }}>
+        {label}
+      </p>
+
       {payload.map((p) => (
         <p key={p.name} className="text-sm font-semibold" style={{ color: p.color }}>
           {p.name === 'ingresos' ? '↑' : '↓'} {formatCurrency(p.value)}
@@ -53,7 +59,6 @@ const CustomTooltip = ({ active, payload, label }) => {
     </div>
   )
 }
-
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const saldo = 5500 - 3900
@@ -65,8 +70,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 animate-enter">
         <div>
-          <p className="text-sm text-slate-500 font-medium mb-1 uppercase tracking-wider">Resumen</p>
-          <h1 className="text-3xl font-bold text-white capitalize" style={{ letterSpacing: '-0.03em' }}>
+          <p className="text-sm text-stone-400 font-medium mb-1 uppercase tracking-wider">Resumen</p>
+          <h1 className="text-3xl font-bold text-stone-800 capitalize" style={{ letterSpacing: '-0.03em' }}>
             {monthName}
           </h1>
         </div>
@@ -119,8 +124,8 @@ export default function Dashboard() {
         <Card className="col-span-2 animate-enter animate-enter-delay-1">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="font-bold text-white">Flujo Mensual</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Ingresos vs. Gastos — últimos 6 meses</p>
+              <h3 className="font-bold text-stone-800">Flujo Mensual</h3>
+              <p className="text-xs text-stone-400 mt-0.5">Ingresos vs. Gastos — últimos 6 meses</p>
             </div>
             <Badge color="emerald">+{formatCurrency(1600)} saldo</Badge>
           </div>
@@ -136,8 +141,8 @@ export default function Dashboard() {
                   <stop offset="95%" stopColor="#fb7185" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="mes" tick={{ fill: '#475569', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#475569', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `€${v/1000}k`} />
+              <XAxis dataKey="mes" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `€${v/1000}k`} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="ingresos" stroke="#10b981" strokeWidth={2} fill="url(#gradIngresos)" />
               <Area type="monotone" dataKey="gastos"   stroke="#fb7185" strokeWidth={2} fill="url(#gradGastos)" />
@@ -147,8 +152,8 @@ export default function Dashboard() {
 
         {/* Distribution pie */}
         <Card className="animate-enter animate-enter-delay-2">
-          <h3 className="font-bold text-white mb-1">Distribución</h3>
-          <p className="text-xs text-slate-500 mb-4">% del ingreso mensual</p>
+          <h3 className="font-bold text-stone-800 mb-1">Distribución</h3>
+          <p className="text-xs text-stone-400 mb-4">% del ingreso mensual</p>
           <div className="flex justify-center mb-4">
             <PieChart width={160} height={160}>
               <Pie data={distribucion} cx={75} cy={75} innerRadius={50} outerRadius={72}
@@ -162,9 +167,9 @@ export default function Dashboard() {
               <div key={d.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
-                  <span className="text-xs text-slate-400">{d.name}</span>
+                  <span className="text-xs text-stone-400">{d.name}</span>
                 </div>
-                <span className="text-xs font-semibold text-white">{d.value}%</span>
+                <span className="text-xs font-semibold text-stone-800">{d.value}%</span>
               </div>
             ))}
           </div>
@@ -177,7 +182,7 @@ export default function Dashboard() {
         {/* Metas de ahorro */}
         <Card className="col-span-2 animate-enter animate-enter-delay-3">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="font-bold text-white">Progreso de Metas</h3>
+            <h3 className="font-bold text-stone-800">Progreso de Metas</h3>
             <a href="/metas" className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
               Ver todas <ArrowUpRight size={12} />
             </a>
@@ -188,9 +193,9 @@ export default function Dashboard() {
               return (
                 <div key={m.nombre}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-white">{m.nombre}</span>
+                    <span className="text-sm font-semibold text-stone-800">{m.nombre}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-slate-500">{formatCurrency(m.actual)} / {formatCurrency(m.meta)}</span>
+                      <span className="text-xs text-stone-400">{formatCurrency(m.actual)} / {formatCurrency(m.meta)}</span>
                       <span className="text-xs font-bold" style={{ color: m.color }}>{pct}%</span>
                     </div>
                   </div>
@@ -203,7 +208,7 @@ export default function Dashboard() {
 
         {/* Alertas */}
         <Card className="animate-enter animate-enter-delay-4">
-          <h3 className="font-bold text-white mb-4">Alertas</h3>
+          <h3 className="font-bold text-stone-800 mb-4">Alertas</h3>
           <div className="space-y-3">
             {alertas.map((a, i) => {
               const colorMap = {
@@ -215,7 +220,7 @@ export default function Dashboard() {
               return (
                 <div key={i} className="flex gap-3 p-3 rounded-xl" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
                   <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: c.dot }} />
-                  <p className="text-xs text-slate-300 leading-relaxed">{a.texto}</p>
+                  <p className="text-xs text-stone-600 leading-relaxed">{a.texto}</p>
                 </div>
               )
             })}

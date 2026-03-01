@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "familiafinanzas",
+  "compatibility_date": "2025-09-27",
+  "workers_dev": true,
+  "preview_urls": true,
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true
+    }
+  },
+  "bindings": [
+    {
+      "type": "service",
+      "name": "WORKER_SELF_REFERENCE",
+      "service": "familiafinanzas"
+    },
+    {
+      "type": "kv_namespace",
+      "name": "ASSETS",
+      "namespace_id": "a409067d995470e887a82795c3d48a6d"
+    },
+    {
+      "type": "r2_bucket",
+      "name": "IMAGES",
+      "bucket_name": "Familia Finanzas"
+    }
+  ],
+  "vars": {
+    "NEXT_PUBLIC_APP_NAME": "FamiliaFinanzas",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://kdnrwwkugqsaypokggzl.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkbnJ3d2t1Z3FzYXlwb2tnZ3psIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMTE0MTIsImV4cCI6MjA4Nzg4NzQxMn0.31TpG3TXmBFYXrBOdVEs1ac0MK5zjuiIdpcbKIQ4KI4"
+  }
+}

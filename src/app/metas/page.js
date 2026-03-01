@@ -57,8 +57,8 @@ export default function MetasPage() {
     <AppShell>
       <div className="flex items-center justify-between mb-8 animate-enter">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-3xl font-bold text-white" style={{ letterSpacing: '-0.03em' }}>Metas de Ahorro</h1>
+          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
+          <h1 className="text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Metas de Ahorro</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} /> Nueva meta
@@ -73,7 +73,7 @@ export default function MetasPage() {
           { label:'Metas activas',    value: `${activas.length}`, color:'#38bdf8' },
         ].map((s,i) => (
           <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay:`${i*0.05}s` }}>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">{s.label}</p>
+            <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold mb-2">{s.label}</p>
             <p className="text-2xl font-bold" style={{ color:s.color, letterSpacing:'-0.02em' }}>{s.value}</p>
           </div>
         ))}
@@ -97,14 +97,14 @@ export default function MetasPage() {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-bold text-white">{meta.nombre}</h3>
+                    <h3 className="font-bold text-stone-800">{meta.nombre}</h3>
                     <Badge color={estadoBadge[meta.estado]}>{estadoLabel[meta.estado]}</Badge>
                   </div>
                   <div className="flex items-center gap-4 mb-3">
                     <span className="text-sm font-bold" style={{ color:meta.color }}>{formatCurrency(meta.actual)}</span>
-                    <span className="text-sm text-slate-500">de {formatCurrency(meta.meta)}</span>
+                    <span className="text-sm text-stone-400">de {formatCurrency(meta.meta)}</span>
                     {meta.estado !== 'completada' && (
-                      <span className="text-xs text-slate-500">• Faltan {formatCurrency(restante)}</span>
+                      <span className="text-xs text-stone-400">• Faltan {formatCurrency(restante)}</span>
                     )}
                   </div>
                   <ProgressBar value={meta.actual} max={meta.meta} color={meta.color} />
@@ -112,8 +112,8 @@ export default function MetasPage() {
 
                 {/* Right stats */}
                 <div className="text-right flex-shrink-0 ml-6 space-y-1">
-                  <p className="text-2xl font-bold text-white" style={{ letterSpacing:'-0.02em' }}>{pct}%</p>
-                  <p className="text-xs text-slate-500">{meta.pct_mensual}% ingreso/mes</p>
+                  <p className="text-2xl font-bold text-stone-800" style={{ letterSpacing:'-0.02em' }}>{pct}%</p>
+                  <p className="text-xs text-stone-400">{meta.pct_mensual}% ingreso/mes</p>
                   <p className="text-xs" style={{ color:meta.color }}>
                     {mesesRestantes(meta.actual, meta.meta, meta.pct_mensual)}
                   </p>
