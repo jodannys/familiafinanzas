@@ -3,11 +3,9 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { StatCard, Card, ProgressBar, Badge } from '@/components/ui/Card'
 import { TrendingUp, TrendingDown, Wallet, Target, ArrowUpRight, Loader2 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
-import { supabase } from '@/lib/supabase'
+import { supabase,getFlagEmoji } from '@/lib/supabase'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts'
-import { formatCurrency, getFlagEmoji } from '@/lib/utils' // Añade getFlagEmoji aquí
-
+import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 
 const MESES_LABEL = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
