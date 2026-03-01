@@ -1,0 +1,240 @@
+'use client'
+import { useState } from 'react'
+import AppShell from '@/components/layout/AppShell'
+import { Card } from '@/components/ui/Card'
+import { Home, Sparkles, Sprout, CheckCircle, Edit3, Save } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+
+const BLOQUES_DEFAULT = [
+  {
+    id: 'necesidades',
+    nombre: 'Necesidades',
+    icon: Home,
+    color: '#4A6FA5',
+    pct: 50,
+    categorias: ['Básicos', 'Remesas', 'Deudas'],
+    descripcion: 'Gastos obligatorios del mes',
+  },
+  {
+    id: 'estilo',
+    nombre: 'Estilo de vida',
+    icon: Sparkles,
+    color: '#C17A3A',
+    pct: 20,
+    categorias: ['Deseo', 'Sobres diarios'],
+    descripcion: 'Gastos de disfrute y ocio',
+  },
+  {
+    id: 'futuro',
+    nombre: 'Futuro',
+    icon: Sprout,
+    color: '#2D7A5F',
+    pct: 30,
+    categorias: ['Ahorro', 'Metas', 'Inversión'],
+    descripcion: 'Construye tu patrimonio',
+  },
+]
+
+export default function PresupuestoPage() {
+  const [bloques, setBloques] = useState(BLOQUES_DEFAULT)
+  const [ingreso, setIngreso] = useState('')
+  const [editando, setEditando] = useState(false)
+  const [borradores, setBorradores] = useState(null)
+  const [confirmado, setConfirmado] = useState(false)
+
+  const ingresoNum = parseFloat(ingreso) || 0
+  const totalPct = (editando ? borradores : bloques).reduce((s, b) => s + b.pct, 0)
+  const totalOk = totalPct === 100
+
+  function iniciarEdicion() {
+    setBorradores(bloques.map(b => ({ ...b })))
+    setEditando(true)
+  }
+
+  function cancelarEdicion() {
+    setBorradores(null)
+    setEditando(false)
+  }
+
+  function guardarEdicion() {
+    if (!totalOk) return
+    setBloques(borradores)
+    setBorradores(null)
+    setEditando(false)
+  }
+
+  function cambiarPct(id, val) {
+    setBorradores(prev => prev.map(b =>
+      b.id === id ? { ...b, pct: Math.max(0, Math.min(100, parseInt(val) || 0)) } : b
+    ))
+  }
+
+  const lista = editando ? borradores : bloques
+
+  return (
+    <AppShell>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8 animate-enter">
+        <div>
+          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
+          <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Mi Presupuesto</h1>
+          <p className="text-sm text-stone-400 mt-1">Regla 50/20/30 personalizada</p>
+        </div>
+        {!editando ? (
+          <button onClick={iniciarEdicion} className="ff-btn-ghost flex items-center gap-2">
+            <Edit3 size={14} /> Editar %
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={cancelarEdicion} className="ff-btn-ghost">Cancelar</button>
+            <button onClick={guardarEdicion}
+              className="ff-btn-primary flex items-center gap-2"
+              disabled={!totalOk}
+              style={{ opacity: totalOk ? 1 : 0.5 }}>
+              <Save size={14} /> Guardar
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Aviso si no suma 100 */}
+      {editando && !totalOk && (
+        <div className="mb-6 px-4 py-3 rounded-xl text-sm font-semibold"
+          style={{ background: 'rgba(192,96,90,0.1)', border: '1px solid rgba(192,96,90,0.25)', color: '#C0605A' }}>
+          Los porcentajes suman {totalPct}% — deben sumar exactamente 100%
+        </div>
+      )}
+
+      {/* Bloques */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        {lista.map((bloque) => {
+          const Icon = bloque.icon
+          const monto = ingresoNum * (bloque.pct / 100)
+          return (
+            <Card key={bloque.id} className="animate-enter">
+              {/* Icono + nombre */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${bloque.color}15` }}>
+                  <Icon size={18} style={{ color: bloque.color }} />
+                </div>
+                <div>
+                  <p className="font-bold text-stone-800">{bloque.nombre}</p>
+                  <p className="text-xs text-stone-400">{bloque.descripcion}</p>
+                </div>
+              </div>
+
+              {/* Porcentaje */}
+              <div className="flex items-center gap-3 mb-4">
+                {editando ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="number" min="0" max="100"
+                      value={bloque.pct}
+                      onChange={e => cambiarPct(bloque.id, e.target.value)}
+                      className="ff-input text-center font-bold text-lg w-20"
+                      style={{ color: bloque.color }}
+                    />
+                    <span className="text-lg font-bold text-stone-400">%</span>
+                  </div>
+                ) : (
+                  <div className="flex-1">
+                    <span className="text-3xl font-bold" style={{ color: bloque.color, letterSpacing: '-0.03em' }}>
+                      {bloque.pct}%
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Barra visual */}
+              <div className="w-full h-2 rounded-full mb-4" style={{ background: 'var(--progress-track)' }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${bloque.pct}%`, background: bloque.color }} />
+              </div>
+
+              {/* Monto si hay ingreso */}
+              {ingresoNum > 0 && (
+                <div className="px-3 py-2 rounded-xl mb-4"
+                  style={{ background: `${bloque.color}10`, border: `1px solid ${bloque.color}25` }}>
+                  <p className="text-xs text-stone-400 mb-0.5">De tu ingreso va aquí</p>
+                  <p className="text-lg font-bold" style={{ color: bloque.color }}>
+                    {formatCurrency(monto)}
+                  </p>
+                </div>
+              )}
+
+              {/* Categorías */}
+              <div className="flex flex-wrap gap-1.5">
+                {bloque.categorias.map(cat => (
+                  <span key={cat} className="text-xs px-2 py-1 rounded-lg font-medium"
+                    style={{ background: `${bloque.color}12`, color: bloque.color }}>
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Calculadora */}
+      <Card className="animate-enter">
+        <h3 className="font-bold text-stone-800 mb-1">Calculadora de distribución</h3>
+        <p className="text-xs text-stone-400 mb-5">Ingresa tu sueldo y ve cuánto va a cada bloque</p>
+
+        <div className="flex gap-3 mb-6 flex-wrap">
+          <input
+            type="number" min="0" step="0.01"
+            placeholder="Ej: 5000.00"
+            value={ingreso}
+            onChange={e => { setIngreso(e.target.value); setConfirmado(false) }}
+            className="ff-input flex-1 min-w-[180px]"
+          />
+          <button
+            onClick={() => setConfirmado(true)}
+            disabled={!ingresoNum}
+            className="ff-btn-primary"
+            style={{ opacity: ingresoNum ? 1 : 0.5 }}>
+            Calcular
+          </button>
+        </div>
+
+        {confirmado && ingresoNum > 0 && (
+          <div className="space-y-3">
+            {bloques.map(b => {
+              const monto = ingresoNum * (b.pct / 100)
+              const Icon = b.icon
+              return (
+                <div key={b.id} className="flex items-center gap-4 p-3 rounded-xl"
+                  style={{ background: `${b.color}08`, border: `1px solid ${b.color}18` }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: `${b.color}15` }}>
+                    <Icon size={15} style={{ color: b.color }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-stone-800">{b.nombre}</p>
+                    <p className="text-xs text-stone-400">{b.pct}% · {b.categorias.join(', ')}</p>
+                  </div>
+                  <p className="text-base font-bold flex-shrink-0" style={{ color: b.color }}>
+                    {formatCurrency(monto)}
+                  </p>
+                </div>
+              )
+            })}
+
+            <div className="flex items-center justify-between px-3 py-3 rounded-xl"
+              style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+              <div className="flex items-center gap-2">
+                <CheckCircle size={15} style={{ color: '#2D7A5F' }} />
+                <span className="text-sm font-bold text-stone-800">Total distribuido</span>
+              </div>
+              <span className="text-base font-bold" style={{ color: '#2D7A5F' }}>
+                {formatCurrency(ingresoNum)}
+              </span>
+            </div>
+          </div>
+        )}
+      </Card>
+    </AppShell>
+  )
+}

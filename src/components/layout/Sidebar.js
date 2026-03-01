@@ -2,19 +2,20 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, ArrowLeftRight, Target, TrendingUp,
+  LayoutDashboard, ArrowLeftRight, Target, TrendingUp, PieChart,
   CreditCard, Wallet, BarChart3, LogOut, Coins, ChevronRight
 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
 
 const NAV = [
-  { href: '/',            label: 'Dashboard',          icon: LayoutDashboard, color: '#4A6FA5' },
-  { href: '/gastos',      label: 'Ingresos & Egresos',  icon: ArrowLeftRight,  color: '#7A5FA5' },
-  { href: '/sobres',      label: 'Sobres Diarios',      icon: Wallet,          color: '#2D7A5F' },
-  { href: '/metas',       label: 'Metas de Ahorro',     icon: Target,          color: '#C17A3A' },
-  { href: '/inversiones', label: 'Inversiones',         icon: TrendingUp,      color: '#2D7A5F' },
-  { href: '/deudas',      label: 'Deudas',              icon: CreditCard,      color: '#C0605A' },
-  { href: '/reportes',    label: 'Reportes',            icon: BarChart3,       color: '#4A6FA5' },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, color: '#4A6FA5' },
+  { href: '/presupuesto', label: 'Mi Presupuesto', icon: PieChart, color: '#2D7A5F' },
+  { href: '/gastos', label: 'Ingresos & Egresos', icon: ArrowLeftRight, color: '#7A5FA5' },
+  { href: '/sobres', label: 'Sobres Diarios', icon: Wallet, color: '#2D7A5F' },
+  { href: '/metas', label: 'Metas de Ahorro', icon: Target, color: '#C17A3A' },
+  { href: '/inversiones', label: 'Inversiones', icon: TrendingUp, color: '#2D7A5F' },
+  { href: '/deudas', label: 'Deudas', icon: CreditCard, color: '#C0605A' },
+  { href: '/reportes', label: 'Reportes', icon: BarChart3, color: '#4A6FA5' },
 ]
 
 export default function Sidebar({ onClose }) {
