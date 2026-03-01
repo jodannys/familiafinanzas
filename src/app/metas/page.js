@@ -95,8 +95,8 @@ export default function MetasPage() {
                 </div>
 
                 {/* Info */}
-                <div className="flex-1 min-w-0">
-           <div className="text-right flex-shrink-0 sm:ml-6 space-y-1 self-end sm:self-auto">
+              <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-stone-800">{meta.nombre}</h3>
                     <Badge color={estadoBadge[meta.estado]}>{estadoLabel[meta.estado]}</Badge>
                   </div>
@@ -111,7 +111,7 @@ export default function MetasPage() {
                 </div>
 
                 {/* Right stats */}
-                <div className="text-right flex-shrink-0 ml-6 space-y-1">
+                <div className="text-right flex-shrink-0 sm:ml-6 space-y-1 self-end sm:self-auto">
                   <p className="text-2xl font-bold text-stone-800" style={{ letterSpacing:'-0.02em' }}>{pct}%</p>
                   <p className="text-xs text-stone-400">{meta.pct_mensual}% ingreso/mes</p>
                   <p className="text-xs" style={{ color:meta.color }}>
