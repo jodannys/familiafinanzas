@@ -32,7 +32,7 @@ export default function Sidebar({ onClose }) {
         </div>
         <div>
           <p className="text-sm leading-tight" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Familia</p>
-          <p className="text-xs font-bold tracking-widest" style={{ color: 'var(--accent-green)' }}>FINANZAS</p>
+          <p className="text-xs font-bold tracking-widest" style={{ color: 'var(--accent-green)' }}>Quintero Brito</p>
         </div>
       </div>
 
