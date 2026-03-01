@@ -45,9 +45,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 12, padding: '10px 14px' }}>
-      <p className="text-xs mb-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>
-        {label}
-      </p>
+      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>{label}</p>
       {payload.map((p) => (
         <p key={p.name} className="text-sm font-semibold" style={{ color: p.color }}>
           {p.name === 'ingresos' ? '↑' : '↓'} {formatCurrency(p.value)}
@@ -68,7 +66,7 @@ export default function Dashboard() {
       <div className="flex items-start justify-between mb-8 animate-enter">
         <div>
           <p className="text-sm text-stone-400 font-medium mb-1 uppercase tracking-wider">Resumen</p>
-          <h1 className="text-3xl font-bold text-stone-800 capitalize" style={{ letterSpacing: '-0.03em' }}>
+         <h1 className="text-xl md:text-3xl font-bold text-stone-800 capitalize" style={{ letterSpacing: '-0.03em' }}>
             {monthName}
           </h1>
         </div>
@@ -80,7 +78,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           label="Ingresos del mes"
           value={formatCurrency(5500)}
