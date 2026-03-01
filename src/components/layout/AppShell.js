@@ -1,25 +1,70 @@
 'use client'
+import { useState } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
+import { Menu } from 'lucide-react'
 
 export default function AppShell({ children }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
-      <Sidebar />
-      <main className="flex-1 ml-64 min-h-screen">
-        {/* Background mesh */}
-        <div className="fixed inset-0 ml-64 pointer-events-none" style={{ zIndex: 0 }}>
+
+      {/* Overlay móvil */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 lg:hidden"
+          style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — oculto en móvil, visible en desktop */}
+      <div className={`
+        fixed left-0 top-0 h-full z-40 transition-transform duration-300
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Main content */}
+      <main className="flex-1 min-h-screen lg:ml-64">
+
+        {/* Header móvil con hamburguesa */}
+        <div className="lg:hidden flex items-center gap-3 px-4 py-4 sticky top-0 z-20"
+          style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-glass)' }}>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              width: 40, height: 40, borderRadius: 10,
+              border: '1px solid var(--border-glass)',
+              background: 'var(--bg-card)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}>
+            <Menu size={18} style={{ color: 'var(--text-primary)' }} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 8,
+              background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 800, color: 'white'
+            }}>F</div>
+            <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>Familia Finanzas</span>
+          </div>
+        </div>
+
+        {/* Background decorativo */}
+        <div className="fixed inset-0 lg:ml-64 pointer-events-none" style={{ zIndex: 0 }}>
           <div style={{
-            position: 'absolute', top: '-20%', right: '-10%',
-            width: '600px', height: '600px',
-            background: 'radial-gradient(circle, rgba(16,185,129,0.04) 0%, transparent 70%)',
-          }} />
-          <div style={{
-            position: 'absolute', bottom: '-10%', left: '20%',
-            width: '400px', height: '400px',
-            background: 'radial-gradient(circle, rgba(59,130,246,0.04) 0%, transparent 70%)',
+            position: 'absolute', top: '-10%', right: '0',
+            width: '500px', height: '500px',
+            background: 'radial-gradient(circle, rgba(193,122,58,0.05) 0%, transparent 70%)',
           }} />
         </div>
-        <div className="relative z-10 p-8">
+
+        <div className="relative z-10 p-4 md:p-8">
           {children}
         </div>
       </main>

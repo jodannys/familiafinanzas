@@ -17,11 +17,11 @@ const NAV = [
   { href: '/reportes',    label: 'Reportes',            icon: BarChart3,       color: '#4A6FA5' },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 flex flex-col z-40"
+    <aside className="h-full w-64 flex flex-col"
       style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', boxShadow: '2px 0 16px rgba(0,0,0,0.06)' }}>
 
       {/* Logo */}
