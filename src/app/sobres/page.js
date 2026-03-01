@@ -1,3 +1,4 @@
+'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { StatCard, Card, ProgressBar, Badge } from '@/components/ui/Card'
