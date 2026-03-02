@@ -103,14 +103,20 @@ export default function GastosPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-8 animate-enter">
-        <div>
-          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Ingresos & Egresos</h1>
+
+      {/* Header — botón no pisa las cards */}
+      <div className="mb-6 animate-enter">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
+            <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Ingresos & Egresos</h1>
+          </div>
+          <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
+            <Plus size={16} />
+            <span className="hidden sm:inline">Nuevo registro</span>
+            <span className="sm:hidden">Nuevo</span>
+          </button>
         </div>
-        <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
-          <Plus size={16} /> Nuevo registro
-        </button>
       </div>
 
       {error && (
@@ -134,11 +140,11 @@ export default function GastosPage() {
         ))}
       </div>
 
-      {/* Filtros */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+      {/* Filtros — buscador ocupa toda la fila en móvil */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative w-full sm:flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-          <input className="ff-input pl-9" placeholder="Buscar movimiento..."
+          <input className="ff-input pl-9 w-full" placeholder="Buscar movimiento..."
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -181,7 +187,7 @@ export default function GastosPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-stone-800 truncate">{m.descripcion}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className="text-xs text-stone-400">{m.fecha}</span>
                     <span className="text-xs text-stone-400">· {m.quien}</span>
                     <Badge color={catColor[m.categoria] || 'slate'}>{m.categoria}</Badge>
@@ -205,7 +211,6 @@ export default function GastosPage() {
       {/* Modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="Nuevo Movimiento">
         <form onSubmit={handleAdd} className="space-y-4">
-          {/* Tipo */}
           <div className="grid grid-cols-2 gap-3">
             {['ingreso','egreso'].map(t => (
               <button type="button" key={t} onClick={() => setForm({...form, tipo:t})}
@@ -220,7 +225,6 @@ export default function GastosPage() {
             ))}
           </div>
 
-          {/* Categoría primero (para que sugerencias aparezcan antes) */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Categoría</label>
@@ -239,7 +243,6 @@ export default function GastosPage() {
             </div>
           </div>
 
-          {/* Sugerencias del presupuesto */}
           {sugerencias.length > 0 && (
             <div>
               <p className="ff-label mb-2">Del presupuesto de este mes — toca para usar</p>
@@ -261,7 +264,6 @@ export default function GastosPage() {
             </div>
           )}
 
-          {/* Descripción libre */}
           <div>
             <label className="ff-label">Descripción</label>
             <input className="ff-input" placeholder="Ej: Sueldo, Mercado, o escribe libre..." required
