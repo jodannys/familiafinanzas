@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 export const THEMES = {
   linen: {
     name: 'Warm Linen',
+    themeColor: '#F7F3EE',
     emoji: '🌾',
     preview: ['#F7F3EE', '#2D7A5F', '#C17A3A', '#FFFFFF'],
     vars: {
@@ -28,6 +29,7 @@ export const THEMES = {
 
   obsidian: {
     name: 'Dark Obsidian',
+    themeColor: '#0a0f1e',
     emoji: '🌑',
     preview: ['#0a0f1e', '#10b981', '#f59e0b', '#111d33'],
     vars: {
@@ -52,6 +54,7 @@ export const THEMES = {
 
   ocean: {
     name: 'Ocean Slate',
+    themeColor: '#0F1E2D',
     emoji: '🌊',
     preview: ['#0F1E2D', '#06B6D4', '#818CF8', '#162A3D'],
     vars: {
@@ -76,6 +79,7 @@ export const THEMES = {
 
   forest: {
     name: 'Forest Moss',
+    themeColor: '#F2F7F2',
     emoji: '🌿',
     preview: ['#F2F7F2', '#2F6B3A', '#8B6914', '#FFFFFF'],
     vars: {
@@ -103,7 +107,7 @@ const ThemeContext = createContext({ theme: 'linen', setTheme: () => { } })
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState('linen')
 
-useEffect(() => {
+  useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('ff-theme') : null
     if (saved && THEMES[saved]) setThemeState(saved)
   }, [])
