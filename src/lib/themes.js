@@ -114,11 +114,13 @@ export function ThemeProvider({ children }) {
 
   // Apply CSS variables to :root whenever theme changes
   useEffect(() => {
-    const vars = THEMES[theme]?.vars
-    if (!vars) return
+    const t = THEMES[theme]
+    if (!t) return
     const root = document.documentElement
-    Object.entries(vars).forEach(([key, val]) => root.style.setProperty(key, val))
+    Object.entries(t.vars).forEach(([key, val]) => root.style.setProperty(key, val))
     localStorage.setItem('ff-theme', theme)
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', t.themeColor)
   }, [theme])
 
   function setTheme(t) {
