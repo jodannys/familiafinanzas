@@ -207,21 +207,23 @@ export default function PresupuestoPage() {
 
                     {/* Agregar item */}
                     {addingTo === bloque.id ? (
-                      <div className="flex gap-2 mt-2">
-                        <input className="ff-input flex-1 text-xs py-2" placeholder="Ej: Alquiler"
+                      <div className="space-y-2 mt-2">
+                        <input className="ff-input w-full" placeholder="Ej: Alquiler, Agua, Supermercado..."
                           value={formItem.nombre} onChange={e => setFormItem({...formItem, nombre:e.target.value})} />
-                        <input className="ff-input w-24 text-xs py-2" type="number" placeholder="€"
+                        <input className="ff-input w-full" type="number" placeholder="Monto en €"
                           value={formItem.monto} onChange={e => setFormItem({...formItem, monto:e.target.value})} />
-                        <button onClick={() => handleAddItem(bloque.id)}
-                          className="px-3 py-2 rounded-xl text-xs font-bold text-white"
-                          style={{ background:bloque.color, border:'none', cursor:'pointer' }}>
-                          ✓
-                        </button>
-                        <button onClick={() => { setAddingTo(null); setFormItem({nombre:'',monto:''}) }}
-                          className="px-3 py-2 rounded-xl text-xs font-bold"
-                          style={{ background:'var(--bg-secondary)', border:'1px solid var(--border-glass)', cursor:'pointer', color:'var(--text-secondary)' }}>
-                          ✕
-                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleAddItem(bloque.id)}
+                            className="flex-1 py-2 rounded-xl text-sm font-bold text-white"
+                            style={{ background:bloque.color, border:'none', cursor:'pointer' }}>
+                            Agregar
+                          </button>
+                          <button onClick={() => { setAddingTo(null); setFormItem({nombre:'',monto:''}) }}
+                            className="flex-1 py-2 rounded-xl text-sm font-bold"
+                            style={{ background:'var(--bg-secondary)', border:'1px solid var(--border-glass)', cursor:'pointer', color:'var(--text-secondary)' }}>
+                            Cancelar
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button onClick={() => setAddingTo(bloque.id)}
