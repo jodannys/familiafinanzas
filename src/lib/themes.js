@@ -109,7 +109,14 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('ff-theme') : null
-    if (saved && THEMES[saved]) setThemeState(saved)
+    if (saved && THEMES[saved]) {
+      setThemeState(saved)
+      const t = THEMES[saved]
+      const root = document.documentElement
+      Object.entries(t.vars).forEach(([key, val]) => root.style.setProperty(key, val))
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', t.themeColor)
+    }
   }, [])
 
   // Apply CSS variables to :root whenever theme changes
