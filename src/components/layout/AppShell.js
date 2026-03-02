@@ -32,7 +32,7 @@ export default function AppShell({ children }) {
 
         {/* Header móvil con hamburguesa */}
         <div className="lg:hidden flex items-center gap-3 px-4 py-4 sticky top-0 z-20"
-          style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-glass)' }}>
+          style={{ background: 'var(--bg-primary)' }}>
           <button
             onClick={() => setSidebarOpen(true)}
             style={{
