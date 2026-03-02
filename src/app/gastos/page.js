@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import { Card, SectionHeader, Badge } from '@/components/ui/Card'
+import { Card, Badge } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -18,6 +18,12 @@ const CATS = [
 
 const catColor = { basicos:'sky', deseo:'violet', ahorro:'emerald', inversion:'gold', deuda:'rose', remesa:'orange' }
 
+const CAT_BLOQUE = {
+  basicos: 'necesidades', remesa: 'necesidades', deuda: 'necesidades',
+  deseo: 'estilo',
+  ahorro: 'futuro', inversion: 'futuro',
+}
+
 export default function GastosPage() {
   const [movs, setMovs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -26,14 +32,15 @@ export default function GastosPage() {
   const [modal, setModal] = useState(false)
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState('todos')
+  const [presItems, setPresItems] = useState([])
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
     categoria: 'basicos', fecha: new Date().toISOString().slice(0,10), quien: 'Yo'
   })
 
-  // Cargar movimientos desde Supabase
   useEffect(() => {
     cargarMovimientos()
+    cargarPresupuesto()
   }, [])
 
   async function cargarMovimientos() {
@@ -43,12 +50,19 @@ export default function GastosPage() {
       .from('movimientos')
       .select('*')
       .order('fecha', { ascending: false })
-    if (error) {
-      setError('Error al cargar movimientos: ' + error.message)
-    } else {
-      setMovs(data || [])
-    }
+    if (error) setError('Error al cargar movimientos: ' + error.message)
+    else setMovs(data || [])
     setLoading(false)
+  }
+
+  async function cargarPresupuesto() {
+    const now = new Date()
+    const { data } = await supabase
+      .from('presupuesto_items')
+      .select('*')
+      .eq('mes', now.getMonth() + 1)
+      .eq('año', now.getFullYear())
+    setPresItems(data || [])
   }
 
   async function handleAdd(e) {
@@ -58,9 +72,8 @@ export default function GastosPage() {
       .from('movimientos')
       .insert([{ ...form, monto: parseFloat(form.monto) }])
       .select()
-    if (error) {
-      setError('Error al guardar: ' + error.message)
-    } else {
+    if (error) setError('Error al guardar: ' + error.message)
+    else {
       setMovs(prev => [data[0], ...prev])
       setModal(false)
       setForm({ tipo:'egreso', monto:'', descripcion:'', categoria:'basicos', fecha: new Date().toISOString().slice(0,10), quien:'Yo' })
@@ -72,6 +85,14 @@ export default function GastosPage() {
     const { error } = await supabase.from('movimientos').delete().eq('id', id)
     if (!error) setMovs(prev => prev.filter(m => m.id !== id))
   }
+
+  function aplicarSugerencia(item) {
+    setForm(prev => ({ ...prev, descripcion: item.nombre, monto: item.monto.toString() }))
+  }
+
+  const sugerencias = form.tipo === 'egreso'
+    ? presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
+    : []
 
   const ingresos = movs.filter(m => m.tipo === 'ingreso').reduce((s,m) => s+m.monto, 0)
   const egresos  = movs.filter(m => m.tipo === 'egreso').reduce((s,m) => s+m.monto, 0)
@@ -92,7 +113,6 @@ export default function GastosPage() {
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mb-6 px-4 py-3 rounded-xl text-sm font-semibold"
           style={{ background: 'rgba(192,96,90,0.1)', border: '1px solid rgba(192,96,90,0.25)', color: '#C0605A' }}>
@@ -146,9 +166,7 @@ export default function GastosPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-stone-400 text-sm">No hay movimientos aún</p>
-            <button onClick={() => setModal(true)} className="ff-btn-primary mt-4">
-              Agregar el primero
-            </button>
+            <button onClick={() => setModal(true)} className="ff-btn-primary mt-4">Agregar el primero</button>
           </div>
         ) : (
           <div className="space-y-1">
@@ -201,27 +219,13 @@ export default function GastosPage() {
               </button>
             ))}
           </div>
-          <div>
-            <label className="ff-label">Descripción</label>
-            <input className="ff-input" placeholder="Ej: Sueldo, Mercado..." required
-              value={form.descripcion} onChange={e => setForm({...form, descripcion:e.target.value})} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="ff-label">Monto</label>
-              <input className="ff-input" type="number" min="0.01" step="0.01" placeholder="0.00" required
-                value={form.monto} onChange={e => setForm({...form, monto:e.target.value})} />
-            </div>
-            <div>
-              <label className="ff-label">Fecha</label>
-              <input className="ff-input" type="date" required
-                value={form.fecha} onChange={e => setForm({...form, fecha:e.target.value})} />
-            </div>
-          </div>
+
+          {/* Categoría primero (para que sugerencias aparezcan antes) */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="ff-label">Categoría</label>
-              <select className="ff-input" value={form.categoria} onChange={e => setForm({...form, categoria:e.target.value})}>
+              <select className="ff-input" value={form.categoria}
+                onChange={e => setForm({...form, categoria:e.target.value, descripcion:'', monto:''})}>
                 {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
@@ -234,6 +238,49 @@ export default function GastosPage() {
               </select>
             </div>
           </div>
+
+          {/* Sugerencias del presupuesto */}
+          {sugerencias.length > 0 && (
+            <div>
+              <p className="ff-label mb-2">Del presupuesto de este mes — toca para usar</p>
+              <div className="flex flex-wrap gap-2">
+                {sugerencias.map(item => (
+                  <button type="button" key={item.id}
+                    onClick={() => aplicarSugerencia(item)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                    style={{
+                      background: form.descripcion === item.nombre ? 'rgba(45,122,95,0.15)' : 'var(--bg-secondary)',
+                      color: form.descripcion === item.nombre ? '#2D7A5F' : 'var(--text-secondary)',
+                      border: form.descripcion === item.nombre ? '1px solid rgba(45,122,95,0.3)' : '1px solid var(--border-glass)',
+                    }}>
+                    {item.nombre}
+                    <span style={{ color:'var(--text-muted)' }}>{formatCurrency(item.monto)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Descripción libre */}
+          <div>
+            <label className="ff-label">Descripción</label>
+            <input className="ff-input" placeholder="Ej: Sueldo, Mercado, o escribe libre..." required
+              value={form.descripcion} onChange={e => setForm({...form, descripcion:e.target.value})} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="ff-label">Monto</label>
+              <input className="ff-input" type="number" min="0.01" step="0.01" placeholder="0.00" required
+                value={form.monto} onChange={e => setForm({...form, monto:e.target.value})} />
+            </div>
+            <div>
+              <label className="ff-label">Fecha</label>
+              <input className="ff-input" type="date" required
+                value={form.fecha} onChange={e => setForm({...form, fecha:e.target.value})} />
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setModal(false)} className="ff-btn-ghost flex-1">Cancelar</button>
             <button type="submit" className="ff-btn-primary flex-1 flex items-center justify-center gap-2" disabled={saving}>
