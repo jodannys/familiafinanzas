@@ -9,6 +9,7 @@ export const metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: 'Familia Finanzas',
+    statusBarStyle: 'default',
   },
   icons: {
     icon: '/icon.svg',
