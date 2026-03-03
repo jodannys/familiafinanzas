@@ -30,26 +30,33 @@ export default function AppShell({ children }) {
       {/* Main content */}
       <main className="flex-1 min-h-screen lg:ml-64">
 
-        {/* Header móvil con hamburguesa */}
+        {/* Header móvil con hamburguesa — CORREGIDO */}
         <div className="lg:hidden flex items-center gap-3 px-4 py-4 sticky top-0 z-20"
-          style={{ background: 'var(--bg-primary)' }}>
+          style={{
+            background: 'var(--bg-primary)',
+            border: 'none', // Aseguramos que no haya borde inferior
+            boxShadow: 'none' // Quitamos sombras que parecen líneas grises
+          }}>
           <button
             onClick={() => setSidebarOpen(true)}
             style={{
-              width: 40, height: 40, borderRadius: 10,
-              border: '1px solid var(--border-glass)',
+              width: 40, height: 40, borderRadius: 12,
+              border: 'none', // <--- QUITA LA LÍNEA GRIS AQUÍ
               background: 'var(--bg-card)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)' // Sombra suave en lugar de borde gris
             }}>
             <Menu size={18} style={{ color: 'var(--text-primary)' }} />
           </button>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img src="/icon.svg" alt="Logo" style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0 }} />
-            <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>Finanzas Pesonales</span>
+            <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Finanzas Personales
+            </span>
           </div>
         </div>
-
         {/* Background decorativo */}
         <div className="fixed inset-0 lg:ml-64 pointer-events-none" style={{ zIndex: 0 }}>
           <div style={{
