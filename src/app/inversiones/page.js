@@ -139,8 +139,20 @@ export default function InversionesPage() {
           {selected && calc && (
             <div className="col-span-1 lg:col-span-2 space-y-5">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {/* Card especial con % en esquina */}
+                <div className="glass-card p-4 relative">
+                  <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold mb-1">Destinado</p>
+                  <p className="text-xl font-bold" style={{ color: '#818CF8', letterSpacing: '-0.02em' }}>
+                    {presupuesto ? formatCurrency(presupuesto.montoInversiones) : '—'}
+                  </p>
+                  {presupuesto && (
+                    <span className="absolute top-3 right-3 text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(129,140,248,0.12)', color: '#818CF8' }}>
+                      {presupuesto.pctInversiones}%
+                    </span>
+                  )}
+                </div>
                 {[
-                  { label: 'Destinado a Inversiones', value: presupuesto ? `${presupuesto.pctInversiones}% · ${formatCurrency(presupuesto.montoInversiones)}` : '—', color: '#818CF8' },
                   { label: 'Balance final', value: formatCurrency(calc.finalBalance), color: selected.color },
                   { label: 'Total aportado', value: formatCurrency(calc.totalContributed), color: 'var(--text-secondary)' },
                   { label: 'Ganancias', value: formatCurrency(calc.totalInterest), color: '#f59e0b' },

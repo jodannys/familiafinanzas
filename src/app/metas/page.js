@@ -91,39 +91,47 @@ export default function MetasPage() {
       )}
 
       {/* Stats */}
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          // DESPUÉS
-          { label: 'Total ahorrado', value: formatCurrency(totalAhorrado), color: '#10b981' },
           {
-            label: 'Destinado a Metas', value: presupuesto ? (
+            label: 'Total ahorrado',
+            value: formatCurrency(totalAhorrado),
+            color: 'var(--accent-green)'
+          },
+          {
+            label: 'Destinado a Metas',
+            value: (
               <div className="flex items-baseline gap-2">
-                {/* Monto principal en color Terra del tema */}
-                <span className="text-2xl font-extrabold" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.03em' }}>
-                  {formatCurrency(presupuesto.montoMetas)}
-                </span>
-                {/* Badge con el % usando el fondo secundario del tema */}
-                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-wider uppercase"
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-glass)'
-                  }}>
-                  {presupuesto.pctMetas}%
-                </span>
+                <span>{presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}</span>
+                {presupuesto && (
+                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-wider border"
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-secondary)',
+                      borderColor: 'var(--border-glass)'
+                    }}>
+                    {presupuesto.pctMetas}%
+                  </span>
+                )}
               </div>
-            ) : '—',
+            ),
             color: 'var(--accent-terra)'
           },
-          { label: 'Metas activas', value: `${activas.length}`, color: '#38bdf8' },
+          {
+            label: 'Metas activas',
+            value: `${activas.length}`,
+            color: 'var(--accent-blue)'
+          },
         ].map((s, i) => (
           <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
-            <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold mb-2">{s.label}</p>
-            <p className="text-2xl font-bold" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+            <p className="ff-label mb-2">{s.label}</p>
+            <div className="text-2xl font-extrabold" style={{ color: s.color, letterSpacing: '-0.03em' }}>
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
-
       {/* Cards */}
       {loading ? (
         <div className="flex items-center justify-center py-20 gap-3">
