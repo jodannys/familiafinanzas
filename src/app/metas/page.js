@@ -8,8 +8,9 @@ import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 
-function mesesRestantes(actual, meta, pctMensual, ingresoMensual = 5500) {
-  const aporteMensual = (pctMensual / 100) * ingresoMensual
+// DESPUÉS
+function mesesRestantes(actual, meta, pctMensual, montoDisponible = 0) {
+  const aporteMensual = (pctMensual / 100) * montoDisponible
   if (aporteMensual <= 0) return '—'
   const restante = meta - actual
   const meses = Math.ceil(restante / aporteMensual)
@@ -28,12 +29,12 @@ export default function MetasPage() {
   const [presupuesto, setPresupuesto] = useState(null)
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ 
-    nombre: '', 
-    emoji: '🎯', 
-    meta: '', 
-    pct_mensual: '', 
-    color: '#10b981' 
+  const [form, setForm] = useState({
+    nombre: '',
+    emoji: '🎯',
+    meta: '',
+    pct_mensual: '',
+    color: '#10b981'
   })
 
   useEffect(() => {
@@ -64,13 +65,13 @@ export default function MetasPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
-    
-    const payload = { 
-      nombre: form.nombre, 
-      emoji: form.emoji, 
-      meta: parseFloat(form.meta), 
-      pct_mensual: parseFloat(form.pct_mensual), 
-      color: form.color 
+
+    const payload = {
+      nombre: form.nombre,
+      emoji: form.emoji,
+      meta: parseFloat(form.meta),
+      pct_mensual: parseFloat(form.pct_mensual),
+      color: form.color
     }
 
     if (editingId) {
@@ -141,34 +142,31 @@ export default function MetasPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          { 
-            label: 'Total ahorrado', 
-            value: formatCurrency(totalAhorrado), 
-            color: 'var(--accent-green)' 
+          {
+            label: 'Total ahorrado',
+            value: formatCurrency(totalAhorrado),
+            color: 'var(--accent-green)'
           },
-          { 
-            label: 'Destinado a Metas', 
+          {
+
+            label: 'Destinado a Metas',
             value: (
               <div className="flex items-baseline gap-2">
                 <span>{presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}</span>
                 {presupuesto && (
-                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-wider border" 
-                        style={{ 
-                          backgroundColor: 'var(--bg-secondary)', 
-                          color: 'var(--text-secondary)',
-                          borderColor: 'var(--border-glass)'
-                        }}>
-                    {presupuesto.pctMetas}%
+                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-wider border"
+                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderColor: 'var(--border-glass)' }}>
+                    {presupuesto.pctMetas}% del Futuro
                   </span>
                 )}
               </div>
-            ), 
-            color: 'var(--accent-terra)' 
+            ),
+            color: 'var(--accent-terra)'
           },
-          { 
-            label: 'Metas activas', 
-            value: `${activas.length}`, 
-            color: 'var(--accent-blue)' 
+          {
+            label: 'Metas activas',
+            value: `${activas.length}`,
+            color: 'var(--accent-blue)'
           },
         ].map((s, i) => (
           <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -196,7 +194,8 @@ export default function MetasPage() {
           {metas.map((meta, i) => {
             const pct = Math.min(100, Math.round(((meta.actual || 0) / meta.meta) * 100))
             const restante = meta.meta - (meta.actual || 0)
-            const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0)
+
+            const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0, presupuesto?.montoMetas || 0)
             return (
               <Card key={meta.id} className="animate-enter group" style={{ animationDelay: `${i * 0.05}s` }}>
                 <div className="flex items-center gap-3 mb-3">
@@ -225,11 +224,11 @@ export default function MetasPage() {
                       <span className="text-xs text-stone-400">· faltan {formatCurrency(restante)}</span>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-stone-400">{meta.pct_mensual || 0}% /mes</span>
                     <span className="text-xs font-semibold" style={{ color: meta.color }}>{tiempo}</span>
-                    
+
                     {/* Botones de acción rápidos */}
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
                       {meta.estado === 'activa' && (
@@ -287,9 +286,15 @@ export default function MetasPage() {
                 value={form.meta} onChange={e => setForm({ ...form, meta: e.target.value })} />
             </div>
             <div>
-              <label className="ff-label">% ingreso mensual</label>
+
+              <label className="ff-label">% del presupuesto de metas</label>
               <input className="ff-input" type="number" min="0" max="100" placeholder="10" required
                 value={form.pct_mensual} onChange={e => setForm({ ...form, pct_mensual: e.target.value })} />
+              {presupuesto && form.pct_mensual && (
+                <p className="text-xs mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>
+                  = {formatCurrency((parseFloat(form.pct_mensual) / 100) * presupuesto.montoMetas)}/mes
+                </p>
+              )}
             </div>
           </div>
           <div>
@@ -298,11 +303,11 @@ export default function MetasPage() {
               {['#10b981', '#f59e0b', '#8b5cf6', '#38bdf8', '#C0605A', '#C17A3A'].map(c => (
                 <button type="button" key={c} onClick={() => setForm({ ...form, color: c })}
                   className="w-8 h-8 rounded-full transition-all"
-                  style={{ 
-                    background: c, 
-                    outline: form.color === c ? `3px solid ${c}` : 'none', 
+                  style={{
+                    background: c,
+                    outline: form.color === c ? `3px solid ${c}` : 'none',
                     outlineOffset: 2,
-                    opacity: form.color === c ? 1 : 0.6 
+                    opacity: form.color === c ? 1 : 0.6
                   }} />
               ))}
             </div>
