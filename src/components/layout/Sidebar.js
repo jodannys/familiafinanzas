@@ -8,14 +8,14 @@ import {
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
 
 const NAV = [
-  { href: '/',            label: 'Dashboard',          icon: LayoutDashboard, color: '#4A6FA5' },
-  { href: '/presupuesto', label: 'Mi Presupuesto',     icon: PieChart,        color: '#2D7A5F' },
-  { href: '/gastos',      label: 'Ingresos & Egresos',  icon: ArrowLeftRight,  color: '#7A5FA5' },
-  { href: '/sobres',      label: 'Sobres Diarios',      icon: Wallet,          color: '#2D7A5F' },
-  { href: '/metas',       label: 'Metas de Ahorro',     icon: Target,          color: '#C17A3A' },
-  { href: '/inversiones', label: 'Inversiones',         icon: TrendingUp,      color: '#2D7A5F' },
-  { href: '/deudas',      label: 'Deudas',              icon: CreditCard,      color: '#C0605A' },
-  { href: '/reportes',    label: 'Reportes',            icon: BarChart3,       color: '#4A6FA5' },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, color: '#4A6FA5' },
+  { href: '/presupuesto', label: 'Mi Presupuesto', icon: PieChart, color: '#2D7A5F' },
+  { href: '/gastos', label: 'Ingresos & Egresos', icon: ArrowLeftRight, color: '#7A5FA5' },
+  { href: '/sobres', label: 'Sobres Diarios', icon: Wallet, color: '#2D7A5F' },
+  { href: '/metas', label: 'Metas de Ahorro', icon: Target, color: '#C17A3A' },
+  { href: '/inversiones', label: 'Inversiones', icon: TrendingUp, color: '#2D7A5F' },
+  { href: '/deudas', label: 'Deudas', icon: CreditCard, color: '#C0605A' },
+  { href: '/reportes', label: 'Reportes', icon: BarChart3, color: '#4A6FA5' },
 ]
 
 export default function Sidebar({ onClose }) {
@@ -23,13 +23,13 @@ export default function Sidebar({ onClose }) {
 
   return (
     <aside className="h-full w-64 flex flex-col"
-      style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', boxShadow: '2px 0 16px rgba(0,0,0,0.06)' }}>
+      style={{ background: 'var(--sidebar-bg)', borderRight: 'none', boxShadow: '2px 0 16px rgba(0,0,0,0.06)' }}>
 
       {/* Logo */}
-      <div className="px-6 py-7 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
+      <div className="px-6 py-7 flex items-center gap-3" style={{ borderBottom: 'none' }}>
         <img src="/icon.svg" alt="Familia Finanzas" style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0 }} />
         <div>
-           <p className="text-sm leading-tight" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Familia</p>
+          <p className="text-sm leading-tight" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Familia</p>
           <p className="text-xs font-bold tracking-widest" style={{ color: 'var(--accent-green)' }}>Quintero Brito</p>
         </div>
       </div>
@@ -64,7 +64,7 @@ export default function Sidebar({ onClose }) {
       </nav>
 
       {/* User */}
-      <div className="p-4" style={{ borderTop: '1px solid var(--border-glass)' }}>
+      <div className="p-4" style={{ borderTop: 'none' }}>
         <div className="flex items-center gap-3 mb-3 px-1">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
             style={{ background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))' }}>
@@ -79,7 +79,13 @@ export default function Sidebar({ onClose }) {
         <ThemeSwitcher />
 
         <button className="w-full flex items-center gap-2 text-xs px-3 py-2 rounded-lg transition-colors"
-          style={{ color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+          style={{
+            color: 'var(--accent-rose)', // <--- Cambiado a rosa/rojo para que se vea como acción de salida
+            background: 'rgba(192, 96, 90, 0.05)',
+            border: 'none',
+            cursor: 'pointer',
+            marginTop: '8px'
+          }}>
           <LogOut size={13} />
           Cerrar sesión
         </button>
