@@ -15,9 +15,9 @@ function mesesRestantes(actual, meta, pctMensual, ingresoMensual = 5500) {
   const meses = Math.ceil(restante / aporteMensual)
   if (meses <= 0) return 'Completada'
   if (meses < 12) return `${meses} meses`
-  const anios = Math.floor(meses / 12)
+  const anos = Math.floor(meses / 12)
   const m = meses % 12
-  return `${anios}a ${m}m`
+  return `${anos}a ${m}m`
 }
 
 export default function MetasPage() {
@@ -95,7 +95,26 @@ export default function MetasPage() {
         {[
           // DESPUÉS
           { label: 'Total ahorrado', value: formatCurrency(totalAhorrado), color: '#10b981' },
-          { label: 'Destinado a Metas', value: presupuesto ? `${presupuesto.pctMetas}% · ${formatCurrency(presupuesto.montoMetas)}` : '—', color: '#8b5cf6' },
+          {
+            label: 'Destinado a Metas', value: presupuesto ? (
+              <div className="flex items-baseline gap-2">
+                {/* Monto principal en color Terra del tema */}
+                <span className="text-2xl font-extrabold" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.03em' }}>
+                  {formatCurrency(presupuesto.montoMetas)}
+                </span>
+                {/* Badge con el % usando el fondo secundario del tema */}
+                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-wider uppercase"
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-glass)'
+                  }}>
+                  {presupuesto.pctMetas}%
+                </span>
+              </div>
+            ) : '—',
+            color: 'var(--accent-terra)'
+          },
           { label: 'Metas activas', value: `${activas.length}`, color: '#38bdf8' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -216,7 +235,7 @@ export default function MetasPage() {
           <div>
             <label className="ff-label">Color</label>
             <div className="flex gap-3 flex-wrap">
-              {['#10b981','#f59e0b','#8b5cf6','#38bdf8','#fb7185','#fb923c'].map(c => (
+              {['#10b981', '#f59e0b', '#8b5cf6', '#38bdf8', '#fb7185', '#fb923c'].map(c => (
                 <button type="button" key={c} onClick={() => setForm({ ...form, color: c })}
                   className="w-8 h-8 rounded-full transition-all"
                   style={{ background: c, outline: form.color === c ? `3px solid ${c}` : 'none', outlineOffset: 2 }} />

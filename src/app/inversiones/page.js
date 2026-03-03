@@ -31,7 +31,7 @@ export default function InversionesPage() {
   const [error, setError] = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
   const [modal, setModal] = useState(false)
-  const [form, setForm] = useState({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anios: '10', bolanieve: true, color: '#10b981' })
+  const [form, setForm] = useState({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', bola_nieve: true, color: '#10b981' })
 
   useEffect(() => {
     cargar()
@@ -51,10 +51,10 @@ export default function InversionesPage() {
     setSaving(true)
     const { data, error } = await supabase
       .from('inversiones')
-      .insert([{ nombre: form.nombre, emoji: form.emoji, capital: parseFloat(form.capital), aporte: parseFloat(form.aporte || 0), tasa: parseFloat(form.tasa), anios: parseInt(form.anios), bolanieve: form.bolanieve, color: form.color }])
+      .insert([{ nombre: form.nombre, emoji: form.emoji, capital: parseFloat(form.capital), aporte: parseFloat(form.aporte || 0), tasa: parseFloat(form.tasa), anos: parseInt(form.anos), bola_nieve: form.bola_nieve, color: form.color }])
       .select()
     if (error) setError(error.message)
-    else { setInversiones(prev => [...prev, data[0]]); setSelected(data[0]); setModal(false); setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anios: '10', bolanieve: true, color: '#10b981' }) }
+    else { setInversiones(prev => [...prev, data[0]]); setSelected(data[0]); setModal(false); setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', bola_nieve: true, color: '#10b981' }) }
     setSaving(false)
   }
 
@@ -67,7 +67,7 @@ export default function InversionesPage() {
     }
   }
 
-  const calc = selected ? calculateCompoundInterest({ principal: selected.capital, monthlyContribution: selected.aporte, annualRate: selected.tasa, years: selected.anios }) : null
+  const calc = selected ? calculateCompoundInterest({ principal: selected.capital, monthlyContribution: selected.aporte, annualRate: selected.tasa, years: selected.anos }) : null
 
   return (
     <AppShell>
@@ -103,7 +103,7 @@ export default function InversionesPage() {
           {/* Lista */}
           <div className="space-y-3">
             {inversiones.map(inv => {
-              const c = calculateCompoundInterest({ principal: inv.capital, monthlyContribution: inv.aporte, annualRate: inv.tasa, years: inv.anios })
+              const c = calculateCompoundInterest({ principal: inv.capital, monthlyContribution: inv.aporte, annualRate: inv.tasa, years: inv.anos })
               const isSelected = selected?.id === inv.id
               return (
                 <div key={inv.id} onClick={() => setSelected(inv)}
@@ -113,9 +113,9 @@ export default function InversionesPage() {
                     <span className="text-2xl">{inv.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-stone-800 truncate">{inv.nombre}</p>
-                      <p className="text-xs text-stone-400">{inv.tasa}% anual · {inv.anios} años</p>
+                      <p className="text-xs text-stone-400">{inv.tasa}% anual · {inv.anos} años</p>
                     </div>
-                    {inv.bolanieve && (
+                    {inv.bola_nieve && (
                       <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(56,189,248,0.1)' }}>
                         <Snowflake size={12} className="text-sky-400" />
                       </div>
@@ -156,7 +156,7 @@ export default function InversionesPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="font-bold text-stone-800">{selected.nombre}</h3>
-                    <p className="text-xs text-stone-400">Proyección a {selected.anios} años · {selected.tasa}% anual{selected.bolanieve && ' · 🌨 Bola de nieve'}</p>
+                    <p className="text-xs text-stone-400">Proyección a {selected.anos} años · {selected.tasa}% anual{selected.bola_nieve && ' · 🌨 Bola de nieve'}</p>
                   </div>
                   <Badge color="emerald">×{(calc.finalBalance / selected.capital).toFixed(1)}</Badge>
                 </div>
@@ -242,14 +242,14 @@ export default function InversionesPage() {
             <div>
               <label className="ff-label">Proyección (años)</label>
               <input className="ff-input" type="number" min="1" max="50" placeholder="10"
-                value={form.anios} onChange={e => setForm({ ...form, anios: e.target.value })} />
+                value={form.anos} onChange={e => setForm({ ...form, anos: e.target.value })} />
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 rounded-xl"
             style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.15)' }}>
-            <input type="checkbox" id="bolanieve" checked={form.bolanieve}
-              onChange={e => setForm({ ...form, bolanieve: e.target.checked })} className="w-4 h-4 accent-sky-400" />
-            <label htmlFor="bolanieve" className="text-sm text-stone-600 cursor-pointer">
+            <input type="checkbox" id="bola_nieve" checked={form.bola_nieve}
+              onChange={e => setForm({ ...form, bola_nieve: e.target.checked })} className="w-4 h-4 accent-sky-400" />
+            <label htmlFor="bola_nieve" className="text-sm text-stone-600 cursor-pointer">
               <span className="font-semibold text-stone-800">Bola de nieve</span> — reinvertir ganancias (interés compuesto)
             </label>
           </div>
