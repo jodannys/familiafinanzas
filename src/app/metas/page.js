@@ -95,7 +95,7 @@ export default function MetasPage() {
         {[
           // DESPUÉS
           { label: 'Total ahorrado', value: formatCurrency(totalAhorrado), color: '#10b981' },
-          { label: 'Destinado del ingreso', value: presupuesto ? formatCurrency(presupuesto.montoMetas) : '—', color: '#8b5cf6' },
+          { label: 'Destinado a Metas', value: presupuesto ? `${presupuesto.pctMetas}% · ${formatCurrency(presupuesto.montoMetas)}` : '—', color: '#8b5cf6' },
           { label: 'Metas activas', value: `${activas.length}`, color: '#38bdf8' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>

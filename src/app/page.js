@@ -95,8 +95,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard label="Ingresos" value={formatCurrency(ingresosMes)} icon={TrendingUp} color="#10b981" />
         <StatCard label="Gastos" value={formatCurrency(egresosMes)} icon={TrendingDown} color="#fb7185" />
-        <StatCard label="Saldo libre" value={formatCurrency(saldo)} icon={Wallet} color="#38bdf8" />
         <StatCard label="Total ahorrado" value={formatCurrency(totalAhorrado)} icon={Target} color="#f59e0b" />
+        <StatCard label="Saldo libre" value={formatCurrency(saldo)} icon={Wallet} color="#38bdf8" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

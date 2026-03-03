@@ -140,7 +140,7 @@ export default function InversionesPage() {
             <div className="col-span-1 lg:col-span-2 space-y-5">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { label: 'Destinado del ingreso', value: presupuesto ? formatCurrency(presupuesto.montoInversiones) : '—', color: '#818CF8' },
+                  { label: 'Destinado a Inversiones', value: presupuesto ? `${presupuesto.pctInversiones}% · ${formatCurrency(presupuesto.montoInversiones)}` : '—', color: '#818CF8' },
                   { label: 'Balance final', value: formatCurrency(calc.finalBalance), color: selected.color },
                   { label: 'Total aportado', value: formatCurrency(calc.totalContributed), color: 'var(--text-secondary)' },
                   { label: 'Ganancias', value: formatCurrency(calc.totalInterest), color: '#f59e0b' },
