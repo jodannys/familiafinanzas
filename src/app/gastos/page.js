@@ -7,19 +7,19 @@ import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2 } from 'luc
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
+// DESPUÉS
 const CATS = [
-  { value: 'basicos', label: 'Gastos Básicos' },
-  { value: 'deseo', label: 'Gastos Deseo' },
-  { value: 'ahorro', label: 'Ahorro / Metas' },
+  { value: 'basicos',   label: 'Gastos Básicos' },
+  { value: 'deseo',     label: 'Gastos Deseo' },
+  { value: 'ahorro',    label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
-  { value: 'deuda', label: 'Deudas' },
-  { value: 'remesa', label: 'Remesas' },
+  { value: 'deuda',     label: 'Deudas' },
 ]
 
-const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose', remesa: 'orange' }
+const catColor = { basicos:'sky', deseo:'violet', ahorro:'emerald', inversion:'gold', deuda:'rose' }
 
 const CAT_BLOQUE = {
-  basicos: 'necesidades', remesa: 'necesidades', deuda: 'necesidades',
+  basicos: 'necesidades', deuda: 'necesidades',
   deseo: 'estilo',
   ahorro: 'futuro', inversion: 'futuro',
 }
