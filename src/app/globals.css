@@ -132,3 +132,15 @@ html, body {
   transition: background 0.2s, color 0.2s;
 }
 .ff-btn-ghost:hover { background: var(--border-glass); color: var(--text-primary); }
+
+/* Mata cualquier línea divisoria automática */
+.sticky {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Evita que el fondo se vea distinto al estirar la pantalla */
+html, body, main {
+  background-color: var(--bg-primary) !important;
+}

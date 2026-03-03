@@ -31,14 +31,16 @@ export default function AppShell({ children }) {
       <main className="flex-1 min-h-screen lg:ml-64">
 
         {/* Header móvil con hamburguesa — CORREGIDO */}
-        {/* Header móvil con z-index más alto y sin bordes */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-4 sticky top-0 z-50"
+        {/* Subimos el z-index a 50 y calculamos el espacio de la muesca (notch) */}
+        <div className="lg:hidden flex items-center gap-3 px-4 sticky top-0 z-50"
           style={{
             background: 'var(--bg-primary)',
             border: 'none',
             boxShadow: 'none',
-            // Esto asegura que el color beige cubra incluso detrás de la hora
-            paddingTop: 'env(safe-area-inset-top)'
+            // Esto hace que el beige suba hasta la hora pero el logo no se tape
+            paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)',
+            paddingBottom: '0.75rem',
+            WebkitAppearance: 'none'
           }}>
           <button
             onClick={() => setSidebarOpen(true)}
