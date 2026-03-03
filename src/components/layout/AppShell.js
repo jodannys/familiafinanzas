@@ -31,13 +31,14 @@ export default function AppShell({ children }) {
       <main className="flex-1 min-h-screen lg:ml-64">
 
         {/* Header móvil con hamburguesa — CORREGIDO */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-4 sticky top-0 z-20"
+        {/* Header móvil con z-index más alto y sin bordes */}
+        <div className="lg:hidden flex items-center gap-3 px-4 py-4 sticky top-0 z-50"
           style={{
             background: 'var(--bg-primary)',
-            borderBottom: 'none',
+            border: 'none',
             boxShadow: 'none',
-            paddingTop: 'calc(env(safe-area-inset-top) + 1rem)', 
-            WebkitAppearance: 'none'
+            // Esto asegura que el color beige cubra incluso detrás de la hora
+            paddingTop: 'env(safe-area-inset-top)'
           }}>
           <button
             onClick={() => setSidebarOpen(true)}
