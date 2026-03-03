@@ -116,14 +116,11 @@ export default function GastosPage() {
 
           <button
             onClick={() => setModal(true)}
-            className="ff-btn-primary flex items-center justify-center flex-shrink-0 shadow-lg 
-                 h-11 w-11 rounded-full sm:rounded-xl sm:w-auto sm:px-5 transition-all active:scale-95"
+            className="ff-btn-primary flex items-center justify-center flex-shrink-0 
+       h-11 w-11 !p-0 rounded-full sm:rounded-xl sm:w-auto sm:px-5 sm:h-auto sm:py-3 transition-all active:scale-95"
           >
-            {/* El icono Plus siempre blanco y centrado */}
-          <Plus size={22} strokeWidth={3} color="white" />
-
-            {/* El texto solo aparece si la pantalla es de PC (sm) */}
-            <span className="hidden sm:inline ml-2 text-xs font-black tracking-widest text-white uppercase">
+            <Plus size={20} strokeWidth={2.5} color="white" />
+            <span className="hidden sm:inline ml-2 text-sm font-bold text-white">
               Nuevo registro
             </span>
           </button>
