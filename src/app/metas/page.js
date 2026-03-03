@@ -216,7 +216,7 @@ export default function MetasPage() {
           <div>
             <label className="ff-label">Color</label>
             <div className="flex gap-3 flex-wrap">
-              {['#10b981', '#f59e0b', '#8b5cf6', '#38bdf8', '#fb7185', '#fb923c'].map(c => (
+              {['#10b981','#f59e0b','#8b5cf6','#38bdf8','#fb7185','#fb923c'].map(c => (
                 <button type="button" key={c} onClick={() => setForm({ ...form, color: c })}
                   className="w-8 h-8 rounded-full transition-all"
                   style={{ background: c, outline: form.color === c ? `3px solid ${c}` : 'none', outlineOffset: 2 }} />
