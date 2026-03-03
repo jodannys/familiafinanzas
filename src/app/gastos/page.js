@@ -114,13 +114,15 @@ export default function GastosPage() {
             </h1>
           </div>
 
-          <button
-            onClick={() => setModal(true)}
-            className="ff-btn-primary flex items-center justify-center flex-shrink-0 
-       h-11 w-11 !p-0 rounded-full sm:rounded-xl sm:w-auto sm:px-5 sm:h-auto sm:py-3 transition-all active:scale-95"
-          >
-            <Plus size={20} strokeWidth={2.5} color="white" />
-            <span className="hidden sm:inline ml-2 text-sm font-bold text-white">
+          <button className="ff-btn-primary flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            style={{
+              padding: '14px 20px', // Aumentamos el relleno para que sea más gordo
+              minWidth: '48px',     // Aseguramos que nunca sea más pequeño que un dedo
+              minHeight: '48px',    // Tamaño estándar de Apple para botones móviles
+              borderRadius: '14px'  // Bordes más redondeados y modernos
+            }}>
+            <Plus size={22} strokeWidth={3} color="white" /> {/* Icono un poco más grueso */}
+            <span className="hidden sm:inline text-base font-bold text-white">
               Nuevo registro
             </span>
           </button>
