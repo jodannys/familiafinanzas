@@ -120,7 +120,7 @@ export default function GastosPage() {
                  h-11 w-11 rounded-full sm:rounded-xl sm:w-auto sm:px-5 transition-all active:scale-95"
           >
             {/* El icono Plus siempre blanco y centrado */}
-            <Plus size={22} strokeWidth={3} className="text-white" />
+            <Plus size={22} strokeWidth={3} style={{ color: 'white', stroke: 'white' }} />
 
             {/* El texto solo aparece si la pantalla es de PC (sm) */}
             <span className="hidden sm:inline ml-2 text-xs font-black tracking-widest text-white uppercase">
