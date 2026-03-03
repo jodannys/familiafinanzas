@@ -31,7 +31,7 @@ export default function InversionesPage() {
   const [error, setError] = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
   const [modal, setModal] = useState(false)
-  const [form, setForm] = useState({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', años: '10', bolanieve: true, color: '#10b981' })
+  const [form, setForm] = useState({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anios: '10', bolanieve: true, color: '#10b981' })
 
   useEffect(() => {
     cargar()
@@ -103,7 +103,7 @@ export default function InversionesPage() {
           {/* Lista */}
           <div className="space-y-3">
             {inversiones.map(inv => {
-              const c = calculateCompoundInterest({ principal: inv.capital, monthlyContribution: inv.aporte, annualRate: inv.tasa, years: inv.años })
+              const c = calculateCompoundInterest({ principal: inv.capital, monthlyContribution: inv.aporte, annualRate: inv.tasa, years: inv.anios })
               const isSelected = selected?.id === inv.id
               return (
                 <div key={inv.id} onClick={() => setSelected(inv)}
@@ -113,7 +113,7 @@ export default function InversionesPage() {
                     <span className="text-2xl">{inv.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-stone-800 truncate">{inv.nombre}</p>
-                      <p className="text-xs text-stone-400">{inv.tasa}% anual · {inv.años} años</p>
+                      <p className="text-xs text-stone-400">{inv.tasa}% anual · {inv.anios} años</p>
                     </div>
                     {inv.bolanieve && (
                       <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(56,189,248,0.1)' }}>
@@ -242,7 +242,7 @@ export default function InversionesPage() {
             <div>
               <label className="ff-label">Proyección (años)</label>
               <input className="ff-input" type="number" min="1" max="50" placeholder="10"
-                value={form.anios} onChange={e => setForm({ ...form, años: e.target.value })} />
+                value={form.anios} onChange={e => setForm({ ...form, anios: e.target.value })} />
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 rounded-xl"

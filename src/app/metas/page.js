@@ -15,9 +15,9 @@ function mesesRestantes(actual, meta, pctMensual, ingresoMensual = 5500) {
   const meses = Math.ceil(restante / aporteMensual)
   if (meses <= 0) return 'Completada'
   if (meses < 12) return `${meses} meses`
-  const años = Math.floor(meses / 12)
+  const anios = Math.floor(meses / 12)
   const m = meses % 12
-  return `${años}a ${m}m`
+  return `${anios}a ${m}m`
 }
 
 export default function MetasPage() {
