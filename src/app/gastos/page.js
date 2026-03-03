@@ -170,7 +170,7 @@ export default function GastosPage() {
 
         {/* Filtros de abajo */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }, { v: 'remesa', l: 'Remesas' }].map(f => (
+          {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }].map(f => (
             <button key={f.v} onClick={() => setFiltro(f.v)}
               className="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border"
               style={{

@@ -61,7 +61,6 @@ export const CATEGORY_CONFIG = {
   ahorro:    { label: 'Ahorro / Metas',  color: '#34d399', icon: 'PiggyBank' },
   inversion: { label: 'Inversión',       color: '#fbbf24', icon: 'TrendingUp' },
   deuda:     { label: 'Deudas',          color: '#fb7185', icon: 'CreditCard' },
-  remesa:    { label: 'Remesas',         color: '#fb923c', icon: 'Send' },
 }
 
 
