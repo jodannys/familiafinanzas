@@ -31,8 +31,6 @@ html, body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* EVITA LA LÍNEA GRIS AL DESLIZAR (OVERSCROLL) */
-  overscroll-behavior-y: none;
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }

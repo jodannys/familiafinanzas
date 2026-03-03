@@ -34,8 +34,10 @@ export default function AppShell({ children }) {
         <div className="lg:hidden flex items-center gap-3 px-4 py-4 sticky top-0 z-20"
           style={{
             background: 'var(--bg-primary)',
-            border: 'none', // Aseguramos que no haya borde inferior
-            boxShadow: 'none' // Quitamos sombras que parecen líneas grises
+            borderBottom: 'none',
+            boxShadow: 'none',
+            paddingTop: 'calc(env(safe-area-inset-top) + 1rem)', 
+            WebkitAppearance: 'none'
           }}>
           <button
             onClick={() => setSidebarOpen(true)}
