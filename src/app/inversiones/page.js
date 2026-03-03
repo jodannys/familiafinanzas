@@ -10,7 +10,7 @@ import { getPresupuestoMes } from '@/lib/presupuesto'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
 
 const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
+  if (!active || !payload || !payload.length) return null
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 12, padding: '10px 14px' }}>
       <p className="text-xs mb-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>Año {label}</p>
