@@ -5,6 +5,7 @@ import { Card, ProgressBar, Badge } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import { Plus, Loader2, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { getPresupuestoMes } from '@/lib/presupuesto'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 
 function mesesRestantes(actual, meta, pctMensual, ingresoMensual = 5500) {
@@ -24,10 +25,14 @@ export default function MetasPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [presupuesto, setPresupuesto] = useState(null)
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: '#10b981' })
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    cargar()
+    getPresupuestoMes().then(setPresupuesto)
+  }, [])
 
   async function cargar() {
     setLoading(true)
@@ -88,8 +93,9 @@ export default function MetasPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
+          // DESPUÉS
           { label: 'Total ahorrado', value: formatCurrency(totalAhorrado), color: '#10b981' },
-          { label: '% ingreso destinado', value: `${totalPct}%`, color: totalPct > 30 ? '#10b981' : '#f59e0b' },
+          { label: 'Destinado del ingreso', value: presupuesto ? formatCurrency(presupuesto.montoMetas) : '—', color: '#8b5cf6' },
           { label: 'Metas activas', value: `${activas.length}`, color: '#38bdf8' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
