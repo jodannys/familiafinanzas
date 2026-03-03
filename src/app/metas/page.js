@@ -141,43 +141,36 @@ export default function MetasPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {[
-          {
-            label: 'Total ahorrado',
-            value: formatCurrency(totalAhorrado),
-            color: 'var(--accent-green)'
-          },
-          {
-
-            label: 'Destinado a Metas',
-            value: (
-              <div className="flex items-baseline gap-2">
-                <span>{presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}</span>
-                {presupuesto && (
-                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-wider border"
-                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderColor: 'var(--border-glass)' }}>
-                    {presupuesto.pctMetas}% del Futuro
-                  </span>
-                )}
-              </div>
-            ),
-            color: 'var(--accent-terra)'
-          },
-          {
-            label: 'Metas activas',
-            value: `${activas.length}`,
-            color: 'var(--accent-blue)'
-          },
-        ].map((s, i) => (
-          <div key={i} className="glass-card p-5 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
-            <p className="ff-label mb-2">{s.label}</p>
-            <div className="text-2xl font-extrabold" style={{ color: s.color, letterSpacing: '-0.03em' }}>
-              {s.value}
-            </div>
+        {/* Total ahorrado */}
+        <div className="glass-card p-5 animate-enter">
+          <p className="ff-label mb-2">Total ahorrado</p>
+          <div className="text-2xl font-extrabold" style={{ color: 'var(--accent-green)', letterSpacing: '-0.03em' }}>
+            {formatCurrency(totalAhorrado)}
           </div>
-        ))}
-      </div>
+        </div>
 
+        {/* Destinado a Metas — con % en esquina */}
+        <div className="glass-card p-5 animate-enter relative" style={{ animationDelay: '0.05s' }}>
+          <p className="ff-label mb-2">Destinado a Metas</p>
+          <div className="text-2xl font-extrabold" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.03em' }}>
+            {presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}
+          </div>
+          {presupuesto && (
+            <span className="absolute top-3 right-4 text-xs font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(193,122,58,0.12)', color: 'var(--accent-terra)' }}>
+              {presupuesto.pctMetas}%
+            </span>
+          )}
+        </div>
+
+        {/* Metas activas */}
+        <div className="glass-card p-5 animate-enter" style={{ animationDelay: '0.1s' }}>
+          <p className="ff-label mb-2">Metas activas</p>
+          <div className="text-2xl font-extrabold" style={{ color: 'var(--accent-blue)', letterSpacing: '-0.03em' }}>
+            {activas.length}
+          </div>
+        </div>
+      </div>
       {/* Cards List */}
       {loading ? (
         <div className="flex items-center justify-center py-20 gap-3">
