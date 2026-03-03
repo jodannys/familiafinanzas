@@ -38,16 +38,20 @@ export default function PresupuestoPage() {
     ahorro: 'futuro', inversion: 'futuro',
   }
 
-  useEffect(() => { cargarTodo() }, [])
+ useEffect(() => { cargarTodo(); setConfirmado(true) }, [])
 
   async function cargarTodo() {
     setLoadingItems(true)
     const [{ data: itemsData }, { data: movsData }] = await Promise.all([
       supabase.from('presupuesto_items').select('*').eq('mes', mes).eq('año', año).order('created_at'),
-      supabase.from('movimientos').select('*').gte('fecha', `${año}-${String(mes).padStart(2, '0')}-01`).lte('fecha', `${año}-${String(mes).padStart(2, '0')}-31`),
+      supabase.from('movimientos').select('*').gte('fecha', `${año}-${String(mes).padStart(2,'0')}-01`).lte('fecha', `${año}-${String(mes).padStart(2,'0')}-31`),
     ])
     setItems(itemsData || [])
-    setMovs(movsData || [])
+    const movsArr = movsData || []
+    setMovs(movsArr)
+    // Calcular ingreso real del mes automáticamente
+    const totalIngresos = movsArr.filter(m => m.tipo === 'ingreso').reduce((s,m) => s+m.monto, 0)
+    if (totalIngresos > 0) setIngreso(totalIngresos.toString())
     setLoadingItems(false)
   }
 
@@ -288,16 +292,20 @@ export default function PresupuestoPage() {
 
       {/* Calculadora */}
       <Card className="animate-enter">
-        <h3 className="font-bold text-stone-800 mb-1">Calculadora de distribución</h3>
-        <p className="text-xs text-stone-400 mb-5">Ingresa tu sueldo y ve cuánto va a cada bloque</p>
+        <h3 className="font-bold text-stone-800 mb-1">Distribución del mes</h3>
+        <p className="text-xs text-stone-400 mb-5">
+          Basado en tus ingresos reales de {now.toLocaleString('es-ES',{month:'long'})}
+        </p>
         <div className="flex gap-3 mb-6 flex-wrap">
           <input type="number" min="0" step="0.01" placeholder="Ej: 5000.00"
-            value={ingreso} onChange={e => { setIngreso(e.target.value); setConfirmado(false) }}
+            value={ingreso} onChange={e => { setIngreso(e.target.value); setConfirmado(true) }}
             className="ff-input flex-1 min-w-[180px]" />
-          <button onClick={() => setConfirmado(true)} disabled={!ingresoNum}
-            className="ff-btn-primary" style={{ opacity: ingresoNum ? 1 : 0.5 }}>
-            Calcular
-          </button>
+          {ingresoNum > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
+              style={{ background:'rgba(45,122,95,0.1)', color:'#2D7A5F', border:'1px solid rgba(45,122,95,0.2)' }}>
+              ✓ Ingreso real detectado
+            </div>
+          )}
         </div>
         {confirmado && ingresoNum > 0 && (
           <div className="space-y-3">
