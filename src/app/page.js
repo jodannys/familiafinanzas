@@ -42,9 +42,10 @@ export default function Dashboard() {
   const añoActual = now.getFullYear()
 
   // Movimientos de este mes
+
   const movsMes = movs.filter(m => {
-    const d = new Date(m.fecha)
-    return d.getMonth() === mesActual && d.getFullYear() === añoActual
+    const [year, month] = m.fecha.split('-').map(Number)
+    return month - 1 === mesActual && year === añoActual
   })
 
   const ingresosMes = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
@@ -171,8 +172,8 @@ function generarHistorico(movimientos) {
     const mesNum = d.getMonth()
     const añoNum = d.getFullYear()
     const filtrados = movimientos.filter(m => {
-      const fm = new Date(m.fecha)
-      return fm.getMonth() === mesNum && fm.getFullYear() === añoNum
+      const [year, month] = m.fecha.split('-').map(Number)
+      return month - 1 === mesNum && year === añoNum
     })
     return {
       mes: MESES_LABEL[mesNum],

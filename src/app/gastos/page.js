@@ -37,7 +37,7 @@ export default function GastosPage() {
   const [inversionesData, setInversionesData] = useState([])
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
-    categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jdannys'
+    categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys'
   })
 
   useEffect(() => {
@@ -81,17 +81,17 @@ export default function GastosPage() {
 
     const { data, error } = await supabase
       .from('movimientos')
-      console.log('FORM ANTES DE INSERT:', { ...form, monto: parseFloat(form.monto) })
+    console.log('FORM ANTES DE INSERT:', { ...form, monto: parseFloat(form.monto) })
       .insert([{ ...form, monto }])
       .select()
     if (error) {
-  console.log('ERROR COMPLETO:', JSON.stringify(error))
-  setError('Error al guardar: ' + error.message)
-}
+      console.log('SUPABASE ERROR:', error.code, error.message, error.details, error.hint)
+      setError('Error al guardar: ' + error.message)
+    }
     else {
       setMovs(prev => [data[0], ...prev])
       setModal(false)
-      setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jdannys' })
+      setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys' })
     }
     setSaving(false)
   }
