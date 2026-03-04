@@ -111,15 +111,51 @@ const gastadoSobre = sobreMovs.filter(m => m.origen === 'estilo' && m.monto > 0)
     }
   }
 
-  async function registrarMovSobre({ descripcion, monto, origen }) {
-    setSaving(true)
-    const { data, error } = await supabase
-      .from('sobre_movimientos')
-      .insert([{ descripcion, monto, origen, mes: filtroMes, año: filtroAño, fecha: new Date().toISOString().slice(0, 10) }])
-      .select()
-    if (!error && data) setSobreMovs(prev => [data[0], ...prev])
-    setSaving(false)
+ async function registrarMovSobre({ descripcion, monto, origen }) {
+  setSaving(true)
+  
+  // 1. Registrar en la tabla de SOBRES (para el cálculo de saldo del sobre)
+  const { data: dataSobre, error: errorSobre } = await supabase
+    .from('sobre_movimientos')
+    .insert([{ 
+      descripcion, 
+      monto, 
+      origen, 
+      mes: filtroMes, 
+      año: filtroAño, 
+      fecha: new Date().toISOString().slice(0, 10) 
+    }])
+    .select()
+
+  // 2. REGISTRO AUTOMÁTICO en la tabla general de MOVIMIENTOS
+  // Solo si es un gasto real (monto > 0)
+  if (!errorSobre && monto > 0) {
+    await supabase.from('movimientos').insert([{
+      tipo: 'egreso',
+      monto: monto,
+      descripcion: descripcion,
+      // Mapeamos el origen del sobre a una categoría general
+      categoria: origen === 'estilo' ? 'deseo' : (origen === 'basicos' ? 'basicos' : 'ahorro'),
+      fecha: new Date().toISOString().slice(0, 10),
+      quien: 'Ambos' // O el valor que prefieras por defecto
+    }])
   }
+
+  if (!errorSobre && dataSobre) {
+    setSobreMovs(prev => [dataSobre[0], ...prev])
+    // Opcional: recargar movimientos del mes para que los totales de arriba se actualicen
+    const fechaInicio = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-01`
+    const fechaFin = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-31`
+    const { data: nuevosMovs } = await supabase
+      .from('movimientos')
+      .select('*')
+      .gte('fecha', fechaInicio)
+      .lte('fecha', fechaFin)
+    if (nuevosMovs) setMovsMes(nuevosMovs)
+  }
+  
+  setSaving(false)
+}
 
   async function confirmarTraspaso() {
     if (!gastoTemp) return
