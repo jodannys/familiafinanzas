@@ -34,7 +34,7 @@ export default function GastosPage() {
   const [filtro, setFiltro] = useState('todos')
   const [presItems, setPresItems] = useState([])
   const [metasData, setMetasData] = useState([])
-  const [inversionesData, setInversionesData] = useState([])
+  const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
     categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys'
@@ -90,6 +90,13 @@ export default function GastosPage() {
     }
     else {
       setMovs(prev => [data[0], ...prev])
+      if (form.categoria === 'ahorro' && metaSeleccionada) {
+        const meta = metasData.find(m => m.id === metaSeleccionada)
+        if (meta) {
+          await supabase.from('metas').update({ actual: (meta.actual || 0) + monto }).eq('id', metaSeleccionada)
+        }
+        setMetaSeleccionada('')
+      }
       setModal(false)
       setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys' })
     }
@@ -297,6 +304,18 @@ export default function GastosPage() {
             </div>
           )}
 
+          {form.tipo === 'egreso' && form.categoria === 'ahorro' && metasData.length > 0 && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Añadir a meta</label>
+              <select className="ff-input h-12 text-sm" value={metaSeleccionada}
+                onChange={e => setMetaSeleccionada(e.target.value)}>
+                <option value="">— Sin asignar —</option>
+                {metasData.map(m => (
+                  <option key={m.id} value={m.id}>{m.nombre} ({formatCurrency(m.actual || 0)} / {formatCurrency(m.meta)})</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Descripción</label>
             <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required

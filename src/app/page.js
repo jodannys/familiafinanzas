@@ -53,7 +53,7 @@ export default function Dashboard() {
   const ahorroMes = movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
   const egresosMes = gastosMes + ahorroMes
   const saldo = ingresosMes - egresosMes
-  const totalAhorrado = ahorroMes
+  const totalAhorrado = metas.reduce((s, m) => s + (m.actual || 0), 0)
 
   // Distribución por categorías (Real)
   const catTotales = {}
