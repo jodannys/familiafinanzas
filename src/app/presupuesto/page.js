@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
-import { Home, Sparkles, Sprout, CheckCircle, Edit3, Save, Plus, Trash2, Loader2, ChevronDown, ChevronUp, Target, TrendingUp } from 'lucide-react'
+import { Home, Sparkles, Sprout, CheckCircle, Edit3, Save, Plus, Trash2, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
@@ -18,6 +18,13 @@ const CAT_BLOQUE = {
   ahorro: 'futuro', inversion: 'futuro',
 }
 
+// Mapeo de origen del sobre al bloque de presupuesto
+const ORIGEN_BLOQUE = {
+  basicos: 'necesidades',
+  metas: 'futuro',
+  inversiones: 'futuro',
+}
+
 export default function PresupuestoPage() {
   const [bloques, setBloques] = useState(BLOQUES_META)
   const [ingreso, setIngreso] = useState('')
@@ -25,6 +32,7 @@ export default function PresupuestoPage() {
   const [borradores, setBorradores] = useState(null)
   const [items, setItems] = useState([])
   const [movs, setMovs] = useState([])
+  const [sobreMovs, setSobreMovs] = useState([])   // ← NUEVO
   const [metasReales, setMetasReales] = useState([])
   const [inversionesReales, setInversionesReales] = useState([])
   const [loadingItems, setLoadingItems] = useState(true)
@@ -51,7 +59,8 @@ export default function PresupuestoPage() {
       { data: bloquesData },
       { data: subData },
       { data: metasData },
-      { data: invData }
+      { data: invData },
+      { data: sobreData },   // ← NUEVO
     ] = await Promise.all([
       supabase.from('presupuesto_items').select('*').eq('mes', mes).eq('año', año).order('created_at'),
       supabase.from('movimientos').select('*').gte('fecha', `${año}-${String(mes).padStart(2, '0')}-01`).lte('fecha', `${año}-${String(mes).padStart(2, '0')}-31`),
@@ -59,11 +68,13 @@ export default function PresupuestoPage() {
       supabase.from('presupuesto_sub').select('*').eq('bloque', 'futuro'),
       supabase.from('metas').select('*').eq('estado', 'activa'),
       supabase.from('inversiones').select('*'),
+      supabase.from('sobre_movimientos').select('*').eq('mes', mes).eq('año', año),  // ← NUEVO
     ])
 
     setItems(itemsData || [])
     setMetasReales(metasData || [])
     setInversionesReales(invData || [])
+    setSobreMovs(sobreData || [])  // ← NUEVO
 
     const movsArr = movsData || []
     setMovs(movsArr)
@@ -86,8 +97,17 @@ export default function PresupuestoPage() {
     setLoadingItems(false)
   }
 
+  // ── GASTADO REAL: movimientos + traspasos del sobre ──────────────────────
   function gastadoReal(bloqueId) {
-    return movs.filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId).reduce((s, m) => s + m.monto, 0)
+    const deMovimientos = movs
+      .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
+      .reduce((s, m) => s + m.monto, 0)
+
+    const deTraspasos = sobreMovs
+      .filter(m => ORIGEN_BLOQUE[m.origen] === bloqueId && m.monto > 0)
+      .reduce((s, m) => s + m.monto, 0)
+
+    return deMovimientos + deTraspasos
   }
 
   async function handleAddItem(bloqueId, customPayload = null) {
@@ -183,13 +203,11 @@ export default function PresupuestoPage() {
           const gastado = gastadoReal(bloque.id)
           const disponible = monto - gastado
 
-          // Metas e inversiones NO añadidas aún como items
           const metasNoAgregadas = metasReales.filter(m => !bloqueItems.find(bi => bi.nombre.includes(m.nombre)))
           const invNoAgregadas = inversionesReales.filter(i => !bloqueItems.find(bi => bi.nombre.includes(i.nombre)))
 
           return (
             <Card key={bloque.id} className="animate-enter">
-              {/* Header */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: `${bloque.color}15` }}>
@@ -201,7 +219,6 @@ export default function PresupuestoPage() {
                 </div>
               </div>
 
-              {/* Porcentaje */}
               <div className="flex items-center gap-3 mb-3">
                 {editando ? (
                   <div className="flex items-center gap-2 flex-1">
@@ -221,13 +238,11 @@ export default function PresupuestoPage() {
                 )}
               </div>
 
-              {/* Barra porcentaje */}
               <div className="w-full h-2 rounded-full mb-4" style={{ background: 'var(--progress-track)' }}>
                 <div className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${bloque.pct}%`, background: bloque.color }} />
               </div>
 
-              {/* Gastado / Disponible */}
               {ingresoNum > 0 && (
                 <div className="rounded-xl p-3 mb-4 space-y-2"
                   style={{ background: `${bloque.color}08`, border: `1px solid ${bloque.color}20` }}>
@@ -250,7 +265,6 @@ export default function PresupuestoPage() {
                 </div>
               )}
 
-              {/* Sub-distribución para Futuro */}
               {bloque.id === 'futuro' && (
                 <div className="rounded-xl p-3 mb-4"
                   style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
@@ -276,13 +290,11 @@ export default function PresupuestoPage() {
                       </div>
                     )}
                   </div>
-
                   {!subOk && editandoSub && (
                     <p className="text-xs mb-2 font-semibold" style={{ color: '#C0605A' }}>
                       Deben sumar 100% (ahora {subBorrador.metas + subBorrador.inversiones}%)
                     </p>
                   )}
-
                   {[
                     { key: 'metas', label: 'Metas de Ahorro', color: '#10b981' },
                     { key: 'inversiones', label: 'Inversiones', color: '#818CF8' },
@@ -323,7 +335,6 @@ export default function PresupuestoPage() {
                 </div>
               )}
 
-              {/* Categorías */}
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {bloque.categorias.map(cat => (
                   <span key={cat} className="text-xs px-2 py-1 rounded-lg font-medium"
@@ -331,7 +342,6 @@ export default function PresupuestoPage() {
                 ))}
               </div>
 
-              {/* Items detallados */}
               <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: 12 }}>
                 <button onClick={() => setExpandido(isExpandido ? null : bloque.id)}
                   className="w-full flex items-center justify-between text-xs font-semibold mb-2"
@@ -367,13 +377,11 @@ export default function PresupuestoPage() {
                       ))
                     )}
 
-                    {/* ── METAS E INVERSIONES REALES (solo en Futuro) ── */}
                     {bloque.id === 'futuro' && (metasNoAgregadas.length > 0 || invNoAgregadas.length > 0) && (
                       <div className="pt-3 border-t border-dashed border-stone-200 space-y-2">
                         <p className="text-[9px] font-black text-stone-400 uppercase tracking-wider">
                           Tus metas e inversiones — añade con un clic
                         </p>
-
                         {metasNoAgregadas.map(meta => {
                           const restante = meta.meta - (meta.actual || 0)
                           return (
@@ -394,11 +402,10 @@ export default function PresupuestoPage() {
                             </button>
                           )
                         })}
-
                         {invNoAgregadas.map(inv => (
                           <button key={inv.id}
                             onClick={() => {
-                              setAddingReal({ nombre: `${getFlagEmoji(meta.emoji) || '🎯'} ${meta.nombre}`, montoSugerido: inv.aporte || 0, bloque: 'futuro' })
+                              setAddingReal({ nombre: `${getFlagEmoji(inv.emoji) || '📈'} ${inv.nombre}`, montoSugerido: inv.aporte || 0, bloque: 'futuro' })
                               setMontoReal((inv.aporte || 0).toFixed(2))
                             }}
                             className="w-full text-left px-3 py-2 rounded-xl border flex items-center justify-between hover:bg-indigo-50 transition-colors"
@@ -415,7 +422,6 @@ export default function PresupuestoPage() {
                       </div>
                     )}
 
-                    {/* Añadir item manual */}
                     {addingTo === bloque.id ? (
                       <div className="space-y-2 mt-2">
                         <input className="ff-input w-full" placeholder="Ej: Alquiler, Agua..."
@@ -509,6 +515,7 @@ export default function PresupuestoPage() {
           </div>
         </Card>
       )}
+
       {addingReal && (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-xs shadow-2xl">

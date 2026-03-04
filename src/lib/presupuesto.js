@@ -1,10 +1,10 @@
 import { supabase } from './supabase'
-import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 
 export async function getPresupuestoMes() {
   const now = new Date()
   const mes = now.getMonth() + 1
   const año = now.getFullYear()
+  
 
   const [{ data: movsData }, { data: bloquesData }, { data: subData }] = await Promise.all([
     supabase.from('movimientos')

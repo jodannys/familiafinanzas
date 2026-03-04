@@ -75,12 +75,15 @@ export default function SobrePage() {
     .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
     .reduce((s, m) => s + m.monto, 0)
 
-  const montoEstilo = presupuesto?.montoEstilo || 0
-  const saldoSobre = montoEstilo - gastadoSobre
+  // Los traspasos de otras cubetas al sobre aumentan el disponible
+  const traspasosAlSobre = sobreMovs
+    .filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen))
+    .reduce((s, m) => s + m.monto, 0)
+
+  const saldoSobre = montoEstilo - gastadoSobre + traspasosAlSobre
 
   // Básicos: egresos de categoría basicos/deuda
   const montoBasicos = presupuesto?.montoNecesidades || 0
-  // DESPUÉS
   const gastadoBasicos = movsMes
     .filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria))
     .reduce((s, m) => s + m.monto, 0)
