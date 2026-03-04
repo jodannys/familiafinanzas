@@ -73,6 +73,7 @@ export default function GastosPage() {
   // DESPUÉS
   async function handleAdd(e) {
     e.preventDefault()
+    console.log('FORM:', form)
     const monto = parseFloat(form.monto)
     if (!monto || monto <= 0) return
     setSaving(true)
