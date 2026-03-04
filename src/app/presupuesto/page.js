@@ -3,9 +3,8 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import { Home, Sparkles, Sprout, CheckCircle, Edit3, Save, Plus, Trash2, Loader2, ChevronDown, ChevronUp, Target, TrendingUp } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
-import { supabase } from '@/lib/supabase'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 
 const BLOQUES_META = [
   { id: 'necesidades', nombre: 'Necesidades', icon: Home, color: '#4A6FA5', pct: 50, categorias: ['Básicos', 'Deudas'], descripcion: 'Gastos obligatorios del mes' },
