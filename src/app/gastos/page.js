@@ -9,14 +9,14 @@ import { supabase } from '@/lib/supabase'
 
 // DESPUÉS
 const CATS = [
-  { value: 'basicos',   label: 'Gastos Básicos' },
-  { value: 'deseo',     label: 'Gastos Deseo' },
-  { value: 'ahorro',    label: 'Ahorro / Metas' },
+  { value: 'basicos', label: 'Gastos Básicos' },
+  { value: 'deseo', label: 'Gastos Deseo' },
+  { value: 'ahorro', label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
-  { value: 'deuda',     label: 'Deudas' },
+  { value: 'deuda', label: 'Deudas' },
 ]
 
-const catColor = { basicos:'sky', deseo:'violet', ahorro:'emerald', inversion:'gold', deuda:'rose' }
+const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose' }
 
 const CAT_BLOQUE = {
   basicos: 'necesidades', deuda: 'necesidades',
@@ -33,14 +33,19 @@ export default function GastosPage() {
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState('todos')
   const [presItems, setPresItems] = useState([])
+  const [metasData, setMetasData] = useState([])
+  const [inversionesData, setInversionesData] = useState([])
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
     categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jdannys'
   })
 
   useEffect(() => {
+    // DESPUÉS
     cargarMovimientos()
     cargarPresupuesto()
+    supabase.from('metas').select('id, nombre, meta, actual').then(({ data }) => setMetasData(data || []))
+    supabase.from('inversiones').select('id, nombre, capital').then(({ data }) => setInversionesData(data || []))
   }, [])
 
   async function cargarMovimientos() {
@@ -91,7 +96,11 @@ export default function GastosPage() {
   }
 
   const sugerencias = form.tipo === 'egreso'
-    ? presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
+    ? form.categoria === 'ahorro'
+      ? metasData.map(m => ({ nombre: m.nombre, monto: m.meta - (m.actual || 0) }))
+      : form.categoria === 'inversion'
+        ? inversionesData.map(i => ({ nombre: i.nombre, monto: i.capital }))
+        : presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
     : []
 
   const ingresos = movs.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
