@@ -379,7 +379,7 @@ export default function PresupuestoPage() {
                           return (
                             <button key={meta.id}
                               onClick={() => {
-                                setAddingReal({ nombre: `${meta.emoji || '🎯'} ${meta.nombre}`, montoSugerido: Math.min(restante, monto * (sub.metas / 100)), bloque: 'futuro' })
+                                setAddingReal({ nombre: `${getFlagEmoji(meta.emoji) || '🎯'} ${meta.nombre}`, montoSugerido: Math.min(restante, monto * (sub.metas / 100)), bloque: 'futuro' })
                                 setMontoReal(Math.min(restante, monto * (sub.metas / 100)).toFixed(2))
                               }}
                               className="w-full text-left px-3 py-2 rounded-xl border flex items-center justify-between hover:bg-emerald-50 transition-colors"
@@ -398,7 +398,7 @@ export default function PresupuestoPage() {
                         {invNoAgregadas.map(inv => (
                           <button key={inv.id}
                             onClick={() => {
-                              setAddingReal({ nombre: `${inv.emoji || '📈'} ${inv.nombre}`, montoSugerido: inv.aporte || 0, bloque: 'futuro' })
+                              setAddingReal({ nombre: `${getFlagEmoji(meta.emoji) || '🎯'} ${meta.nombre}`, montoSugerido: inv.aporte || 0, bloque: 'futuro' })
                               setMontoReal((inv.aporte || 0).toFixed(2))
                             }}
                             className="w-full text-left px-3 py-2 rounded-xl border flex items-center justify-between hover:bg-indigo-50 transition-colors"
