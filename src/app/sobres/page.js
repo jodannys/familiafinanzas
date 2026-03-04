@@ -80,10 +80,16 @@ export default function SobrePage() {
 
   // Básicos: egresos de categoría basicos/deuda
   const montoBasicos = presupuesto?.montoNecesidades || 0
+  // DESPUÉS
   const gastadoBasicos = movsMes
     .filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria))
     .reduce((s, m) => s + m.monto, 0)
-  const saldoBasicos = montoBasicos - gastadoBasicos
+
+  const traspasosBasicos = sobreMovs
+    .filter(m => m.origen === 'basicos')
+    .reduce((s, m) => s + m.monto, 0)
+
+  const saldoBasicos = montoBasicos - gastadoBasicos - traspasosBasicos
 
   // Metas e Inversiones: usan sobre_movimientos para traspasos
   const traspasosMetas = sobreMovs
@@ -233,7 +239,7 @@ export default function SobrePage() {
   return (
     <AppShell>
       {/* HEADER */}
-     <div className="flex items-center justify-between gap-4 mb-6 animate-enter">
+      <div className="flex items-center justify-between gap-4 mb-6 animate-enter">
         <div>
           <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Control Diario</p>
           <h1 className="text-xl font-black text-stone-800 tracking-tight">Sobre Diario</h1>
