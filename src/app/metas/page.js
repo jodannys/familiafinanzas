@@ -45,6 +45,7 @@ export default function MetasPage() {
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: '#10b981' })
+  const [selectedMetaId, setSelectedMetaId] = useState(null)
 
   useEffect(() => {
     cargar()
@@ -118,7 +119,7 @@ export default function MetasPage() {
       .insert([{
         tipo: 'egreso',
         monto: monto,
-        descripcion: `Aporte meta: ${nombreMeta}`,
+        descripcion: { nombreMeta },
         categoria: 'ahorro',
         fecha: new Date().toISOString().slice(0, 10),
         quien: 'Ambos' // O el valor por defecto que prefieras
@@ -182,6 +183,7 @@ export default function MetasPage() {
       </div>
 
       {/* Lista */}
+      {/* Lista */}
       {loading ? (
         <div className="flex items-center justify-center py-20 gap-3">
           <Loader2 size={20} className="animate-spin text-stone-400" />
@@ -195,38 +197,43 @@ export default function MetasPage() {
       ) : (
         <div className="space-y-3">
           {metas.map((meta, i) => {
+            const isSelected = selectedMetaId === meta.id
             const pct = Math.min(100, Math.round(((meta.actual || 0) / meta.meta) * 100))
-            const restante = meta.meta - (meta.actual || 0)
             const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0, presupuesto?.montoMetas || 0)
             const estado = ESTADO_CONFIG[meta.estado] || ESTADO_CONFIG.activa
 
             return (
-              <Card key={meta.id} className="animate-enter" style={{ animationDelay: `${i * 0.04}s`, padding: '12px 14px' }}>
+              <Card 
+                key={meta.id} 
+                className="animate-enter cursor-pointer transition-all duration-300" 
+                onClick={() => setSelectedMetaId(isSelected ? null : meta.id)}
+                style={{ 
+                  animationDelay: `${i * 0.04}s`, 
+                  padding: '12px 14px',
+                  border: isSelected ? `1px solid ${meta.color}40` : '1px solid transparent',
+                  background: isSelected ? `${meta.color}05` : '' 
+                }}
+              >
 
                 {/* FILA 1: Emoji + Nombre/Estado + Porcentaje */}
                 <div className="flex items-center gap-2.5 mb-2.5">
-                  {/* Emoji */}
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                     style={{ background: `${meta.color}18` }}>
                     {getFlagEmoji(meta.emoji)}
                   </div>
 
-                  {/* Centro: Nombre + badges */}
                   <div className="flex-1 min-w-0">
                     <p className="font-black text-stone-800 truncate text-sm leading-tight mb-0.5">
                       {meta.nombre}
                     </p>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {/* Estado — ancho fijo */}
                       <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
                         style={{ background: estado.bg, color: estado.text, minWidth: 48, display: 'inline-block', textAlign: 'center' }}>
                         {estado.label}
                       </span>
-                      {/* Tiempo */}
                       {tiempo !== '—' && meta.estado !== 'completada' && (
                         <span className="text-[9px] text-stone-400 font-semibold">⏱ {tiempo}</span>
                       )}
-                      {/* % mes */}
                       {meta.pct_mensual > 0 && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                           style={{ background: `${meta.color}12`, color: meta.color }}>
@@ -236,7 +243,6 @@ export default function MetasPage() {
                     </div>
                   </div>
 
-                  {/* Porcentaje — siempre a la derecha, fijo */}
                   <span className="text-xl font-black tabular-nums"
                     style={{ color: meta.color, letterSpacing: '-0.03em', minWidth: 44, textAlign: 'right', flexShrink: 0 }}>
                     {pct}%
@@ -246,10 +252,9 @@ export default function MetasPage() {
                 {/* BARRA */}
                 <ProgressBar value={meta.actual || 0} max={meta.meta} color={meta.color} className="mb-2.5" />
 
-                {/* FILA 2: Montos izquierda + Botones derecha */}
-                <div className="flex items-center gap-2">
-                  {/* Montos */}
-                  <div className="flex items-baseline gap-1 flex-1 min-w-0">
+                {/* FILA 2: Montos izquierda + Botones derecha condicionales */}
+                <div className="flex items-center justify-between min-h-[36px]">
+                  <div className="flex items-baseline gap-1">
                     <span className="text-xs font-black tabular-nums" style={{ color: meta.color }}>
                       {formatCurrency(meta.actual || 0)}
                     </span>
@@ -258,54 +263,55 @@ export default function MetasPage() {
                     </span>
                   </div>
 
-                  {/* Botones táctiles — siempre visibles */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <IconBtn
-                      onClick={() => handleAgregarDinero(meta.id, meta.actual || 0, meta.nombre)}
-                      title="Agregar dinero"
-                      bg="rgba(16,185,129,0.1)"
-                      color="#10b981"
-                    >
-                      <Plus size={14} strokeWidth={3} />
-                    </IconBtn>
-
-                    {meta.estado === 'activa' && (
-                      <IconBtn onClick={() => handleEstado(meta.id, 'pausada')}
-                        title="Pausar" bg="rgba(245,158,11,0.1)" color="#f59e0b">
-                        <Pause size={13} strokeWidth={2.5} />
+                  {/* Botones táctiles — SOLO VISIBLES SI ESTÁ SELECCIONADA */}
+                  {isSelected && (
+                    <div className="flex items-center gap-1 flex-shrink-0 animate-in fade-in zoom-in-95 duration-200">
+                      <IconBtn
+                        onClick={(e) => { e.stopPropagation(); handleAgregarDinero(meta.id, meta.actual || 0, meta.nombre); }}
+                        title="Agregar dinero"
+                        bg="rgba(16,185,129,0.1)"
+                        color="#10b981"
+                      >
+                        <Plus size={14} strokeWidth={3} />
                       </IconBtn>
-                    )}
-                    {meta.estado === 'pausada' && (
-                      <IconBtn onClick={() => handleEstado(meta.id, 'activa')}
-                        title="Activar" bg="rgba(16,185,129,0.1)" color="#10b981">
-                        <Play size={13} strokeWidth={2.5} />
+
+                      {meta.estado === 'activa' && (
+                        <IconBtn onClick={(e) => { e.stopPropagation(); handleEstado(meta.id, 'pausada'); }}
+                          title="Pausar" bg="rgba(245,158,11,0.1)" color="#f59e0b">
+                          <Pause size={13} strokeWidth={2.5} />
+                        </IconBtn>
+                      )}
+                      {meta.estado === 'pausada' && (
+                        <IconBtn onClick={(e) => { e.stopPropagation(); handleEstado(meta.id, 'activa'); }}
+                          title="Activar" bg="rgba(16,185,129,0.1)" color="#10b981">
+                          <Play size={13} strokeWidth={2.5} />
+                        </IconBtn>
+                      )}
+
+                      {meta.estado !== 'completada' && (
+                        <IconBtn onClick={(e) => { e.stopPropagation(); handleEstado(meta.id, 'completada'); }}
+                          title="Completada" bg="rgba(56,189,248,0.1)" color="#38bdf8">
+                          <Check size={13} strokeWidth={2.5} />
+                        </IconBtn>
+                      )}
+
+                      <IconBtn onClick={(e) => { e.stopPropagation(); prepareEdit(meta); }}
+                        title="Editar" bg="var(--bg-secondary)" color="var(--text-muted)">
+                        <Pencil size={12} />
                       </IconBtn>
-                    )}
 
-                    {meta.estado !== 'completada' && (
-                      <IconBtn onClick={() => handleEstado(meta.id, 'completada')}
-                        title="Completada" bg="rgba(56,189,248,0.1)" color="#38bdf8">
-                        <Check size={13} strokeWidth={2.5} />
+                      <IconBtn onClick={(e) => { e.stopPropagation(); handleDelete(meta.id); }}
+                        title="Eliminar" bg="rgba(192,96,90,0.08)" color="#C0605A">
+                        <Trash2 size={12} />
                       </IconBtn>
-                    )}
-
-                    <IconBtn onClick={() => prepareEdit(meta)}
-                      title="Editar" bg="var(--bg-secondary)" color="var(--text-muted)">
-                      <Pencil size={12} />
-                    </IconBtn>
-
-                    <IconBtn onClick={() => handleDelete(meta.id)}
-                      title="Eliminar" bg="rgba(192,96,90,0.08)" color="#C0605A">
-                      <Trash2 size={12} />
-                    </IconBtn>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </Card>
             )
           })}
         </div>
       )}
-
       {/* Modal */}
       <Modal open={modal} onClose={closeModal} title={editingId ? 'Editar Meta' : 'Nueva Meta de Ahorro'}>
         <form onSubmit={handleSubmit} className="space-y-4">
