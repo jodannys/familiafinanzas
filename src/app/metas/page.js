@@ -21,9 +21,9 @@ function mesesRestantes(actual, meta, pctMensual, montoDisponible = 0) {
 }
 
 const ESTADO_CONFIG = {
-  activa:     { label: 'Activa',   bg: 'rgba(16,185,129,0.1)',  text: '#10b981' },
-  pausada:    { label: 'Pausada',  bg: 'rgba(245,158,11,0.1)',  text: '#f59e0b' },
-  completada: { label: '✓ Lista',  bg: 'rgba(56,189,248,0.1)',  text: '#38bdf8' },
+  activa: { label: 'Activa', bg: 'rgba(16,185,129,0.1)', text: '#10b981' },
+  pausada: { label: 'Pausada', bg: 'rgba(245,158,11,0.1)', text: '#f59e0b' },
+  completada: { label: '✓ Lista', bg: 'rgba(56,189,248,0.1)', text: '#38bdf8' },
 }
 
 function IconBtn({ onClick, title, bg, color, children }) {
@@ -95,43 +95,42 @@ export default function MetasPage() {
     if (!error) setMetas(prev => prev.filter(m => m.id !== id))
   }
 
- async function handleAgregarDinero(id, montoActual, nombreMeta) {
-  const monto = parseFloat(prompt(`¿Cuánto quieres aportar a "${nombreMeta}"? (€)`))
-  if (!monto || monto <= 0) return
+  async function handleAgregarDinero(id, montoActual, nombreMeta) {
+    const monto = parseFloat(prompt(`¿Cuánto quieres aportar a "${nombreMeta}"? (€)`))
+    if (!monto || monto <= 0) return
 
-  const nuevoMonto = montoActual + monto
+    const nuevoMonto = montoActual + monto
 
-  // 1. Actualizamos el total de la meta
-  const { error: metaError } = await supabase
-    .from('metas')
-    .update({ actual: nuevoMonto })
-    .eq('id', id)
+    // 1. Actualizamos el total de la meta
+    const { error: metaError } = await supabase
+      .from('metas')
+      .update({ actual: nuevoMonto })
+      .eq('id', id)
 
-  if (metaError) {
-    setError("Error al actualizar la meta")
-    return
+    if (metaError) {
+      setError("Error al actualizar la meta")
+      return
+    }
+
+    // 2. CREAMOS EL MOVIMIENTO (Para que aparezca en Ingresos & Egresos)
+    const { error: movError } = await supabase
+      .from('movimientos')
+      .insert([{
+        tipo: 'egreso',
+        monto: monto,
+        descripcion: `Aporte meta: ${nombreMeta}`,
+        categoria: 'ahorro',
+        fecha: new Date().toISOString().slice(0, 10),
+        quien: 'Ambos' // O el valor por defecto que prefieras
+      }])
+
+    if (movError) {
+      console.error("Error al crear el movimiento:", movError)
+    } else {
+      // Actualizamos la vista local de metas
+      setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
+    }
   }
-
-  // 2. CREAMOS EL MOVIMIENTO (Para que aparezca en Ingresos & Egresos)
-  const { error: movError } = await supabase
-    .from('movimientos')
-    .insert([{
-      tipo: 'egreso',
-      monto: monto,
-      descripcion: `Aporte meta: ${nombreMeta}`,
-      categoria: 'ahorro',
-      fecha: new Date().toISOString().slice(0, 10),
-      quien: 'Ambos' // O el valor por defecto que prefieras
-    }])
-
-  if (movError) {
-    console.error("Error al crear el movimiento:", movError)
-  } else {
-    // Actualizamos la vista local de metas
-    setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
-    alert(`¡Aporte de ${formatCurrency(monto)} registrado correctamente!`)
-  }
-}
 
   async function handleEstado(id, estado) {
     const { error } = await supabase.from('metas').update({ estado }).eq('id', id)
@@ -261,8 +260,12 @@ export default function MetasPage() {
 
                   {/* Botones táctiles — siempre visibles */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <IconBtn onClick={() => handleAgregarDinero(meta.id, meta.actual || 0)}
-                      title="Agregar dinero" bg="rgba(16,185,129,0.1)" color="#10b981">
+                    <IconBtn
+                      onClick={() => handleAgregarDinero(meta.id, meta.actual || 0, meta.nombre)}
+                      title="Agregar dinero"
+                      bg="rgba(16,185,129,0.1)"
+                      color="#10b981"
+                    >
                       <Plus size={14} strokeWidth={3} />
                     </IconBtn>
 
