@@ -87,10 +87,14 @@ export default function GastosPage() {
     }
     else {
       setMovs(prev => [data[0], ...prev])
+  
       if (form.categoria === 'ahorro' && metaSeleccionada) {
         const meta = metasData.find(m => m.id === metaSeleccionada)
         if (meta) {
-          await supabase.from('metas').update({ actual: (meta.actual || 0) + monto }).eq('id', metaSeleccionada)
+          const nuevoActual = (meta.actual || 0) + monto
+          await supabase.from('metas').update({ actual: nuevoActual }).eq('id', metaSeleccionada)
+          // Actualizar estado local para reflejar el cambio en sugerencias
+          setMetasData(prev => prev.map(m => m.id === metaSeleccionada ? { ...m, actual: nuevoActual } : m))
         }
         setMetaSeleccionada('')
       }
@@ -99,7 +103,9 @@ export default function GastosPage() {
         const invId = metaSeleccionada.replace('inv_', '')
         const inv = inversionesData.find(i => i.id === invId)
         if (inv) {
-          await supabase.from('inversiones').update({ capital: (inv.capital || 0) + monto }).eq('id', invId)
+          const nuevoCapital = (inv.capital || 0) + monto
+          await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', invId)
+          setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i))
         }
         setMetaSeleccionada('')
       }
@@ -114,10 +120,19 @@ export default function GastosPage() {
     if (!error) setMovs(prev => prev.filter(m => m.id !== id))
   }
 
-  function aplicarSugerencia(item) {
-    setForm(prev => ({ ...prev, descripcion: item.nombre, monto: item.monto.toString() }))
-  }
 
+  function aplicarSugerencia(item) {
+    const nombre = item.nombre.replace(/^[\p{Emoji}\s]+/u, '').trim()
+    setForm(prev => ({ ...prev, descripcion: nombre, monto: item.monto.toString() }))
+
+    // Autoseleccionar meta si coincide el nombre
+    const metaMatch = metasData.find(m => m.nombre.toLowerCase() === nombre.toLowerCase())
+    if (metaMatch) setMetaSeleccionada(metaMatch.id)
+
+    // Autoseleccionar inversión si coincide
+    const invMatch = inversionesData.find(i => i.nombre.toLowerCase() === nombre.toLowerCase())
+    if (invMatch) setMetaSeleccionada(`inv_${invMatch.id}`)
+  }
 
   const sugerencias = form.tipo === 'egreso'
     ? presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
