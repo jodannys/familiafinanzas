@@ -119,7 +119,7 @@ export default function MetasPage() {
       .insert([{
         tipo: 'egreso',
         monto: monto,
-        descripcion: { nombreMeta },
+        descripcion: nombreMeta,
         categoria: 'ahorro',
         fecha: new Date().toISOString().slice(0, 10),
         quien: 'Ambos' // O el valor por defecto que prefieras
@@ -163,11 +163,10 @@ export default function MetasPage() {
       )}
 
       {/* Stats — 3 columnas compactas */}
-      <div className="grid grid-cols-3 gap-2 mb-6">
+      <div className="grid grid-cols-2 gap-2 mb-6">
         {[
           { label: 'Ahorrado', value: formatCurrency(totalAhorrado), color: 'var(--accent-green)' },
           { label: 'Destinado', value: presupuesto ? formatCurrency(presupuesto.montoMetas) : '—', color: 'var(--accent-terra)', badge: presupuesto ? `${presupuesto.pctMetas}%` : null },
-          { label: 'Activas', value: activas.length, color: 'var(--accent-blue)' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter relative" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-[9px] text-stone-400 uppercase tracking-wider font-bold mb-1 truncate">{s.label}</p>
