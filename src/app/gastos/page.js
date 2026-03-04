@@ -41,9 +41,9 @@ export default function GastosPage() {
   })
 
   useEffect(() => {
-    // DESPUÉS
     cargarMovimientos()
     cargarPresupuesto()
+    // DESPUÉS de: cargarPresupuesto()
     supabase.from('metas').select('id, nombre, meta, actual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital').then(({ data }) => setInversionesData(data || []))
   }, [])
@@ -95,16 +95,23 @@ export default function GastosPage() {
     setForm(prev => ({ ...prev, descripcion: item.nombre, monto: item.monto.toString() }))
   }
 
+  // DESPUÉS
   const sugerencias = form.tipo === 'egreso'
     ? form.categoria === 'ahorro'
-      ? metasData.map(m => ({ nombre: m.nombre, monto: m.meta - (m.actual || 0) }))
+      ? metasData.map(m => ({ id: m.id, nombre: m.nombre, monto: m.meta - (m.actual || 0) }))
       : form.categoria === 'inversion'
-        ? inversionesData.map(i => ({ nombre: i.nombre, monto: i.capital }))
+        ? inversionesData.map(i => ({ id: i.id, nombre: i.nombre, monto: i.capital }))
         : presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
     : []
 
-  const ingresos = movs.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const egresos = movs.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  // DESPUÉS
+  const now = new Date()
+  const movsMes = movs.filter(m => {
+    const d = new Date(m.fecha)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  })
+  const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
+  const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
@@ -123,7 +130,7 @@ export default function GastosPage() {
             </h1>
           </div>
 
-          <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          <button className="ff-btn-primary flex items-center justify-center gap-2 active:scale-95 transition-transform"
             style={{
               padding: '14px 20px', // Aumentamos el relleno para que sea más gordo
               minWidth: '48px',     // Aseguramos que nunca sea más pequeño que un dedo
