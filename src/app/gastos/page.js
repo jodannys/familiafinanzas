@@ -70,12 +70,17 @@ export default function GastosPage() {
     setPresItems(data || [])
   }
 
+  // DESPUÉS
   async function handleAdd(e) {
     e.preventDefault()
+    const monto = parseFloat(form.monto)
+    if (!monto || monto <= 0) return
     setSaving(true)
+
+
     const { data, error } = await supabase
       .from('movimientos')
-      .insert([{ ...form, monto: parseFloat(form.monto) }])
+      .insert([{ ...form, monto }])
       .select()
     if (error) setError('Error al guardar: ' + error.message)
     else {
@@ -98,7 +103,8 @@ export default function GastosPage() {
   // DESPUÉS
   const sugerencias = form.tipo === 'egreso'
     ? form.categoria === 'ahorro'
-      ? metasData.map(m => ({ id: m.id, nombre: m.nombre, monto: m.meta - (m.actual || 0) }))
+
+      ? metasData.map(m => ({ id: m.id, nombre: m.nombre, monto: m.meta - (m.actual || 0) || m.meta }))
       : form.categoria === 'inversion'
         ? inversionesData.map(i => ({ id: i.id, nombre: i.nombre, monto: i.capital }))
         : presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
@@ -273,7 +279,7 @@ export default function GastosPage() {
           </div>
           {form.tipo === 'egreso' && sugerencias.length > 0 && (
             <div className="animate-enter">
-              <p className="text-[10px] font-black uppercase text-stone-400 mb-2 ml-1 italic">Sugerencias del presupuesto</p> 
+              <p className="text-[10px] font-black uppercase text-stone-400 mb-2 ml-1 italic">Sugerencias del presupuesto</p>
               <div className="flex flex-wrap gap-2">
                 {sugerencias.map(item => (
                   <button type="button" key={item.id}
