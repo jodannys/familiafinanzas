@@ -114,7 +114,7 @@ export default function GastosPage() {
             </h1>
           </div>
 
-          <button className="ff-btn-primary flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2 active:scale-95 transition-transform"
             style={{
               padding: '14px 20px', // Aumentamos el relleno para que sea más gordo
               minWidth: '48px',     // Aseguramos que nunca sea más pequeño que un dedo
