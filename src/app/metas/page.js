@@ -21,9 +21,19 @@ function mesesRestantes(actual, meta, pctMensual, montoDisponible = 0) {
 }
 
 const ESTADO_CONFIG = {
-  activa:     { color: 'emerald', label: 'Activa',     bg: 'rgba(16,185,129,0.1)',  text: '#10b981' },
-  pausada:    { color: 'gold',    label: 'Pausada',    bg: 'rgba(245,158,11,0.1)',  text: '#f59e0b' },
-  completada: { color: 'sky',     label: '✓ Lista',    bg: 'rgba(56,189,248,0.1)',  text: '#38bdf8' },
+  activa:     { label: 'Activa',   bg: 'rgba(16,185,129,0.1)',  text: '#10b981' },
+  pausada:    { label: 'Pausada',  bg: 'rgba(245,158,11,0.1)',  text: '#f59e0b' },
+  completada: { label: '✓ Lista',  bg: 'rgba(56,189,248,0.1)',  text: '#38bdf8' },
+}
+
+function IconBtn({ onClick, title, bg, color, children }) {
+  return (
+    <button onClick={onClick} title={title}
+      className="flex items-center justify-center rounded-xl transition-all active:scale-90"
+      style={{ background: bg, color, width: 36, height: 36, flexShrink: 0 }}>
+      {children}
+    </button>
+  )
 }
 
 export default function MetasPage() {
@@ -85,13 +95,43 @@ export default function MetasPage() {
     if (!error) setMetas(prev => prev.filter(m => m.id !== id))
   }
 
-  async function handleAgregarDinero(id, montoActual) {
-    const monto = parseFloat(prompt('¿Cuánto quieres agregar? (€)'))
-    if (!monto || monto <= 0) return
-    const nuevo = montoActual + monto
-    const { error } = await supabase.from('metas').update({ actual: nuevo }).eq('id', id)
-    if (!error) setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevo } : m))
+ async function handleAgregarDinero(id, montoActual, nombreMeta) {
+  const monto = parseFloat(prompt(`¿Cuánto quieres aportar a "${nombreMeta}"? (€)`))
+  if (!monto || monto <= 0) return
+
+  const nuevoMonto = montoActual + monto
+
+  // 1. Actualizamos el total de la meta
+  const { error: metaError } = await supabase
+    .from('metas')
+    .update({ actual: nuevoMonto })
+    .eq('id', id)
+
+  if (metaError) {
+    setError("Error al actualizar la meta")
+    return
   }
+
+  // 2. CREAMOS EL MOVIMIENTO (Para que aparezca en Ingresos & Egresos)
+  const { error: movError } = await supabase
+    .from('movimientos')
+    .insert([{
+      tipo: 'egreso',
+      monto: monto,
+      descripcion: `Aporte meta: ${nombreMeta}`,
+      categoria: 'ahorro',
+      fecha: new Date().toISOString().slice(0, 10),
+      quien: 'Ambos' // O el valor por defecto que prefieras
+    }])
+
+  if (movError) {
+    console.error("Error al crear el movimiento:", movError)
+  } else {
+    // Actualizamos la vista local de metas
+    setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
+    alert(`¡Aporte de ${formatCurrency(monto)} registrado correctamente!`)
+  }
+}
 
   async function handleEstado(id, estado) {
     const { error } = await supabase.from('metas').update({ estado }).eq('id', id)
@@ -104,50 +144,42 @@ export default function MetasPage() {
   return (
     <AppShell>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 animate-enter">
+      <div className="flex items-center justify-between mb-6 animate-enter">
         <div>
-          <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo</p>
-          <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Metas de Ahorro</h1>
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Módulo</p>
+          <h1 className="text-xl font-black text-stone-800 tracking-tight">Metas de Ahorro</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
-          <Plus size={16} />
-          <span className="hidden sm:inline">Nueva meta</span>
+          <Plus size={16} strokeWidth={3} />
+          <span className="hidden sm:inline text-sm font-bold">Nueva meta</span>
         </button>
       </div>
 
       {error && (
-        <div className="mb-6 px-4 py-3 rounded-xl text-sm font-semibold"
+        <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold"
           style={{ background: 'rgba(192,96,90,0.1)', border: '1px solid rgba(192,96,90,0.25)', color: '#C0605A' }}>
           {error}
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        <div className="glass-card p-4 animate-enter">
-          <p className="text-[10px] text-stone-400 uppercase tracking-wider font-bold mb-1">Ahorrado</p>
-          <p className="text-lg font-extrabold" style={{ color: 'var(--accent-green)', letterSpacing: '-0.03em' }}>
-            {formatCurrency(totalAhorrado)}
-          </p>
-        </div>
-        <div className="glass-card p-4 animate-enter relative" style={{ animationDelay: '0.05s' }}>
-          <p className="text-[10px] text-stone-400 uppercase tracking-wider font-bold mb-1">Destinado</p>
-          <p className="text-lg font-extrabold" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.03em' }}>
-            {presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}
-          </p>
-          {presupuesto && (
-            <span className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ background: 'rgba(193,122,58,0.12)', color: 'var(--accent-terra)' }}>
-              {presupuesto.pctMetas}%
-            </span>
-          )}
-        </div>
-        <div className="glass-card p-4 animate-enter" style={{ animationDelay: '0.1s' }}>
-          <p className="text-[10px] text-stone-400 uppercase tracking-wider font-bold mb-1">Activas</p>
-          <p className="text-lg font-extrabold" style={{ color: 'var(--accent-blue)', letterSpacing: '-0.03em' }}>
-            {activas.length}
-          </p>
-        </div>
+      {/* Stats — 3 columnas compactas */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        {[
+          { label: 'Ahorrado', value: formatCurrency(totalAhorrado), color: 'var(--accent-green)' },
+          { label: 'Destinado', value: presupuesto ? formatCurrency(presupuesto.montoMetas) : '—', color: 'var(--accent-terra)', badge: presupuesto ? `${presupuesto.pctMetas}%` : null },
+          { label: 'Activas', value: activas.length, color: 'var(--accent-blue)' },
+        ].map((s, i) => (
+          <div key={i} className="glass-card p-3 animate-enter relative" style={{ animationDelay: `${i * 0.05}s` }}>
+            <p className="text-[9px] text-stone-400 uppercase tracking-wider font-bold mb-1 truncate">{s.label}</p>
+            <p className="text-sm font-extrabold leading-tight" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+            {s.badge && (
+              <span className="absolute top-2 right-2 text-[8px] font-black px-1 py-0.5 rounded-full"
+                style={{ background: 'rgba(193,122,58,0.15)', color: 'var(--accent-terra)' }}>
+                {s.badge}
+              </span>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Lista */}
@@ -170,115 +202,99 @@ export default function MetasPage() {
             const estado = ESTADO_CONFIG[meta.estado] || ESTADO_CONFIG.activa
 
             return (
-              <Card key={meta.id} className="animate-enter" style={{ animationDelay: `${i * 0.04}s` }}>
-                {/* Fila 1: Emoji + Nombre + Estado + Porcentaje */}
-                <div className="flex items-center gap-3 mb-3">
+              <Card key={meta.id} className="animate-enter" style={{ animationDelay: `${i * 0.04}s`, padding: '12px 14px' }}>
+
+                {/* FILA 1: Emoji + Nombre/Estado + Porcentaje */}
+                <div className="flex items-center gap-2.5 mb-2.5">
                   {/* Emoji */}
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                     style={{ background: `${meta.color}18` }}>
                     {getFlagEmoji(meta.emoji)}
                   </div>
 
-                  {/* Nombre + Estado — bloque fijo */}
+                  {/* Centro: Nombre + badges */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-stone-800 truncate leading-tight">{meta.nombre}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {/* Badge de estado fijo 64px */}
-                      <span className="text-[10px] font-black uppercase tracking-tight px-2 py-0.5 rounded-full flex-shrink-0"
-                        style={{ background: estado.bg, color: estado.text, minWidth: 56, textAlign: 'center' }}>
+                    <p className="font-black text-stone-800 truncate text-sm leading-tight mb-0.5">
+                      {meta.nombre}
+                    </p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Estado — ancho fijo */}
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
+                        style={{ background: estado.bg, color: estado.text, minWidth: 48, display: 'inline-block', textAlign: 'center' }}>
                         {estado.label}
                       </span>
-                      {/* Tiempo estimado */}
+                      {/* Tiempo */}
                       {tiempo !== '—' && meta.estado !== 'completada' && (
-                        <span className="text-[10px] text-stone-400 font-medium flex-shrink-0">⏱ {tiempo}</span>
+                        <span className="text-[9px] text-stone-400 font-semibold">⏱ {tiempo}</span>
+                      )}
+                      {/* % mes */}
+                      {meta.pct_mensual > 0 && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                          style={{ background: `${meta.color}12`, color: meta.color }}>
+                          {meta.pct_mensual}%/mes
+                        </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Porcentaje fijo a la derecha */}
-                  <span className="text-2xl font-black flex-shrink-0 tabular-nums"
-                    style={{ color: meta.color, letterSpacing: '-0.03em', minWidth: 52, textAlign: 'right' }}>
+                  {/* Porcentaje — siempre a la derecha, fijo */}
+                  <span className="text-xl font-black tabular-nums"
+                    style={{ color: meta.color, letterSpacing: '-0.03em', minWidth: 44, textAlign: 'right', flexShrink: 0 }}>
                     {pct}%
                   </span>
                 </div>
 
-                {/* Barra de progreso */}
-                <ProgressBar value={meta.actual || 0} max={meta.meta} color={meta.color} className="mb-3" />
+                {/* BARRA */}
+                <ProgressBar value={meta.actual || 0} max={meta.meta} color={meta.color} className="mb-2.5" />
 
-                {/* Fila 2: Montos + Acciones */}
-                <div className="flex items-center justify-between gap-2">
+                {/* FILA 2: Montos izquierda + Botones derecha */}
+                <div className="flex items-center gap-2">
                   {/* Montos */}
-                  <div className="flex items-baseline gap-1.5 min-w-0">
-                    <span className="text-sm font-black tabular-nums" style={{ color: meta.color }}>
+                  <div className="flex items-baseline gap-1 flex-1 min-w-0">
+                    <span className="text-xs font-black tabular-nums" style={{ color: meta.color }}>
                       {formatCurrency(meta.actual || 0)}
                     </span>
-                    <span className="text-xs text-stone-400 truncate">
+                    <span className="text-[10px] text-stone-400">
                       / {formatCurrency(meta.meta)}
-                      {restante > 0 && meta.estado !== 'completada' && (
-                        <span className="ml-1 text-stone-300">· -{formatCurrency(restante)}</span>
-                      )}
                     </span>
                   </div>
 
-                  {/* Acciones */}
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {/* % mensual */}
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg hidden sm:block"
-                      style={{ background: `${meta.color}12`, color: meta.color }}>
-                      {meta.pct_mensual || 0}%/mes
-                    </span>
+                  {/* Botones táctiles — siempre visibles */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <IconBtn onClick={() => handleAgregarDinero(meta.id, meta.actual || 0)}
+                      title="Agregar dinero" bg="rgba(16,185,129,0.1)" color="#10b981">
+                      <Plus size={14} strokeWidth={3} />
+                    </IconBtn>
 
-                    {/* + Dinero */}
-                    <button onClick={() => handleAgregarDinero(meta.id, meta.actual || 0)}
-                      title="Agregar dinero"
-                      className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95"
-                      style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
-                      <Plus size={15} strokeWidth={2.5} />
-                    </button>
-
-                    {/* Pausar / Activar */}
                     {meta.estado === 'activa' && (
-                      <button onClick={() => handleEstado(meta.id, 'pausada')}
-                        title="Pausar"
-                        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95"
-                        style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                      <IconBtn onClick={() => handleEstado(meta.id, 'pausada')}
+                        title="Pausar" bg="rgba(245,158,11,0.1)" color="#f59e0b">
                         <Pause size={13} strokeWidth={2.5} />
-                      </button>
+                      </IconBtn>
                     )}
                     {meta.estado === 'pausada' && (
-                      <button onClick={() => handleEstado(meta.id, 'activa')}
-                        title="Activar"
-                        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95"
-                        style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+                      <IconBtn onClick={() => handleEstado(meta.id, 'activa')}
+                        title="Activar" bg="rgba(16,185,129,0.1)" color="#10b981">
                         <Play size={13} strokeWidth={2.5} />
-                      </button>
+                      </IconBtn>
                     )}
 
-                    {/* Completar */}
                     {meta.estado !== 'completada' && (
-                      <button onClick={() => handleEstado(meta.id, 'completada')}
-                        title="Marcar completada"
-                        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95"
-                        style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8' }}>
+                      <IconBtn onClick={() => handleEstado(meta.id, 'completada')}
+                        title="Completada" bg="rgba(56,189,248,0.1)" color="#38bdf8">
                         <Check size={13} strokeWidth={2.5} />
-                      </button>
+                      </IconBtn>
                     )}
 
-                    {/* Editar */}
-                    <button onClick={() => prepareEdit(meta)}
-                      title="Editar"
-                      className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                      <Pencil size={13} />
-                    </button>
+                    <IconBtn onClick={() => prepareEdit(meta)}
+                      title="Editar" bg="var(--bg-secondary)" color="var(--text-muted)">
+                      <Pencil size={12} />
+                    </IconBtn>
 
-                    {/* Eliminar */}
-                    <button onClick={() => handleDelete(meta.id)}
-                      title="Eliminar"
-                      className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95"
-                      style={{ background: 'rgba(192,96,90,0.08)', color: '#C0605A' }}>
-                      <Trash2 size={13} />
-                    </button>
+                    <IconBtn onClick={() => handleDelete(meta.id)}
+                      title="Eliminar" bg="rgba(192,96,90,0.08)" color="#C0605A">
+                      <Trash2 size={12} />
+                    </IconBtn>
                   </div>
                 </div>
               </Card>
@@ -290,7 +306,7 @@ export default function MetasPage() {
       {/* Modal */}
       <Modal open={modal} onClose={closeModal} title={editingId ? 'Editar Meta' : 'Nueva Meta de Ahorro'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="ff-label">Emoji</label>
               <input className="ff-input text-center text-xl" maxLength={2} value={form.emoji}
@@ -302,18 +318,18 @@ export default function MetasPage() {
                 value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Monto objetivo</label>
               <input className="ff-input" type="number" min="1" step="0.01" placeholder="0.00" required
                 value={form.meta} onChange={e => setForm({ ...form, meta: e.target.value })} />
             </div>
             <div>
-              <label className="ff-label">% del presupuesto de metas</label>
+              <label className="ff-label">% presupuesto metas</label>
               <input className="ff-input" type="number" min="0" max="100" placeholder="10" required
                 value={form.pct_mensual} onChange={e => setForm({ ...form, pct_mensual: e.target.value })} />
               {presupuesto && form.pct_mensual && (
-                <p className="text-xs mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>
                   = {formatCurrency((parseFloat(form.pct_mensual) / 100) * presupuesto.montoMetas)}/mes
                 </p>
               )}
