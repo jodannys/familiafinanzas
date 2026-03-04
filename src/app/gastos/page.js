@@ -81,9 +81,13 @@ export default function GastosPage() {
 
     const { data, error } = await supabase
       .from('movimientos')
+      console.log('FORM ANTES DE INSERT:', { ...form, monto: parseFloat(form.monto) })
       .insert([{ ...form, monto }])
       .select()
-    if (error) setError('Error al guardar: ' + error.message)
+    if (error) {
+  console.log('ERROR COMPLETO:', JSON.stringify(error))
+  setError('Error al guardar: ' + error.message)
+}
     else {
       setMovs(prev => [data[0], ...prev])
       setModal(false)

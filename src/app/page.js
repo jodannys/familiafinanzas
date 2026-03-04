@@ -129,7 +129,7 @@ export default function Dashboard() {
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
                     <span className="text-xs text-stone-500 capitalize">{d.name}</span>
                   </div>
-                 <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
+                  <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
                 </div>
               ))}
             </div>
@@ -150,7 +150,7 @@ export default function Dashboard() {
                     <span style={{ color: 'var(--text-primary)' }}>
                       {getFlagEmoji(m.emoji)} {m.nombre}
                     </span>
-                   <span style={{ color: 'var(--text-muted)' }}>{formatCurrency(m.actual)} / {formatCurrency(m.meta)}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{formatCurrency(m.actual)} / {formatCurrency(m.meta)}</span>
                   </div>
                   <ProgressBar value={m.actual || 0} max={m.meta || 1} color={m.color} />
                 </div>
