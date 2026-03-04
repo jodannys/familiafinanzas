@@ -71,6 +71,7 @@ export default function SobrePage() {
   // ── CÁLCULOS DE SALDO ──────────────────────────────────────────────────────
 
   // Sobre Diario: lee gastos de categoría "deseo" en movimientos
+  const montoEstilo = presupuesto?.montoEstilo || 0
   const gastadoSobre = movsMes
     .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
     .reduce((s, m) => s + m.monto, 0)
