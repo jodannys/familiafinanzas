@@ -94,6 +94,15 @@ export default function GastosPage() {
         }
         setMetaSeleccionada('')
       }
+
+      if (form.categoria === 'inversion' && metaSeleccionada?.startsWith('inv_')) {
+        const invId = metaSeleccionada.replace('inv_', '')
+        const inv = inversionesData.find(i => i.id === invId)
+        if (inv) {
+          await supabase.from('inversiones').update({ capital: (inv.capital || 0) + monto }).eq('id', invId)
+        }
+        setMetaSeleccionada('')
+      }
       setModal(false)
       setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys' })
     }
@@ -285,7 +294,19 @@ export default function GastosPage() {
               <select className="ff-input h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
                 <option value="">— Sin asignar —</option>
                 {metasData.map(m => (
-                  <option key={m.id} value={m.id}>{m.nombre} ({formatCurrency(m.actual || 0)})</option>
+                  <option key={m.id} value={m.id}>{m.nombre} ({formatCurrency(m.actual || 0)} / {formatCurrency(m.meta)})</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {form.tipo === 'egreso' && form.categoria === 'inversion' && inversionesData.length > 0 && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Añadir a inversión</label>
+              <select className="ff-input h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
+                <option value="">— Sin asignar —</option>
+                {inversionesData.map(i => (
+                  <option key={i.id} value={`inv_${i.id}`}>{i.nombre} (Capital: {formatCurrency(i.capital)})</option>
                 ))}
               </select>
             </div>
