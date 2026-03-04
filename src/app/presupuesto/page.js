@@ -457,13 +457,8 @@ export default function PresupuestoPage() {
         <Card className="animate-enter">
           <h3 className="font-bold text-stone-800 mb-1">Resumen del mes</h3>
           <p className="text-xs text-stone-400 mb-4">
-            Basado en ingresos reales de {now.toLocaleString('es-ES',{month:'long'})}
+            Ingresos de {now.toLocaleString('es-ES',{month:'long'})}
           </p>
-          <div className="flex gap-3 mb-5">
-            <input type="number" min="0" step="0.01" placeholder="Ajustar ingreso..."
-              value={ingreso} onChange={e => setIngreso(e.target.value)}
-              className="ff-input flex-1"/>
-          </div>
           <div className="space-y-3">
             {bloques.map(b => {
               const monto = ingresoNum * (b.pct / 100)
