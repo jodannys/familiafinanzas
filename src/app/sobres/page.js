@@ -233,7 +233,7 @@ export default function SobrePage() {
   return (
     <AppShell>
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 animate-enter">
+     <div className="flex items-center justify-between gap-4 mb-6 animate-enter">
         <div>
           <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Control Diario</p>
           <h1 className="text-xl font-black text-stone-800 tracking-tight">Sobre Diario</h1>
@@ -241,7 +241,7 @@ export default function SobrePage() {
             <Calendar size={11} />
             <select value={filtroMes} onChange={e => setFiltroMes(Number(e.target.value))}
               className="bg-transparent outline-none cursor-pointer hover:text-stone-600">
-              {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].map((m, i) => (
+              {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((m, i) => (
                 <option key={m} value={i + 1}>{m}</option>
               ))}
             </select>
@@ -252,8 +252,9 @@ export default function SobrePage() {
             </select>
           </div>
         </div>
+
         <button onClick={() => setModal(true)}
-          className="ff-btn-primary flex items-center gap-2 self-start sm:self-auto">
+          className="ff-btn-primary flex items-center justify-center gap-2">
           <Plus size={16} strokeWidth={3} />
           <span className="text-sm font-bold">Registrar Gasto</span>
         </button>
