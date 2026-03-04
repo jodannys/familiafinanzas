@@ -107,9 +107,9 @@ export default function GastosPage() {
   // DESPUÉS
   const now = new Date()
   const movsMes = movs.filter(m => {
-  const [year, month] = m.fecha.split('-').map(Number)
-  return month - 1 === now.getMonth() && year === now.getFullYear()
-})
+    const [year, month] = m.fecha.split('-').map(Number)
+    return month - 1 === now.getMonth() && year === now.getFullYear()
+  })
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
   const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
@@ -253,27 +253,31 @@ export default function GastosPage() {
             ))}
           </div>
 
+          // DESPUÉS
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Categoría</label>
-              <select className="ff-input h-12 text-sm" value={form.categoria}
-                onChange={e => setForm({ ...form, categoria: e.target.value })}>
-                {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </div>
+            {form.tipo === 'egreso' && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Categoría</label>
+                <select className="ff-input h-12 text-sm" value={form.categoria}
+                  onChange={e => setForm({ ...form, categoria: e.target.value })}>
+                  {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </div>
+            )}
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-stone-400 ml-1">¿Quién?</label>
               <select className="ff-input h-12 text-sm" value={form.quien} onChange={e => setForm({ ...form, quien: e.target.value })}>
-                <option value="Jdannys">Jodannys</option>
+                <option value="Jodannys">Jodannys</option>
                 <option value="Rolando">Rolando</option>
                 <option value="Ambos">Ambos</option>
               </select>
             </div>
           </div>
 
-          {sugerencias.length > 0 && (
+         // DESPUÉS
+          {form.tipo === 'egreso' && sugerencias.length > 0 && (
             <div className="animate-enter">
-              <p className="text-[10px] font-black uppercase text-stone-400 mb-2 ml-1 italic">Sugerencias del presupuesto</p>
+              <p className="text-[10px] font-black uppercase text-stone-400 mb-2 ml-1 italic">Sugerencias del presupuesto</p> 
               <div className="flex flex-wrap gap-2">
                 {sugerencias.map(item => (
                   <button type="button" key={item.id}
