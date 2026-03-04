@@ -140,16 +140,12 @@ export default function GastosPage() {
             </h1>
           </div>
 
-          <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            style={{
-              padding: '14px 20px',
-              minWidth: '48px',
-              minHeight: '48px',
-              borderRadius: '14px',
-              background: '#C17A3A'
-            }}>
-            <Plus size={22} strokeWidth={3} color="white" />
-            <span className="hidden sm:inline text-base font-bold text-white">
+          <button
+            onClick={() => setModal(true)}
+            className="ff-btn-primary flex items-center justify-center gap-2"
+          >
+            <Plus size={18} strokeWidth={3} />
+            <span className="hidden sm:inline">
               Nuevo registro
             </span>
           </button>
@@ -314,7 +310,7 @@ export default function GastosPage() {
             </div>
           </div>
 
-          <button type="submit" className="ff-btn-primary w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2" 
+          <button type="submit" className="ff-btn-primary w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2"
             style={{ background: '#C17A3A' }} disabled={saving}>
             {saving ? <Loader2 size={20} className="animate-spin" /> : 'CONFIRMAR'}
           </button>
