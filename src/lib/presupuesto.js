@@ -1,4 +1,3 @@
-'use client'
 import { supabase } from './supabase'
 
 export async function getPresupuestoMes() {
@@ -19,18 +18,27 @@ export async function getPresupuestoMes() {
     .filter(m => m.tipo === 'ingreso')
     .reduce((s,m) => s + m.monto, 0)
 
-  const pctFuturo = (bloquesData || []).find(b => b.bloque === 'futuro')?.pct || 30
-  const montoFuturo = ingresoReal * (pctFuturo / 100)
+  const pctFuturo    = (bloquesData || []).find(b => b.bloque === 'futuro')?.pct       || 30
+  const pctEstilo    = (bloquesData || []).find(b => b.bloque === 'estilo')?.pct       || 20
+  const pctNecesidades = (bloquesData || []).find(b => b.bloque === 'necesidades')?.pct || 50
 
-  const pctMetas = (subData || []).find(s => s.categoria === 'metas')?.pct || 60
+  const montoFuturo      = ingresoReal * (pctFuturo / 100)
+  const montoEstilo      = ingresoReal * (pctEstilo / 100)
+  const montoNecesidades = ingresoReal * (pctNecesidades / 100)
+
+  const pctMetas       = (subData || []).find(s => s.categoria === 'metas')?.pct       || 60
   const pctInversiones = (subData || []).find(s => s.categoria === 'inversiones')?.pct || 40
 
   return {
     ingresoReal,
     montoFuturo,
-    montoMetas: montoFuturo * (pctMetas / 100),
+    montoEstilo,
+    montoNecesidades,
+    montoMetas:       montoFuturo * (pctMetas / 100),
     montoInversiones: montoFuturo * (pctInversiones / 100),
     pctFuturo,
+    pctEstilo,
+    pctNecesidades,
     pctMetas,
     pctInversiones,
   }
