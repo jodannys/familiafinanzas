@@ -107,9 +107,9 @@ export default function GastosPage() {
   // DESPUÉS
   const now = new Date()
   const movsMes = movs.filter(m => {
-    const d = new Date(m.fecha)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  })
+  const [year, month] = m.fecha.split('-').map(Number)
+  return month - 1 === now.getMonth() && year === now.getFullYear()
+})
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
   const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
