@@ -87,7 +87,7 @@ export default function GastosPage() {
     }
     else {
       setMovs(prev => [data[0], ...prev])
-  
+
       if (form.categoria === 'ahorro' && metaSeleccionada) {
         const meta = metasData.find(m => m.id === metaSeleccionada)
         if (meta) {
@@ -115,11 +115,49 @@ export default function GastosPage() {
     setSaving(false)
   }
 
-  async function handleDelete(id) {
+  /*async function handleDelete(id) {
     const { error } = await supabase.from('movimientos').delete().eq('id', id)
     if (!error) setMovs(prev => prev.filter(m => m.id !== id))
   }
+*/
+  async function handleDelete(movimiento) {
+    if (!confirm(`¿Eliminar "${movimiento.descripcion}"?`)) return;
 
+    try {
+      // 1. Si el gasto fue a una META de ahorro, restamos el dinero de la meta
+      if (movimiento.categoria === 'ahorro') {
+        // Buscamos la meta por nombre (o podrías usar un campo meta_id si lo añades luego)
+        const meta = metasData.find(m => m.nombre === movimiento.descripcion);
+        if (meta) {
+          const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto);
+          await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id);
+          // Actualizamos el estado local de metas para que no tengas que recargar
+          setMetasData(prev => prev.map(m => m.id === meta.id ? { ...m, actual: nuevoActual } : m));
+        }
+      }
+
+      // 2. Si fue a una INVERSIÓN, restamos del capital
+      if (movimiento.categoria === 'inversion') {
+        const inv = inversionesData.find(i => i.nombre === movimiento.descripcion);
+        if (inv) {
+          const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto);
+          await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id);
+          setInversionesData(prev => prev.map(i => i.id === inv.id ? { ...i, capital: nuevoCapital } : i));
+        }
+      }
+
+      // 3. Borramos el movimiento de la tabla
+      const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id);
+
+      if (!error) {
+        setMovs(prev => prev.filter(m => m.id !== movimiento.id));
+      } else {
+        alert("Error al borrar: " + error.message);
+      }
+    } catch (err) {
+      console.error("Error en la lógica de borrado:", err);
+    }
+  }
 
   function aplicarSugerencia(item) {
     const nombre = item.nombre.replace(/^[\p{Emoji}\s]+/u, '').trim()
@@ -247,7 +285,7 @@ export default function GastosPage() {
                   <p className="text-sm font-black" style={{ color: m.tipo === 'ingreso' ? '#10b981' : '#fb7185' }}>
                     {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
                   </p>
-                  <button onClick={() => handleDelete(m.id)} className="p-1 text-stone-300 hover:text-rose-500 transition-colors">
+                  <button onClick={() => handleDelete(m)} className="p-1 text-stone-300 hover:text-rose-500 transition-colors">
                     <Trash2 size={14} />
                   </button>
                 </div>
