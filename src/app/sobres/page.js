@@ -268,237 +268,239 @@ export default function SobrePage() {
           <Plus size={16} strokeWidth={3} />
           <span className="text-sm font-bold hidden sm:inline">Registrar Gasto</span>
           <span className="text-sm font-bold sm:hidden">+ Gasto</span>
+        </button>
+      </div>
 
-          {loading ? (
-            <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
-              <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent-green)' }} />
-              <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Cargando...</p>
+      {loading ? (
+        <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
+          <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent-green)' }} />
+          <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Cargando...</p>
+        </div>
+      ) : (
+        <>
+          {/* CARD PRINCIPAL */}
+          <Card className="mb-6 relative overflow-hidden" style={{ padding: '20px 20px' }}>
+            <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
+              Disponible en el sobre
+            </p>
+            <h2 className="text-4xl font-black mb-4 tracking-tighter" style={{ color: '#C17A3A' }}>
+              {formatCurrency(Math.max(0, saldoSobre))}
+            </h2>
+
+            <div className="w-full h-2.5 rounded-full mb-2" style={{ background: 'var(--progress-track)' }}>
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${pctUsado}%`, background: sobreColor }} />
             </div>
-          ) : (
-            <>
-              {/* CARD PRINCIPAL */}
-              <Card className="mb-6 relative overflow-hidden" style={{ padding: '20px 20px' }}>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
-                  Disponible en el sobre
-                </p>
-                <h2 className="text-4xl font-black mb-4 tracking-tighter" style={{ color: '#C17A3A' }}>
-                  {formatCurrency(Math.max(0, saldoSobre))}
-                </h2>
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-3">
+              <span style={{ color: 'var(--text-muted)' }}>Gastado: {formatCurrency(gastadoSobre)}</span>
+              <span style={{ color: 'var(--text-muted)' }}>Límite: {formatCurrency(montoEstilo)}</span>
+            </div>
 
-                <div className="w-full h-2.5 rounded-full mb-2" style={{ background: 'var(--progress-track)' }}>
-                  <div className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${pctUsado}%`, background: sobreColor }} />
-                </div>
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-3">
-                  <span style={{ color: 'var(--text-muted)' }}>Gastado: {formatCurrency(gastadoSobre)}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>Límite: {formatCurrency(montoEstilo)}</span>
-                </div>
-
-                {saldoSobre <= 0 && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-100">
-                    <AlertTriangle size={14} className="text-rose-500 flex-shrink-0" />
-                    <p className="text-[10px] font-bold text-rose-600">¡Sobre vacío! Usando dinero de otras categorías.</p>
-                  </div>
-                )}
-
-                {saldoSobre > 0 && filtroMes === (new Date().getMonth() + 1) && (
-                  <button onClick={() => setModalSobrante(true)}
-                    className="mt-3 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-dashed transition-all hover:bg-stone-50"
-                    style={{ borderColor: 'var(--accent-green)', color: 'var(--accent-green)' }}>
-                    <Sprout size={12} className="inline mr-1.5" />
-                    Enviar sobrante a Metas / Inversión
-                  </button>
-                )}
-              </Card>
-
-              {/* CUBETAS SECUNDARIAS */}
-              <div className="grid grid-cols-3 gap-2 mb-6">
-                {[
-                  { label: 'Básicos', saldo: saldoBasicos, color: 'var(--accent-blue)' },
-                  { label: 'Metas', saldo: saldoMetas, color: 'var(--accent-green)' },
-                  { label: 'Inversión', saldo: saldoInversiones, color: '#818CF8' },
-                ].map((box, i) => (
-                  <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.08}s` }}>
-                    <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>{box.label}</p>
-                    <p className="text-sm font-black" style={{ color: box.saldo < 0 ? 'var(--accent-rose)' : box.color }}>
-                      {formatCurrency(box.saldo)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* BUSCADOR */}
-              <div className="relative mb-4">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" style={{ zIndex: 10 }} />
-                <input className="ff-input w-full h-11" style={{ paddingLeft: '3rem' }}
-                  placeholder="Buscar en este sobre..."
-                  value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-                {busqueda && (
-                  <button onClick={() => setBusqueda('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400">
-                    <X size={15} />
-                  </button>
-                )}
-              </div>
-
-              {/* LISTA */}
-              <Card className="p-2">
-                {movsFiltrados.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <p className="text-xs font-bold text-stone-400 italic">Sin registros este mes</p>
-                  </div>
-                ) : (
-                  <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
-                    {movsFiltrados.map((m, i) => (
-                      <div key={`${m._fuente}-${m.id}`}
-                        className="flex items-center gap-3 px-3 py-3.5 hover:bg-stone-50 transition-colors group overflow-hidden">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ background: m._fuente === 'mov' ? 'rgba(193,122,58,0.1)' : 'rgba(129,140,248,0.1)' }}>
-                          {m._fuente === 'mov'
-                            ? <ArrowDownRight size={15} style={{ color: '#C17A3A' }} />
-                            : <TrendingUp size={15} style={{ color: '#818CF8' }} />}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-stone-800 truncate leading-tight" style={{ maxWidth: '100%' }}>{m.descripcion}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded"
-                              style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                              {m._label}
-                            </span>
-                            <span className="text-[9px] text-stone-400">
-                              {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES') : '—'}
-                            </span>
-                            {m.quien && m._fuente === 'mov' && (
-                              <span className="text-[9px] text-stone-400">{m.quien}</span>
-                            )}
-                          </div>
-                        </div>
-
-
-
-                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto pl-2">
-                          <p className="text-sm font-black tabular-nums whitespace-nowrap" style={{ color: '#C17A3A' }}>
-                            -{formatCurrency(Math.abs(m.monto))}
-                          </p>
-                          <button onClick={() => handleEliminar(m)}
-                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                            style={{ color: '#C0605A' }}>
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            </>
-          )}
-
-          {/* MODAL: REGISTRAR GASTO */}
-          <Modal open={modal} onClose={() => setModal(false)} title="Registrar Gasto del Sobre">
-            <form onSubmit={handleGasto} className="space-y-4">
-              <div>
-                <label className="ff-label">Descripción</label>
-                <input className="ff-input" placeholder="¿En qué gastaste?" required
-                  value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
-              </div>
-              <div>
-                <label className="ff-label">Monto (€)</label>
-                <input className="ff-input text-xl font-black" type="number" step="0.01" placeholder="0.00" required
-                  value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
-              </div>
-              <div>
-                <label className="ff-label">¿Quién?</label>
-                <select className="ff-input h-12 text-sm" value={form.quien}
-                  onChange={e => setForm({ ...form, quien: e.target.value })}>
-                  <option value="Jodannys">Jodannys</option>
-                  <option value="Rolando">Rolando</option>
-                  <option value="Ambos">Ambos</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setModal(false)} className="ff-btn-ghost flex-1">Cancelar</button>
-                <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
-                  {saving && <Loader2 size={14} className="animate-spin" />}
-                  {saldoSobre < parseFloat(form.monto || 0) ? 'Elegir Origen →' : 'Confirmar'}
-                </button>
-              </div>
-            </form>
-          </Modal>
-
-          {/* MODAL: TRASPASO */}
-          <Modal open={modalTraspaso} onClose={() => setModalTraspaso(false)} title="¡Sobre Vacío!">
-            <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 flex items-center gap-2">
+            {saldoSobre <= 0 && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-100">
                 <AlertTriangle size={14} className="text-rose-500 flex-shrink-0" />
-                <p className="text-xs font-bold text-rose-600">
-                  No hay saldo. Para pagar <b>{formatCurrency(gastoTemp?.monto)}</b> elige de dónde tomar:
-                </p>
+                <p className="text-[10px] font-bold text-rose-600">¡Sobre vacío! Usando dinero de otras categorías.</p>
               </div>
-              <div className="space-y-2">
-                {ORIGENES.map(o => (
-                  <button key={o.value} onClick={() => setOrigenTraspaso(o.value)}
-                    className="w-full p-3.5 rounded-xl border-2 transition-all flex justify-between items-center text-left"
-                    style={{
-                      borderColor: origenTraspaso === o.value ? 'var(--accent-green)' : 'var(--border-glass)',
-                      background: origenTraspaso === o.value ? 'rgba(45,122,95,0.05)' : 'transparent'
-                    }}>
-                    <div>
-                      <p className="text-xs font-black uppercase" style={{ color: o.color }}>{o.label}</p>
-                      <p className="text-[10px] text-stone-400">Disponible: {formatCurrency(getSaldo(o.value))}</p>
-                    </div>
-                    {origenTraspaso === o.value && (
-                      <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} />
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setModalTraspaso(false)} className="ff-btn-ghost flex-1">Cancelar</button>
-                <button onClick={confirmarTraspaso} disabled={saving}
-                  className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
-                  {saving && <Loader2 size={14} className="animate-spin" />}
-                  Confirmar
-                </button>
-              </div>
-            </div>
-          </Modal>
+            )}
 
-          {/* MODAL: SOBRANTE */}
-          <Modal open={modalSobrante} onClose={() => setModalSobrante(false)} title="Enviar Sobrante">
-            <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-                <p className="text-xs font-bold text-emerald-700">
-                  Tienes {formatCurrency(saldoSobre)} sin gastar este mes. ¡Aprovéchalo!
+            {saldoSobre > 0 && filtroMes === (new Date().getMonth() + 1) && (
+              <button onClick={() => setModalSobrante(true)}
+                className="mt-3 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-dashed transition-all hover:bg-stone-50"
+                style={{ borderColor: 'var(--accent-green)', color: 'var(--accent-green)' }}>
+                <Sprout size={12} className="inline mr-1.5" />
+                Enviar sobrante a Metas / Inversión
+              </button>
+            )}
+          </Card>
+
+          {/* CUBETAS SECUNDARIAS */}
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {[
+              { label: 'Básicos', saldo: saldoBasicos, color: 'var(--accent-blue)' },
+              { label: 'Metas', saldo: saldoMetas, color: 'var(--accent-green)' },
+              { label: 'Inversión', saldo: saldoInversiones, color: '#818CF8' },
+            ].map((box, i) => (
+              <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.08}s` }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>{box.label}</p>
+                <p className="text-sm font-black" style={{ color: box.saldo < 0 ? 'var(--accent-rose)' : box.color }}>
+                  {formatCurrency(box.saldo)}
                 </p>
               </div>
-              <div>
-                <label className="ff-label">Monto a mover</label>
-                <input className="ff-input text-xl font-bold" type="number" step="0.01" max={saldoSobre}
-                  placeholder="0.00" value={montoSobrante}
-                  onChange={e => setMontoSobrante(e.target.value)} />
+            ))}
+          </div>
+
+          {/* BUSCADOR */}
+          <div className="relative mb-4">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" style={{ zIndex: 10 }} />
+            <input className="ff-input w-full h-11" style={{ paddingLeft: '3rem' }}
+              placeholder="Buscar en este sobre..."
+              value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+            {busqueda && (
+              <button onClick={() => setBusqueda('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400">
+                <X size={15} />
+              </button>
+            )}
+          </div>
+
+          {/* LISTA */}
+          <Card className="p-2">
+            {movsFiltrados.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-xs font-bold text-stone-400 italic">Sin registros este mes</p>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {['metas', 'inversiones'].map(dest => (
-                  <button key={dest} onClick={() => setDestinoSobrante(dest)}
-                    className="p-3 rounded-xl border-2 text-[10px] font-black uppercase transition-all"
-                    style={{
-                      borderColor: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--border-glass)',
-                      background: destinoSobrante === dest ? 'rgba(45,122,95,0.05)' : 'transparent',
-                      color: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--text-muted)'
-                    }}>
-                    {dest}
-                  </button>
+            ) : (
+              <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+                {movsFiltrados.map((m, i) => (
+                  <div key={`${m._fuente}-${m.id}`}
+                    className="flex items-center gap-3 px-3 py-3.5 hover:bg-stone-50 transition-colors group overflow-hidden">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: m._fuente === 'mov' ? 'rgba(193,122,58,0.1)' : 'rgba(129,140,248,0.1)' }}>
+                      {m._fuente === 'mov'
+                        ? <ArrowDownRight size={15} style={{ color: '#C17A3A' }} />
+                        : <TrendingUp size={15} style={{ color: '#818CF8' }} />}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-stone-800 truncate leading-tight" style={{ maxWidth: '100%' }}>{m.descripcion}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded"
+                          style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                          {m._label}
+                        </span>
+                        <span className="text-[9px] text-stone-400">
+                          {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES') : '—'}
+                        </span>
+                        {m.quien && m._fuente === 'mov' && (
+                          <span className="text-[9px] text-stone-400">{m.quien}</span>
+                        )}
+                      </div>
+                    </div>
+
+
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto pl-2">
+                      <p className="text-sm font-black tabular-nums whitespace-nowrap" style={{ color: '#C17A3A' }}>
+                        -{formatCurrency(Math.abs(m.monto))}
+                      </p>
+                      <button onClick={() => handleEliminar(m)}
+                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ color: '#C0605A' }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
-              <button onClick={confirmarSobrante} disabled={saving || !montoSobrante}
-                className="ff-btn-primary w-full flex items-center justify-center gap-2">
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                Mover a {destinoSobrante}
+            )}
+          </Card>
+        </>
+      )}
+
+      {/* MODAL: REGISTRAR GASTO */}
+      <Modal open={modal} onClose={() => setModal(false)} title="Registrar Gasto del Sobre">
+        <form onSubmit={handleGasto} className="space-y-4">
+          <div>
+            <label className="ff-label">Descripción</label>
+            <input className="ff-input" placeholder="¿En qué gastaste?" required
+              value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
+          </div>
+          <div>
+            <label className="ff-label">Monto (€)</label>
+            <input className="ff-input text-xl font-black" type="number" step="0.01" placeholder="0.00" required
+              value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
+          </div>
+          <div>
+            <label className="ff-label">¿Quién?</label>
+            <select className="ff-input h-12 text-sm" value={form.quien}
+              onChange={e => setForm({ ...form, quien: e.target.value })}>
+              <option value="Jodannys">Jodannys</option>
+              <option value="Rolando">Rolando</option>
+              <option value="Ambos">Ambos</option>
+            </select>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={() => setModal(false)} className="ff-btn-ghost flex-1">Cancelar</button>
+            <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saldoSobre < parseFloat(form.monto || 0) ? 'Elegir Origen →' : 'Confirmar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: TRASPASO */}
+      <Modal open={modalTraspaso} onClose={() => setModalTraspaso(false)} title="¡Sobre Vacío!">
+        <div className="space-y-4">
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 flex items-center gap-2">
+            <AlertTriangle size={14} className="text-rose-500 flex-shrink-0" />
+            <p className="text-xs font-bold text-rose-600">
+              No hay saldo. Para pagar <b>{formatCurrency(gastoTemp?.monto)}</b> elige de dónde tomar:
+            </p>
+          </div>
+          <div className="space-y-2">
+            {ORIGENES.map(o => (
+              <button key={o.value} onClick={() => setOrigenTraspaso(o.value)}
+                className="w-full p-3.5 rounded-xl border-2 transition-all flex justify-between items-center text-left"
+                style={{
+                  borderColor: origenTraspaso === o.value ? 'var(--accent-green)' : 'var(--border-glass)',
+                  background: origenTraspaso === o.value ? 'rgba(45,122,95,0.05)' : 'transparent'
+                }}>
+                <div>
+                  <p className="text-xs font-black uppercase" style={{ color: o.color }}>{o.label}</p>
+                  <p className="text-[10px] text-stone-400">Disponible: {formatCurrency(getSaldo(o.value))}</p>
+                </div>
+                {origenTraspaso === o.value && (
+                  <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} />
+                )}
               </button>
-            </div>
-          </Modal>
-        </AppShell>
-        )
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setModalTraspaso(false)} className="ff-btn-ghost flex-1">Cancelar</button>
+            <button onClick={confirmarTraspaso} disabled={saving}
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL: SOBRANTE */}
+      <Modal open={modalSobrante} onClose={() => setModalSobrante(false)} title="Enviar Sobrante">
+        <div className="space-y-4">
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+            <p className="text-xs font-bold text-emerald-700">
+              Tienes {formatCurrency(saldoSobre)} sin gastar este mes. ¡Aprovéchalo!
+            </p>
+          </div>
+          <div>
+            <label className="ff-label">Monto a mover</label>
+            <input className="ff-input text-xl font-bold" type="number" step="0.01" max={saldoSobre}
+              placeholder="0.00" value={montoSobrante}
+              onChange={e => setMontoSobrante(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {['metas', 'inversiones'].map(dest => (
+              <button key={dest} onClick={() => setDestinoSobrante(dest)}
+                className="p-3 rounded-xl border-2 text-[10px] font-black uppercase transition-all"
+                style={{
+                  borderColor: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--border-glass)',
+                  background: destinoSobrante === dest ? 'rgba(45,122,95,0.05)' : 'transparent',
+                  color: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--text-muted)'
+                }}>
+                {dest}
+              </button>
+            ))}
+          </div>
+          <button onClick={confirmarSobrante} disabled={saving || !montoSobrante}
+            className="ff-btn-primary w-full flex items-center justify-center gap-2">
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            Mover a {destinoSobrante}
+          </button>
+        </div>
+      </Modal>
+    </AppShell>
+  )
 }
