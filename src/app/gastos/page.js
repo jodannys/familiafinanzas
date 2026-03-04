@@ -118,12 +118,9 @@ export default function GastosPage() {
     setForm(prev => ({ ...prev, descripcion: item.nombre, monto: item.monto.toString() }))
   }
 
+
   const sugerencias = form.tipo === 'egreso'
-    ? form.categoria === 'ahorro'
-      ? metasData.map(m => ({ id: m.id, nombre: m.nombre, monto: m.meta - (m.actual || 0) || m.meta }))
-      : form.categoria === 'inversion'
-        ? inversionesData.map(i => ({ id: i.id, nombre: i.nombre, monto: i.capital }))
-        : presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
+    ? presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
     : []
 
   const now = new Date()
