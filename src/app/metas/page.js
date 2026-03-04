@@ -83,7 +83,6 @@ export default function MetasPage() {
         closeModal()
       }
     } else {
-      // MODO CREACIÓN
       const { data, error } = await supabase
         .from('metas')
         .insert([{ ...payload, actual: 0, estado: 'activa' }])
@@ -107,6 +106,15 @@ export default function MetasPage() {
     if (!confirm('¿Eliminar esta meta?')) return
     const { error } = await supabase.from('metas').delete().eq('id', id)
     if (!error) setMetas(prev => prev.filter(m => m.id !== id))
+  }
+
+
+  async function handleAgregarDinero(id, montoActual) {
+    const monto = parseFloat(prompt('¿Cuánto quieres agregar? (€)'))
+    if (!monto || monto <= 0) return
+    const nuevo = montoActual + monto
+    const { error } = await supabase.from('metas').update({ actual: nuevo }).eq('id', id)
+    if (!error) setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevo } : m))
   }
 
   async function handleEstado(id, estado) {
@@ -222,6 +230,10 @@ export default function MetasPage() {
                     <span className="text-xs text-stone-400">{meta.pct_mensual || 0}% /mes</span>
                     <span className="text-xs font-semibold" style={{ color: meta.color }}>{tiempo}</span>
 
+                    <button onClick={() => handleAgregarDinero(meta.id, meta.actual || 0)}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 font-bold uppercase tracking-tight">
+                      + Dinero
+                    </button>
                     {/* Botones de acción rápidos */}
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
                       {meta.estado === 'activa' && (
