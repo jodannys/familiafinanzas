@@ -71,7 +71,8 @@ export default function SobrePage() {
   const montoEstilo = presupuesto?.montoEstilo || 0
   const montoNecesidades = presupuesto?.montoNecesidades || 0
 
-  const gastadoSobre = sobreMovs.filter(m => m.origen === 'estilo' && m.monto > 0).reduce((s, m) => s + m.monto, 0)
+const gastadoDeseo = movsMes.filter(m => m.tipo === 'egreso' && m.categoria === 'deseo').reduce((s,m) => s+m.monto, 0)
+const gastadoSobre = sobreMovs.filter(m => m.origen === 'estilo' && m.monto > 0).reduce((s,m) => s+m.monto, 0) + gastadoDeseo
   const sobreEntradas = sobreMovs.filter(m => m.origen === 'estilo' && m.monto < 0).reduce((s, m) => s + Math.abs(m.monto), 0)
   const saldoSobre = montoEstilo - gastadoSobre + sobreEntradas
 

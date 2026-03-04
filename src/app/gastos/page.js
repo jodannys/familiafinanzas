@@ -252,8 +252,6 @@ export default function GastosPage() {
               </button>
             ))}
           </div>
-
-          // DESPUÉS
           <div className="grid grid-cols-2 gap-3">
             {form.tipo === 'egreso' && (
               <div className="space-y-1">
@@ -273,8 +271,6 @@ export default function GastosPage() {
               </select>
             </div>
           </div>
-
-         // DESPUÉS
           {form.tipo === 'egreso' && sugerencias.length > 0 && (
             <div className="animate-enter">
               <p className="text-[10px] font-black uppercase text-stone-400 mb-2 ml-1 italic">Sugerencias del presupuesto</p> 
