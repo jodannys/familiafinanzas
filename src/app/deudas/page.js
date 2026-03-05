@@ -1,17 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import { Card, Badge, ProgressBar } from '@/components/ui/Card'
+import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import {
   Plus, Loader2, Trash2, CreditCard, Landmark,
   ChevronDown, ChevronUp, Pencil,
-  ArrowDownRight, ArrowUpRight, Calendar, Link2
+  ArrowDownRight, ArrowUpRight, Calendar, Check, AlertCircle
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
-// --- LÓGICA DE CÁLCULO ---
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
 function calcularCuota(capital, tasaAnual, meses) {
   if (!capital || !meses) return 0
   if (!tasaAnual || tasaAnual === 0) return capital / meses
@@ -35,319 +36,1031 @@ function urgenciaColor(dias) {
 const TIPO_CONFIG = {
   tarjeta: { label: 'Tarjeta', icon: CreditCard, color: '#818CF8' },
   prestamo: { label: 'Préstamo', icon: Landmark, color: '#C0605A' },
-  cuota: { label: 'Cuota', icon: Calendar, color: '#C17A3A' },
+  cuota:    { label: 'Cuota',    icon: Calendar,  color: '#C17A3A' },
 }
 
 function IconBtn({ onClick, title, bg, color, children }) {
   return (
-    <button onClick={e => { e.stopPropagation(); onClick() }} title={title}
+    <button
+      onClick={e => { e.stopPropagation(); onClick() }}
+      title={title}
       className="flex items-center justify-center rounded-xl transition-all active:scale-90"
-      style={{ background: bg, color, width: 34, height: 34, flexShrink: 0 }}>
+      style={{ background: bg, color, width: 34, height: 34, flexShrink: 0 }}
+    >
       {children}
     </button>
   )
 }
 
-const FORM_VACIO = {
-  emoji: '💳', nombre: '', tipo_deuda: 'tarjeta', categoria: 'deseo',
-  limite: '', capital: '', adelanto: '', tasa_interes: '', plazo_meses: '',
-  dia_corte: '', dia_pago: '', color: '#818CF8', de_prestamo_id: null
+// ─── Form defaults por tipo ──────────────────────────────────────────────────
+
+const FORM_TARJETA = {
+  tipo_deuda: 'tarjeta',
+  emoji: '💳',
+  nombre: '',
+  categoria: 'deseo',
+  tarjeta_perfil_id: '',   // id de perfiles_tarjetas
+  limite: '',
+  monto_compra: '',        // monto total de la compra
+  num_cuotas: '',          // número de cuotas
+  fecha_operacion: new Date().toISOString().slice(0, 10),
+  color: '#818CF8',
 }
 
+const FORM_PRESTAMO = {
+  tipo_deuda: 'prestamo',
+  emoji: '🏦',
+  nombre: '',
+  categoria: 'basicos',
+  capital: '',
+  tasa_interes: '',
+  tiene_interes: false,    // toggle interés
+  plazo_meses: '',
+  plazo_libre: false,      // pago flexible sin plazo
+  fecha_inicio: new Date().toISOString().slice(0, 10),
+  fecha_primer_pago: '',
+  dia_pago: '',
+  color: '#C0605A',
+}
+
+const FORM_CUOTA = {
+  tipo_deuda: 'cuota',
+  emoji: '📅',
+  nombre: '',
+  categoria: 'deseo',
+  monto: '',               // cuota mensual
+  dia_pago: '',
+  deuda_ref_id: '',        // referencia a deuda origen (opcional)
+  color: '#C17A3A',
+}
+
+// ─── Component Principal ─────────────────────────────────────────────────────
+
 export default function DeudasPage() {
-  const [deudas, setDeudas] = useState([])
+  const [deudas, setDeudas]         = useState([])
   const [movimientos, setMovimientos] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-  const [expandido, setExpandido] = useState(null)
+  const [loading, setLoading]       = useState(true)
+  const [saving, setSaving]         = useState(false)
+  const [error, setError]           = useState(null)
+  const [expandido, setExpandido]   = useState(null)
   const [cardActiva, setCardActiva] = useState(null)
+
+  // Modal nueva/edición
   const [modalDeuda, setModalDeuda] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
-  const [modalMov, setModalMov] = useState(null)
-  const [formDeuda, setFormDeuda] = useState(FORM_VACIO)
-  const [formMov, setFormMov] = useState({ tipo: 'pago', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
+  const [tipoSeleccionado, setTipoSeleccionado] = useState('tarjeta')
+  const [formTarjeta, setFormTarjeta] = useState(FORM_TARJETA)
+  const [formPrestamo, setFormPrestamo] = useState(FORM_PRESTAMO)
+  const [formCuota, setFormCuota]     = useState(FORM_CUOTA)
+
+  // Modal movimiento
+  const [modalMov, setModalMov]   = useState(null)
+  const [formMov, setFormMov]     = useState({
+    tipo: 'cargo', descripcion: '', monto: '',
+    fecha: new Date().toISOString().slice(0, 10),
+  })
+
   const [misTarjetas, setMisTarjetas] = useState([])
 
   const now = new Date()
-  const mes = now.getMonth() + 1
-  const año = now.getFullYear()
+  const mes  = now.getMonth() + 1
+  const año  = now.getFullYear()
 
   useEffect(() => { cargar() }, [])
 
+  // ── Carga inicial ──────────────────────────────────────────────────────────
+
   async function cargar() {
-    setLoading(true)
+    setLoading(true); setError(null)
     try {
-      const { data: deudasData } = await supabase.from('deudas').select('*').order('created_at')
-      const { data: tarjetasData } = await supabase.from('perfiles_tarjetas').select('*').eq('estado', 'activa')
-      
+      const [{ data: deudasData, error: e1 }, { data: tarjetasData, error: e2 }] = await Promise.all([
+        supabase.from('deudas').select('*').order('created_at'),
+        supabase.from('perfiles_tarjetas').select('*').eq('estado', 'activa'),
+      ])
+      if (e1) throw e1
+      if (e2) console.error('Error tarjetas:', e2.message)
       setDeudas(deudasData || [])
       setMisTarjetas(tarjetasData || [])
 
       if (deudasData?.length) {
-        const { data: movs } = await supabase.from('deuda_movimientos').select('*').order('fecha', { ascending: false })
-        const grouped = {}
-        movs?.forEach(m => {
-          if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-          grouped[m.deuda_id].push(m)
-        })
-        setMovimientos(grouped)
+        const { data: movs, error: e3 } = await supabase
+          .from('deuda_movimientos').select('*').order('fecha', { ascending: false })
+        if (!e3) {
+          const grouped = {}
+          ;(movs || []).forEach(m => {
+            if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+            grouped[m.deuda_id].push(m)
+          })
+          setMovimientos(grouped)
+        }
       }
     } catch (err) { setError(err.message) }
     finally { setLoading(false) }
   }
 
-  // Al seleccionar "Cuota", si elegimos un préstamo, rellenamos datos automáticamente
-  function handleVincularPrestamo(prestamoId) {
-    const p = deudas.find(d => d.id === prestamoId)
-    if (!p) return
-    setFormDeuda(prev => ({
+  // ── Abrir modal nueva deuda ────────────────────────────────────────────────
+
+  function abrirNueva() {
+    setEditandoId(null)
+    setTipoSeleccionado('tarjeta')
+    setFormTarjeta(FORM_TARJETA)
+    setFormPrestamo(FORM_PRESTAMO)
+    setFormCuota(FORM_CUOTA)
+    setModalDeuda(true)
+  }
+
+  // ── Abrir modal edición ────────────────────────────────────────────────────
+
+  function abrirEdicion(d) {
+    setEditandoId(d.id)
+    setTipoSeleccionado(d.tipo_deuda || 'tarjeta')
+
+    if (d.tipo_deuda === 'tarjeta') {
+      setFormTarjeta({
+        tipo_deuda: 'tarjeta',
+        emoji: d.emoji || '💳',
+        nombre: d.nombre || '',
+        categoria: d.categoria || 'deseo',
+        tarjeta_perfil_id: d.tarjeta_perfil_id || '',
+        limite: d.limite?.toString() || '',
+        monto_compra: d.capital?.toString() || '',
+        num_cuotas: d.plazo_meses?.toString() || '',
+        fecha_operacion: d.fecha_operacion || new Date().toISOString().slice(0, 10),
+        color: d.color || '#818CF8',
+      })
+    } else if (d.tipo_deuda === 'prestamo') {
+      setFormPrestamo({
+        tipo_deuda: 'prestamo',
+        emoji: d.emoji || '🏦',
+        nombre: d.nombre || '',
+        categoria: d.categoria || 'basicos',
+        capital: d.capital?.toString() || '',
+        tasa_interes: d.tasa_interes?.toString() || '',
+        tiene_interes: (d.tasa_interes || 0) > 0,
+        plazo_meses: d.plazo_meses?.toString() || '',
+        plazo_libre: !d.plazo_meses,
+        fecha_inicio: d.fecha_inicio || new Date().toISOString().slice(0, 10),
+        fecha_primer_pago: d.fecha_primer_pago || '',
+        dia_pago: d.dia_pago?.toString() || '',
+        color: d.color || '#C0605A',
+      })
+    } else {
+      setFormCuota({
+        tipo_deuda: 'cuota',
+        emoji: d.emoji || '📅',
+        nombre: d.nombre || '',
+        categoria: d.categoria || 'deseo',
+        monto: d.cuota?.toString() || '',
+        dia_pago: d.dia_pago?.toString() || '',
+        deuda_ref_id: d.deuda_ref_id || '',
+        color: d.color || '#C17A3A',
+      })
+    }
+    setModalDeuda(true)
+  }
+
+  // ── Seleccionar tarjeta perfil en formulario tarjeta ───────────────────────
+
+  function handleSeleccionarTarjetaPerfil(id) {
+    const t = misTarjetas.find(x => x.id === id)
+    if (!t) return
+    setFormTarjeta(prev => ({
       ...prev,
-      de_prestamo_id: prestamoId,
-      nombre: `Letra: ${p.nombre}`,
-      capital: p.cuota || 0,
-      emoji: '📅',
-      dia_pago: p.dia_pago || ''
+      tarjeta_perfil_id: t.id,
+      nombre: prev.nombre || t.nombre_tarjeta,
+      limite: t.limite_credito?.toString() || '',
+      color: t.color || '#818CF8',
     }))
   }
+
+  // ── Guardar deuda ──────────────────────────────────────────────────────────
 
   async function handleSaveDeuda(e) {
     e.preventDefault()
     setSaving(true)
-    const capital = parseFloat(formDeuda.capital) || 0
-    const adelanto = parseFloat(formDeuda.adelanto) || 0
-    const tasa = parseFloat(formDeuda.tasa_interes) || 0
-    const meses = parseInt(formDeuda.plazo_meses) || 0
-    
-    // Si es cuota, el monto es el capital directo. Si es préstamo, calculamos la cuota.
-    const cuotaCalculada = formDeuda.tipo_deuda === 'cuota' ? capital : calcularCuota(capital - adelanto, tasa, meses)
 
-    const payload = {
-      ...formDeuda,
-      limite: parseFloat(formDeuda.limite) || 0,
-      capital, adelanto, tasa_interes: tasa,
-      plazo_meses: meses,
-      cuota: parseFloat(cuotaCalculada.toFixed(2)),
-      dia_corte: parseInt(formDeuda.dia_corte) || null,
-      dia_pago: parseInt(formDeuda.dia_pago) || null,
+    let payload = {}
+
+    if (tipoSeleccionado === 'tarjeta') {
+      const f = formTarjeta
+      const capital = parseFloat(f.monto_compra) || 0
+      const meses   = parseInt(f.num_cuotas) || 1
+      const cuota   = parseFloat((capital / meses).toFixed(2))
+      payload = {
+        tipo_deuda: 'tarjeta',
+        emoji: f.emoji,
+        nombre: f.nombre,
+        categoria: f.categoria,
+        tarjeta_perfil_id: f.tarjeta_perfil_id || null,
+        limite: parseFloat(f.limite) || 0,
+        capital,
+        cuota,
+        plazo_meses: meses,
+        tasa_interes: 0,
+        fecha_operacion: f.fecha_operacion,
+        dia_pago: null,
+        color: f.color,
+      }
+    } else if (tipoSeleccionado === 'prestamo') {
+      const f = formPrestamo
+      const capital = parseFloat(f.capital) || 0
+      const tasa    = f.tiene_interes ? (parseFloat(f.tasa_interes) || 0) : 0
+      const meses   = f.plazo_libre ? null : (parseInt(f.plazo_meses) || null)
+      const cuota   = meses ? parseFloat(calcularCuota(capital, tasa, meses).toFixed(2)) : 0
+      payload = {
+        tipo_deuda: 'prestamo',
+        emoji: f.emoji,
+        nombre: f.nombre,
+        categoria: f.categoria,
+        capital,
+        tasa_interes: tasa,
+        plazo_meses: meses,
+        cuota,
+        fecha_inicio: f.fecha_inicio,
+        fecha_primer_pago: f.fecha_primer_pago || null,
+        dia_pago: parseInt(f.dia_pago) || null,
+        color: f.color,
+      }
+    } else {
+      const f = formCuota
+      payload = {
+        tipo_deuda: 'cuota',
+        emoji: f.emoji,
+        nombre: f.nombre,
+        categoria: f.categoria,
+        cuota: parseFloat(f.monto) || 0,
+        monto: parseFloat(f.monto) || 0,
+        dia_pago: parseInt(f.dia_pago) || null,
+        deuda_ref_id: f.deuda_ref_id || null,
+        color: f.color,
+        capital: parseFloat(f.monto) || 0,
+      }
     }
 
     if (editandoId) {
-      await supabase.from('deudas').update(payload).eq('id', editandoId)
+      const { error } = await supabase.from('deudas').update(payload).eq('id', editandoId)
+      if (error) setError(error.message)
+      else setDeudas(prev => prev.map(d => d.id === editandoId ? { ...d, ...payload } : d))
     } else {
-      await supabase.from('deudas').insert([{
-        ...payload, pagadas: 0, pendiente: capital - adelanto,
-        monto: capital, estado: 'activa',
-      }])
+      const capital = payload.capital || 0
+      const { data, error } = await supabase.from('deudas').insert([{
+        ...payload,
+        pagadas: 0,
+        pendiente: capital,
+        monto: capital,
+        tipo: 'debo',
+        estado: 'activa',
+      }]).select()
+      if (error) setError(error.message)
+      else setDeudas(prev => [...prev, data[0]])
     }
-    await cargar()
+
     setSaving(false)
     setModalDeuda(false)
-    setFormDeuda(FORM_VACIO)
+    setEditandoId(null)
   }
+
+  // ── Marcar cuota como pagada ───────────────────────────────────────────────
+
+  async function handleMarcarPagada(deuda) {
+    const monto = deuda.cuota || deuda.pendiente || 0
+    if (!monto) return
+    setSaving(true)
+
+    const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
+    const nuevosPagados  = (deuda.pagadas || 0) + 1
+    const nuevoEstado    = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+
+    await supabase.from('deuda_movimientos').insert([{
+      deuda_id: deuda.id, tipo: 'pago',
+      descripcion: `Cuota mensual: ${deuda.nombre}`,
+      monto, fecha: new Date().toISOString().slice(0, 10), mes, año,
+    }])
+
+    await supabase.from('movimientos').insert([{
+      tipo: 'egreso', categoria: 'deuda',
+      descripcion: `Pago letra: ${deuda.nombre}`,
+      monto, fecha: new Date().toISOString().slice(0, 10), quien: 'Ambos',
+    }])
+
+    await supabase.from('deudas').update({
+      pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
+    }).eq('id', deuda.id)
+
+    setDeudas(prev => prev.map(d => d.id === deuda.id
+      ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado }
+      : d))
+    setSaving(false)
+  }
+
+  // ── Movimiento manual ──────────────────────────────────────────────────────
 
   async function handleAddMov(e) {
     e.preventDefault()
+    if (!modalMov) return
     setSaving(true)
     const monto = parseFloat(formMov.monto)
     const deuda = deudas.find(d => d.id === modalMov)
 
-    // 1. Insertar movimiento de deuda
-    const { data: newMov } = await supabase.from('deuda_movimientos').insert([{
+    const { data, error } = await supabase.from('deuda_movimientos').insert([{
       deuda_id: modalMov, tipo: formMov.tipo,
       descripcion: formMov.descripcion, monto,
       fecha: formMov.fecha, mes, año,
     }]).select()
 
-    if (deuda) {
+    if (!error && deuda) {
+      setMovimientos(prev => ({ ...prev, [modalMov]: [data[0], ...(prev[modalMov] || [])] }))
       let nuevoPendiente = deuda.pendiente || 0
+      let nuevoMontoTotal = deuda.monto || 0
       let nuevosPagados = deuda.pagadas || 0
 
       if (formMov.tipo === 'pago') {
         nuevoPendiente = Math.max(0, nuevoPendiente - monto)
-        nuevosPagados += 1
-        
-        // Registrar en movimientos globales
+        nuevosPagados++
         await supabase.from('movimientos').insert([{
           tipo: 'egreso', categoria: 'deuda',
-          descripcion: `${deuda.nombre}`, monto,
-          fecha: formMov.fecha, quien: 'Ambos'
+          descripcion: `Pago letra: ${deuda.nombre}`,
+          monto, fecha: formMov.fecha, quien: 'Ambos',
         }])
-
-        // LÓGICA ESPECIAL: Si es una cuota vinculada a un préstamo (Carro, Hipoteca)
-        if (deuda.de_prestamo_id) {
-          const prestamoPadre = deudas.find(p => p.id === deuda.de_prestamo_id)
-          if (prestamoPadre) {
-            await supabase.from('deudas').update({
-              pendiente: Math.max(0, prestamoPadre.pendiente - monto)
-            }).eq('id', prestamoPadre.id)
-          }
-        }
+      } else {
+        nuevoPendiente = nuevoPendiente + monto
+        nuevoMontoTotal = nuevoMontoTotal + monto
       }
 
+      const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
       await supabase.from('deudas').update({
-        pendiente: nuevoPendiente,
-        pagadas: nuevosPagados,
-        estado: nuevoPendiente <= 0 ? 'pagada' : 'activa'
+        pendiente: nuevoPendiente, monto: nuevoMontoTotal,
+        pagadas: nuevosPagados, estado: nuevoEstado
       }).eq('id', modalMov)
-    }
 
-    await cargar()
+      setDeudas(prev => prev.map(d => d.id === modalMov
+        ? { ...d, pendiente: nuevoPendiente, monto: nuevoMontoTotal, pagadas: nuevosPagados, estado: nuevoEstado }
+        : d))
+      setModalMov(null)
+      setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
+    }
     setSaving(false)
-    setModalMov(null)
   }
 
-  const totalDeuda = deudas.filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada').reduce((s, d) => s + (d.pendiente || 0), 0)
-  const cuotasMes = deudas.reduce((s, d) => s + (d.cuota || 0), 0)
+  // ── Eliminar deuda ─────────────────────────────────────────────────────────
+
+  async function handleDeleteDeuda(id) {
+    if (!confirm('¿Eliminar esta deuda y todos sus movimientos?')) return
+    const deuda = deudas.find(d => d.id === id)
+    if (deuda) {
+      await supabase.from('movimientos').delete()
+        .eq('categoria', 'deuda').ilike('descripcion', `%${deuda.nombre}%`)
+    }
+    await supabase.from('deudas').delete().eq('id', id)
+    setDeudas(prev => prev.filter(d => d.id !== id))
+    if (cardActiva === id) setCardActiva(null)
+  }
+
+  // ── Totales ────────────────────────────────────────────────────────────────
+
+  const activas       = deudas.filter(d => d.estado !== 'pagada')
+  const totalDeuda    = activas.reduce((s, d) => s + (d.pendiente || 0), 0)
+  const cuotasMes     = activas.reduce((s, d) => s + (d.cuota || 0), 0)
+  const vencenProximo = activas.filter(d => { const dias = diasHastaPago(d.dia_pago); return dias !== null && dias <= 7 }).length
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <AppShell>
-      {/* HEADER */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
-          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Control Financiero</p>
-          <h1 className="text-xl font-black text-stone-800 tracking-tight truncate">Deudas y Cuotas</h1>
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Módulo</p>
+          <h1 className="text-xl font-black text-stone-800 tracking-tight truncate">Mis Deudas</h1>
         </div>
-        <button onClick={() => { setEditandoId(null); setFormDeuda(FORM_VACIO); setModalDeuda(true) }}
-          className="ff-btn-primary flex items-center gap-2">
+        <button onClick={abrirNueva} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />
-          <span className="text-sm font-bold">Añadir</span>
+          <span className="hidden sm:inline text-sm font-bold">Nueva deuda</span>
         </button>
       </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="glass-card p-4 border-l-4 border-red-400">
-          <p className="text-[10px] text-stone-400 uppercase font-black mb-1">Total por pagar</p>
-          <p className="text-lg font-black text-stone-800 tabular-nums">{formatCurrency(totalDeuda)}</p>
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2"
+          style={{ background: 'rgba(192,96,90,0.1)', border: '1px solid rgba(192,96,90,0.25)', color: '#C0605A' }}>
+          <AlertCircle size={14} />{error}
         </div>
-        <div className="glass-card p-4 border-l-4 border-amber-400">
-          <p className="text-[10px] text-stone-400 uppercase font-black mb-1">Carga mensual</p>
-          <p className="text-lg font-black text-stone-800 tabular-nums">{formatCurrency(cuotasMes)}</p>
-        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        {[
+          { label: 'Deuda total',        value: formatCurrency(totalDeuda), color: '#C0605A' },
+          { label: 'Letras este mes',    value: formatCurrency(cuotasMes),  color: 'var(--accent-terra)' },
+          { label: 'Vencen pronto',      value: vencenProximo > 0 ? `${vencenProximo} deuda${vencenProximo > 1 ? 's' : ''}` : 'Al día ✓', color: vencenProximo > 0 ? '#C0605A' : 'var(--accent-green)' },
+        ].map((s, i) => (
+          <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
+            <p className="text-[9px] text-stone-400 uppercase tracking-wider font-bold mb-1">{s.label}</p>
+            <p className="text-sm font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* LISTADO */}
-      <div className="space-y-3">
-        {deudas.map((d, i) => {
-          const cfg = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
-          const pct = d.monto > 0 ? Math.min(100, Math.round(((d.monto - (d.pendiente || 0)) / d.monto) * 100)) : 0
-          const urgencia = urgenciaColor(diasHastaPago(d.dia_pago))
-          const isActiva = cardActiva === d.id
+      {/* Lista */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={20} className="animate-spin text-stone-400" />
+        </div>
+      ) : deudas.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-stone-400 text-sm mb-4">No hay deudas registradas</p>
+          <button onClick={abrirNueva} className="ff-btn-primary">Agregar primera deuda</button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {deudas.map((d, i) => {
+            const cfg      = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
+            const pct      = d.monto > 0 ? Math.min(100, Math.round(((d.monto - (d.pendiente || 0)) / d.monto) * 100)) : 0
+            const dias     = diasHastaPago(d.dia_pago)
+            const urgencia = urgenciaColor(dias)
+            const isExp    = expandido === d.id
+            const isActiva = cardActiva === d.id
+            const movsDeuda = movimientos[d.id] || []
+            const esCuota   = d.tipo_deuda === 'cuota'
+            const pagadaHoy = movsDeuda.some(m =>
+              m.tipo === 'pago' &&
+              m.fecha?.slice(0, 7) === new Date().toISOString().slice(0, 7)
+            )
 
-          return (
-            <Card key={d.id} className="animate-enter relative overflow-hidden" 
-              style={{ animationDelay: `${i * 0.05}s`, padding: '16px' }}
-              onClick={() => setCardActiva(isActiva ? null : d.id)}>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
-                  style={{ background: `${d.color}15` }}>{d.emoji}</div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-black text-stone-800 text-sm truncate">{d.nombre}</p>
-                    {d.de_prestamo_id && <Link2 size={12} className="text-stone-400" />}
+            return (
+              <Card key={d.id}
+                className="animate-enter overflow-hidden cursor-pointer select-none"
+                style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px' }}
+                onClick={() => setCardActiva(isActiva ? null : d.id)}
+              >
+                {/* Fila principal */}
+                <div className="flex items-center gap-2.5 mb-2.5">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                    style={{ background: `${d.color || cfg.color}18` }}>
+                    <span>{d.emoji}</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md"
-                      style={{ background: `${cfg.color}15`, color: cfg.color }}>{cfg.label}</span>
-                    {urgencia && <span className="text-[9px] font-bold" style={{ color: urgencia.text }}>{urgencia.label}</span>}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-stone-800 truncate text-sm leading-tight">{d.nombre}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
+                        style={{ background: `${cfg.color}15`, color: cfg.color }}>{cfg.label}</span>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          background: d.categoria === 'basicos' ? 'rgba(74,111,165,0.1)' : 'rgba(193,122,58,0.1)',
+                          color:      d.categoria === 'basicos' ? '#4A6FA5' : '#C17A3A',
+                        }}>
+                        {d.categoria}
+                      </span>
+                      {urgencia && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                          style={{ background: urgencia.bg, color: urgencia.text }}>
+                          {urgencia.label}
+                        </span>
+                      )}
+                      {pagadaHoy && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                          style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+                          ✓ Pagada este mes
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-base font-black tabular-nums"
+                      style={{ color: d.color || cfg.color, letterSpacing: '-0.02em' }}>
+                      {formatCurrency(d.pendiente || 0)}
+                    </p>
+                    <p className="text-[9px] text-stone-400">pendiente</p>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <p className="font-black text-stone-800 tabular-nums">{formatCurrency(d.pendiente)}</p>
-                  <p className="text-[10px] text-stone-400 uppercase font-bold">restante</p>
-                </div>
-              </div>
-
-              {/* BARRA DE PROGRESO (Solo para Préstamos/Tarjetas) */}
-              {d.tipo_deuda !== 'cuota' && (
-                <div className="mt-4">
-                  <div className="flex justify-between text-[9px] font-black uppercase text-stone-400 mb-1">
-                    <span>Progreso del pago</span>
-                    <span>{pct}%</span>
+                {/* Barra progreso */}
+                {d.monto > 0 && (
+                  <div className="mb-2.5">
+                    <ProgressBar value={d.monto - (d.pendiente || 0)} max={d.monto} color={d.color || cfg.color} />
                   </div>
-                  <ProgressBar value={d.monto - d.pendiente} max={d.monto} color={d.color} />
-                </div>
-              )}
+                )}
 
-              {/* ACCIONES EXPANDIDAS */}
-              <div className={`overflow-hidden transition-all duration-300 ${isActiva ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="flex gap-2 pt-3 border-t border-stone-100">
-                  <button onClick={() => { setModalMov(d.id); setFormMov(p => ({ ...p, tipo: 'pago', monto: d.cuota || '' })) }}
-                    className="flex-1 ff-btn-primary py-2 text-xs flex items-center justify-center gap-2"
-                    style={{ background: '#10b981' }}>
-                    <ArrowUpRight size={14} /> Pagar Letra
-                  </button>
-                  <IconBtn onClick={() => setModalMov(d.id)} bg="#f5f5f5" color="#78716c"><ArrowDownRight size={14}/></IconBtn>
-                  <IconBtn onClick={() => { setEditandoId(d.id); setModalDeuda(true); setFormDeuda(d) }} bg="#f5f5f5" color="#78716c"><Pencil size={14}/></IconBtn>
-                  <IconBtn onClick={() => {if(confirm('¿Eliminar?')) supabase.from('deudas').delete().eq('id', d.id).then(cargar)}} bg="rgba(192,96,90,0.1)" color="#C0605A"><Trash2 size={14}/></IconBtn>
+                {/* Info extra */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {d.cuota > 0 && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                      {formatCurrency(d.cuota)}/mes
+                    </span>
+                  )}
+                  {d.plazo_meses && (
+                    <span className="text-[9px] text-stone-400">
+                      {d.pagadas || 0}/{d.plazo_meses} cuotas
+                    </span>
+                  )}
+                  {!d.plazo_meses && d.tipo_deuda === 'prestamo' && (
+                    <span className="text-[9px] text-stone-400">Pago flexible</span>
+                  )}
+                  {d.dia_pago && <span className="text-[9px] text-stone-400">Pago día {d.dia_pago}</span>}
+                  {d.estado === 'pagada' && (
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+                      ¡Saldada!
+                    </span>
+                  )}
                 </div>
-              </div>
-            </Card>
-          )
-        })}
-      </div>
 
-      {/* MODAL DEUDA (CON LÓGICA DE VINCULACIÓN) */}
-      <Modal open={modalDeuda} onClose={() => setModalDeuda(false)} title={editandoId ? 'Editar' : 'Nueva'}>
-        <form onSubmit={handleSaveDeuda} className="space-y-4">
-          <div className="grid grid-cols-3 gap-2 p-1 bg-stone-100 rounded-2xl">
+                {/* Acciones (visible al hacer click) */}
+                <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-16 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
+                  style={{ borderColor: 'var(--border-glass)' }}>
+                  <div className="flex items-center gap-2 flex-wrap">
+
+                    {/* Marcar cuota como pagada (para tipo cuota o préstamo con cuota mensual) */}
+                    {(esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0)) && d.estado !== 'pagada' && (
+                      <button
+                        onClick={e => { e.stopPropagation(); handleMarcarPagada(d) }}
+                        disabled={saving || pagadaHoy}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 disabled:opacity-40"
+                        style={{ background: pagadaHoy ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.12)', color: '#10b981' }}
+                      >
+                        <Check size={11} strokeWidth={3} />
+                        {pagadaHoy ? 'Ya pagada' : 'Marcar pagada'}
+                      </button>
+                    )}
+
+                    {/* Cargo */}
+                    <IconBtn onClick={() => { setModalMov(d.id); setFormMov(prev => ({ ...prev, tipo: 'cargo' })) }}
+                      title="Registrar cargo" bg="rgba(192,96,90,0.1)" color="#C0605A">
+                      <ArrowDownRight size={13} strokeWidth={2.5} />
+                    </IconBtn>
+
+                    {/* Pago */}
+                    <IconBtn onClick={() => { setModalMov(d.id); setFormMov(prev => ({ ...prev, tipo: 'pago' })) }}
+                      title="Registrar pago" bg="rgba(16,185,129,0.1)" color="#10b981">
+                      <ArrowUpRight size={13} strokeWidth={2.5} />
+                    </IconBtn>
+
+                    {/* Historial */}
+                    <IconBtn onClick={() => setExpandido(isExp ? null : d.id)}
+                      title="Ver historial" bg="var(--bg-secondary)" color="var(--text-muted)">
+                      {isExp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                    </IconBtn>
+
+                    {/* Editar */}
+                    <IconBtn onClick={() => abrirEdicion(d)} title="Editar"
+                      bg="rgba(74,111,165,0.1)" color="#4A6FA5">
+                      <Pencil size={12} />
+                    </IconBtn>
+
+                    {/* Eliminar */}
+                    <IconBtn onClick={() => handleDeleteDeuda(d.id)} title="Eliminar"
+                      bg="rgba(192,96,90,0.08)" color="#C0605A">
+                      <Trash2 size={12} />
+                    </IconBtn>
+                  </div>
+                </div>
+
+                {/* Historial expandido */}
+                {isExp && (
+                  <div className="mt-3 pt-3 border-t space-y-1" style={{ borderColor: 'var(--border-glass)' }}>
+                    {movsDeuda.length === 0 ? (
+                      <p className="text-[10px] text-stone-400 italic text-center py-2">Sin movimientos aún</p>
+                    ) : movsDeuda.map(m => (
+                      <div key={m.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-stone-50">
+                        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: m.tipo === 'pago' ? 'rgba(16,185,129,0.1)' : 'rgba(192,96,90,0.1)' }}>
+                          {m.tipo === 'pago'
+                            ? <ArrowUpRight size={11} style={{ color: '#10b981' }} />
+                            : <ArrowDownRight size={11} style={{ color: '#C0605A' }} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-stone-700 truncate">{m.descripcion}</p>
+                          <p className="text-[9px] text-stone-400">
+                            {new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES')}
+                          </p>
+                        </div>
+                        <p className="text-xs font-black flex-shrink-0 tabular-nums"
+                          style={{ color: m.tipo === 'pago' ? '#10b981' : '#C0605A' }}>
+                          {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          MODAL: Nueva / Editar Deuda
+      ═══════════════════════════════════════════════════════════════════ */}
+      <Modal
+        open={modalDeuda}
+        onClose={() => { setModalDeuda(false); setEditandoId(null) }}
+        title={editandoId ? 'Editar Deuda' : 'Nueva Deuda'}
+      >
+        {/* Selector de tipo (solo al crear) */}
+        {!editandoId && (
+          <div className="grid grid-cols-3 gap-2 mb-5">
             {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
-              <button type="button" key={key} onClick={() => setFormDeuda(p => ({ ...p, tipo_deuda: key }))}
-                className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all ${formDeuda.tipo_deuda === key ? 'bg-white shadow-sm' : 'opacity-50'}`}
-                style={{ color: cfg.color }}>{cfg.label}</button>
+              <button type="button" key={key}
+                onClick={() => setTipoSeleccionado(key)}
+                className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                style={{
+                  background: tipoSeleccionado === key ? `${cfg.color}15` : 'var(--bg-secondary)',
+                  color:      tipoSeleccionado === key ? cfg.color : 'var(--text-muted)',
+                  border:     `1px solid ${tipoSeleccionado === key ? `${cfg.color}40` : 'var(--border-glass)'}`,
+                }}>
+                {cfg.label}
+              </button>
             ))}
           </div>
+        )}
 
-          {/* Si es cuota, mostramos selector de préstamos para vincular */}
-          {formDeuda.tipo_deuda === 'cuota' && (
-            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-100">
-              <label className="ff-label text-amber-700">Vincular a préstamo existente:</label>
-              <select className="ff-input mt-1 bg-white" onChange={(e) => handleVincularPrestamo(e.target.value)}>
-                <option value="">-- No vincular --</option>
-                {deudas.filter(d => d.tipo_deuda === 'prestamo').map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre} (Debe: {formatCurrency(p.pendiente)})</option>
+        {/* ── Formulario TARJETA ── */}
+        {tipoSeleccionado === 'tarjeta' && (
+          <form onSubmit={handleSaveDeuda} className="space-y-4">
+
+            {/* Selector de tarjeta guardada (solo al crear) */}
+            {!editandoId && misTarjetas.length > 0 && (
+              <div className="p-3 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/30">
+                <label className="text-[10px] font-black uppercase text-indigo-500 mb-2 block">
+                  Selecciona la tarjeta usada
+                </label>
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {misTarjetas.map(t => (
+                    <button key={t.id} type="button"
+                      onClick={() => handleSeleccionarTarjetaPerfil(t.id)}
+                      className="flex-shrink-0 px-3 py-2 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 bg-white hover:shadow-sm"
+                      style={{
+                        borderColor: formTarjeta.tarjeta_perfil_id === t.id ? t.color : `${t.color}40`,
+                        color: t.color,
+                        boxShadow: formTarjeta.tarjeta_perfil_id === t.id ? `0 0 0 2px ${t.color}30` : '',
+                      }}>
+                      <CreditCard size={12} />
+                      {t.nombre_tarjeta}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Emoji + Nombre */}
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <label className="ff-label">Emoji</label>
+                <input className="ff-input text-center text-xl" maxLength={2}
+                  value={formTarjeta.emoji}
+                  onChange={e => setFormTarjeta(p => ({ ...p, emoji: e.target.value }))} />
+              </div>
+              <div className="col-span-3">
+                <label className="ff-label">¿Qué compraste?</label>
+                <input className="ff-input" required placeholder="Ej: Nevera nueva, Reparación coche..."
+                  value={formTarjeta.nombre}
+                  onChange={e => setFormTarjeta(p => ({ ...p, nombre: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Categoría */}
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: 'deseo', l: 'Gasto Deseo' }, { v: 'basicos', l: 'Gasto Básico' }].map(c => (
+                <button type="button" key={c.v}
+                  onClick={() => setFormTarjeta(p => ({ ...p, categoria: c.v }))}
+                  className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                  style={{
+                    background: formTarjeta.categoria === c.v ? 'rgba(45,122,95,0.1)' : 'var(--bg-secondary)',
+                    color:      formTarjeta.categoria === c.v ? '#2D7A5F' : 'var(--text-muted)',
+                    border:     `1px solid ${formTarjeta.categoria === c.v ? 'rgba(45,122,95,0.3)' : 'var(--border-glass)'}`,
+                  }}>
+                  {c.l}
+                </button>
+              ))}
+            </div>
+
+            {/* Monto + Cuotas */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="ff-label">Monto Total (€)</label>
+                <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
+                  value={formTarjeta.monto_compra}
+                  onChange={e => setFormTarjeta(p => ({ ...p, monto_compra: e.target.value }))} />
+              </div>
+              <div>
+                <label className="ff-label">Número de cuotas</label>
+                <input className="ff-input" type="number" min="1" placeholder="1" required
+                  value={formTarjeta.num_cuotas}
+                  onChange={e => setFormTarjeta(p => ({ ...p, num_cuotas: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Preview cuota */}
+            {formTarjeta.monto_compra && formTarjeta.num_cuotas && (
+              <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                style={{ background: 'rgba(129,140,248,0.08)', color: '#818CF8' }}>
+                Cuota mensual estimada:{' '}
+                <span className="font-black">
+                  {formatCurrency(parseFloat(formTarjeta.monto_compra) / parseInt(formTarjeta.num_cuotas) || 0)}
+                </span>
+              </div>
+            )}
+
+            {/* Fecha operación */}
+            <div>
+              <label className="ff-label">Fecha de la compra</label>
+              <input className="ff-input" type="date" required
+                value={formTarjeta.fecha_operacion}
+                onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
+            </div>
+
+            <FormFooter saving={saving} editandoId={editandoId}
+              onCancel={() => { setModalDeuda(false); setEditandoId(null) }} />
+          </form>
+        )}
+
+        {/* ── Formulario PRÉSTAMO ── */}
+        {tipoSeleccionado === 'prestamo' && (
+          <form onSubmit={handleSaveDeuda} className="space-y-4">
+
+            {/* Emoji + Nombre */}
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <label className="ff-label">Emoji</label>
+                <input className="ff-input text-center text-xl" maxLength={2}
+                  value={formPrestamo.emoji}
+                  onChange={e => setFormPrestamo(p => ({ ...p, emoji: e.target.value }))} />
+              </div>
+              <div className="col-span-3">
+                <label className="ff-label">Nombre del préstamo</label>
+                <input className="ff-input" required placeholder="Ej: Préstamo coche, Préstamo esposo..."
+                  value={formPrestamo.nombre}
+                  onChange={e => setFormPrestamo(p => ({ ...p, nombre: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Categoría */}
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: 'deseo', l: 'Gasto Deseo' }, { v: 'basicos', l: 'Gasto Básico' }].map(c => (
+                <button type="button" key={c.v}
+                  onClick={() => setFormPrestamo(p => ({ ...p, categoria: c.v }))}
+                  className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                  style={{
+                    background: formPrestamo.categoria === c.v ? 'rgba(45,122,95,0.1)' : 'var(--bg-secondary)',
+                    color:      formPrestamo.categoria === c.v ? '#2D7A5F' : 'var(--text-muted)',
+                    border:     `1px solid ${formPrestamo.categoria === c.v ? 'rgba(45,122,95,0.3)' : 'var(--border-glass)'}`,
+                  }}>
+                  {c.l}
+                </button>
+              ))}
+            </div>
+
+            {/* Capital */}
+            <div>
+              <label className="ff-label">Capital prestado (€)</label>
+              <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
+                value={formPrestamo.capital}
+                onChange={e => setFormPrestamo(p => ({ ...p, capital: e.target.value }))} />
+            </div>
+
+            {/* Toggle interés */}
+            <div>
+              <label className="ff-label mb-2 block">Tipo de interés</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[{ v: false, l: '0% — Sin interés' }, { v: true, l: 'Con interés' }].map(c => (
+                  <button type="button" key={String(c.v)}
+                    onClick={() => setFormPrestamo(p => ({ ...p, tiene_interes: c.v, tasa_interes: '' }))}
+                    className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                    style={{
+                      background: formPrestamo.tiene_interes === c.v ? 'rgba(192,96,90,0.1)' : 'var(--bg-secondary)',
+                      color:      formPrestamo.tiene_interes === c.v ? '#C0605A' : 'var(--text-muted)',
+                      border:     `1px solid ${formPrestamo.tiene_interes === c.v ? 'rgba(192,96,90,0.3)' : 'var(--border-glass)'}`,
+                    }}>
+                    {c.l}
+                  </button>
                 ))}
-              </select>
+              </div>
+              {formPrestamo.tiene_interes && (
+                <div className="mt-2">
+                  <label className="ff-label">Tasa anual (%)</label>
+                  <input className="ff-input" type="number" min="0" step="0.1" placeholder="Ej: 5.5"
+                    value={formPrestamo.tasa_interes}
+                    onChange={e => setFormPrestamo(p => ({ ...p, tasa_interes: e.target.value }))} />
+                </div>
+              )}
             </div>
-          )}
 
-          <div className="grid grid-cols-4 gap-3">
-            <input className="ff-input text-center text-xl" value={formDeuda.emoji} onChange={e => setFormDeuda(p => ({ ...p, emoji: e.target.value }))} />
-            <input className="ff-input col-span-3" placeholder="Nombre (Ej: Hipoteca, Carro...)" required
-              value={formDeuda.nombre} onChange={e => setFormDeuda(p => ({ ...p, nombre: e.target.value }))} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+            {/* Toggle plazo */}
             <div>
-              <label className="ff-label">Monto / Capital (€)</label>
-              <input className="ff-input" type="number" required value={formDeuda.capital} onChange={e => setFormDeuda(p => ({ ...p, capital: e.target.value }))} />
+              <label className="ff-label mb-2 block">Plazo de devolución</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[{ v: false, l: 'Plazo fijo' }, { v: true, l: 'Pago libre' }].map(c => (
+                  <button type="button" key={String(c.v)}
+                    onClick={() => setFormPrestamo(p => ({ ...p, plazo_libre: c.v, plazo_meses: '' }))}
+                    className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                    style={{
+                      background: formPrestamo.plazo_libre === c.v ? 'rgba(74,111,165,0.1)' : 'var(--bg-secondary)',
+                      color:      formPrestamo.plazo_libre === c.v ? '#4A6FA5' : 'var(--text-muted)',
+                      border:     `1px solid ${formPrestamo.plazo_libre === c.v ? 'rgba(74,111,165,0.3)' : 'var(--border-glass)'}`,
+                    }}>
+                    {c.l}
+                  </button>
+                ))}
+              </div>
+              {!formPrestamo.plazo_libre && (
+                <div className="mt-2">
+                  <label className="ff-label">Plazo (meses)</label>
+                  <input className="ff-input" type="number" min="1" placeholder="Ej: 48"
+                    value={formPrestamo.plazo_meses}
+                    onChange={e => setFormPrestamo(p => ({ ...p, plazo_meses: e.target.value }))} />
+                </div>
+              )}
             </div>
-            <div>
-              <label className="ff-label">Día de Pago</label>
-              <input className="ff-input" type="number" value={formDeuda.dia_pago} onChange={e => setFormDeuda(p => ({ ...p, dia_pago: e.target.value }))} />
-            </div>
-          </div>
 
-          <button type="submit" className="ff-btn-primary w-full py-3" disabled={saving}>
-            {saving ? <Loader2 className="animate-spin mx-auto" /> : 'Guardar Deuda'}
-          </button>
-        </form>
+            {/* Preview cuota */}
+            {formPrestamo.capital && !formPrestamo.plazo_libre && formPrestamo.plazo_meses && (
+              <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                style={{ background: 'rgba(192,96,90,0.08)', color: '#C0605A' }}>
+                Cuota mensual estimada:{' '}
+                <span className="font-black">
+                  {formatCurrency(calcularCuota(
+                    parseFloat(formPrestamo.capital),
+                    formPrestamo.tiene_interes ? parseFloat(formPrestamo.tasa_interes) || 0 : 0,
+                    parseInt(formPrestamo.plazo_meses)
+                  ))}
+                </span>
+              </div>
+            )}
+
+            {/* Fechas */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="ff-label">Fecha de inicio</label>
+                <input className="ff-input" type="date"
+                  value={formPrestamo.fecha_inicio}
+                  onChange={e => setFormPrestamo(p => ({ ...p, fecha_inicio: e.target.value }))} />
+              </div>
+              <div>
+                <label className="ff-label">Primer pago</label>
+                <input className="ff-input" type="date"
+                  value={formPrestamo.fecha_primer_pago}
+                  onChange={e => setFormPrestamo(p => ({ ...p, fecha_primer_pago: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Día de pago mensual */}
+            <div>
+              <label className="ff-label">Día de pago mensual</label>
+              <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 5"
+                value={formPrestamo.dia_pago}
+                onChange={e => setFormPrestamo(p => ({ ...p, dia_pago: e.target.value }))} />
+            </div>
+
+            <FormFooter saving={saving} editandoId={editandoId}
+              onCancel={() => { setModalDeuda(false); setEditandoId(null) }} />
+          </form>
+        )}
+
+        {/* ── Formulario CUOTA ── */}
+        {tipoSeleccionado === 'cuota' && (
+          <form onSubmit={handleSaveDeuda} className="space-y-4">
+
+            {/* Info contextual */}
+            <div className="px-3 py-2.5 rounded-xl text-[10px] leading-relaxed"
+              style={{ background: 'rgba(193,122,58,0.08)', color: '#C17A3A', border: '1px solid rgba(193,122,58,0.2)' }}>
+              <strong>Cuota mensual:</strong> registra un pago recurrente que vence este mes.
+              Usa "Marcar como pagada" para descontarlo de tu saldo automáticamente.
+            </div>
+
+            {/* Emoji + Nombre */}
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <label className="ff-label">Emoji</label>
+                <input className="ff-input text-center text-xl" maxLength={2}
+                  value={formCuota.emoji}
+                  onChange={e => setFormCuota(p => ({ ...p, emoji: e.target.value }))} />
+              </div>
+              <div className="col-span-3">
+                <label className="ff-label">Nombre de la cuota</label>
+                <input className="ff-input" required placeholder="Ej: Cuota préstamo coche, Letra Visa..."
+                  value={formCuota.nombre}
+                  onChange={e => setFormCuota(p => ({ ...p, nombre: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Categoría */}
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: 'deseo', l: 'Gasto Deseo' }, { v: 'basicos', l: 'Gasto Básico' }].map(c => (
+                <button type="button" key={c.v}
+                  onClick={() => setFormCuota(p => ({ ...p, categoria: c.v }))}
+                  className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                  style={{
+                    background: formCuota.categoria === c.v ? 'rgba(45,122,95,0.1)' : 'var(--bg-secondary)',
+                    color:      formCuota.categoria === c.v ? '#2D7A5F' : 'var(--text-muted)',
+                    border:     `1px solid ${formCuota.categoria === c.v ? 'rgba(45,122,95,0.3)' : 'var(--border-glass)'}`,
+                  }}>
+                  {c.l}
+                </button>
+              ))}
+            </div>
+
+            {/* Monto + día */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="ff-label">Monto de la letra (€)</label>
+                <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
+                  value={formCuota.monto}
+                  onChange={e => setFormCuota(p => ({ ...p, monto: e.target.value }))} />
+              </div>
+              <div>
+                <label className="ff-label">Día de pago</label>
+                <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 1" required
+                  value={formCuota.dia_pago}
+                  onChange={e => setFormCuota(p => ({ ...p, dia_pago: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Vincular a deuda existente (opcional) */}
+            {deudas.filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada').length > 0 && (
+              <div>
+                <label className="ff-label">Vincular a deuda existente (opcional)</label>
+                <select className="ff-input"
+                  value={formCuota.deuda_ref_id}
+                  onChange={e => setFormCuota(p => ({ ...p, deuda_ref_id: e.target.value }))}>
+                  <option value="">— Sin vinculación —</option>
+                  {deudas
+                    .filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada')
+                    .map(d => (
+                      <option key={d.id} value={d.id}>{d.emoji} {d.nombre}</option>
+                    ))}
+                </select>
+              </div>
+            )}
+
+            <FormFooter saving={saving} editandoId={editandoId}
+              onCancel={() => { setModalDeuda(false); setEditandoId(null) }} />
+          </form>
+        )}
       </Modal>
 
-      {/* MODAL MOVIMIENTO */}
-      <Modal open={!!modalMov} onClose={() => setModalMov(null)} title="Registrar Movimiento">
+      {/* ═══════════════════════════════════════════════════════════════════
+          MODAL: Movimiento manual (cargo / pago)
+      ═══════════════════════════════════════════════════════════════════ */}
+      <Modal open={!!modalMov} onClose={() => setModalMov(null)}
+        title={formMov.tipo === 'pago' ? 'Registrar Pago' : 'Registrar Cargo'}>
         <form onSubmit={handleAddMov} className="space-y-4">
-          <input className="ff-input text-2xl font-black text-center" type="number" step="0.01" required
-            value={formMov.monto} onChange={e => setFormMov(p => ({ ...p, monto: e.target.value }))} />
-          <input className="ff-input" placeholder="Descripción" required
-            value={formMov.descripcion} onChange={e => setFormMov(p => ({ ...p, descripcion: e.target.value }))} />
-          <button type="submit" className="ff-btn-primary w-full" style={{ background: '#10b981' }}>Confirmar</button>
+          <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl">
+            {[{ v: 'cargo', l: '↓ Cargo' }, { v: 'pago', l: '↑ Pago' }].map(t => (
+              <button type="button" key={t.v}
+                onClick={() => setFormMov(p => ({ ...p, tipo: t.v }))}
+                className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${formMov.tipo === t.v ? 'bg-white shadow-sm text-stone-800' : 'text-stone-400'}`}>
+                {t.l}
+              </button>
+            ))}
+          </div>
+          <div>
+            <label className="ff-label">Descripción</label>
+            <input className="ff-input" required
+              placeholder={formMov.tipo === 'pago' ? 'Ej: Pago mensual' : 'Ej: Compra supermercado...'}
+              value={formMov.descripcion}
+              onChange={e => setFormMov(p => ({ ...p, descripcion: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="ff-label">Monto (€)</label>
+              <input className="ff-input text-lg font-black" type="number" step="0.01" placeholder="0.00" required
+                value={formMov.monto}
+                onChange={e => setFormMov(p => ({ ...p, monto: e.target.value }))} />
+            </div>
+            <div>
+              <label className="ff-label">Fecha</label>
+              <input className="ff-input" type="date" required
+                value={formMov.fecha}
+                onChange={e => setFormMov(p => ({ ...p, fecha: e.target.value }))} />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={() => setModalMov(null)} className="ff-btn-ghost flex-1">Cancelar</button>
+            <button type="submit" disabled={saving}
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
+              style={{ background: formMov.tipo === 'pago' ? '#10b981' : '#C0605A' }}>
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving ? 'Guardando...' : formMov.tipo === 'pago' ? 'Confirmar Pago' : 'Registrar Cargo'}
+            </button>
+          </div>
         </form>
       </Modal>
     </AppShell>
+  )
+}
+
+// ─── Sub-componente reutilizable para los botones del form ────────────────────
+
+function FormFooter({ saving, editandoId, onCancel }) {
+  return (
+    <div className="flex gap-3 pt-2">
+      <button type="button" onClick={onCancel} className="ff-btn-ghost flex-1">Cancelar</button>
+      <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+        {saving && <Loader2 size={14} className="animate-spin" />}
+        {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear deuda'}
+      </button>
+    </div>
   )
 }
