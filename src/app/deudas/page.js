@@ -664,15 +664,39 @@ export default function DeudasPage() {
                       </button>
                     )}
 
-                    {/* Cargo */}
-                    <IconBtn onClick={() => { setModalMov(d.id); setFormMov(prev => ({ ...prev, tipo: 'cargo' })) }}
-                      title="Registrar cargo" bg="rgba(192,96,90,0.1)" color="#C0605A">
+                    {/* Botón de Cargo en la Card */}
+                    <IconBtn
+                      onClick={() => {
+                        setModalMov(d.id);
+                        setFormMov({
+                          tipo: 'cargo',
+                          descripcion: 'Nuevo cargo',
+                          monto: '', // Aquí sí suele ser mejor dejarlo vacío
+                          fecha: new Date().toISOString().split('T')[0]
+                        });
+                      }}
+                      title="Registrar cargo"
+                      bg="rgba(192,96,90,0.1)"
+                      color="#C0605A"
+                    >
                       <ArrowDownRight size={13} strokeWidth={2.5} />
                     </IconBtn>
 
-                    {/* Pago */}
-                    <IconBtn onClick={() => { setModalMov(d.id); setFormMov(prev => ({ ...prev, tipo: 'pago' })) }}
-                      title="Registrar pago" bg="rgba(16,185,129,0.1)" color="#10b981">
+                    {/* Botón de Pago en la Card */}
+                    <IconBtn
+                      onClick={() => {
+                        setModalMov(d.id);
+                        setFormMov({
+                          tipo: 'pago',
+                          descripcion: `Pago ${d.nombre}`, // Auto-rellena descripción
+                          monto: d.cuota || d.pendiente || '', // Auto-rellena con la cuota mensual o el total
+                          fecha: new Date().toISOString().split('T')[0] // Auto-rellena con la fecha de hoy
+                        });
+                      }}
+                      title="Registrar pago"
+                      bg="rgba(16,185,129,0.1)"
+                      color="#10b981"
+                    >
                       <ArrowUpRight size={13} strokeWidth={2.5} />
                     </IconBtn>
 
@@ -738,9 +762,6 @@ export default function DeudasPage() {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          MODAL: Nueva / Editar Deuda
-      ═══════════════════════════════════════════════════════════════════ */}
       <Modal
         open={modalDeuda}
         onClose={() => { setModalDeuda(false); setEditandoId(null) }}
@@ -1102,10 +1123,6 @@ export default function DeudasPage() {
           </form>
         )}
       </Modal>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          MODAL: Movimiento manual (cargo / pago)
-      ═══════════════════════════════════════════════════════════════════ */}
       <Modal open={!!modalMov} onClose={() => setModalMov(null)}
         title={formMov.tipo === 'pago' ? 'Registrar Pago' : 'Registrar Cargo'}>
         <form onSubmit={handleAddMov} className="space-y-4">
@@ -1153,9 +1170,6 @@ export default function DeudasPage() {
     </AppShell>
   )
 }
-
-// ─── Sub-componente reutilizable para los botones del form ────────────────────
-
 function FormFooter({ saving, editandoId, onCancel }) {
   return (
     <div className="flex gap-3 pt-2">
