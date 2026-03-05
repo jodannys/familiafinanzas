@@ -7,7 +7,6 @@ import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Calendar, Bankn
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 
-// Componente interno para los botones de acción
 function IconBtn({ onClick, title, bg, color, children }) {
     return (
         <button onClick={onClick} title={title}
@@ -26,9 +25,15 @@ export default function TarjetasPage() {
     const [modal, setModal] = useState(false)
     const [editingId, setEditingId] = useState(null)
 
-    // Formulario
+    // Ajustado para incluir 'color' que está en tu DB
     const [form, setForm] = useState({
-        nombre_tarjeta: '', banco: '', limite_credito: '', dia_corte: '', dia_pago: '', estado: 'activa'
+        nombre_tarjeta: '', 
+        banco: '', 
+        limite_credito: '', 
+        dia_corte: '', 
+        dia_pago: '', 
+        estado: 'activa',
+        color: '#4A6FA5' 
     })
 
     useEffect(() => { cargar() }, [])
@@ -49,7 +54,10 @@ export default function TarjetasPage() {
             setForm({ ...tarjeta })
         } else {
             setEditingId(null)
-            setForm({ nombre_tarjeta: '', banco: '', limite_credito: '', dia_corte: '', dia_pago: '', estado: 'activa' })
+            setForm({ 
+                nombre_tarjeta: '', banco: '', limite_credito: '', 
+                dia_corte: '', dia_pago: '', estado: 'activa', color: '#4A6FA5' 
+            })
         }
         setModal(true)
     }
@@ -63,30 +71,30 @@ export default function TarjetasPage() {
         e.preventDefault()
         setSaving(true)
 
-        // Forzamos la conversión de tipos para que Supabase no dé error 400
+        // IMPORTANTE: El payload debe coincidir exactamente con tus columnas de Supabase
         const payload = {
             nombre_tarjeta: form.nombre_tarjeta,
             banco: form.banco,
-            limite_credito: parseFloat(form.limite_credito) || 0, // Convertir a decimal
-            dia_corte: parseInt(form.dia_corte),                // Convertir a entero
-            dia_pago: parseInt(form.dia_pago),                 // Convertir a entero
-            estado: form.estado || 'activa'
+            limite_credito: parseFloat(form.limite_credito) || 0,
+            dia_corte: parseInt(form.dia_corte),
+            dia_pago: parseInt(form.dia_pago),
+            estado: form.estado || 'activa',
+            color: form.color || '#4A6FA5'
         }
 
         if (editingId) {
             const { error } = await supabase.from('perfiles_tarjetas').update(payload).eq('id', editingId)
             if (error) {
-                console.error("Error al actualizar:", error.message)
-                alert("Error: " + error.message) // Para ver el detalle exacto si falla
+                alert("Error al actualizar: " + error.message)
             } else {
                 setTarjetas(prev => prev.map(t => t.id === editingId ? { ...t, ...payload } : t))
                 closeModal()
             }
         } else {
+            // Quitamos el ID si existe para que Supabase genere uno nuevo
             const { data, error } = await supabase.from('perfiles_tarjetas').insert([payload]).select()
             if (error) {
-                console.error("Error al insertar:", error.message)
-                alert("Error: " + error.message) // Esto nos dirá qué columna falla
+                alert("Error al insertar: " + error.message)
             } else {
                 setTarjetas(prev => [data[0], ...prev])
                 closeModal()
@@ -94,6 +102,7 @@ export default function TarjetasPage() {
         }
         setSaving(false)
     }
+
     async function handleToggleEstado(tarjeta) {
         const nuevoEstado = tarjeta.estado === 'activa' ? 'pausada' : 'activa'
         const { error } = await supabase.from('perfiles_tarjetas').update({ estado: nuevoEstado }).eq('id', tarjeta.id)
@@ -113,7 +122,6 @@ export default function TarjetasPage() {
 
     return (
         <AppShell>
-            {/* HEADER */}
             <div className="flex items-center justify-between mb-6 animate-enter">
                 <div>
                     <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Configuración</p>
@@ -125,7 +133,6 @@ export default function TarjetasPage() {
                 </button>
             </div>
 
-            {/* LISTADO */}
             {loading ? (
                 <div className="flex justify-center py-20"><Loader2 className="animate-spin text-stone-400" /></div>
             ) : (
@@ -141,7 +148,7 @@ export default function TarjetasPage() {
                                 className={`animate-enter cursor-pointer transition-all duration-300 ${isPausada ? 'opacity-60' : ''}`}
                                 style={{
                                     animationDelay: `${i * 0.05}s`,
-                                    border: isSelected ? `1px solid var(--accent-blue)40` : '1px solid transparent',
+                                    border: isSelected ? `1px solid ${t.color || '#4A6FA5'}80` : '1px solid transparent',
                                     background: isSelected ? 'var(--bg-secondary)' : '',
                                     padding: '16px'
                                 }}
@@ -149,7 +156,10 @@ export default function TarjetasPage() {
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                                            style={{ background: isPausada ? 'var(--bg-secondary)' : 'rgba(74,111,165,0.1)', color: '#4A6FA5' }}>
+                                            style={{ 
+                                                background: isPausada ? 'var(--bg-secondary)' : `${t.color || '#4A6FA5'}20`, 
+                                                color: t.color || '#4A6FA5' 
+                                            }}>
                                             <CreditCard size={20} />
                                         </div>
                                         <div>
@@ -162,20 +172,20 @@ export default function TarjetasPage() {
 
                                 <div className="space-y-1.5 mb-4">
                                     <div className="flex justify-between text-[10px] font-bold text-stone-500">
-                                        <span>Disponible</span>
+                                        <span>Límite</span>
                                         <span>{formatCurrency(t.limite_credito)}</span>
                                     </div>
-                                    <ProgressBar value={0} max={t.limite_credito} color={isPausada ? '#A8A29E' : '#10b981'} />
+                                    <ProgressBar value={0} max={t.limite_credito} color={isPausada ? '#A8A29E' : (t.color || '#10b981')} />
                                 </div>
 
                                 <div className="flex items-center justify-between">
                                     <div className="flex gap-4">
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar size={12} className="text-stone-400" />
+                                        <div className="flex items-center gap-1.5 text-stone-400">
+                                            <Calendar size={12} />
                                             <span className="text-[11px] font-bold text-stone-600">Corte: {t.dia_corte}</span>
                                         </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <Banknote size={12} className="text-stone-400" />
+                                        <div className="flex items-center gap-1.5 text-stone-400">
+                                            <Banknote size={12} />
                                             <span className="text-[11px] font-bold text-stone-600">Pago: {t.dia_pago}</span>
                                         </div>
                                     </div>
@@ -204,7 +214,6 @@ export default function TarjetasPage() {
                 </div>
             )}
 
-            {/* MODAL FORMULARIO */}
             <Modal open={modal} onClose={closeModal} title={editingId ? 'Editar Tarjeta' : 'Configurar Nueva Tarjeta'}>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
@@ -266,6 +275,23 @@ export default function TarjetasPage() {
                             />
                         </div>
                     </div>
+                    
+                    {/* Selector de Color */}
+                    <div>
+                        <label className="ff-label">Color Distintivo</label>
+                        <div className="flex gap-2 mt-2">
+                            {['#4A6FA5', '#10b981', '#f59e0b', '#8b5cf6', '#C0605A'].map(c => (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    onClick={() => setForm({...form, color: c})}
+                                    className={`w-8 h-8 rounded-full transition-all ${form.color === c ? 'ring-2 ring-offset-2 ring-stone-400 scale-110' : 'opacity-50'}`}
+                                    style={{ backgroundColor: c }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="flex gap-3 pt-4">
                         <button type="button" onClick={closeModal} className="ff-btn-ghost flex-1">Cancelar</button>
                         <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
