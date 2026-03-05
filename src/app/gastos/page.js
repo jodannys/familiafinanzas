@@ -8,11 +8,11 @@ import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 const CATS = [
-  { value: 'basicos',   label: 'Gastos Básicos' },
-  { value: 'deseo',     label: 'Gastos Deseo' },
-  { value: 'ahorro',    label: 'Ahorro / Metas' },
+  { value: 'basicos', label: 'Gastos Básicos' },
+  { value: 'deseo', label: 'Gastos Deseo' },
+  { value: 'ahorro', label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
-  { value: 'deuda',     label: 'Deudas' },
+  { value: 'deuda', label: 'Deudas' },
 ]
 
 const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose' }
@@ -24,20 +24,20 @@ const CAT_BLOQUE = {
 }
 
 export default function GastosPage() {
-  const [movs, setMovs]                 = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [saving, setSaving]             = useState(false)
-  const [error, setError]               = useState(null)
-  const [modal, setModal]               = useState(false)
-  const [search, setSearch]             = useState('')
-  const [filtro, setFiltro]             = useState('todos')
-  const [presItems, setPresItems]       = useState([])
-  const [metasData, setMetasData]       = useState([])
+  const [movs, setMovs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [modal, setModal] = useState(false)
+  const [search, setSearch] = useState('')
+  const [filtro, setFiltro] = useState('todos')
+  const [presItems, setPresItems] = useState([])
+  const [metasData, setMetasData] = useState([])
   const [inversionesData, setInversionesData] = useState([])
-  const [deudasData, setDeudasData]     = useState([])
+  const [deudasData, setDeudasData] = useState([])
   // CAMBIO 1: tarjetasData ahora viene de perfiles_tarjetas
   const [tarjetasData, setTarjetasData] = useState([])
-  const [metaSeleccionada, setMetaSeleccionada]   = useState('')
+  const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   // Datos extra para compra a plazos con tarjeta
@@ -99,7 +99,7 @@ export default function GastosPage() {
 
   async function handleAdd(e) {
     e.preventDefault()
-    const monto = parseFloat(form.monto)
+    const monto = tarjetaSeleccionada ? parseFloat(tarjetaCompra.monto) : parseFloat(form.monto)
     if (!monto || monto <= 0) return
     setSaving(true)
 
@@ -107,8 +107,8 @@ export default function GastosPage() {
     if (tarjetaSeleccionada && form.tipo === 'egreso') {
       const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
       const montoCompra = parseFloat(tarjetaCompra.monto) || monto
-      const numCuotas   = parseInt(tarjetaCompra.num_cuotas) || 1
-      const cuota       = parseFloat((montoCompra / numCuotas).toFixed(2))
+      const numCuotas = parseInt(tarjetaCompra.num_cuotas) || 1
+      const cuota = parseFloat((montoCompra / numCuotas).toFixed(2))
       const fechaCompra = tarjetaCompra.fecha_compra
 
       // Calcular fecha del primer pago basada en dia_pago de la tarjeta
@@ -117,8 +117,8 @@ export default function GastosPage() {
         const [y, m, d] = fechaCompra.split('-').map(Number)
         // Si la compra fue antes del día de corte, primer pago es este mes; si no, el siguiente
         const diaCorte = tarjeta.dia_corte || 0
-        const mesBase  = d <= diaCorte ? m : m + 1
-        const añoBase  = mesBase > 12 ? y + 1 : y
+        const mesBase = d <= diaCorte ? m : m + 1
+        const añoBase = mesBase > 12 ? y + 1 : y
         const mesFinal = mesBase > 12 ? 1 : mesBase
         fechaPrimerPago = `${añoBase}-${String(mesFinal).padStart(2, '0')}-${String(tarjeta.dia_pago).padStart(2, '0')}`
       }
@@ -290,7 +290,7 @@ export default function GastosPage() {
     return month - 1 === now.getMonth() && year === now.getFullYear()
   })
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const egresos  = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
@@ -322,7 +322,7 @@ export default function GastosPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Ingresos del mes', value: formatCurrency(ingresos), color: '#10b981' },
-          { label: 'Egresos del mes',  value: formatCurrency(egresos),  color: '#fb7185' },
+          { label: 'Egresos del mes', value: formatCurrency(egresos), color: '#fb7185' },
           { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? '#10b981' : '#fb7185' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-4 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -497,10 +497,10 @@ export default function GastosPage() {
                     if (t?.dia_pago && tarjetaCompra.fecha_compra) {
                       const [y, m, d] = tarjetaCompra.fecha_compra.split('-').map(Number)
                       const diaCorte = t.dia_corte || 0
-                      const mesBase  = d <= diaCorte ? m : m + 1
-                      const añoBase  = mesBase > 12 ? y + 1 : y
+                      const mesBase = d <= diaCorte ? m : m + 1
+                      const añoBase = mesBase > 12 ? y + 1 : y
                       const mesFinal = mesBase > 12 ? 1 : mesBase
-                      primerPago = `${String(t.dia_pago).padStart(2,'0')}/${String(mesFinal).padStart(2,'0')}/${añoBase}`
+                      primerPago = `${String(t.dia_pago).padStart(2, '0')}/${String(mesFinal).padStart(2, '0')}/${añoBase}`
                     }
 
                     return (
