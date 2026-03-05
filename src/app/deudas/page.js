@@ -6,11 +6,12 @@ import Modal from '@/components/ui/Modal'
 import {
   Plus, Loader2, Trash2, CreditCard, Landmark,
   ChevronDown, ChevronUp, Pencil,
-  ArrowDownRight, ArrowUpRight, Calendar
+  ArrowDownRight, ArrowUpRight, Calendar, Link2
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
+// --- LÓGICA DE CÁLCULO ---
 function calcularCuota(capital, tasaAnual, meses) {
   if (!capital || !meses) return 0
   if (!tasaAnual || tasaAnual === 0) return capital / meses
@@ -50,7 +51,7 @@ function IconBtn({ onClick, title, bg, color, children }) {
 const FORM_VACIO = {
   emoji: '💳', nombre: '', tipo_deuda: 'tarjeta', categoria: 'deseo',
   limite: '', capital: '', adelanto: '', tasa_interes: '', plazo_meses: '',
-  dia_corte: '', dia_pago: '', fecha_primer_pago: '', color: '#818CF8',
+  dia_corte: '', dia_pago: '', color: '#818CF8', de_prestamo_id: null
 }
 
 export default function DeudasPage() {
@@ -65,7 +66,7 @@ export default function DeudasPage() {
   const [editandoId, setEditandoId] = useState(null)
   const [modalMov, setModalMov] = useState(null)
   const [formDeuda, setFormDeuda] = useState(FORM_VACIO)
-  const [formMov, setFormMov] = useState({ tipo: 'cargo', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
+  const [formMov, setFormMov] = useState({ tipo: 'pago', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
   const [misTarjetas, setMisTarjetas] = useState([])
 
   const now = new Date()
@@ -76,79 +77,37 @@ export default function DeudasPage() {
 
   async function cargar() {
     setLoading(true)
-    setError(null)
     try {
-      const { data: deudasData, error: e1 } = await supabase
-        .from('deudas')
-        .select('*')
-        .order('created_at')
-
-      const { data: tarjetasData, error: e2 } = await supabase
-        .from('perfiles_tarjetas')
-        .select('*')
-        .eq('estado', 'activa')
-
-      if (e1) throw e1
-      if (e2) console.error("Error cargando tarjetas perfil:", e2.message)
-
+      const { data: deudasData } = await supabase.from('deudas').select('*').order('created_at')
+      const { data: tarjetasData } = await supabase.from('perfiles_tarjetas').select('*').eq('estado', 'activa')
+      
       setDeudas(deudasData || [])
       setMisTarjetas(tarjetasData || [])
 
       if (deudasData?.length) {
-        const { data: movs, error: e3 } = await supabase
-          .from('deuda_movimientos')
-          .select('*')
-          .order('fecha', { ascending: false })
-
-        if (!e3) {
-          const grouped = {}
-          ;(movs || []).forEach(m => {
-            if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-            grouped[m.deuda_id].push(m)
-          })
-          setMovimientos(grouped)
-        }
+        const { data: movs } = await supabase.from('deuda_movimientos').select('*').order('fecha', { ascending: false })
+        const grouped = {}
+        movs?.forEach(m => {
+          if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+          grouped[m.deuda_id].push(m)
+        })
+        setMovimientos(grouped)
       }
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { setError(err.message) }
+    finally { setLoading(false) }
   }
 
-  function abrirEdicion(d) {
-    setEditandoId(d.id)
-    setFormDeuda({
-      emoji: d.emoji || '💳',
-      nombre: d.nombre || '',
-      tipo_deuda: d.tipo_deuda || 'tarjeta',
-      categoria: d.categoria || 'deseo',
-      limite: d.limite?.toString() || '',
-      capital: d.capital?.toString() || '',
-      adelanto: d.adelanto?.toString() || '',
-      tasa_interes: d.tasa_interes?.toString() || '',
-      plazo_meses: d.plazo_meses?.toString() || '',
-      dia_corte: d.dia_corte?.toString() || '',
-      dia_pago: d.dia_pago?.toString() || '',
-      fecha_primer_pago: d.fecha_primer_pago || '',
-      color: d.color || '#818CF8',
-    })
-    setModalDeuda(true)
-  }
-
-  function handleSeleccionarTarjeta(id) {
-    const tarjetaInfo = misTarjetas.find(t => t.id === id)
-    if (!tarjetaInfo) return
-
+  // Al seleccionar "Cuota", si elegimos un préstamo, rellenamos datos automáticamente
+  function handleVincularPrestamo(prestamoId) {
+    const p = deudas.find(d => d.id === prestamoId)
+    if (!p) return
     setFormDeuda(prev => ({
       ...prev,
-      nombre: tarjetaInfo.nombre_tarjeta,
-      emoji: '💳',
-      color: tarjetaInfo.color,
-      dia_corte: tarjetaInfo.dia_corte?.toString() || '',
-      dia_pago: tarjetaInfo.dia_pago?.toString() || '',
-      limite: tarjetaInfo.limite_credito?.toString() || '',
-      capital: tarjetaInfo.limite_credito?.toString() || ''
+      de_prestamo_id: prestamoId,
+      nombre: `Letra: ${p.nombre}`,
+      capital: p.cuota || 0,
+      emoji: '📅',
+      dia_pago: p.dia_pago || ''
     }))
   }
 
@@ -159,458 +118,234 @@ export default function DeudasPage() {
     const adelanto = parseFloat(formDeuda.adelanto) || 0
     const tasa = parseFloat(formDeuda.tasa_interes) || 0
     const meses = parseInt(formDeuda.plazo_meses) || 0
-    const cuota = calcularCuota(capital - adelanto, tasa, meses)
+    
+    // Si es cuota, el monto es el capital directo. Si es préstamo, calculamos la cuota.
+    const cuotaCalculada = formDeuda.tipo_deuda === 'cuota' ? capital : calcularCuota(capital - adelanto, tasa, meses)
 
     const payload = {
       ...formDeuda,
       limite: parseFloat(formDeuda.limite) || 0,
       capital, adelanto, tasa_interes: tasa,
       plazo_meses: meses,
-      cuota: parseFloat(cuota.toFixed(2)),
+      cuota: parseFloat(cuotaCalculada.toFixed(2)),
       dia_corte: parseInt(formDeuda.dia_corte) || null,
       dia_pago: parseInt(formDeuda.dia_pago) || null,
     }
 
     if (editandoId) {
-      const { error } = await supabase.from('deudas').update(payload).eq('id', editandoId)
-      if (error) setError(error.message)
-      else setDeudas(prev => prev.map(d => d.id === editandoId ? { ...d, ...payload } : d))
+      await supabase.from('deudas').update(payload).eq('id', editandoId)
     } else {
-      const { data, error } = await supabase.from('deudas').insert([{
-        ...payload, pagadas: 0,
-        pendiente: capital - adelanto,
-        monto: capital, tipo: 'debo', estado: 'activa',
-      }]).select()
-      if (error) setError(error.message)
-      else setDeudas(prev => [...prev, data[0]])
+      await supabase.from('deudas').insert([{
+        ...payload, pagadas: 0, pendiente: capital - adelanto,
+        monto: capital, estado: 'activa',
+      }])
     }
-
+    await cargar()
     setSaving(false)
     setModalDeuda(false)
-    setEditandoId(null)
     setFormDeuda(FORM_VACIO)
   }
 
   async function handleAddMov(e) {
     e.preventDefault()
-    if (!modalMov) return
     setSaving(true)
     const monto = parseFloat(formMov.monto)
     const deuda = deudas.find(d => d.id === modalMov)
 
-    const { data, error } = await supabase.from('deuda_movimientos').insert([{
+    // 1. Insertar movimiento de deuda
+    const { data: newMov } = await supabase.from('deuda_movimientos').insert([{
       deuda_id: modalMov, tipo: formMov.tipo,
       descripcion: formMov.descripcion, monto,
       fecha: formMov.fecha, mes, año,
     }]).select()
 
-    if (!error && deuda) {
-      setMovimientos(prev => ({ ...prev, [modalMov]: [data[0], ...(prev[modalMov] || [])] }))
-
+    if (deuda) {
       let nuevoPendiente = deuda.pendiente || 0
-      let nuevoMontoTotal = deuda.monto || 0
       let nuevosPagados = deuda.pagadas || 0
 
       if (formMov.tipo === 'pago') {
         nuevoPendiente = Math.max(0, nuevoPendiente - monto)
-        nuevosPagados = nuevosPagados + 1
+        nuevosPagados += 1
+        
+        // Registrar en movimientos globales
         await supabase.from('movimientos').insert([{
           tipo: 'egreso', categoria: 'deuda',
-          descripcion: `Pago letra: ${deuda.nombre}`,
-          monto, fecha: formMov.fecha, quien: 'Ambos',
+          descripcion: `${deuda.nombre}`, monto,
+          fecha: formMov.fecha, quien: 'Ambos'
         }])
-      } else {
-        nuevoPendiente = nuevoPendiente + monto
-        nuevoMontoTotal = nuevoMontoTotal + monto
-      }
 
-      const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+        // LÓGICA ESPECIAL: Si es una cuota vinculada a un préstamo (Carro, Hipoteca)
+        if (deuda.de_prestamo_id) {
+          const prestamoPadre = deudas.find(p => p.id === deuda.de_prestamo_id)
+          if (prestamoPadre) {
+            await supabase.from('deudas').update({
+              pendiente: Math.max(0, prestamoPadre.pendiente - monto)
+            }).eq('id', prestamoPadre.id)
+          }
+        }
+      }
 
       await supabase.from('deudas').update({
         pendiente: nuevoPendiente,
-        monto: nuevoMontoTotal,
         pagadas: nuevosPagados,
-        estado: nuevoEstado
+        estado: nuevoPendiente <= 0 ? 'pagada' : 'activa'
       }).eq('id', modalMov)
-
-      setDeudas(prev => prev.map(d => d.id === modalMov ? {
-        ...d,
-        pendiente: nuevoPendiente,
-        monto: nuevoMontoTotal,
-        pagadas: nuevosPagados,
-        estado: nuevoEstado
-      } : d))
-
-      setModalMov(null)
-      setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
     }
+
+    await cargar()
     setSaving(false)
+    setModalMov(null)
   }
 
-  async function handleDeleteDeuda(id) {
-    if (!confirm('¿Eliminar esta deuda y todos sus movimientos?')) return
-    const deuda = deudas.find(d => d.id === id)
-    if (deuda) {
-      await supabase.from('movimientos').delete()
-        .eq('categoria', 'deuda')
-        .ilike('descripcion', `%${deuda.nombre}%`)
-    }
-    await supabase.from('deudas').delete().eq('id', id)
-    setDeudas(prev => prev.filter(d => d.id !== id))
-    if (cardActiva === id) setCardActiva(null)
-  }
-
-  const totalDeuda = deudas.filter(d => d.estado !== 'pagada').reduce((s, d) => s + (d.pendiente || 0), 0)
-  const cuotasMes = deudas.filter(d => d.estado !== 'pagada').reduce((s, d) => s + (d.cuota || 0), 0)
-  const vencenProximo = deudas.filter(d => { const dias = diasHastaPago(d.dia_pago); return dias !== null && dias <= 7 && d.estado !== 'pagada' }).length
+  const totalDeuda = deudas.filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada').reduce((s, d) => s + (d.pendiente || 0), 0)
+  const cuotasMes = deudas.reduce((s, d) => s + (d.cuota || 0), 0)
 
   return (
     <AppShell>
+      {/* HEADER */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
-          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Módulo</p>
-          <h1 className="text-xl font-black text-stone-800 tracking-tight truncate">Mis Deudas</h1>
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Control Financiero</p>
+          <h1 className="text-xl font-black text-stone-800 tracking-tight truncate">Deudas y Cuotas</h1>
         </div>
         <button onClick={() => { setEditandoId(null); setFormDeuda(FORM_VACIO); setModalDeuda(true) }}
-          className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
+          className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} strokeWidth={3} />
-          <span className="hidden sm:inline text-sm font-bold">Nueva deuda</span>
+          <span className="text-sm font-bold">Añadir</span>
         </button>
       </div>
 
-      {error && (
-        <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold"
-          style={{ background: 'rgba(192,96,90,0.1)', border: '1px solid rgba(192,96,90,0.25)', color: '#C0605A' }}>
-          {error}
+      {/* STATS */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="glass-card p-4 border-l-4 border-red-400">
+          <p className="text-[10px] text-stone-400 uppercase font-black mb-1">Total por pagar</p>
+          <p className="text-lg font-black text-stone-800 tabular-nums">{formatCurrency(totalDeuda)}</p>
         </div>
-      )}
-
-      <div className="grid grid-cols-3 gap-2 mb-6">
-        {[
-          { label: 'Deuda total', value: formatCurrency(totalDeuda), color: '#C0605A' },
-          { label: 'Letras de este mes', value: formatCurrency(cuotasMes), color: 'var(--accent-terra)' },
-          { label: 'Vencen pronto', value: vencenProximo > 0 ? `${vencenProximo} deuda${vencenProximo > 1 ? 's' : ''}` : 'Al día ✓', color: vencenProximo > 0 ? '#C0605A' : 'var(--accent-green)' },
-        ].map((s, i) => (
-          <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
-            <p className="text-[9px] text-stone-400 uppercase tracking-wider font-bold mb-1">{s.label}</p>
-            <p className="text-sm font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
-          </div>
-        ))}
+        <div className="glass-card p-4 border-l-4 border-amber-400">
+          <p className="text-[10px] text-stone-400 uppercase font-black mb-1">Carga mensual</p>
+          <p className="text-lg font-black text-stone-800 tabular-nums">{formatCurrency(cuotasMes)}</p>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={20} className="animate-spin text-stone-400" />
-        </div>
-      ) : deudas.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-stone-400 text-sm mb-4">No hay deudas registradas</p>
-          <button onClick={() => setModalDeuda(true)} className="ff-btn-primary">Agregar primera deuda</button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {deudas.map((d, i) => {
-            const cfg = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
-            const pct = d.monto > 0 ? Math.min(100, Math.round(((d.monto - (d.pendiente || 0)) / d.monto) * 100)) : 0
-            const dias = diasHastaPago(d.dia_pago)
-            const urgencia = urgenciaColor(dias)
-            const isExp = expandido === d.id
-            const isActiva = cardActiva === d.id
-            const movsDeuda = movimientos[d.id] || []
+      {/* LISTADO */}
+      <div className="space-y-3">
+        {deudas.map((d, i) => {
+          const cfg = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
+          const pct = d.monto > 0 ? Math.min(100, Math.round(((d.monto - (d.pendiente || 0)) / d.monto) * 100)) : 0
+          const urgencia = urgenciaColor(diasHastaPago(d.dia_pago))
+          const isActiva = cardActiva === d.id
 
-            return (
-              <Card key={d.id} className="animate-enter overflow-hidden cursor-pointer select-none"
-                style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px' }}
-                onClick={() => setCardActiva(isActiva ? null : d.id)}>
-
-                <div className="flex items-center gap-2.5 mb-2.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                    style={{ background: `${d.color || cfg.color}18` }}>
-                    <span>{d.emoji}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-black text-stone-800 truncate text-sm leading-tight">{d.nombre}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
-                        style={{ background: `${cfg.color}15`, color: cfg.color }}>{cfg.label}</span>
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: d.categoria === 'basicos' ? 'rgba(74,111,165,0.1)' : 'rgba(193,122,58,0.1)', color: d.categoria === 'basicos' ? '#4A6FA5' : '#C17A3A' }}>
-                        {d.categoria}
-                      </span>
-                      {urgencia && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                          style={{ background: urgencia.bg, color: urgencia.text }}>{urgencia.label}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-base font-black tabular-nums" style={{ color: d.color || cfg.color, letterSpacing: '-0.02em' }}>
-                      {formatCurrency(d.pendiente || 0)}
-                    </p>
-                    <p className="text-[9px] text-stone-400">pendiente</p>
-                  </div>
-                </div>
-
-                {d.monto > 0 && (
-                  <div className="mb-2.5">
-                    <ProgressBar value={d.monto - (d.pendiente || 0)} max={d.monto} color={d.color || cfg.color} />
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {d.cuota > 0 && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                      {formatCurrency(d.cuota)}/mes
-                    </span>
-                  )}
-                  <span className="text-[9px] text-stone-400">{pct}% pagado</span>
-                  {d.dia_pago && <span className="text-[9px] text-stone-400">Pago día {d.dia_pago}</span>}
-                </div>
-
-                <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-16 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
-                  style={{ borderColor: 'var(--border-glass)' }}>
+          return (
+            <Card key={d.id} className="animate-enter relative overflow-hidden" 
+              style={{ animationDelay: `${i * 0.05}s`, padding: '16px' }}
+              onClick={() => setCardActiva(isActiva ? null : d.id)}>
+              
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
+                  style={{ background: `${d.color}15` }}>{d.emoji}</div>
+                
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <IconBtn onClick={() => { setModalMov(d.id); setFormMov(prev => ({ ...prev, tipo: 'cargo' })) }}
-                      title="Registrar cargo" bg="rgba(192,96,90,0.1)" color="#C0605A">
-                      <ArrowDownRight size={13} strokeWidth={2.5} />
-                    </IconBtn>
-                    <IconBtn onClick={() => { setModalMov(d.id); setFormMov(prev => ({ ...prev, tipo: 'pago' })) }}
-                      title="Registrar pago" bg="rgba(16,185,129,0.1)" color="#10b981">
-                      <ArrowUpRight size={13} strokeWidth={2.5} />
-                    </IconBtn>
-                    <IconBtn onClick={() => setExpandido(isExp ? null : d.id)}
-                      title="Ver historial" bg="var(--bg-secondary)" color="var(--text-muted)">
-                      {isExp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                    </IconBtn>
-                    <IconBtn onClick={() => abrirEdicion(d)}
-                      title="Editar" bg="rgba(74,111,165,0.1)" color="#4A6FA5">
-                      <Pencil size={12} />
-                    </IconBtn>
-                    <IconBtn onClick={() => handleDeleteDeuda(d.id)}
-                      title="Eliminar" bg="rgba(192,96,90,0.08)" color="#C0605A">
-                      <Trash2 size={12} />
-                    </IconBtn>
+                    <p className="font-black text-stone-800 text-sm truncate">{d.nombre}</p>
+                    {d.de_prestamo_id && <Link2 size={12} className="text-stone-400" />}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md"
+                      style={{ background: `${cfg.color}15`, color: cfg.color }}>{cfg.label}</span>
+                    {urgencia && <span className="text-[9px] font-bold" style={{ color: urgencia.text }}>{urgencia.label}</span>}
                   </div>
                 </div>
 
-                {isExp && (
-                  <div className="mt-3 pt-3 border-t space-y-1" style={{ borderColor: 'var(--border-glass)' }}>
-                    {movsDeuda.length === 0 ? (
-                      <p className="text-[10px] text-stone-400 italic text-center py-2">Sin movimientos aún</p>
-                    ) : movsDeuda.map(m => (
-                      <div key={m.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-stone-50 group">
-                        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: m.tipo === 'pago' ? 'rgba(16,185,129,0.1)' : 'rgba(192,96,90,0.1)' }}>
-                          {m.tipo === 'pago'
-                            ? <ArrowUpRight size={11} style={{ color: '#10b981' }} />
-                            : <ArrowDownRight size={11} style={{ color: '#C0605A' }} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-stone-700 truncate">{m.descripcion}</p>
-                          <p className="text-[9px] text-stone-400">
-                            {new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES')}
-                          </p>
-                        </div>
-                        <p className="text-xs font-black flex-shrink-0 tabular-nums"
-                          style={{ color: m.tipo === 'pago' ? '#10b981' : '#C0605A' }}>
-                          {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
-                        </p>
-                      </div>
-                    ))}
+                <div className="text-right">
+                  <p className="font-black text-stone-800 tabular-nums">{formatCurrency(d.pendiente)}</p>
+                  <p className="text-[10px] text-stone-400 uppercase font-bold">restante</p>
+                </div>
+              </div>
+
+              {/* BARRA DE PROGRESO (Solo para Préstamos/Tarjetas) */}
+              {d.tipo_deuda !== 'cuota' && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-[9px] font-black uppercase text-stone-400 mb-1">
+                    <span>Progreso del pago</span>
+                    <span>{pct}%</span>
                   </div>
-                )}
-              </Card>
-            )
-          })}
-        </div>
-      )}
+                  <ProgressBar value={d.monto - d.pendiente} max={d.monto} color={d.color} />
+                </div>
+              )}
 
-      {/* MODAL: Nueva / Editar */}
-      {/* MODAL: Nueva / Editar */}
-      <Modal open={modalDeuda} onClose={() => { setModalDeuda(false); setEditandoId(null); setFormDeuda(FORM_VACIO) }}
-        title={editandoId ? 'Editar Deuda' : 'Nueva Deuda'}>
-        <form onSubmit={handleSaveDeuda} className="space-y-4">
-          
-          {/* 1. SELECCIÓN DE TIPO */}
-          <div className="grid grid-cols-3 gap-2">
-            {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
-              <button type="button" key={key}
-                onClick={() => setFormDeuda(prev => ({ ...prev, tipo_deuda: key }))}
-                className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
-                style={{
-                  background: formDeuda.tipo_deuda === key ? `${cfg.color}15` : 'var(--bg-secondary)',
-                  color: formDeuda.tipo_deuda === key ? cfg.color : 'var(--text-muted)',
-                  border: `1px solid ${formDeuda.tipo_deuda === key ? `${cfg.color}40` : 'var(--border-glass)'}`,
-                }}>
-                {cfg.label}
-              </button>
-            ))}
-          </div>
-
-          {/* 2. SELECTOR DE TARJETAS (Solo si es tarjeta y estamos creando) */}
-          {formDeuda.tipo_deuda === 'tarjeta' && misTarjetas.length > 0 && !editandoId && (
-            <div className="animate-enter p-3 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/30">
-              <label className="text-[10px] font-black uppercase text-indigo-500 mb-2 block">¿Usar una tarjeta guardada?</label>
-              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {misTarjetas.map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => handleSeleccionarTarjeta(t.id)}
-                    className="flex-shrink-0 px-3 py-2 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 bg-white hover:shadow-sm"
-                    style={{ borderColor: `${t.color}40`, color: t.color }}
-                  >
-                    <CreditCard size={12} />
-                    {t.nombre_tarjeta}
+              {/* ACCIONES EXPANDIDAS */}
+              <div className={`overflow-hidden transition-all duration-300 ${isActiva ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="flex gap-2 pt-3 border-t border-stone-100">
+                  <button onClick={() => { setModalMov(d.id); setFormMov(p => ({ ...p, tipo: 'pago', monto: d.cuota || '' })) }}
+                    className="flex-1 ff-btn-primary py-2 text-xs flex items-center justify-center gap-2"
+                    style={{ background: '#10b981' }}>
+                    <ArrowUpRight size={14} /> Pagar Letra
                   </button>
-                ))}
+                  <IconBtn onClick={() => setModalMov(d.id)} bg="#f5f5f5" color="#78716c"><ArrowDownRight size={14}/></IconBtn>
+                  <IconBtn onClick={() => { setEditandoId(d.id); setModalDeuda(true); setFormDeuda(d) }} bg="#f5f5f5" color="#78716c"><Pencil size={14}/></IconBtn>
+                  <IconBtn onClick={() => {if(confirm('¿Eliminar?')) supabase.from('deudas').delete().eq('id', d.id).then(cargar)}} bg="rgba(192,96,90,0.1)" color="#C0605A"><Trash2 size={14}/></IconBtn>
+                </div>
               </div>
-            </div>
-          )}
+            </Card>
+          )
+        })}
+      </div>
 
-          {/* 3. NOMBRE Y EMOJI (SIEMPRE VISIBLES) */}
-          <div className="grid grid-cols-4 gap-3">
-            <div>
-              <label className="ff-label">Emoji</label>
-              <input className="ff-input text-center text-xl" maxLength={2} value={formDeuda.emoji}
-                onChange={e => setFormDeuda(prev => ({ ...prev, emoji: e.target.value }))} />
-            </div>
-            <div className="col-span-3">
-              <label className="ff-label">Nombre de la Deuda</label>
-              <input className="ff-input" placeholder="Ej: Compra Amazon..." required
-                value={formDeuda.nombre} onChange={e => setFormDeuda(prev => ({ ...prev, nombre: e.target.value }))} />
-            </div>
-          </div>
-
-          {/* 4. CATEGORÍA (SIEMPRE VISIBLE) */}
-          <div className="grid grid-cols-2 gap-2">
-            {[{ v: 'deseo', l: 'Gastos Deseo' }, { v: 'basicos', l: 'Gastos Básicos' }].map(c => (
-              <button type="button" key={c.v}
-                onClick={() => setFormDeuda(prev => ({ ...prev, categoria: c.v }))}
-                className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
-                style={{
-                  background: formDeuda.categoria === c.v ? 'rgba(45,122,95,0.1)' : 'var(--bg-secondary)',
-                  color: formDeuda.categoria === c.v ? '#2D7A5F' : 'var(--text-muted)',
-                  border: `1px solid ${formDeuda.categoria === c.v ? 'rgba(45,122,95,0.3)' : 'var(--border-glass)'}`,
-                }}>
-                {c.l}
-              </button>
+      {/* MODAL DEUDA (CON LÓGICA DE VINCULACIÓN) */}
+      <Modal open={modalDeuda} onClose={() => setModalDeuda(false)} title={editandoId ? 'Editar' : 'Nueva'}>
+        <form onSubmit={handleSaveDeuda} className="space-y-4">
+          <div className="grid grid-cols-3 gap-2 p-1 bg-stone-100 rounded-2xl">
+            {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
+              <button type="button" key={key} onClick={() => setFormDeuda(p => ({ ...p, tipo_deuda: key }))}
+                className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all ${formDeuda.tipo_deuda === key ? 'bg-white shadow-sm' : 'opacity-50'}`}
+                style={{ color: cfg.color }}>{cfg.label}</button>
             ))}
           </div>
 
-          {/* 5. IMPORTES DINÁMICOS */}
-          <div className="grid grid-cols-2 gap-3">
-            {formDeuda.tipo_deuda === 'tarjeta' ? (
-              <div className="col-span-2">
-                <label className="ff-label">Capacidad de la Tarjeta (Límite)</label>
-                <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
-                  value={formDeuda.limite}
-                  onChange={e => setFormDeuda(prev => ({ ...prev, limite: e.target.value, capital: e.target.value }))} />
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label className="ff-label">Precio Compra (€)</label>
-                  <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
-                    value={formDeuda.capital} onChange={e => setFormDeuda(prev => ({ ...prev, capital: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="ff-label">Entrada Pagada</label>
-                  <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
-                    value={formDeuda.adelanto} onChange={e => setFormDeuda(prev => ({ ...prev, adelanto: e.target.value }))} />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* 6. PLAZOS (Solo para préstamo/cuota) */}
-          {formDeuda.tipo_deuda !== 'tarjeta' && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="ff-label">Tasa anual (%)</label>
-                <input className="ff-input" type="number" min="0" step="0.1" placeholder="0"
-                  value={formDeuda.tasa_interes} onChange={e => setFormDeuda(prev => ({ ...prev, tasa_interes: e.target.value }))} />
-              </div>
-              <div>
-                <label className="ff-label">Plazo (meses)</label>
-                <input className="ff-input" type="number" min="1" placeholder="12"
-                  value={formDeuda.plazo_meses} onChange={e => setFormDeuda(prev => ({ ...prev, plazo_meses: e.target.value }))} />
-              </div>
+          {/* Si es cuota, mostramos selector de préstamos para vincular */}
+          {formDeuda.tipo_deuda === 'cuota' && (
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-100">
+              <label className="ff-label text-amber-700">Vincular a préstamo existente:</label>
+              <select className="ff-input mt-1 bg-white" onChange={(e) => handleVincularPrestamo(e.target.value)}>
+                <option value="">-- No vincular --</option>
+                {deudas.filter(d => d.tipo_deuda === 'prestamo').map(p => (
+                  <option key={p.id} value={p.id}>{p.nombre} (Debe: {formatCurrency(p.pendiente)})</option>
+                ))}
+              </select>
             </div>
           )}
 
-          {/* 7. DÍAS DE PAGO/CORTE */}
+          <div className="grid grid-cols-4 gap-3">
+            <input className="ff-input text-center text-xl" value={formDeuda.emoji} onChange={e => setFormDeuda(p => ({ ...p, emoji: e.target.value }))} />
+            <input className="ff-input col-span-3" placeholder="Nombre (Ej: Hipoteca, Carro...)" required
+              value={formDeuda.nombre} onChange={e => setFormDeuda(p => ({ ...p, nombre: e.target.value }))} />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
-            {formDeuda.tipo_deuda === 'tarjeta' && (
-              <div>
-                <label className="ff-label">Día de corte</label>
-                <input className="ff-input" type="number" min="1" max="31" placeholder="15"
-                  value={formDeuda.dia_corte} onChange={e => setFormDeuda(prev => ({ ...prev, dia_corte: e.target.value }))} />
-              </div>
-            )}
             <div>
-              <label className="ff-label">Día de pago</label>
-              <input className="ff-input" type="number" min="1" max="31" placeholder="5"
-                value={formDeuda.dia_pago} onChange={e => setFormDeuda(prev => ({ ...prev, dia_pago: e.target.value }))} />
+              <label className="ff-label">Monto / Capital (€)</label>
+              <input className="ff-input" type="number" required value={formDeuda.capital} onChange={e => setFormDeuda(p => ({ ...p, capital: e.target.value }))} />
+            </div>
+            <div>
+              <label className="ff-label">Día de Pago</label>
+              <input className="ff-input" type="number" value={formDeuda.dia_pago} onChange={e => setFormDeuda(p => ({ ...p, dia_pago: e.target.value }))} />
             </div>
           </div>
 
-          {/* BOTONES ACCIÓN */}
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => { setModalDeuda(false); setEditandoId(null); setFormDeuda(FORM_VACIO) }}
-              className="ff-btn-ghost flex-1">Cancelar</button>
-            <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
-              {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear deuda'}
-            </button>
-          </div>
+          <button type="submit" className="ff-btn-primary w-full py-3" disabled={saving}>
+            {saving ? <Loader2 className="animate-spin mx-auto" /> : 'Guardar Deuda'}
+          </button>
         </form>
       </Modal>
 
-      {/* MODAL: Movimiento (Pago / Cargo) */}
-      <Modal open={!!modalMov} onClose={() => setModalMov(null)}
-        title={formMov.tipo === 'pago' ? 'Registrar Pago' : 'Registrar Cargo'}>
+      {/* MODAL MOVIMIENTO */}
+      <Modal open={!!modalMov} onClose={() => setModalMov(null)} title="Registrar Movimiento">
         <form onSubmit={handleAddMov} className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl">
-            {[{ v: 'cargo', l: '↓ Cargo' }, { v: 'pago', l: '↑ Pago' }].map(t => (
-              <button type="button" key={t.v}
-                onClick={() => setFormMov(prev => ({ ...prev, tipo: t.v }))}
-                className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${formMov.tipo === t.v ? 'bg-white shadow-sm text-stone-800' : 'text-stone-400'}`}>
-                {t.l}
-              </button>
-            ))}
-          </div>
-
-          <div>
-            <label className="ff-label">Descripción</label>
-            <input className="ff-input" required
-              placeholder={formMov.tipo === 'pago' ? 'Ej: Pago mensual' : 'Ej: Compra supermercado...'}
-              value={formMov.descripcion} onChange={e => setFormMov(prev => ({ ...prev, descripcion: e.target.value }))} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="ff-label">Monto (€)</label>
-              <input className="ff-input text-lg font-black" type="number" step="0.01" placeholder="0.00" required
-                value={formMov.monto} onChange={e => setFormMov(prev => ({ ...prev, monto: e.target.value }))} />
-            </div>
-            <div>
-              <label className="ff-label">Fecha</label>
-              <input className="ff-input" type="date" required
-                value={formMov.fecha} onChange={e => setFormMov(prev => ({ ...prev, fecha: e.target.value }))} />
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setModalMov(null)} className="ff-btn-ghost flex-1">Cancelar</button>
-            <button type="submit" disabled={saving}
-              className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
-              style={{ background: formMov.tipo === 'pago' ? '#10b981' : '#C0605A' }}>
-              {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? 'Guardando...' : formMov.tipo === 'pago' ? 'Confirmar Pago' : 'Registrar Cargo'}
-            </button>
-          </div>
+          <input className="ff-input text-2xl font-black text-center" type="number" step="0.01" required
+            value={formMov.monto} onChange={e => setFormMov(p => ({ ...p, monto: e.target.value }))} />
+          <input className="ff-input" placeholder="Descripción" required
+            value={formMov.descripcion} onChange={e => setFormMov(p => ({ ...p, descripcion: e.target.value }))} />
+          <button type="submit" className="ff-btn-primary w-full" style={{ background: '#10b981' }}>Confirmar</button>
         </form>
       </Modal>
     </AppShell>
