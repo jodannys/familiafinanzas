@@ -1,153 +1,185 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Plus, CreditCard, Banknote, Calendar, Info } from 'lucide-react'
+import AppShell from '@/components/layout/AppShell'
+import { Card, ProgressBar } from '@/components/ui/Card'
+import Modal from '@/components/ui/Modal'
+import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Calendar, Banknote } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
+
+// Reutilizamos tu componente de botones
+function IconBtn({ onClick, title, bg, color, children }) {
+  return (
+    <button onClick={onClick} title={title}
+      className="flex items-center justify-center rounded-xl transition-all active:scale-90"
+      style={{ background: bg, color, width: 36, height: 36, flexShrink: 0 }}>
+      {children}
+    </button>
+  )
+}
 
 export default function TarjetasPage() {
   const [tarjetas, setTarjetas] = useState([])
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  // Estado para el formulario de la nueva tarjeta
-  const [formData, setFormData] = useState({
-    nombre: '',
-    banco: '',
-    limite: '',
-    dia_corte: '',
-    dia_pago: ''
+  const [loading, setLoading] = useState(true)
+  const [modal, setModal] = useState(false)
+  const [selectedId, setSelectedId] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  
+  const [form, setForm] = useState({ 
+    nombre: '', banco: '', limite: '', dia_corte: '', dia_pago: '', estado: 'activa' 
   })
 
+  useEffect(() => { cargar() }, [])
+
+  async function cargar() {
+    setLoading(true)
+    const { data } = await supabase.from('perfiles_tarjetas').select('*').order('created_at')
+    setTarjetas(data || [])
+    setLoading(false)
+  }
+
+  const closeModal = () => {
+    setModal(false)
+    setEditingId(null)
+    setForm({ nombre: '', banco: '', limite: '', dia_corte: '', dia_pago: '', estado: 'activa' })
+  }
+
+  async function handleEstado(id, nuevoEstado) {
+    const { error } = await supabase.from('perfiles_tarjetas').update({ estado: nuevoEstado }).eq('id', id)
+    if (!error) setTarjetas(prev => prev.map(t => t.id === id ? { ...t, estado: nuevoEstado } : t))
+  }
+
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Encabezado */}
-      <div className="flex justify-between items-center mb-8">
+    <AppShell>
+      {/* Header idéntico a tu app */}
+      <div className="flex items-center justify-between mb-6 animate-enter">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            Mis Tarjetas de Crédito
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-            Configura tus límites y fechas para controlar el disponible.
-          </p>
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Configuración</p>
+          <h1 className="text-xl font-black text-stone-800 tracking-tight">Mis Tarjetas</h1>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-transform active:scale-95"
-          style={{ background: 'var(--accent-green)', color: 'white', fontSize: '14px' }}
-        >
-          <Plus size={18} />
-          Nueva Tarjeta
+        <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
+          <Plus size={16} strokeWidth={3} />
+          <span className="hidden sm:inline text-sm font-bold">Nueva tarjeta</span>
         </button>
       </div>
 
-      {/* Grid de Tarjetas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tarjetas.length === 0 ? (
-          <div className="col-span-full py-20 text-center rounded-3xl" 
-               style={{ background: 'var(--bg-card)', border: '2px dashed var(--bg-secondary)' }}>
-            <CreditCard size={48} className="mx-auto mb-4" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
-            <p style={{ color: 'var(--text-muted)' }}>No tienes tarjetas configuradas aún.</p>
-          </div>
-        ) : (
-          tarjetas.map((tarjeta) => (
-            <div key={tarjeta.id} className="p-6 rounded-3xl shadow-sm" style={{ background: 'var(--bg-card)' }}>
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent-blue)' }}>
-                    {tarjeta.banco}
-                  </p>
-                  <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {tarjeta.nombre}
-                  </h3>
-                </div>
-                <div className="p-2 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
-                  <CreditCard size={20} style={{ color: 'var(--text-primary)' }} />
-                </div>
-              </div>
-
-              {/* Termómetro de Crédito */}
-              <div className="space-y-2 mb-6">
-                <div className="flex justify-between text-xs font-bold">
-                  <span style={{ color: 'var(--text-muted)' }}>Uso actual</span>
-                  <span style={{ color: 'var(--text-primary)' }}>0€ / {tarjeta.limite}€</span>
-                </div>
-                <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
-                  <div className="h-full rounded-full" style={{ width: '0%', background: 'var(--accent-green)' }}></div>
-                </div>
-                <p className="text-right text-[10px] font-bold" style={{ color: 'var(--accent-green)' }}>
-                  Disponible: {tarjeta.limite}€
-                </p>
-              </div>
-
-              {/* Info de Fechas */}
-              <div className="grid grid-cols-2 gap-4 p-3 rounded-2xl" style={{ background: 'var(--bg-primary)' }}>
-                <div className="flex items-center gap-2">
-                  <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
-                  <div>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Corte</p>
-                    <p className="text-xs font-bold">Día {tarjeta.dia_corte}</p>
+      {loading ? (
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-stone-400" /></div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {tarjetas.map((tarjeta, i) => {
+            const isSelected = selectedId === tarjeta.id
+            const isPausada = tarjeta.estado === 'pausada'
+            
+            return (
+              <Card 
+                key={tarjeta.id}
+                onClick={() => setSelectedId(isSelected ? null : tarjeta.id)}
+                className={`animate-enter cursor-pointer transition-all duration-300 ${isPausada ? 'opacity-60' : ''}`}
+                style={{ 
+                  animationDelay: `${i * 0.05}s`,
+                  border: isSelected ? `1px solid var(--accent-blue)40` : '1px solid transparent',
+                  background: isSelected ? 'var(--bg-secondary)' : '',
+                  padding: '16px'
+                }}
+              >
+                {/* Cabecera Tarjeta */}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                         style={{ background: isPausada ? 'var(--bg-secondary)' : 'rgba(74,111,165,0.1)', color: '#4A6FA5' }}>
+                      <CreditCard size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-stone-400 tracking-wider leading-none mb-1">{tarjeta.banco}</p>
+                      <h3 className="font-black text-stone-800 text-sm leading-none">{tarjeta.nombre}</h3>
+                    </div>
                   </div>
+                  {isPausada && <span className="text-[9px] font-black bg-amber-100 text-amber-600 px-2 py-1 rounded-lg uppercase">Desactivada</span>}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Banknote size={14} style={{ color: 'var(--text-muted)' }} />
-                  <div>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Pago</p>
-                    <p className="text-xs font-bold">Día {tarjeta.dia_pago}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
 
-      {/* Aquí iría el Modal para añadir tarjeta (podemos crearlo luego) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-md p-8 rounded-3xl shadow-2xl" style={{ background: 'var(--bg-card)' }}>
-            <h2 className="text-xl font-bold mb-6">Configurar Tarjeta</h2>
-            {/* Formulario rápido para probar */}
-            <div className="space-y-4">
-               <input 
-                 placeholder="Nombre (ej: Visa Jodannys)" 
-                 className="w-full p-3 rounded-xl border-none" 
-                 style={{ background: 'var(--bg-secondary)' }}
-                 onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-               />
-               <input 
-                 placeholder="Banco" 
-                 className="w-full p-3 rounded-xl border-none" 
-                 style={{ background: 'var(--bg-secondary)' }}
-                 onChange={(e) => setFormData({...formData, banco: e.target.value})}
-               />
-               <input 
-                 placeholder="Límite de crédito" 
-                 type="number"
-                 className="w-full p-3 rounded-xl border-none" 
-                 style={{ background: 'var(--bg-secondary)' }}
-                 onChange={(e) => setFormData({...formData, limite: e.target.value})}
-               />
-               <div className="grid grid-cols-2 gap-4">
-                 <input 
-                   placeholder="Día Corte" 
-                   type="number"
-                   className="w-full p-3 rounded-xl border-none" 
-                   style={{ background: 'var(--bg-secondary)' }}
-                   onChange={(e) => setFormData({...formData, dia_corte: e.target.value})}
-                 />
-                 <input 
-                   placeholder="Día Pago" 
-                   type="number"
-                   className="w-full p-3 rounded-xl border-none" 
-                   style={{ background: 'var(--bg-secondary)' }}
-                   onChange={(e) => setFormData({...formData, dia_pago: e.target.value})}
-                 />
-               </div>
-               <div className="flex gap-3 mt-6">
-                 <button onClick={() => setIsModalOpen(false)} className="flex-1 p-3 rounded-xl font-bold" style={{ background: 'var(--bg-secondary)' }}>Cancelar</button>
-                 <button onClick={() => { setTarjetas([...tarjetas, {...formData, id: Date.now()}]); setIsModalOpen(false); }} className="flex-1 p-3 rounded-xl font-bold text-white" style={{ background: 'var(--accent-green)' }}>Guardar</button>
-               </div>
-            </div>
-          </div>
+                {/* Barra de Crédito */}
+                <div className="space-y-1.5 mb-4">
+                   <div className="flex justify-between text-[10px] font-bold text-stone-500">
+                      <span>Uso de crédito</span>
+                      <span>0€ / {formatCurrency(tarjeta.limite)}</span>
+                   </div>
+                   <ProgressBar value={0} max={tarjeta.limite} color={isPausada ? '#A8A29E' : '#10b981'} />
+                </div>
+
+                {/* Fechas y Botones */}
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={12} className="text-stone-400" />
+                      <span className="text-[11px] font-bold text-stone-600">Corte: {tarjeta.dia_corte}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Banknote size={12} className="text-stone-400" />
+                      <span className="text-[11px] font-bold text-stone-600">Pago: {tarjeta.dia_pago}</span>
+                    </div>
+                  </div>
+
+                  {/* BOTONES: Solo aparecen si haces clic en la tarjeta */}
+                  {isSelected && (
+                    <div className="flex gap-1 animate-in fade-in zoom-in-95 duration-200">
+                      <IconBtn 
+                        onClick={(e) => { e.stopPropagation(); handleEstado(tarjeta.id, isPausada ? 'activa' : 'pausada') }}
+                        bg={isPausada ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)'} 
+                        color={isPausada ? '#10b981' : '#f59e0b'}
+                      >
+                        {isPausada ? <Play size={14} fill="currentColor" /> : <Pause size={14} fill="currentColor" />}
+                      </IconBtn>
+                      
+                      <IconBtn onClick={(e) => { e.stopPropagation(); /* lógica editar */ }} bg="var(--bg-secondary)" color="var(--text-muted)">
+                        <Pencil size={14} />
+                      </IconBtn>
+
+                      <IconBtn onClick={(e) => { e.stopPropagation(); /* lógica borrar */ }} bg="rgba(192,96,90,0.1)" color="#C0605A">
+                        <Trash2 size={14} />
+                      </IconBtn>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )
+          })}
         </div>
       )}
-    </div>
+
+      {/* Modal - Reutilizando tus clases ff-input y ff-label */}
+      <Modal open={modal} onClose={closeModal} title={editingId ? 'Editar Tarjeta' : 'Configurar Nueva Tarjeta'}>
+        <form className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="ff-label">Banco</label>
+              <input className="ff-input" placeholder="Ej: Santander" />
+            </div>
+            <div>
+              <label className="ff-label">Nombre Tarjeta</label>
+              <input className="ff-input" placeholder="Ej: Visa Jodannys" />
+            </div>
+          </div>
+          <div>
+            <label className="ff-label">Límite de Crédito</label>
+            <input className="ff-input" type="number" placeholder="0.00" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="ff-label">Día de Corte</label>
+              <input className="ff-input" type="number" placeholder="1-31" />
+            </div>
+            <div>
+              <label className="ff-label">Día de Pago</label>
+              <input className="ff-input" type="number" placeholder="1-31" />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={closeModal} className="ff-btn-ghost flex-1">Cancelar</button>
+            <button type="submit" className="ff-btn-primary flex-1">Guardar Tarjeta</button>
+          </div>
+        </form>
+      </Modal>
+    </AppShell>
   )
 }
