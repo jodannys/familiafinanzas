@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, Badge } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2 } from 'lucide-react'
+import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
@@ -35,12 +35,18 @@ export default function GastosPage() {
   const [metasData, setMetasData] = useState([])
   const [inversionesData, setInversionesData] = useState([])
   const [deudasData, setDeudasData] = useState([])
+  const [tarjetasData, setTarjetasData] = useState([])
   const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
+  const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
     categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys'
   })
+
+  const now = new Date()
+  const mes = now.getMonth() + 1
+  const año = now.getFullYear()
 
   useEffect(() => {
     cargarMovimientos()
@@ -48,6 +54,9 @@ export default function GastosPage() {
     supabase.from('metas').select('id, nombre, meta, actual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
     supabase.from('deudas').select('id, nombre, pendiente, cuota').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
+    // Solo tarjetas de crédito activas
+    supabase.from('deudas').select('id, nombre, emoji, color').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
+      .then(({ data }) => setTarjetasData(data || []))
   }, [])
 
   async function cargarMovimientos() {
@@ -60,10 +69,17 @@ export default function GastosPage() {
   }
 
   async function cargarPresupuesto() {
-    const now = new Date()
     const { data } = await supabase.from('presupuesto_items').select('*')
       .eq('mes', now.getMonth() + 1).eq('año', now.getFullYear())
     setPresItems(data || [])
+  }
+
+  function resetModal() {
+    setModal(false)
+    setTarjetaSeleccionada('')
+    setMetaSeleccionada('')
+    setDeudaSeleccionada('')
+    setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys' })
   }
 
   async function handleAdd(e) {
@@ -72,6 +88,32 @@ export default function GastosPage() {
     if (!monto || monto <= 0) return
     setSaving(true)
 
+    // ── PAGO CON TARJETA: va a deuda_movimientos, NO a movimientos ──────────
+    if (tarjetaSeleccionada && form.tipo === 'egreso') {
+      const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
+      const { error } = await supabase.from('deuda_movimientos').insert([{
+        deuda_id: tarjetaSeleccionada,
+        tipo: 'cargo',
+        descripcion: form.descripcion,
+        monto,
+        fecha: form.fecha,
+        mes, año,
+      }])
+      if (error) setError('Error al guardar cargo en tarjeta: ' + error.message)
+      else {
+        // Aumentar el pendiente de la tarjeta
+        const tarjetaDeuda = deudasData.find(d => d.id === tarjetaSeleccionada) ||
+          await supabase.from('deudas').select('pendiente').eq('id', tarjetaSeleccionada).single().then(r => r.data)
+        if (tarjetaDeuda) {
+          await supabase.from('deudas').update({ pendiente: (tarjetaDeuda.pendiente || 0) + monto }).eq('id', tarjetaSeleccionada)
+        }
+        resetModal()
+      }
+      setSaving(false)
+      return
+    }
+
+    // ── GASTO NORMAL: va a movimientos ────────────────────────────────────────
     const { data, error } = await supabase.from('movimientos').insert([{ ...form, monto }]).select()
 
     if (error) {
@@ -111,8 +153,7 @@ export default function GastosPage() {
         setDeudaSeleccionada('')
       }
 
-      setModal(false)
-      setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys' })
+      resetModal()
     }
     setSaving(false)
   }
@@ -153,7 +194,6 @@ export default function GastosPage() {
     if (invMatch) setMetaSeleccionada(`inv_${invMatch.id}`)
   }
 
-  // ── Sugerencias enriquecidas por categoría ─────────────────────────────────
   const sugerenciasRicas = form.tipo === 'egreso' ? (() => {
     if (form.categoria === 'deuda') return []
     if (form.categoria === 'ahorro') return metasData.map(m => ({
@@ -172,7 +212,6 @@ export default function GastosPage() {
       .map(i => ({ id: i.id, nombre: i.nombre, monto: i.monto, sub: null, pct: null, color: '#C17A3A', emoji: '📌' }))
   })() : []
 
-  const now = new Date()
   const movsMes = movs.filter(m => {
     const [year, month] = m.fecha.split('-').map(Number)
     return month - 1 === now.getMonth() && year === now.getFullYear()
@@ -184,9 +223,10 @@ export default function GastosPage() {
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
     .filter(m => !search || m.descripcion.toLowerCase().includes(search.toLowerCase()))
 
+  const usandoTarjeta = form.tipo === 'egreso' && tarjetaSeleccionada
+
   return (
     <AppShell>
-      {/* Header */}
       <div className="mb-6 animate-enter px-1">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -201,12 +241,9 @@ export default function GastosPage() {
       </div>
 
       {error && (
-        <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold bg-rose-50 border border-rose-100 text-rose-600">
-          {error}
-        </div>
+        <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold bg-rose-50 border border-rose-100 text-rose-600">{error}</div>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Ingresos del mes', value: formatCurrency(ingresos), color: '#10b981' },
@@ -220,7 +257,6 @@ export default function GastosPage() {
         ))}
       </div>
 
-      {/* Buscador + Filtros */}
       <div className="flex flex-col gap-3 mb-6">
         <div className="relative w-full">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" style={{ zIndex: 10 }} />
@@ -242,22 +278,17 @@ export default function GastosPage() {
         </div>
       </div>
 
-      {/* Lista */}
       <Card className="overflow-hidden border-none shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-12 gap-3 opacity-50">
             <Loader2 size={20} className="animate-spin" />
-            <span className="text-sm font-medium">Cargando...</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-stone-400 text-sm italic">No hay registros</p>
-          </div>
+          <div className="text-center py-12"><p className="text-stone-400 text-sm italic">No hay registros</p></div>
         ) : (
           <div className="divide-y divide-stone-50">
             {filtered.map((m, i) => (
-              <div key={m.id}
-                className="flex items-center gap-3 px-3 py-4 hover:bg-stone-50 transition-colors group animate-enter"
+              <div key={m.id} className="flex items-center gap-3 px-3 py-4 hover:bg-stone-50 transition-colors group"
                 style={{ animationDelay: `${i * 0.02}s` }}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${m.tipo === 'ingreso' ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
                   {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
@@ -283,14 +314,14 @@ export default function GastosPage() {
         )}
       </Card>
 
-      {/* MODAL */}
-      <Modal open={modal} onClose={() => setModal(false)} title="Nuevo Movimiento">
+      <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
         <form onSubmit={handleAdd} className="space-y-4">
 
           {/* Tipo toggle */}
           <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl">
             {['ingreso', 'egreso'].map(t => (
-              <button type="button" key={t} onClick={() => setForm({ ...form, tipo: t })}
+              <button type="button" key={t}
+                onClick={() => { setForm({ ...form, tipo: t }); setTarjetaSeleccionada('') }}
                 className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${form.tipo === t ? 'bg-white shadow-sm text-stone-800' : 'text-stone-400'}`}>
                 {t}
               </button>
@@ -303,7 +334,7 @@ export default function GastosPage() {
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Categoría</label>
                 <select className="ff-input h-12 text-sm" value={form.categoria}
-                  onChange={e => setForm({ ...form, categoria: e.target.value })}>
+                  onChange={e => { setForm({ ...form, categoria: e.target.value }); setTarjetaSeleccionada('') }}>
                   {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
               </div>
@@ -319,8 +350,30 @@ export default function GastosPage() {
             </div>
           </div>
 
-          {/* Sugerencias enriquecidas */}
-          {sugerenciasRicas.length > 0 && (
+          {/* ── TARJETA DE CRÉDITO: solo para egresos que no son pago de deuda ── */}
+          {form.tipo === 'egreso' && form.categoria !== 'deuda' && tarjetasData.length > 0 && (
+            <div className="space-y-1 animate-enter">
+              <label className="text-[10px] font-black uppercase text-stone-400 ml-1 flex items-center gap-1.5">
+                <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
+              </label>
+              <select className="ff-input h-12 text-sm" value={tarjetaSeleccionada}
+                onChange={e => setTarjetaSeleccionada(e.target.value)}>
+                <option value="">— No, pago directo —</option>
+                {tarjetasData.map(t => (
+                  <option key={t.id} value={t.id}>{t.emoji} {t.nombre}</option>
+                ))}
+              </select>
+              {tarjetaSeleccionada && (
+                <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                  style={{ background: 'rgba(129,140,248,0.08)', color: '#818CF8', border: '1px solid rgba(129,140,248,0.2)' }}>
+                  💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sugerencias — solo si NO usa tarjeta */}
+          {!usandoTarjeta && sugerenciasRicas.length > 0 && (
             <div className="animate-enter">
               <p className="text-[10px] font-black uppercase text-stone-400 mb-2 ml-1">Sugerencias del presupuesto</p>
               <div className="grid grid-cols-2 gap-2">
@@ -334,17 +387,12 @@ export default function GastosPage() {
                       <p className="text-[10px] font-black text-stone-700 truncate leading-tight">{item.nombre}</p>
                     </div>
                     {item.monto > 0 && (
-                      <p className="text-sm font-black mb-1" style={{ color: item.color }}>
-                        {formatCurrency(item.monto)}
-                      </p>
+                      <p className="text-sm font-black mb-1" style={{ color: item.color }}>{formatCurrency(item.monto)}</p>
                     )}
-                    {item.sub && (
-                      <p className="text-[9px] text-stone-400 truncate mb-1">{item.sub}</p>
-                    )}
+                    {item.sub && <p className="text-[9px] text-stone-400 truncate mb-1">{item.sub}</p>}
                     {item.pct !== null && (
                       <div className="w-full h-1 rounded-full mt-1" style={{ background: 'var(--progress-track)' }}>
-                        <div className="h-full rounded-full transition-all"
-                          style={{ width: `${item.pct}%`, background: item.color }} />
+                        <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: item.color }} />
                       </div>
                     )}
                   </button>
@@ -353,39 +401,29 @@ export default function GastosPage() {
             </div>
           )}
 
-          {/* Selector de meta */}
-          {form.tipo === 'egreso' && form.categoria === 'ahorro' && metasData.length > 0 && (
+          {/* Selector meta */}
+          {!usandoTarjeta && form.tipo === 'egreso' && form.categoria === 'ahorro' && metasData.length > 0 && (
             <div className="space-y-1 animate-enter">
               <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Añadir a meta</label>
-              <select className="ff-input h-12 text-sm" value={metaSeleccionada}
-                onChange={e => setMetaSeleccionada(e.target.value)}>
+              <select className="ff-input h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
                 <option value="">— Sin asignar —</option>
-                {metasData.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.nombre} ({formatCurrency(m.actual || 0)} / {formatCurrency(m.meta)})
-                  </option>
-                ))}
+                {metasData.map(m => <option key={m.id} value={m.id}>{m.nombre} ({formatCurrency(m.actual || 0)} / {formatCurrency(m.meta)})</option>)}
               </select>
             </div>
           )}
 
-          {/* Selector de inversión */}
-          {form.tipo === 'egreso' && form.categoria === 'inversion' && inversionesData.length > 0 && (
+          {/* Selector inversión */}
+          {!usandoTarjeta && form.tipo === 'egreso' && form.categoria === 'inversion' && inversionesData.length > 0 && (
             <div className="space-y-1 animate-enter">
               <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Añadir a inversión</label>
-              <select className="ff-input h-12 text-sm" value={metaSeleccionada}
-                onChange={e => setMetaSeleccionada(e.target.value)}>
+              <select className="ff-input h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
                 <option value="">— Sin asignar —</option>
-                {inversionesData.map(i => (
-                  <option key={i.id} value={`inv_${i.id}`}>
-                    {i.nombre} (Capital: {formatCurrency(i.capital)})
-                  </option>
-                ))}
+                {inversionesData.map(i => <option key={i.id} value={`inv_${i.id}`}>{i.nombre} (Capital: {formatCurrency(i.capital)})</option>)}
               </select>
             </div>
           )}
 
-          {/* Selector de deuda */}
+          {/* Selector deuda */}
           {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
             <div className="space-y-1 animate-enter">
               <label className="text-[10px] font-black uppercase text-stone-400 ml-1">¿Qué deuda pagas?</label>
@@ -396,11 +434,7 @@ export default function GastosPage() {
                   if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: d.cuota?.toString() || '' }))
                 }}>
                 <option value="">— Seleccionar deuda —</option>
-                {deudasData.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.nombre} · Pendiente {formatCurrency(d.pendiente)}
-                  </option>
-                ))}
+                {deudasData.map(d => <option key={d.id} value={d.id}>{d.nombre} · Pendiente {formatCurrency(d.pendiente)}</option>)}
               </select>
             </div>
           )}
@@ -417,8 +451,7 @@ export default function GastosPage() {
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Monto (€)</label>
               <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
-                style={{ color: '#C17A3A' }} value={form.monto}
-                onChange={e => setForm({ ...form, monto: e.target.value })} />
+                style={{ color: '#C17A3A' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Fecha</label>
@@ -427,11 +460,10 @@ export default function GastosPage() {
             </div>
           </div>
 
-          {/* Confirmar */}
           <button type="submit" disabled={saving}
             className="ff-btn-primary w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2"
-            style={{ background: '#C17A3A' }}>
-            {saving ? <Loader2 size={20} className="animate-spin" /> : 'CONFIRMAR'}
+            style={{ background: usandoTarjeta ? '#818CF8' : '#C17A3A' }}>
+            {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
           </button>
         </form>
       </Modal>

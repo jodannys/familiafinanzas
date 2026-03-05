@@ -2,14 +2,13 @@
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { StatCard, Card, ProgressBar } from '@/components/ui/Card'
-import { TrendingUp, TrendingDown, Wallet, Target, Loader2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, Target, Loader2, AlertTriangle, Bell } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 
 const MESES_LABEL = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
-// Colores usando variables CSS para compatibilidad con temas
 const COLORES_CAT = {
   basicos:   'var(--accent-blue)',
   deseo:     'var(--accent-violet, #a78bfa)',
@@ -31,14 +30,21 @@ function generarHistorico(movimientos) {
     return {
       mes: MESES_LABEL[mesNum],
       ingresos: filtrados.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
-      gastos: filtrados.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0),
+      gastos:   filtrados.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0),
     }
   })
+}
+
+function diasHastaPago(diaPago) {
+  if (!diaPago) return null
+  const hoy = new Date().getDate()
+  return diaPago >= hoy ? diaPago - hoy : 30 - hoy + diaPago
 }
 
 export default function Dashboard() {
   const [movs, setMovs] = useState([])
   const [metas, setMetas] = useState([])
+  const [deudas, setDeudas] = useState([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
@@ -46,14 +52,16 @@ export default function Dashboard() {
     setMounted(true)
     async function cargar() {
       try {
-        const [{ data: m }, { data: mt }] = await Promise.all([
+        const [{ data: m }, { data: mt }, { data: d }] = await Promise.all([
           supabase.from('movimientos').select('*').order('fecha', { ascending: false }),
           supabase.from('metas').select('*').order('created_at'),
+          supabase.from('deudas').select('*').eq('estado', 'activa'),
         ])
         setMovs(m || [])
         setMetas(mt || [])
+        setDeudas(d || [])
       } catch (err) {
-        console.error('Error cargando base de datos:', err)
+        console.error('Error cargando:', err)
       } finally {
         setLoading(false)
       }
@@ -89,6 +97,17 @@ export default function Dashboard() {
     color: COLORES_CAT[name] || 'var(--text-muted)',
   }))
 
+  // ── Alertas de deudas ──────────────────────────────────────────────────────
+  const alertasDeuda = deudas
+    .map(d => ({ ...d, dias: diasHastaPago(d.dia_pago) }))
+    .filter(d => d.dias !== null && d.dias <= 7)
+    .sort((a, b) => a.dias - b.dias)
+
+  function urgenciaAlerta(dias) {
+    if (dias <= 3) return { bg: 'rgba(192,96,90,0.08)', border: 'rgba(192,96,90,0.25)', text: '#C0605A', label: dias === 0 ? '¡Hoy!' : `${dias}d` }
+    return           { bg: 'rgba(193,122,58,0.08)', border: 'rgba(193,122,58,0.25)', text: '#C17A3A', label: `${dias}d` }
+  }
+
   if (loading) return (
     <AppShell>
       <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
@@ -100,44 +119,68 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      {/* Header — mobile safe */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5"
-            style={{ color: 'var(--text-muted)' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>
             Resumen Real
           </p>
-          <h1 className="text-lg font-black truncate"
-            style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          <h1 className="text-lg font-black truncate" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
           </h1>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase flex-shrink-0"
-          style={{
-            color: 'var(--accent-green)',
-            background: 'rgba(45,122,95,0.1)',
-            border: '1px solid rgba(45,122,95,0.2)'
-          }}>
+          style={{ color: 'var(--accent-green)', background: 'rgba(45,122,95,0.1)', border: '1px solid rgba(45,122,95,0.2)' }}>
           <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--accent-green)' }} />
           En vivo
         </div>
       </div>
 
-      {/* KPI Cards — 2 cols mobile, 4 desktop */}
+      {/* ── ALERTAS DE DEUDAS ── */}
+      {alertasDeuda.length > 0 && (
+        <div className="mb-6 animate-enter">
+          <div className="flex items-center gap-2 mb-2">
+            <Bell size={12} style={{ color: '#C17A3A' }} />
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#C17A3A' }}>
+              Vencimientos próximos
+            </p>
+          </div>
+          <div className="space-y-2">
+            {alertasDeuda.map(d => {
+              const urg = urgenciaAlerta(d.dias)
+              return (
+                <div key={d.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: urg.bg, border: `1px solid ${urg.border}` }}>
+                  <span className="text-lg flex-shrink-0">{d.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
+                    <p className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                      Día {d.dia_pago} · Cuota {formatCurrency(d.cuota || 0)} · Pendiente {formatCurrency(d.pendiente || 0)}
+                    </p>
+                  </div>
+                  <span className="text-xs font-black flex-shrink-0 px-2 py-1 rounded-lg"
+                    style={{ background: urg.border, color: urg.text }}>
+                    {urg.label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Ingresos"          value={formatCurrency(ingresosMes)}   icon={TrendingUp}   color="var(--accent-green)" />
-        <StatCard label="Gastos"            value={formatCurrency(gastosMes)}     icon={TrendingDown} color="var(--accent-rose)" />
-        <StatCard label="Ahorrado"          value={formatCurrency(totalAhorrado)} icon={Target}       color="var(--accent-terra)" />
-        <StatCard label="Saldo libre"       value={formatCurrency(saldo)}         icon={Wallet}       color="var(--accent-blue)" />
+        <StatCard label="Ingresos"    value={formatCurrency(ingresosMes)}   icon={TrendingUp}   color="var(--accent-green)" />
+        <StatCard label="Gastos"      value={formatCurrency(gastosMes)}     icon={TrendingDown} color="var(--accent-rose)" />
+        <StatCard label="Ahorrado"    value={formatCurrency(totalAhorrado)} icon={Target}       color="var(--accent-terra)" />
+        <StatCard label="Saldo libre" value={formatCurrency(saldo)}         icon={Wallet}       color="var(--accent-blue)" />
       </div>
 
       {/* Gráfico + Distribución */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        {/* Flujo mensual */}
         <Card className="col-span-1 lg:col-span-2 overflow-hidden">
-          <h3 className="font-black text-sm mb-4 truncate" style={{ color: 'var(--text-primary)' }}>
-            Flujo Mensual
-          </h3>
+          <h3 className="font-black text-sm mb-4 truncate" style={{ color: 'var(--text-primary)' }}>Flujo Mensual</h3>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={generarHistorico(movs)} margin={{ left: -20, right: 4, top: 4, bottom: 0 }}>
               <defs>
@@ -150,30 +193,17 @@ export default function Dashboard() {
                   <stop offset="95%" stopColor="#fb7185" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="mes" fontSize={10} axisLine={false} tickLine={false}
-                tick={{ fill: 'var(--text-muted)' }} />
-              <YAxis fontSize={10} axisLine={false} tickLine={false}
-                tick={{ fill: 'var(--text-muted)' }}
-                tickFormatter={v => `€${(v / 1000).toFixed(0)}k`} />
-              <Tooltip
-                contentStyle={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-glass)',
-                  borderRadius: 12,
-                  fontSize: 11,
-                }}
-                formatter={v => formatCurrency(v)}
-              />
+              <XAxis dataKey="mes" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)' }} />
+              <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)' }} tickFormatter={v => `€${(v / 1000).toFixed(0)}k`} />
+              <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 12, fontSize: 11 }} formatter={v => formatCurrency(v)} />
               <Area type="monotone" dataKey="ingresos" stroke="#10b981" strokeWidth={2} fill="url(#gIng)" name="Ingresos" />
               <Area type="monotone" dataKey="gastos"   stroke="#fb7185" strokeWidth={2} fill="url(#gGas)" name="Gastos" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
 
-        {/* Distribución */}
         <Card className="overflow-hidden">
-          <h3 className="font-black text-sm mb-4 uppercase tracking-wide truncate"
-            style={{ color: 'var(--text-primary)' }}>
+          <h3 className="font-black text-sm mb-4 uppercase tracking-wide truncate" style={{ color: 'var(--text-primary)' }}>
             Distribución
           </h3>
           {distribucionReal.length > 0 ? (
@@ -183,13 +213,9 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                      <span className="text-xs capitalize truncate" style={{ color: 'var(--text-secondary)' }}>
-                        {d.name}
-                      </span>
+                      <span className="text-xs capitalize truncate" style={{ color: 'var(--text-secondary)' }}>{d.name}</span>
                     </div>
-                    <span className="text-xs font-black flex-shrink-0 ml-2" style={{ color: 'var(--text-primary)' }}>
-                      {d.value}%
-                    </span>
+                    <span className="text-xs font-black flex-shrink-0 ml-2" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
                   </div>
                   <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--progress-track)' }}>
                     <div className="h-full rounded-full transition-all duration-500"
@@ -199,32 +225,25 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <p className="text-xs italic py-10 text-center" style={{ color: 'var(--text-muted)' }}>
-              Sin gastos este mes
-            </p>
+            <p className="text-xs italic py-10 text-center" style={{ color: 'var(--text-muted)' }}>Sin gastos este mes</p>
           )}
         </Card>
       </div>
 
       {/* Metas */}
       <Card className="overflow-hidden">
-        <h3 className="font-black text-sm mb-4 truncate" style={{ color: 'var(--text-primary)' }}>
-          Progreso de Metas
-        </h3>
+        <h3 className="font-black text-sm mb-4 truncate" style={{ color: 'var(--text-primary)' }}>Progreso de Metas</h3>
         {metas.length > 0 ? (
           <div className="space-y-4">
             {metas.map(m => {
               const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
               return (
                 <div key={m.id}>
-                  {/* Nombre + montos — no se rompen */}
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-xs font-black truncate flex-1"
-                      style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-xs font-black truncate flex-1" style={{ color: 'var(--text-primary)' }}>
                       {getFlagEmoji(m.emoji)} {m.nombre}
                     </span>
-                    <span className="text-[10px] font-bold flex-shrink-0 tabular-nums whitespace-nowrap"
-                      style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-[10px] font-bold flex-shrink-0 tabular-nums whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
                       {formatCurrency(m.actual || 0)} / {formatCurrency(m.meta || 0)}
                     </span>
                   </div>

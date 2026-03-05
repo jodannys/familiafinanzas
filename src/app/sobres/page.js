@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card'
 import {
   Wallet, Plus, Loader2, Trash2,
   AlertTriangle, TrendingUp, Sprout, Search,
-  Calendar, X, ArrowDownRight
+  Calendar, X, ArrowDownRight, CreditCard
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -13,15 +13,16 @@ import { getPresupuestoMes } from '@/lib/presupuesto'
 import Modal from '@/components/ui/Modal'
 
 const ORIGENES = [
-  { value: 'basicos', label: 'Gastos Básicos', color: 'var(--accent-blue)', desc: 'Súper, facturas...' },
-  { value: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)', desc: 'Retrasa tu ahorro' },
-  { value: 'inversiones', label: 'Inversiones', color: '#818CF8', desc: 'Retrasa tu inversión' },
+  { value: 'basicos',     label: 'Gastos Básicos',   color: 'var(--accent-blue)',  desc: 'Súper, facturas...' },
+  { value: 'metas',       label: 'Metas de Ahorro',  color: 'var(--accent-green)', desc: 'Retrasa tu ahorro' },
+  { value: 'inversiones', label: 'Inversiones',      color: '#818CF8',             desc: 'Retrasa tu inversión' },
 ]
 
 export default function SobrePage() {
   const [presupuesto, setPresupuesto] = useState(null)
-  const [sobreMovs, setSobreMovs] = useState([])   // solo traspasos
-  const [movsMes, setMovsMes] = useState([])        // todos los movimientos del mes
+  const [sobreMovs, setSobreMovs] = useState([])
+  const [movsMes, setMovsMes] = useState([])
+  const [tarjetasData, setTarjetasData] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -34,6 +35,7 @@ export default function SobrePage() {
   const [modalSobrante, setModalSobrante] = useState(false)
   const [gastoTemp, setGastoTemp] = useState(null)
   const [form, setForm] = useState({ descripcion: '', monto: '', quien: 'Ambos' })
+  const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [origenTraspaso, setOrigenTraspaso] = useState('basicos')
   const [destinoSobrante, setDestinoSobrante] = useState('metas')
   const [montoSobrante, setMontoSobrante] = useState('')
@@ -43,24 +45,19 @@ export default function SobrePage() {
   async function cargarTodo() {
     setLoading(true)
     const fechaInicio = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-01`
-    const fechaFin = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-31`
+    const fechaFin   = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-31`
 
     try {
-      const [pres, { data: sobre }, { data: movs }] = await Promise.all([
+      const [pres, { data: sobre }, { data: movs }, { data: tarjetas }] = await Promise.all([
         getPresupuestoMes(),
-        supabase.from('sobre_movimientos')
-          .select('*')
-          .eq('mes', filtroMes)
-          .eq('año', filtroAño)
-          .order('created_at', { ascending: false }),
-        supabase.from('movimientos')
-          .select('*')
-          .gte('fecha', fechaInicio)
-          .lte('fecha', fechaFin),
+        supabase.from('sobre_movimientos').select('*').eq('mes', filtroMes).eq('año', filtroAño).order('created_at', { ascending: false }),
+        supabase.from('movimientos').select('*').gte('fecha', fechaInicio).lte('fecha', fechaFin),
+        supabase.from('deudas').select('id, nombre, emoji, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa'),
       ])
       setPresupuesto(pres)
       setSobreMovs(sobre || [])
       setMovsMes(movs || [])
+      setTarjetasData(tarjetas || [])
     } catch (error) {
       console.error('Error al cargar:', error)
     } finally {
@@ -69,76 +66,80 @@ export default function SobrePage() {
   }
 
   // ── CÁLCULOS DE SALDO ──────────────────────────────────────────────────────
-
-  // Sobre Diario: lee gastos de categoría "deseo" en movimientos
   const montoEstilo = presupuesto?.montoEstilo || 0
-  const gastadoSobre = movsMes
-    .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
-    .reduce((s, m) => s + m.monto, 0)
-
-  // Los traspasos de otras cubetas al sobre aumentan el disponible
-  const traspasosAlSobre = sobreMovs
-    .filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen))
-    .reduce((s, m) => s + m.monto, 0)
-
+  const gastadoSobre = movsMes.filter(m => m.tipo === 'egreso' && m.categoria === 'deseo').reduce((s, m) => s + m.monto, 0)
+  const traspasosAlSobre = sobreMovs.filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen)).reduce((s, m) => s + m.monto, 0)
   const saldoSobre = montoEstilo - gastadoSobre + traspasosAlSobre
 
-  // Básicos: egresos de categoría basicos/deuda
   const montoBasicos = presupuesto?.montoNecesidades || 0
-  const gastadoBasicos = movsMes
-    .filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria))
-    .reduce((s, m) => s + m.monto, 0)
-
-  const traspasosBasicos = sobreMovs
-    .filter(m => m.origen === 'basicos')
-    .reduce((s, m) => s + m.monto, 0)
-
+  const gastadoBasicos = movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + m.monto, 0)
+  const traspasosBasicos = sobreMovs.filter(m => m.origen === 'basicos').reduce((s, m) => s + m.monto, 0)
   const saldoBasicos = montoBasicos - gastadoBasicos - traspasosBasicos
 
-  // Metas e Inversiones: usan sobre_movimientos para traspasos
-  const traspasosMetas = sobreMovs
-    .filter(m => m.origen === 'metas' && m.monto > 0)
-    .reduce((s, m) => s + m.monto, 0)
+  const traspasosMetas = sobreMovs.filter(m => m.origen === 'metas' && m.monto > 0).reduce((s, m) => s + m.monto, 0)
   const saldoMetas = (presupuesto?.montoMetas || 0) - traspasosMetas
 
-  const traspasosInv = sobreMovs
-    .filter(m => m.origen === 'inversiones' && m.monto > 0)
-    .reduce((s, m) => s + m.monto, 0)
+  const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones' && m.monto > 0).reduce((s, m) => s + m.monto, 0)
   const saldoInversiones = (presupuesto?.montoInversiones || 0) - traspasosInv
 
   function getSaldo(origen) {
-    if (origen === 'basicos') return saldoBasicos
-    if (origen === 'metas') return saldoMetas
+    if (origen === 'basicos')     return saldoBasicos
+    if (origen === 'metas')       return saldoMetas
     if (origen === 'inversiones') return saldoInversiones
     return 0
   }
 
   // ── HANDLERS ───────────────────────────────────────────────────────────────
 
+  function resetModal() {
+    setModal(false)
+    setTarjetaSeleccionada('')
+    setForm({ descripcion: '', monto: '', quien: 'Ambos' })
+  }
+
   async function handleGasto(e) {
     e.preventDefault()
     const monto = parseFloat(form.monto)
     if (!monto || !form.descripcion) return
 
-    if (saldoSobre >= monto) {
-      // Guardar directamente en movimientos como egreso deseo
+    // ── PAGO CON TARJETA: va a deuda_movimientos, no afecta el sobre ─────────
+    if (tarjetaSeleccionada) {
       setSaving(true)
-      const { error } = await supabase.from('movimientos').insert([{
-        tipo: 'egreso',
-        categoria: 'deseo',
+      const now = new Date()
+      const { error } = await supabase.from('deuda_movimientos').insert([{
+        deuda_id: tarjetaSeleccionada,
+        tipo: 'cargo',
         descripcion: form.descripcion,
         monto,
-        fecha: new Date().toISOString().slice(0, 10),
-        quien: form.quien,
+        fecha: now.toISOString().slice(0, 10),
+        mes: filtroMes,
+        año: filtroAño,
       }])
       if (!error) {
-        setModal(false)
-        setForm({ descripcion: '', monto: '', quien: 'Ambos' })
+        // Aumentar el pendiente de la tarjeta
+        const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
+        if (tarjeta) {
+          await supabase.from('deudas').update({ pendiente: (tarjeta.pendiente || 0) + monto }).eq('id', tarjetaSeleccionada)
+        }
+        resetModal()
         cargarTodo()
       }
       setSaving(false)
+      return
+    }
+
+    // ── GASTO DIRECTO: lógica original ───────────────────────────────────────
+    if (saldoSobre >= monto) {
+      setSaving(true)
+      const { error } = await supabase.from('movimientos').insert([{
+        tipo: 'egreso', categoria: 'deseo',
+        descripcion: form.descripcion, monto,
+        fecha: new Date().toISOString().slice(0, 10),
+        quien: form.quien,
+      }])
+      if (!error) { resetModal(); cargarTodo() }
+      setSaving(false)
     } else {
-      // Sobre insuficiente → pedir traspaso
       setGastoTemp({ descripcion: form.descripcion, monto, quien: form.quien })
       setModal(false)
       setModalTraspaso(true)
@@ -148,36 +149,24 @@ export default function SobrePage() {
   async function confirmarTraspaso() {
     if (!gastoTemp) return
     const saldoOrigen = getSaldo(origenTraspaso)
-    if (saldoOrigen < gastoTemp.monto) {
-      alert('No hay saldo suficiente en el origen seleccionado')
-      return
-    }
+    if (saldoOrigen < gastoTemp.monto) { alert('No hay saldo suficiente en el origen seleccionado'); return }
     setSaving(true)
-
-    // 1. Gasto real en movimientos (categoría deseo)
     await supabase.from('movimientos').insert([{
-      tipo: 'egreso',
-      categoria: 'deseo',
-      descripcion: gastoTemp.descripcion,
-      monto: gastoTemp.monto,
-      fecha: new Date().toISOString().slice(0, 10),
-      quien: gastoTemp.quien || 'Ambos',
+      tipo: 'egreso', categoria: 'deseo',
+      descripcion: gastoTemp.descripcion, monto: gastoTemp.monto,
+      fecha: new Date().toISOString().slice(0, 10), quien: gastoTemp.quien || 'Ambos',
     }])
-
-    // 2. Traspaso en sobre_movimientos para ajustar el saldo del origen
     await supabase.from('sobre_movimientos').insert([{
       descripcion: `Traspaso desde ${origenTraspaso} → Sobre`,
-      monto: gastoTemp.monto,
-      origen: origenTraspaso,
-      mes: filtroMes,
-      año: filtroAño,
+      monto: gastoTemp.monto, origen: origenTraspaso,
+      mes: filtroMes, año: filtroAño,
       fecha: new Date().toISOString().slice(0, 10),
     }])
-
     setSaving(false)
     setModalTraspaso(false)
     setGastoTemp(null)
     setForm({ descripcion: '', monto: '', quien: 'Ambos' })
+    setTarjetaSeleccionada('')
     cargarTodo()
   }
 
@@ -185,27 +174,17 @@ export default function SobrePage() {
     const monto = parseFloat(montoSobrante)
     if (!monto || monto > saldoSobre) return
     setSaving(true)
-
-    // Registrar traspaso en sobre_movimientos
     await supabase.from('sobre_movimientos').insert([{
       descripcion: `Sobrante → ${destinoSobrante}`,
-      monto,
-      origen: destinoSobrante,
-      mes: filtroMes,
-      año: filtroAño,
+      monto, origen: destinoSobrante,
+      mes: filtroMes, año: filtroAño,
       fecha: new Date().toISOString().slice(0, 10),
     }])
-
-    // Registrar el gasto en movimientos para que reste del sobre
     await supabase.from('movimientos').insert([{
-      tipo: 'egreso',
-      categoria: 'deseo',
+      tipo: 'egreso', categoria: 'deseo',
       descripcion: `Sobrante enviado a ${destinoSobrante}`,
-      monto,
-      fecha: new Date().toISOString().slice(0, 10),
-      quien: 'Ambos',
+      monto, fecha: new Date().toISOString().slice(0, 10), quien: 'Ambos',
     }])
-
     setSaving(false)
     setModalSobrante(false)
     setMontoSobrante('')
@@ -223,11 +202,8 @@ export default function SobrePage() {
   }
 
   // ── LISTA UNIFICADA ────────────────────────────────────────────────────────
-  // Gastos del sobre (movimientos deseo) + traspasos (sobre_movimientos)
   const movsFiltrados = [
-    ...movsMes
-      .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
-      .map(m => ({ ...m, _fuente: 'mov', _label: 'Sobre' })),
+    ...movsMes.filter(m => m.tipo === 'egreso' && m.categoria === 'deseo').map(m => ({ ...m, _fuente: 'mov', _label: 'Sobre' })),
     ...sobreMovs.map(m => ({ ...m, _fuente: 'sobre', _label: `Traspaso · ${m.origen}` })),
   ]
     .filter(m => m.descripcion?.toLowerCase().includes(busqueda.toLowerCase()))
@@ -240,6 +216,8 @@ export default function SobrePage() {
       ? 'var(--accent-terra)'
       : 'var(--accent-green)'
 
+  const usandoTarjeta = !!tarjetaSeleccionada
+
   return (
     <AppShell>
       {/* HEADER */}
@@ -251,7 +229,7 @@ export default function SobrePage() {
             <Calendar size={11} />
             <select value={filtroMes} onChange={e => setFiltroMes(Number(e.target.value))}
               className="bg-transparent outline-none cursor-pointer hover:text-stone-600">
-              {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((m, i) => (
+              {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].map((m, i) => (
                 <option key={m} value={i + 1}>{m}</option>
               ))}
             </select>
@@ -262,7 +240,6 @@ export default function SobrePage() {
             </select>
           </div>
         </div>
-
         <button onClick={() => setModal(true)}
           className="ff-btn-primary flex items-center justify-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />
@@ -274,7 +251,6 @@ export default function SobrePage() {
       {loading ? (
         <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
           <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent-green)' }} />
-          <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Cargando...</p>
         </div>
       ) : (
         <>
@@ -286,23 +262,19 @@ export default function SobrePage() {
             <h2 className="text-4xl font-black mb-4 tracking-tighter" style={{ color: '#C17A3A' }}>
               {formatCurrency(Math.max(0, saldoSobre))}
             </h2>
-
             <div className="w-full h-2.5 rounded-full mb-2" style={{ background: 'var(--progress-track)' }}>
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${pctUsado}%`, background: sobreColor }} />
+              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pctUsado}%`, background: sobreColor }} />
             </div>
             <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-3">
               <span style={{ color: 'var(--text-muted)' }}>Gastado: {formatCurrency(gastadoSobre)}</span>
               <span style={{ color: 'var(--text-muted)' }}>Límite: {formatCurrency(montoEstilo)}</span>
             </div>
-
             {saldoSobre <= 0 && (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-100">
                 <AlertTriangle size={14} className="text-rose-500 flex-shrink-0" />
                 <p className="text-[10px] font-bold text-rose-600">¡Sobre vacío! Usando dinero de otras categorías.</p>
               </div>
             )}
-
             {saldoSobre > 0 && filtroMes === (new Date().getMonth() + 1) && (
               <button onClick={() => setModalSobrante(true)}
                 className="mt-3 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-dashed transition-all hover:bg-stone-50"
@@ -313,11 +285,11 @@ export default function SobrePage() {
             )}
           </Card>
 
-          {/* CUBETAS SECUNDARIAS */}
+          {/* CUBETAS */}
           <div className="grid grid-cols-3 gap-2 mb-6">
             {[
-              { label: 'Básicos', saldo: saldoBasicos, color: 'var(--accent-blue)' },
-              { label: 'Metas', saldo: saldoMetas, color: 'var(--accent-green)' },
+              { label: 'Básicos',   saldo: saldoBasicos,    color: 'var(--accent-blue)' },
+              { label: 'Metas',     saldo: saldoMetas,      color: 'var(--accent-green)' },
               { label: 'Inversión', saldo: saldoInversiones, color: '#818CF8' },
             ].map((box, i) => (
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.08}s` }}>
@@ -336,8 +308,7 @@ export default function SobrePage() {
               placeholder="Buscar en este sobre..."
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
             {busqueda && (
-              <button onClick={() => setBusqueda('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400">
+              <button onClick={() => setBusqueda('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400">
                 <X size={15} />
               </button>
             )}
@@ -351,7 +322,7 @@ export default function SobrePage() {
               </div>
             ) : (
               <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
-                {movsFiltrados.map((m, i) => (
+                {movsFiltrados.map((m) => (
                   <div key={`${m._fuente}-${m.id}`}
                     className="flex items-center gap-3 px-3 py-3.5 hover:bg-stone-50 transition-colors group overflow-hidden">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -360,9 +331,8 @@ export default function SobrePage() {
                         ? <ArrowDownRight size={15} style={{ color: '#C17A3A' }} />
                         : <TrendingUp size={15} style={{ color: '#818CF8' }} />}
                     </div>
-
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-stone-800 truncate leading-tight" style={{ maxWidth: '100%' }}>{m.descripcion}</p>
+                      <p className="text-sm font-bold text-stone-800 truncate leading-tight">{m.descripcion}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded"
                           style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
@@ -376,9 +346,6 @@ export default function SobrePage() {
                         )}
                       </div>
                     </div>
-
-
-
                     <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto pl-2">
                       <p className="text-sm font-black tabular-nums whitespace-nowrap" style={{ color: '#C17A3A' }}>
                         -{formatCurrency(Math.abs(m.monto))}
@@ -398,8 +365,31 @@ export default function SobrePage() {
       )}
 
       {/* MODAL: REGISTRAR GASTO */}
-      <Modal open={modal} onClose={() => setModal(false)} title="Registrar Gasto del Sobre">
+      <Modal open={modal} onClose={resetModal} title="Registrar Gasto del Sobre">
         <form onSubmit={handleGasto} className="space-y-4">
+
+          {/* ── TARJETA DE CRÉDITO ── */}
+          {tarjetasData.length > 0 && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-stone-400 ml-1 flex items-center gap-1.5">
+                <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
+              </label>
+              <select className="ff-input h-12 text-sm" value={tarjetaSeleccionada}
+                onChange={e => setTarjetaSeleccionada(e.target.value)}>
+                <option value="">— No, pago directo —</option>
+                {tarjetasData.map(t => (
+                  <option key={t.id} value={t.id}>{t.emoji} {t.nombre}</option>
+                ))}
+              </select>
+              {usandoTarjeta && (
+                <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                  style={{ background: 'rgba(129,140,248,0.08)', color: '#818CF8', border: '1px solid rgba(129,140,248,0.2)' }}>
+                  💳 Este gasto NO restará del sobre. Se acumula en la tarjeta.
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="ff-label">Descripción</label>
             <input className="ff-input" placeholder="¿En qué gastaste?" required
@@ -410,20 +400,24 @@ export default function SobrePage() {
             <input className="ff-input text-xl font-black" type="number" step="0.01" placeholder="0.00" required
               value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
           </div>
-          <div>
-            <label className="ff-label">¿Quién?</label>
-            <select className="ff-input h-12 text-sm" value={form.quien}
-              onChange={e => setForm({ ...form, quien: e.target.value })}>
-              <option value="Jodannys">Jodannys</option>
-              <option value="Rolando">Rolando</option>
-              <option value="Ambos">Ambos</option>
-            </select>
-          </div>
+          {!usandoTarjeta && (
+            <div>
+              <label className="ff-label">¿Quién?</label>
+              <select className="ff-input h-12 text-sm" value={form.quien}
+                onChange={e => setForm({ ...form, quien: e.target.value })}>
+                <option value="Jodannys">Jodannys</option>
+                <option value="Rolando">Rolando</option>
+                <option value="Ambos">Ambos</option>
+              </select>
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setModal(false)} className="ff-btn-ghost flex-1">Cancelar</button>
-            <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+            <button type="button" onClick={resetModal} className="ff-btn-ghost flex-1">Cancelar</button>
+            <button type="submit" disabled={saving}
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
+              style={{ background: usandoTarjeta ? '#818CF8' : undefined }}>
               {saving && <Loader2 size={14} className="animate-spin" />}
-              {saldoSobre < parseFloat(form.monto || 0) ? 'Elegir Origen →' : 'Confirmar'}
+              {usandoTarjeta ? '💳 Cargar a tarjeta' : saldoSobre < parseFloat(form.monto || 0) ? 'Elegir Origen →' : 'Confirmar'}
             </button>
           </div>
         </form>
@@ -450,9 +444,7 @@ export default function SobrePage() {
                   <p className="text-xs font-black uppercase" style={{ color: o.color }}>{o.label}</p>
                   <p className="text-[10px] text-stone-400">Disponible: {formatCurrency(getSaldo(o.value))}</p>
                 </div>
-                {origenTraspaso === o.value && (
-                  <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} />
-                )}
+                {origenTraspaso === o.value && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} />}
               </button>
             ))}
           </div>
@@ -478,8 +470,7 @@ export default function SobrePage() {
           <div>
             <label className="ff-label">Monto a mover</label>
             <input className="ff-input text-xl font-bold" type="number" step="0.01" max={saldoSobre}
-              placeholder="0.00" value={montoSobrante}
-              onChange={e => setMontoSobrante(e.target.value)} />
+              placeholder="0.00" value={montoSobrante} onChange={e => setMontoSobrante(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             {['metas', 'inversiones'].map(dest => (
