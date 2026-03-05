@@ -427,9 +427,12 @@ export default function DeudasPage() {
       )}
 
       {/* MODAL: Nueva / Editar */}
+      {/* MODAL: Nueva / Editar */}
       <Modal open={modalDeuda} onClose={() => { setModalDeuda(false); setEditandoId(null); setFormDeuda(FORM_VACIO) }}
         title={editandoId ? 'Editar Deuda' : 'Nueva Deuda'}>
         <form onSubmit={handleSaveDeuda} className="space-y-4">
+          
+          {/* 1. SELECCIÓN DE TIPO */}
           <div className="grid grid-cols-3 gap-2">
             {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
               <button type="button" key={key}
@@ -445,11 +448,11 @@ export default function DeudasPage() {
             ))}
           </div>
 
-          {/* Selector de Tarjetas Guardadas (Solo si es tipo tarjeta y hay tarjetas creadas en perfil) */}
+          {/* 2. SELECTOR DE TARJETAS (Solo si es tarjeta y estamos creando) */}
           {formDeuda.tipo_deuda === 'tarjeta' && misTarjetas.length > 0 && !editandoId && (
-            <div className="animate-enter">
-              <label className="ff-label text-indigo-500">¿Usar una de tus tarjetas guardadas?</label>
-              <div className="flex gap-2 overflow-x-auto pb-2 mt-1 no-scrollbar">
+            <div className="animate-enter p-3 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/30">
+              <label className="text-[10px] font-black uppercase text-indigo-500 mb-2 block">¿Usar una tarjeta guardada?</label>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                 {misTarjetas.map(t => (
                   <button
                     key={t.id}
@@ -466,6 +469,7 @@ export default function DeudasPage() {
             </div>
           )}
 
+          {/* 3. NOMBRE Y EMOJI (SIEMPRE VISIBLES) */}
           <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="ff-label">Emoji</label>
@@ -473,12 +477,13 @@ export default function DeudasPage() {
                 onChange={e => setFormDeuda(prev => ({ ...prev, emoji: e.target.value }))} />
             </div>
             <div className="col-span-3">
-              <label className="ff-label">Nombre</label>
-              <input className="ff-input" placeholder="Ej: Visa Banco X..." required
+              <label className="ff-label">Nombre de la Deuda</label>
+              <input className="ff-input" placeholder="Ej: Compra Amazon..." required
                 value={formDeuda.nombre} onChange={e => setFormDeuda(prev => ({ ...prev, nombre: e.target.value }))} />
             </div>
           </div>
 
+          {/* 4. CATEGORÍA (SIEMPRE VISIBLE) */}
           <div className="grid grid-cols-2 gap-2">
             {[{ v: 'deseo', l: 'Gastos Deseo' }, { v: 'basicos', l: 'Gastos Básicos' }].map(c => (
               <button type="button" key={c.v}
@@ -494,6 +499,7 @@ export default function DeudasPage() {
             ))}
           </div>
 
+          {/* 5. IMPORTES DINÁMICOS */}
           <div className="grid grid-cols-2 gap-3">
             {formDeuda.tipo_deuda === 'tarjeta' ? (
               <div className="col-span-2">
@@ -518,6 +524,7 @@ export default function DeudasPage() {
             )}
           </div>
 
+          {/* 6. PLAZOS (Solo para préstamo/cuota) */}
           {formDeuda.tipo_deuda !== 'tarjeta' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -533,6 +540,7 @@ export default function DeudasPage() {
             </div>
           )}
 
+          {/* 7. DÍAS DE PAGO/CORTE */}
           <div className="grid grid-cols-2 gap-3">
             {formDeuda.tipo_deuda === 'tarjeta' && (
               <div>
@@ -548,6 +556,7 @@ export default function DeudasPage() {
             </div>
           </div>
 
+          {/* BOTONES ACCIÓN */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => { setModalDeuda(false); setEditandoId(null); setFormDeuda(FORM_VACIO) }}
               className="ff-btn-ghost flex-1">Cancelar</button>
