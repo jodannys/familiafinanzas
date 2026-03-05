@@ -66,7 +66,7 @@ export default function GastosPage() {
     supabase.from('deudas').select('id, nombre, pendiente, cuota, tipo_deuda').eq('estado', 'activa')
       .then(({ data }) => setDeudasData(data || []))
     // CAMBIO 1: cargar desde perfiles_tarjetas, no desde deudas
-    supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, color').eq('estado', 'activa')
+    supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, color, dia_corte, dia_pago, limite_credito').eq('estado', 'activa')
       .then(({ data }) => setTarjetasData(data || []))
   }, [])
 
@@ -628,27 +628,29 @@ export default function GastosPage() {
             </div>
           )}
 
-          {/* Descripción */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Descripción</label>
-            <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
-              value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
-          </div>
-
-          {/* Monto + Fecha */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Monto (€)</label>
-              <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
-                style={{ color: '#C17A3A' }} value={form.monto}
-                onChange={e => setForm({ ...form, monto: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Fecha</label>
-              <input className="ff-input h-12 text-sm font-medium" type="date" required
-                value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
-            </div>
-          </div>
+          {/* Descripción / Monto / Fecha — solo si NO usa tarjeta */}
+          {!usandoTarjeta && (
+            <>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Descripción</label>
+                <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
+                  value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Monto (€)</label>
+                  <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
+                    style={{ color: '#C17A3A' }} value={form.monto}
+                    onChange={e => setForm({ ...form, monto: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-stone-400 ml-1">Fecha</label>
+                  <input className="ff-input h-12 text-sm font-medium" type="date" required
+                    value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
+                </div>
+              </div>
+            </>
+          )}
 
           <button type="submit" disabled={saving}
             className="ff-btn-primary w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2"
