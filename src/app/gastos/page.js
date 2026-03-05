@@ -217,7 +217,7 @@ export default function GastosPage() {
           await supabase.from('deuda_movimientos').insert([{
             deuda_id: deudaSeleccionada,
             tipo: 'pago',
-            descripcion: form.descripcion || `Pago ${deuda.nombre}`,
+            descripcion: form.descripcion || `Cuota ${deuda.nombre}`,
             monto,
             fecha: form.fecha,
             mes, año,
@@ -304,7 +304,7 @@ export default function GastosPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Módulo</p>
-            <h1 className="text-xl font-black text-stone-800 tracking-tight leading-tight">Ingresos & Egresos</h1>
+            <h1 className="text-xl font-black text-stone-800 tracking-tight leading-tight">Registro</h1>
           </div>
           <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2">
             <Plus size={18} strokeWidth={3} />
@@ -600,7 +600,7 @@ export default function GastosPage() {
                     const montoSugerido = d.cuota > 0 ? d.cuota : d.pendiente
                     setForm(prev => ({
                       ...prev,
-                      descripcion: `Pago ${d.nombre}`,
+                      descripcion: `Cuota ${d.nombre}`,
                       monto: montoSugerido?.toString() || '',
                     }))
                   }
