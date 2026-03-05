@@ -39,12 +39,18 @@ export default function GastosPage() {
     tipo: 'egreso', monto: '', descripcion: '',
     categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys'
   })
+  const [deudasData, setDeudasData] = useState([])
+  const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
+
+
 
   useEffect(() => {
     cargarMovimientos()
     cargarPresupuesto()
     supabase.from('metas').select('id, nombre, meta, actual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital').then(({ data }) => setInversionesData(data || []))
+    supabase.from('deudas').select('id, nombre, pendiente, cuota').eq('estado', 'activa')
+      .then(({ data }) => setDeudasData(data || []))
   }, [])
 
   async function cargarMovimientos() {
@@ -108,6 +114,16 @@ export default function GastosPage() {
           setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i))
         }
         setMetaSeleccionada('')
+      }
+      if (form.categoria === 'deuda' && deudaSeleccionada) {
+        const deuda = deudasData.find(d => d.id === deudaSeleccionada)
+        if (deuda) {
+          const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
+          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+          await supabase.from('deudas').update({ pendiente: nuevoPendiente, estado: nuevoEstado }).eq('id', deudaSeleccionada)
+          setDeudasData(prev => prev.map(d => d.id === deudaSeleccionada ? { ...d, pendiente: nuevoPendiente } : d))
+        }
+        setDeudaSeleccionada('')
       }
       setModal(false)
       setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys' })
@@ -357,6 +373,26 @@ export default function GastosPage() {
                 <option value="">— Sin asignar —</option>
                 {inversionesData.map(i => (
                   <option key={i.id} value={`inv_${i.id}`}>{i.nombre} (Capital: {formatCurrency(i.capital)})</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+
+          {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-stone-400 ml-1">¿Qué deuda pagas?</label>
+              <select className="ff-input h-12 text-sm" value={deudaSeleccionada}
+                onChange={e => {
+                  setDeudaSeleccionada(e.target.value)
+                  const d = deudasData.find(d => d.id === e.target.value)
+                  if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: d.cuota?.toString() || '' }))
+                }}>
+                <option value="">— Seleccionar deuda —</option>
+                {deudasData.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.nombre} · Pendiente {formatCurrency(d.pendiente)}
+                  </option>
                 ))}
               </select>
             </div>
