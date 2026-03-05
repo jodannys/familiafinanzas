@@ -16,6 +16,7 @@ const NAV = [
   { href: '/inversiones', label: 'Inversiones', icon: TrendingUp, color: '#2D7A5F' },
   { href: '/deudas', label: 'Deudas', icon: CreditCard, color: '#C0605A' },
   { href: '/reportes', label: 'Reportes', icon: BarChart3, color: '#4A6FA5' },
+  { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard, color: '#38bdf8' },
 ]
 
 export default function Sidebar({ onClose }) {
