@@ -59,9 +59,11 @@ const FORM_TARJETA = {
   emoji: '💳',
   nombre: '',
   categoria: 'deseo',
+  tarjeta_id: '',
   limite: '',
   monto_compra: '',
   num_cuotas: '',
+  fecha_operacion: new Date().toISOString().slice(0, 10),
   color: '#818CF8',
 }
 
@@ -85,6 +87,7 @@ const FORM_CUOTA = {
   emoji: '📅',
   nombre: '',
   categoria: 'deseo',
+  deuda_origen_id: '',   // deuda de la que viene esta cuota
   monto: '',
   dia_pago: '',
   color: '#C17A3A',
@@ -177,9 +180,11 @@ export default function DeudasPage() {
         emoji: d.emoji || '💳',
         nombre: d.nombre || '',
         categoria: d.categoria || 'deseo',
+        tarjeta_id: '',
         limite: d.limite?.toString() || '',
         monto_compra: d.capital?.toString() || '',
         num_cuotas: d.plazo_meses?.toString() || '',
+        fecha_operacion: new Date().toISOString().slice(0, 10),
         color: d.color || '#818CF8',
       })
     } else if (d.tipo_deuda === 'prestamo') {
@@ -218,8 +223,10 @@ export default function DeudasPage() {
     if (!t) return
     setFormTarjeta(prev => ({
       ...prev,
+      tarjeta_id: t.id,
       limite: t.limite_credito?.toString() || '',
       color: t.color || '#818CF8',
+      dia_pago: t.dia_pago?.toString() || prev.dia_pago || '',
     }))
   }
 
@@ -690,8 +697,10 @@ export default function DeudasPage() {
                       onClick={() => handleSeleccionarTarjetaPerfil(t.id)}
                       className="flex-shrink-0 px-3 py-2 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 bg-white hover:shadow-sm"
                       style={{
-                        borderColor: `${t.color}40`,
+                        borderColor: formTarjeta.tarjeta_id === t.id ? t.color : `${t.color}40`,
                         color: t.color,
+                        background: formTarjeta.tarjeta_id === t.id ? `${t.color}12` : 'white',
+                        boxShadow: formTarjeta.tarjeta_id === t.id ? `0 0 0 2px ${t.color}30` : '',
                       }}>
                       <CreditCard size={12} />
                       {t.nombre_tarjeta}
@@ -759,6 +768,14 @@ export default function DeudasPage() {
                 </span>
               </div>
             )}
+
+            {/* Fecha de la compra */}
+            <div>
+              <label className="ff-label">Fecha de la compra</label>
+              <input className="ff-input" type="date" required
+                value={formTarjeta.fecha_operacion}
+                onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
+            </div>
 
             <FormFooter saving={saving} editandoId={editandoId}
               onCancel={() => { setModalDeuda(false); setEditandoId(null) }} />
@@ -908,9 +925,45 @@ export default function DeudasPage() {
             {/* Info contextual */}
             <div className="px-3 py-2.5 rounded-xl text-[10px] leading-relaxed"
               style={{ background: 'rgba(193,122,58,0.08)', color: '#C17A3A', border: '1px solid rgba(193,122,58,0.2)' }}>
-              <strong>Cuota mensual:</strong> registra un pago recurrente que vence este mes.
-              Usa "Marcar como pagada" para descontarlo de tu saldo automáticamente.
+              <strong>Cuota mensual:</strong> selecciona una deuda existente para crear su cuota mensual,
+              o rellena manualmente si es un pago recurrente nuevo.
             </div>
+
+            {/* Selector de deuda existente */}
+            {deudas.filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada').length > 0 && (
+              <div>
+                <label className="ff-label">Traer cuota de una deuda existente (opcional)</label>
+                <select className="ff-input"
+                  value={formCuota.deuda_origen_id}
+                  onChange={e => {
+                    const id = e.target.value
+                    const d = deudas.find(x => x.id === id)
+                    if (d) {
+                      setFormCuota(p => ({
+                        ...p,
+                        deuda_origen_id: id,
+                        nombre: `Cuota ${d.nombre}`,
+                        emoji: d.emoji || '📅',
+                        monto: d.cuota?.toString() || d.pendiente?.toString() || '',
+                        dia_pago: d.dia_pago?.toString() || '',
+                        color: d.color || '#C17A3A',
+                        categoria: d.categoria || 'deseo',
+                      }))
+                    } else {
+                      setFormCuota(p => ({ ...p, deuda_origen_id: '' }))
+                    }
+                  }}>
+                  <option value="">— Rellenar manualmente —</option>
+                  {deudas
+                    .filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada')
+                    .map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.emoji} {d.nombre} · {d.cuota > 0 ? `${formatCurrency(d.cuota)}/mes` : `Pendiente ${formatCurrency(d.pendiente)}`}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
 
             {/* Emoji + Nombre */}
             <div className="grid grid-cols-4 gap-3">
