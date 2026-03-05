@@ -154,29 +154,54 @@ export default function DeudasPage() {
     if (!modalMov) return
     setSaving(true)
     const monto = parseFloat(formMov.monto)
+    const deuda = deudas.find(d => d.id === modalMov)
+
     const { data, error } = await supabase.from('deuda_movimientos').insert([{
       deuda_id: modalMov, tipo: formMov.tipo,
       descripcion: formMov.descripcion, monto,
       fecha: formMov.fecha, mes, año,
     }]).select()
 
-    if (!error) {
+    if (!error && deuda) {
       setMovimientos(prev => ({ ...prev, [modalMov]: [data[0], ...(prev[modalMov] || [])] }))
+      
+      let nuevoPendiente = deuda.pendiente || 0
+      let nuevoMontoTotal = deuda.monto || 0
+      let nuevosPagados = deuda.pagadas || 0
+
       if (formMov.tipo === 'pago') {
-        const deuda = deudas.find(d => d.id === modalMov)
+        // Lógica de PAGO: Resta deuda y registra en historial principal
+        nuevoPendiente = Math.max(0, nuevoPendiente - monto)
+        nuevosPagados = nuevosPagados + 1
+        
         await supabase.from('movimientos').insert([{
           tipo: 'egreso', categoria: 'deuda',
-          descripcion: `Pago ${deuda?.nombre || 'deuda'}`,
+          descripcion: `Pago letra: ${deuda.nombre}`,
           monto, fecha: formMov.fecha, quien: 'Ambos',
         }])
-        if (deuda) {
-          const nuevosPagados  = (deuda.pagadas || 0) + 1
-          const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
-          const nuevoEstado    = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-          await supabase.from('deudas').update({ pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado }).eq('id', modalMov)
-          setDeudas(prev => prev.map(d => d.id === modalMov ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
-        }
+      } else {
+        // Lógica de CARGO: Suma deuda y aumenta el precio total de compra
+        nuevoPendiente = nuevoPendiente + monto
+        nuevoMontoTotal = nuevoMontoTotal + monto
       }
+
+      const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+      
+      await supabase.from('deudas').update({ 
+        pendiente: nuevoPendiente, 
+        monto: nuevoMontoTotal, 
+        pagadas: nuevosPagados, 
+        estado: nuevoEstado 
+      }).eq('id', modalMov)
+
+      setDeudas(prev => prev.map(d => d.id === modalMov ? { 
+        ...d, 
+        pendiente: nuevoPendiente, 
+        monto: nuevoMontoTotal, 
+        pagadas: nuevosPagados, 
+        estado: nuevoEstado 
+      } : d))
+
       setModalMov(null)
       setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
     }
@@ -199,6 +224,7 @@ export default function DeudasPage() {
   async function handleDeleteMov(id, deudaId) {
     await supabase.from('deuda_movimientos').delete().eq('id', id)
     setMovimientos(prev => ({ ...prev, [deudaId]: prev[deudaId].filter(m => m.id !== id) }))
+    // Nota: Aquí se podría re-calcular el saldo, pero por simplicidad actual dejamos que el usuario lo ajuste con un movimiento correctivo o editando.
   }
 
   const totalDeuda    = deudas.filter(d => d.estado !== 'pagada').reduce((s, d) => s + (d.pendiente || 0), 0)
@@ -235,7 +261,7 @@ export default function DeudasPage() {
       <div className="grid grid-cols-3 gap-2 mb-6">
         {[
           { label: 'Deuda total',   value: formatCurrency(totalDeuda),  color: '#C0605A' },
-          { label: 'Cuotas/mes',    value: formatCurrency(cuotasMes),   color: 'var(--accent-terra)' },
+          { label: 'Letras de este mes',    value: formatCurrency(cuotasMes),   color: 'var(--accent-terra)' },
           { label: 'Vencen pronto', value: vencenProximo > 0 ? `${vencenProximo} deuda${vencenProximo > 1 ? 's' : ''}` : 'Al día ✓', color: vencenProximo > 0 ? '#C0605A' : 'var(--accent-green)' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -270,7 +296,6 @@ export default function DeudasPage() {
                 style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px' }}
                 onClick={() => setCardActiva(isActiva ? null : d.id)}>
 
-                {/* Fila 1 */}
                 <div className="flex items-center gap-2.5 mb-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                     style={{ background: `${d.color || cfg.color}18` }}>
@@ -289,10 +314,6 @@ export default function DeudasPage() {
                         <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
                           style={{ background: urgencia.bg, color: urgencia.text }}>{urgencia.label}</span>
                       )}
-                      {d.estado === 'pagada' && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                          style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>✓ Pagada</span>
-                      )}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -303,14 +324,12 @@ export default function DeudasPage() {
                   </div>
                 </div>
 
-                {/* Barra */}
                 {d.monto > 0 && (
                   <div className="mb-2.5">
                     <ProgressBar value={d.monto - (d.pendiente || 0)} max={d.monto} color={d.color || cfg.color} />
                   </div>
                 )}
 
-                {/* Detalles */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {d.cuota > 0 && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
@@ -318,13 +337,10 @@ export default function DeudasPage() {
                       {formatCurrency(d.cuota)}/mes
                     </span>
                   )}
-                  {d.plazo_meses > 0 && (
-                    <span className="text-[9px] text-stone-400">{d.pagadas || 0}/{d.plazo_meses} cuotas · {pct}%</span>
-                  )}
+                  <span className="text-[9px] text-stone-400">{pct}% pagado</span>
                   {d.dia_pago && <span className="text-[9px] text-stone-400">Pago día {d.dia_pago}</span>}
                 </div>
 
-                {/* ── ACCIONES: solo visibles al tocar la card ── */}
                 <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-16 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
                   style={{ borderColor: 'var(--border-glass)' }}>
                   <div className="flex items-center gap-2">
@@ -351,7 +367,6 @@ export default function DeudasPage() {
                   </div>
                 </div>
 
-                {/* Historial */}
                 {isExp && (
                   <div className="mt-3 pt-3 border-t space-y-1" style={{ borderColor: 'var(--border-glass)' }}>
                     {movsDeuda.length === 0 ? (
@@ -367,17 +382,13 @@ export default function DeudasPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-stone-700 truncate">{m.descripcion}</p>
                           <p className="text-[9px] text-stone-400">
-                            {new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES')} · {m.tipo}
+                            {new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES')}
                           </p>
                         </div>
                         <p className="text-xs font-black flex-shrink-0 tabular-nums"
                           style={{ color: m.tipo === 'pago' ? '#10b981' : '#C0605A' }}>
                           {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
                         </p>
-                        <button onClick={e => { e.stopPropagation(); handleDeleteMov(m.id, d.id) }}
-                          className="opacity-0 group-hover:opacity-100 p-1" style={{ color: '#C0605A' }}>
-                          <Trash2 size={11} />
-                        </button>
                       </div>
                     ))}
                   </div>
@@ -415,7 +426,7 @@ export default function DeudasPage() {
             </div>
             <div className="col-span-3">
               <label className="ff-label">Nombre</label>
-              <input className="ff-input" placeholder="Ej: Visa Banco X, Préstamo Auto..." required
+              <input className="ff-input" placeholder="Ej: Visa Banco X..." required
                 value={formDeuda.nombre} onChange={e => setFormDeuda(prev => ({ ...prev, nombre: e.target.value }))} />
             </div>
           </div>
@@ -438,7 +449,7 @@ export default function DeudasPage() {
           <div className="grid grid-cols-2 gap-3">
             {formDeuda.tipo_deuda === 'tarjeta' ? (
               <div className="col-span-2">
-                <label className="ff-label">Límite de crédito</label>
+                <label className="ff-label">Capacidad de la Tarjeta</label>
                 <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
                   value={formDeuda.limite}
                   onChange={e => setFormDeuda(prev => ({ ...prev, limite: e.target.value, capital: e.target.value }))} />
@@ -446,12 +457,12 @@ export default function DeudasPage() {
             ) : (
               <>
                 <div>
-                  <label className="ff-label">Capital total (€)</label>
+                  <label className="ff-label">Precio de Compra (€)</label>
                   <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
                     value={formDeuda.capital} onChange={e => setFormDeuda(prev => ({ ...prev, capital: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="ff-label">Adelanto / Enganche</label>
+                  <label className="ff-label">Entrada Pagada</label>
                   <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
                     value={formDeuda.adelanto} onChange={e => setFormDeuda(prev => ({ ...prev, adelanto: e.target.value }))} />
                 </div>
@@ -477,7 +488,7 @@ export default function DeudasPage() {
           {formDeuda.tipo_deuda !== 'tarjeta' && cuotaPreview > 0 && (
             <div className="px-4 py-3 rounded-xl"
               style={{ background: 'rgba(45,122,95,0.08)', border: '1px solid rgba(45,122,95,0.2)' }}>
-              <p className="text-xs text-stone-500">Cuota mensual calculada</p>
+              <p className="text-xs text-stone-500">Tu letra mensual</p>
               <p className="text-xl font-black" style={{ color: '#2D7A5F' }}>{formatCurrency(cuotaPreview)}</p>
             </div>
           )}
@@ -494,22 +505,6 @@ export default function DeudasPage() {
               <label className="ff-label">Día de pago</label>
               <input className="ff-input" type="number" min="1" max="31" placeholder="5"
                 value={formDeuda.dia_pago} onChange={e => setFormDeuda(prev => ({ ...prev, dia_pago: e.target.value }))} />
-            </div>
-            <div>
-              <label className="ff-label">Fecha 1er pago</label>
-              <input className="ff-input" type="date"
-                value={formDeuda.fecha_primer_pago} onChange={e => setFormDeuda(prev => ({ ...prev, fecha_primer_pago: e.target.value }))} />
-            </div>
-          </div>
-
-          <div>
-            <label className="ff-label">Color</label>
-            <div className="flex gap-3 flex-wrap">
-              {['#818CF8', '#C0605A', '#C17A3A', '#10b981', '#38bdf8', '#f59e0b'].map(c => (
-                <button type="button" key={c} onClick={() => setFormDeuda(prev => ({ ...prev, color: c }))}
-                  className="w-8 h-8 rounded-full transition-all"
-                  style={{ background: c, outline: formDeuda.color === c ? `3px solid ${c}` : 'none', outlineOffset: 2, opacity: formDeuda.color === c ? 1 : 0.5 }} />
-              ))}
             </div>
           </div>
 
@@ -538,17 +533,10 @@ export default function DeudasPage() {
             ))}
           </div>
 
-          {formMov.tipo === 'pago' && (
-            <div className="px-3 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: 'rgba(16,185,129,0.08)', color: '#2D7A5F', border: '1px solid rgba(16,185,129,0.2)' }}>
-              ✓ Se registrará automáticamente en Ingresos & Egresos
-            </div>
-          )}
-
           <div>
             <label className="ff-label">Descripción</label>
             <input className="ff-input" required
-              placeholder={formMov.tipo === 'pago' ? 'Ej: Pago mensual Visa' : 'Ej: Delivery, Ropa...'}
+              placeholder={formMov.tipo === 'pago' ? 'Ej: Pago mensual' : 'Ej: Compra supermercado...'}
               value={formMov.descripcion} onChange={e => setFormMov(prev => ({ ...prev, descripcion: e.target.value }))} />
           </div>
 
