@@ -307,7 +307,7 @@ export default function GastosPage() {
             <h1 className="text-xl font-black text-stone-800 tracking-tight leading-tight">Registro</h1>
           </div>
           <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2">
-            <Plus size={18} strokeWidth={3} />
+            <Plus size={16} strokeWidth={3} />
             <span className="hidden sm:inline">Nuevo registro</span>
           </button>
         </div>

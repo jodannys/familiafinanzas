@@ -86,7 +86,7 @@ export default function ThemeSwitcher() {
               letterSpacing: '0.1em', 
               padding: '8px 12px 10px' 
             }}>
-              Estilo de la App
+              Temas - App
             </p>
 
             <div className="flex flex-col gap-1">

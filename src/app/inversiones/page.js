@@ -77,7 +77,7 @@ export default function InversionesPage() {
           <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Inversiones</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
-          <Plus size={16} /> Nueva inversión
+          <Plus size={16} />Nueva inversión
         </button>
       </div>
 
