@@ -26,15 +26,15 @@ function diasHastaPago(diaPago) {
 
 function urgenciaColor(dias) {
   if (dias === null) return null
-  if (dias <= 3) return { bg: 'rgba(192,96,90,0.1)',  text: '#C0605A', label: `¡Vence en ${dias}d!` }
+  if (dias <= 3) return { bg: 'rgba(192,96,90,0.1)', text: '#C0605A', label: `¡Vence en ${dias}d!` }
   if (dias <= 7) return { bg: 'rgba(193,122,58,0.1)', text: '#C17A3A', label: `Vence en ${dias}d` }
-  return             { bg: 'rgba(45,122,95,0.1)',   text: '#2D7A5F', label: `${dias}d para pago` }
+  return { bg: 'rgba(45,122,95,0.1)', text: '#2D7A5F', label: `${dias}d para pago` }
 }
 
 const TIPO_CONFIG = {
-  tarjeta:  { label: 'Tarjeta',  icon: CreditCard, color: '#818CF8' },
-  prestamo: { label: 'Préstamo', icon: Landmark,   color: '#C0605A' },
-  cuota:    { label: 'Cuota',    icon: Calendar,   color: '#C17A3A' },
+  tarjeta: { label: 'Tarjeta', icon: CreditCard, color: '#818CF8' },
+  prestamo: { label: 'Préstamo', icon: Landmark, color: '#C0605A' },
+  cuota: { label: 'Cuota', icon: Calendar, color: '#C17A3A' },
 }
 
 function IconBtn({ onClick, title, bg, color, children }) {
@@ -66,6 +66,7 @@ export default function DeudasPage() {
   const [modalMov, setModalMov] = useState(null)
   const [formDeuda, setFormDeuda] = useState(FORM_VACIO)
   const [formMov, setFormMov] = useState({ tipo: 'cargo', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
+  const [misTarjetas, setMisTarjetas] = useState([])
 
   const now = new Date()
   const mes = now.getMonth() + 1
@@ -75,19 +76,44 @@ export default function DeudasPage() {
 
   async function cargar() {
     setLoading(true)
-    const { data, error } = await supabase.from('deudas').select('*').order('created_at')
-    if (error) { setError(error.message); setLoading(false); return }
-    setDeudas(data || [])
-    if (data?.length) {
-      const { data: movs } = await supabase.from('deuda_movimientos').select('*').order('fecha', { ascending: false })
-      const grouped = {}
-      ;(movs || []).forEach(m => {
-        if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-        grouped[m.deuda_id].push(m)
-      })
-      setMovimientos(grouped)
+    setError(null)
+    try {
+      const { data: deudasData, error: e1 } = await supabase
+        .from('deudas')
+        .select('*')
+        .order('created_at')
+
+      const { data: tarjetasData, error: e2 } = await supabase
+        .from('perfiles_tarjetas')
+        .select('*')
+        .eq('estado', 'activa')
+
+      if (e1) throw e1
+      if (e2) console.error("Error cargando tarjetas perfil:", e2.message)
+
+      setDeudas(deudasData || [])
+      setMisTarjetas(tarjetasData || [])
+
+      if (deudasData?.length) {
+        const { data: movs, error: e3 } = await supabase
+          .from('deuda_movimientos')
+          .select('*')
+          .order('fecha', { ascending: false })
+
+        if (!e3) {
+          const grouped = {}
+          ;(movs || []).forEach(m => {
+            if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+            grouped[m.deuda_id].push(m)
+          })
+          setMovimientos(grouped)
+        }
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   function abrirEdicion(d) {
@@ -110,14 +136,30 @@ export default function DeudasPage() {
     setModalDeuda(true)
   }
 
+  function handleSeleccionarTarjeta(id) {
+    const tarjetaInfo = misTarjetas.find(t => t.id === id)
+    if (!tarjetaInfo) return
+
+    setFormDeuda(prev => ({
+      ...prev,
+      nombre: tarjetaInfo.nombre_tarjeta,
+      emoji: '💳',
+      color: tarjetaInfo.color,
+      dia_corte: tarjetaInfo.dia_corte?.toString() || '',
+      dia_pago: tarjetaInfo.dia_pago?.toString() || '',
+      limite: tarjetaInfo.limite_credito?.toString() || '',
+      capital: tarjetaInfo.limite_credito?.toString() || ''
+    }))
+  }
+
   async function handleSaveDeuda(e) {
     e.preventDefault()
     setSaving(true)
-    const capital  = parseFloat(formDeuda.capital) || 0
+    const capital = parseFloat(formDeuda.capital) || 0
     const adelanto = parseFloat(formDeuda.adelanto) || 0
-    const tasa     = parseFloat(formDeuda.tasa_interes) || 0
-    const meses    = parseInt(formDeuda.plazo_meses) || 0
-    const cuota    = calcularCuota(capital - adelanto, tasa, meses)
+    const tasa = parseFloat(formDeuda.tasa_interes) || 0
+    const meses = parseInt(formDeuda.plazo_meses) || 0
+    const cuota = calcularCuota(capital - adelanto, tasa, meses)
 
     const payload = {
       ...formDeuda,
@@ -164,42 +206,39 @@ export default function DeudasPage() {
 
     if (!error && deuda) {
       setMovimientos(prev => ({ ...prev, [modalMov]: [data[0], ...(prev[modalMov] || [])] }))
-      
+
       let nuevoPendiente = deuda.pendiente || 0
       let nuevoMontoTotal = deuda.monto || 0
       let nuevosPagados = deuda.pagadas || 0
 
       if (formMov.tipo === 'pago') {
-        // Lógica de PAGO: Resta deuda y registra en historial principal
         nuevoPendiente = Math.max(0, nuevoPendiente - monto)
         nuevosPagados = nuevosPagados + 1
-        
         await supabase.from('movimientos').insert([{
           tipo: 'egreso', categoria: 'deuda',
           descripcion: `Pago letra: ${deuda.nombre}`,
           monto, fecha: formMov.fecha, quien: 'Ambos',
         }])
       } else {
-        // Lógica de CARGO: Suma deuda y aumenta el precio total de compra
         nuevoPendiente = nuevoPendiente + monto
         nuevoMontoTotal = nuevoMontoTotal + monto
       }
 
       const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-      
-      await supabase.from('deudas').update({ 
-        pendiente: nuevoPendiente, 
-        monto: nuevoMontoTotal, 
-        pagadas: nuevosPagados, 
-        estado: nuevoEstado 
+
+      await supabase.from('deudas').update({
+        pendiente: nuevoPendiente,
+        monto: nuevoMontoTotal,
+        pagadas: nuevosPagados,
+        estado: nuevoEstado
       }).eq('id', modalMov)
 
-      setDeudas(prev => prev.map(d => d.id === modalMov ? { 
-        ...d, 
-        pendiente: nuevoPendiente, 
-        monto: nuevoMontoTotal, 
-        pagadas: nuevosPagados, 
-        estado: nuevoEstado 
+      setDeudas(prev => prev.map(d => d.id === modalMov ? {
+        ...d,
+        pendiente: nuevoPendiente,
+        monto: nuevoMontoTotal,
+        pagadas: nuevosPagados,
+        estado: nuevoEstado
       } : d))
 
       setModalMov(null)
@@ -221,21 +260,9 @@ export default function DeudasPage() {
     if (cardActiva === id) setCardActiva(null)
   }
 
-  async function handleDeleteMov(id, deudaId) {
-    await supabase.from('deuda_movimientos').delete().eq('id', id)
-    setMovimientos(prev => ({ ...prev, [deudaId]: prev[deudaId].filter(m => m.id !== id) }))
-    // Nota: Aquí se podría re-calcular el saldo, pero por simplicidad actual dejamos que el usuario lo ajuste con un movimiento correctivo o editando.
-  }
-
-  const totalDeuda    = deudas.filter(d => d.estado !== 'pagada').reduce((s, d) => s + (d.pendiente || 0), 0)
-  const cuotasMes     = deudas.filter(d => d.estado !== 'pagada').reduce((s, d) => s + (d.cuota || 0), 0)
+  const totalDeuda = deudas.filter(d => d.estado !== 'pagada').reduce((s, d) => s + (d.pendiente || 0), 0)
+  const cuotasMes = deudas.filter(d => d.estado !== 'pagada').reduce((s, d) => s + (d.cuota || 0), 0)
   const vencenProximo = deudas.filter(d => { const dias = diasHastaPago(d.dia_pago); return dias !== null && dias <= 7 && d.estado !== 'pagada' }).length
-
-  const cuotaPreview = calcularCuota(
-    (parseFloat(formDeuda.capital) || 0) - (parseFloat(formDeuda.adelanto) || 0),
-    parseFloat(formDeuda.tasa_interes) || 0,
-    parseInt(formDeuda.plazo_meses) || 0
-  )
 
   return (
     <AppShell>
@@ -260,8 +287,8 @@ export default function DeudasPage() {
 
       <div className="grid grid-cols-3 gap-2 mb-6">
         {[
-          { label: 'Deuda total',   value: formatCurrency(totalDeuda),  color: '#C0605A' },
-          { label: 'Letras de este mes',    value: formatCurrency(cuotasMes),   color: 'var(--accent-terra)' },
+          { label: 'Deuda total', value: formatCurrency(totalDeuda), color: '#C0605A' },
+          { label: 'Letras de este mes', value: formatCurrency(cuotasMes), color: 'var(--accent-terra)' },
           { label: 'Vencen pronto', value: vencenProximo > 0 ? `${vencenProximo} deuda${vencenProximo > 1 ? 's' : ''}` : 'Al día ✓', color: vencenProximo > 0 ? '#C0605A' : 'var(--accent-green)' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -283,12 +310,12 @@ export default function DeudasPage() {
       ) : (
         <div className="space-y-3">
           {deudas.map((d, i) => {
-            const cfg       = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
-            const pct       = d.monto > 0 ? Math.min(100, Math.round(((d.monto - (d.pendiente || 0)) / d.monto) * 100)) : 0
-            const dias      = diasHastaPago(d.dia_pago)
-            const urgencia  = urgenciaColor(dias)
-            const isExp     = expandido === d.id
-            const isActiva  = cardActiva === d.id
+            const cfg = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
+            const pct = d.monto > 0 ? Math.min(100, Math.round(((d.monto - (d.pendiente || 0)) / d.monto) * 100)) : 0
+            const dias = diasHastaPago(d.dia_pago)
+            const urgencia = urgenciaColor(dias)
+            const isExp = expandido === d.id
+            const isActiva = cardActiva === d.id
             const movsDeuda = movimientos[d.id] || []
 
             return (
@@ -418,6 +445,27 @@ export default function DeudasPage() {
             ))}
           </div>
 
+          {/* Selector de Tarjetas Guardadas (Solo si es tipo tarjeta y hay tarjetas creadas en perfil) */}
+          {formDeuda.tipo_deuda === 'tarjeta' && misTarjetas.length > 0 && !editandoId && (
+            <div className="animate-enter">
+              <label className="ff-label text-indigo-500">¿Usar una de tus tarjetas guardadas?</label>
+              <div className="flex gap-2 overflow-x-auto pb-2 mt-1 no-scrollbar">
+                {misTarjetas.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleSeleccionarTarjeta(t.id)}
+                    className="flex-shrink-0 px-3 py-2 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 bg-white hover:shadow-sm"
+                    style={{ borderColor: `${t.color}40`, color: t.color }}
+                  >
+                    <CreditCard size={12} />
+                    {t.nombre_tarjeta}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="ff-label">Emoji</label>
@@ -449,7 +497,7 @@ export default function DeudasPage() {
           <div className="grid grid-cols-2 gap-3">
             {formDeuda.tipo_deuda === 'tarjeta' ? (
               <div className="col-span-2">
-                <label className="ff-label">Capacidad de la Tarjeta</label>
+                <label className="ff-label">Capacidad de la Tarjeta (Límite)</label>
                 <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
                   value={formDeuda.limite}
                   onChange={e => setFormDeuda(prev => ({ ...prev, limite: e.target.value, capital: e.target.value }))} />
@@ -457,7 +505,7 @@ export default function DeudasPage() {
             ) : (
               <>
                 <div>
-                  <label className="ff-label">Precio de Compra (€)</label>
+                  <label className="ff-label">Precio Compra (€)</label>
                   <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
                     value={formDeuda.capital} onChange={e => setFormDeuda(prev => ({ ...prev, capital: e.target.value }))} />
                 </div>
@@ -473,7 +521,7 @@ export default function DeudasPage() {
           {formDeuda.tipo_deuda !== 'tarjeta' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="ff-label">Tasa interés anual (%)</label>
+                <label className="ff-label">Tasa anual (%)</label>
                 <input className="ff-input" type="number" min="0" step="0.1" placeholder="0"
                   value={formDeuda.tasa_interes} onChange={e => setFormDeuda(prev => ({ ...prev, tasa_interes: e.target.value }))} />
               </div>
@@ -482,14 +530,6 @@ export default function DeudasPage() {
                 <input className="ff-input" type="number" min="1" placeholder="12"
                   value={formDeuda.plazo_meses} onChange={e => setFormDeuda(prev => ({ ...prev, plazo_meses: e.target.value }))} />
               </div>
-            </div>
-          )}
-
-          {formDeuda.tipo_deuda !== 'tarjeta' && cuotaPreview > 0 && (
-            <div className="px-4 py-3 rounded-xl"
-              style={{ background: 'rgba(45,122,95,0.08)', border: '1px solid rgba(45,122,95,0.2)' }}>
-              <p className="text-xs text-stone-500">Tu letra mensual</p>
-              <p className="text-xl font-black" style={{ color: '#2D7A5F' }}>{formatCurrency(cuotaPreview)}</p>
             </div>
           )}
 
@@ -519,7 +559,7 @@ export default function DeudasPage() {
         </form>
       </Modal>
 
-      {/* MODAL: Movimiento */}
+      {/* MODAL: Movimiento (Pago / Cargo) */}
       <Modal open={!!modalMov} onClose={() => setModalMov(null)}
         title={formMov.tipo === 'pago' ? 'Registrar Pago' : 'Registrar Cargo'}>
         <form onSubmit={handleAddMov} className="space-y-4">
