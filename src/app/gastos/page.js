@@ -188,9 +188,9 @@ export default function GastosPage() {
     if (invMatch) setMetaSeleccionada(`inv_${invMatch.id}`)
   }
 
-  const sugerencias = form.tipo === 'egreso'
-    ? presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
-    : []
+const sugerencias = form.tipo === 'egreso' && form.categoria !== 'deuda'
+  ? presItems.filter(i => i.bloque === CAT_BLOQUE[form.categoria])
+  : []
 
   const now = new Date()
   const movsMes = movs.filter(m => {
