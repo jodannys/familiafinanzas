@@ -18,62 +18,61 @@ function IconBtn({ onClick, title, bg, color, children }) {
 }
 
 export default function TarjetasPage() {
-  const [tarjetas, setTarjetas]   = useState([])
-  const [usadoPorTarjeta, setUsadoPorTarjeta] = useState({}) // FIX 3
-  const [loading, setLoading]     = useState(true)
-  const [saving, setSaving]       = useState(false)
-  const [selectedId, setSelectedId] = useState(null)
-  const [modal, setModal]         = useState(false)
-  const [editingId, setEditingId] = useState(null)
+  const [tarjetas, setTarjetas]             = useState([])
+  const [usadoPorTarjeta, setUsadoPorTarjeta] = useState({})
+  const [loading, setLoading]               = useState(true)
+  const [saving, setSaving]                 = useState(false)
+  const [selectedId, setSelectedId]         = useState(null)
+  const [modal, setModal]                   = useState(false)
+  const [editingId, setEditingId]           = useState(null)
 
   const [form, setForm] = useState({
     nombre_tarjeta: '', banco: '', limite_credito: '',
     dia_corte: '', dia_pago: '', estado: 'activa', color: '#4A6FA5'
   })
 
-  useEffect(() => { cargar() }, [])
+  // Cargar al montar Y cada vez que la página vuelve a ser visible
+  // (por ej. al volver desde gastos/deudas después de borrar un movimiento)
+  useEffect(() => {
+    cargar()
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') cargar()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   async function cargar() {
     setLoading(true)
 
-    // Cargar perfiles de tarjetas
     const { data: tarjetasData, error: e1 } = await supabase
       .from('perfiles_tarjetas').select('*').order('created_at', { ascending: false })
     if (e1) { setLoading(false); return }
 
     setTarjetas(tarjetasData || [])
 
-    // FIX 3 — OPCIÓN C: Calcular "usado" combinando:
-    // A) Cargos del día a día registrados en deuda_movimientos con deuda_id = perfil.id
-    // B) Pendiente acumulado de deudas tipo 'tarjeta' activas (compras a plazos)
-
     if (tarjetasData?.length) {
       const ids = tarjetasData.map(t => t.id)
 
-      // A) Cargos directos: sum(cargo) - sum(pago) por perfil_id en deuda_movimientos
+      // A) Cargos directos en deuda_movimientos cuyo deuda_id = id del perfil
       const { data: movs } = await supabase
         .from('deuda_movimientos')
         .select('deuda_id, tipo, monto')
         .in('deuda_id', ids)
 
-      // B) Pendiente de compras a plazos (tarjeta como tipo_deuda en deudas)
-      //    Necesitamos saber a qué perfil pertenece cada deuda.
-      //    Usamos el campo 'limite' para asociarlo — o bien, si existe una FK,
-      //    aquí comparamos por color+nombre (best effort sin FK explícita).
-      //    Lo más robusto: traer todas las deudas tipo tarjeta activas y agrupar por color.
+      // B) Pendiente de compras a plazos (deudas tipo 'tarjeta' activas),
+      //    agrupadas por color ya que no hay FK explícita hacia perfiles_tarjetas
       const { data: deudasTarjeta } = await supabase
         .from('deudas')
         .select('id, color, pendiente, estado')
         .eq('tipo_deuda', 'tarjeta')
         .neq('estado', 'pagada')
 
-      // Calcular usado por perfil
       const usado = {}
-
-      // Inicializar
       tarjetasData.forEach(t => { usado[t.id] = 0 })
 
-      // A) Sumar cargos directos (gastos del día a día)
+      // Sumar cargos directos
       ;(movs || []).forEach(m => {
         if (ids.includes(m.deuda_id)) {
           if (m.tipo === 'cargo') usado[m.deuda_id] = (usado[m.deuda_id] || 0) + m.monto
@@ -81,15 +80,14 @@ export default function TarjetasPage() {
         }
       })
 
-      // B) Sumar pendiente de compras a plazos agrupadas por color de tarjeta
-      //    (asumiendo que al crear la deuda se hereda el color del perfil seleccionado)
+      // Sumar pendiente de compras a plazos agrupado por color
       tarjetasData.forEach(t => {
-        const deudasEsaTarjeta = (deudasTarjeta || []).filter(d => d.color === t.color)
-        const pendientePlazos  = deudasEsaTarjeta.reduce((s, d) => s + (d.pendiente || 0), 0)
-        usado[t.id] = (usado[t.id] || 0) + pendientePlazos
+        const deudasEsa   = (deudasTarjeta || []).filter(d => d.color === t.color)
+        const pendienteSuma = deudasEsa.reduce((s, d) => s + (d.pendiente || 0), 0)
+        usado[t.id] = (usado[t.id] || 0) + pendienteSuma
       })
 
-      // Asegurar que no sea negativo
+      // No puede ser negativo
       Object.keys(usado).forEach(k => { usado[k] = Math.max(0, usado[k]) })
 
       setUsadoPorTarjeta(usado)
@@ -173,7 +171,6 @@ export default function TarjetasPage() {
           {tarjetas.map((t, i) => {
             const isSelected = selectedId === t.id
             const isPausada  = t.estado === 'pausada'
-            // FIX 3: usar el monto calculado
             const usado      = usadoPorTarjeta[t.id] || 0
             const limite     = t.limite_credito || 0
             const disponible = Math.max(0, limite - usado)
@@ -190,7 +187,6 @@ export default function TarjetasPage() {
                   padding: '16px'
                 }}>
 
-                {/* Header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -207,7 +203,6 @@ export default function TarjetasPage() {
                   )}
                 </div>
 
-                {/* FIX 3: Barra de uso real */}
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between items-baseline">
                     <span className="text-[10px] font-black uppercase text-stone-400">Usado</span>
@@ -219,8 +214,7 @@ export default function TarjetasPage() {
                     </div>
                   </div>
                   <ProgressBar
-                    value={usado}
-                    max={limite}
+                    value={usado} max={limite}
                     color={isPausada ? '#A8A29E' : (pctUsado > 80 ? '#C0605A' : (t.color || '#10b981'))}
                   />
                   <div className="flex justify-between text-[10px] font-bold">
@@ -229,7 +223,6 @@ export default function TarjetasPage() {
                   </div>
                 </div>
 
-                {/* Info días */}
                 <div className="flex items-center justify-between">
                   <div className="flex gap-4">
                     <div className="flex items-center gap-1.5">
