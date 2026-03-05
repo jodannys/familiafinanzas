@@ -291,6 +291,40 @@ export default function DeudasPage() {
     } else {
       const f = formCuota
       const monto = parseFloat(f.monto) || 0
+
+      // FIX 1: Si hay deuda origen, registrar pago directo (no crear deuda nueva)
+      if (f.deuda_origen_id && !editandoId) {
+        const deudaOrigen = deudas.find(d => d.id === f.deuda_origen_id)
+        if (deudaOrigen) {
+          const nuevoPendiente = Math.max(0, (deudaOrigen.pendiente || 0) - monto)
+          const nuevosPagados  = (deudaOrigen.pagadas || 0) + 1
+          const nuevoEstado    = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+
+          await supabase.from('deuda_movimientos').insert([{
+            deuda_id: f.deuda_origen_id, tipo: 'pago',
+            descripcion: f.nombre || `Cuota ${deudaOrigen.nombre}`,
+            monto, fecha: new Date().toISOString().slice(0, 10), mes, año,
+          }])
+          await supabase.from('movimientos').insert([{
+            tipo: 'egreso', categoria: 'deuda',
+            descripcion: f.nombre || `Pago letra: ${deudaOrigen.nombre}`,
+            monto, fecha: new Date().toISOString().slice(0, 10), quien: 'Ambos',
+          }])
+          await supabase.from('deudas').update({
+            pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
+          }).eq('id', f.deuda_origen_id)
+
+          setDeudas(prev => prev.map(d => d.id === f.deuda_origen_id
+            ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado }
+            : d))
+        }
+        setSaving(false)
+        setModalDeuda(false)
+        setEditandoId(null)
+        return
+      }
+
+      // Sin deuda origen: crear cuota recurrente nueva (comportamiento original)
       payload = {
         tipo_deuda: 'cuota',
         tipo: 'debo',
@@ -405,6 +439,39 @@ export default function DeudasPage() {
       setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
     }
     setSaving(false)
+  }
+
+  // FIX 2: Borrar movimiento y revertir pendiente automáticamente
+  async function handleDeleteMov(mov) {
+    if (!confirm('¿Eliminar este movimiento y revertir el pendiente?')) return
+    const deuda = deudas.find(d => d.id === mov.deuda_id)
+    if (!deuda) return
+
+    const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
+    if (error) { setError(error.message); return }
+
+    // Revertir: pago → sube pendiente, cargo → baja pendiente
+    let nuevoPendiente = deuda.pendiente || 0
+    let nuevosPagados  = deuda.pagadas || 0
+    if (mov.tipo === 'pago') {
+      nuevoPendiente = Math.min(deuda.monto || nuevoPendiente + mov.monto, nuevoPendiente + mov.monto)
+      nuevosPagados  = Math.max(0, nuevosPagados - 1)
+    } else {
+      nuevoPendiente = Math.max(0, nuevoPendiente - mov.monto)
+    }
+    const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+
+    await supabase.from('deudas').update({
+      pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
+    }).eq('id', mov.deuda_id)
+
+    setDeudas(prev => prev.map(d => d.id === mov.deuda_id
+      ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado }
+      : d))
+    setMovimientos(prev => ({
+      ...prev,
+      [mov.deuda_id]: (prev[mov.deuda_id] || []).filter(m => m.id !== mov.id)
+    }))
   }
 
   // ── Eliminar deuda ─────────────────────────────────────────────────────────
@@ -641,11 +708,20 @@ export default function DeudasPage() {
                             {new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES')}
                           </p>
                         </div>
-                        <p className="text-xs font-black flex-shrink-0 tabular-nums"
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <p className="text-xs font-black tabular-nums"
                           style={{ color: m.tipo === 'pago' ? '#10b981' : '#C0605A' }}>
                           {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
                         </p>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDeleteMov(m) }}
+                          className="p-1 rounded-lg opacity-30 hover:opacity-100 transition-opacity"
+                          style={{ color: '#C0605A' }}
+                          title="Borrar y revertir">
+                          <Trash2 size={11} />
+                        </button>
                       </div>
+                    </div>
                     ))}
                   </div>
                 )}

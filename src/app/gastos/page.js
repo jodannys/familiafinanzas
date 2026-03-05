@@ -8,11 +8,11 @@ import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 const CATS = [
-  { value: 'basicos',   label: 'Gastos Básicos' },
-  { value: 'deseo',     label: 'Gastos Deseo' },
-  { value: 'ahorro',    label: 'Ahorro / Metas' },
+  { value: 'basicos', label: 'Gastos Básicos' },
+  { value: 'deseo', label: 'Gastos Deseo' },
+  { value: 'ahorro', label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
-  { value: 'deuda',     label: 'Deudas' },
+  { value: 'deuda', label: 'Deudas' },
 ]
 
 const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose' }
@@ -24,20 +24,20 @@ const CAT_BLOQUE = {
 }
 
 export default function GastosPage() {
-  const [movs, setMovs]                 = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [saving, setSaving]             = useState(false)
-  const [error, setError]               = useState(null)
-  const [modal, setModal]               = useState(false)
-  const [search, setSearch]             = useState('')
-  const [filtro, setFiltro]             = useState('todos')
-  const [presItems, setPresItems]       = useState([])
-  const [metasData, setMetasData]       = useState([])
+  const [movs, setMovs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [modal, setModal] = useState(false)
+  const [search, setSearch] = useState('')
+  const [filtro, setFiltro] = useState('todos')
+  const [presItems, setPresItems] = useState([])
+  const [metasData, setMetasData] = useState([])
   const [inversionesData, setInversionesData] = useState([])
-  const [deudasData, setDeudasData]     = useState([])
+  const [deudasData, setDeudasData] = useState([])
   // CAMBIO 1: tarjetasData ahora viene de perfiles_tarjetas
   const [tarjetasData, setTarjetasData] = useState([])
-  const [metaSeleccionada, setMetaSeleccionada]   = useState('')
+  const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [form, setForm] = useState({
@@ -240,7 +240,7 @@ export default function GastosPage() {
     return month - 1 === now.getMonth() && year === now.getFullYear()
   })
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const egresos  = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
@@ -272,7 +272,7 @@ export default function GastosPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Ingresos del mes', value: formatCurrency(ingresos), color: '#10b981' },
-          { label: 'Egresos del mes',  value: formatCurrency(egresos),  color: '#fb7185' },
+          { label: 'Egresos del mes', value: formatCurrency(egresos), color: '#fb7185' },
           { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? '#10b981' : '#fb7185' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-4 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
