@@ -40,6 +40,7 @@ export default function GastosPage() {
   const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
+  const [deletingId, setDeletingId] = useState(null);
   // Datos extra para compra a plazos con tarjeta
   const [tarjetaCompra, setTarjetaCompra] = useState({
     descripcion: '',
@@ -195,108 +196,130 @@ export default function GastosPage() {
       }
 
       // CAMBIO 2+3: Deuda → descontar pendiente Y registrar en deuda_movimientos
+      // --- DENTRO DE handleAdd ---
       if (form.categoria === 'deuda' && deudaSeleccionada) {
-        const deuda = deudasData.find(d => d.id === deudaSeleccionada)
-        if (deuda) {
-          const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
-          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+        const deuda = deudasData.find(d => d.id === deudaSeleccionada);
 
-          // Descontar de la deuda principal
+        if (deuda) {
+          // PUNTO 2: Creamos la descripción una sola vez
+          const descripcionFinal = form.descripcion || `Cuota ${deuda.nombre}`;
+
+          const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto);
+          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa';
+
+          // 1. Actualizar la deuda principal
           await supabase.from('deudas').update({
             pendiente: nuevoPendiente,
             estado: nuevoEstado,
             pagadas: (deuda.pagadas || 0) + 1,
-          }).eq('id', deudaSeleccionada)
+          }).eq('id', deudaSeleccionada);
 
+          // Actualizar estado local de deudas
           setDeudasData(prev => prev.map(d =>
             d.id === deudaSeleccionada ? { ...d, pendiente: nuevoPendiente } : d
-          ))
+          ));
 
-          // CAMBIO 2: también registrar en deuda_movimientos para que
-          // el historial en deudas/page.jsx quede consistente
+          // 2. Registrar en detalle de deuda con la MISMA descripción
           await supabase.from('deuda_movimientos').insert([{
             deuda_id: deudaSeleccionada,
             tipo: 'pago',
-            descripcion: form.descripcion || `Cuota ${deuda.nombre}`,
+            descripcion: descripcionFinal, // <--- Sincronizado
             monto,
             fecha: form.fecha,
-            mes, año,
-          }])
+            mes,
+            año,
+          }]);
+
+          // Opcional: Asegurar que el movimiento general use la misma descripción
+          form.descripcion = descripcionFinal;
         }
-        setDeudaSeleccionada('')
+        setDeudaSeleccionada('');
       }
+
 
       resetModal()
     }
     setSaving(false)
   }
 
- async function handleDelete(movimiento) {
-    if (!confirm(`¿Eliminar "${movimiento.descripcion}"?`)) return
+  async function handleDelete(movimiento) {
+    if (!confirm(`¿Eliminar "${movimiento.descripcion}"?`)) return;
+
+    setDeletingId(movimiento.id); // Activa el loading en el botón
+
     try {
-      // Revertir ahorro
+      // --- Revertir ahorro ---
       if (movimiento.categoria === 'ahorro') {
-        const meta = metasData.find(m => m.nombre === movimiento.descripcion)
+        const meta = metasData.find(m => m.nombre === movimiento.descripcion);
         if (meta) {
-          const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto)
-          await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
-          setMetasData(prev => prev.map(m => m.id === meta.id ? { ...m, actual: nuevoActual } : m))
+          const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto);
+          await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id);
+          setMetasData(prev => prev.map(m => m.id === meta.id ? { ...m, actual: nuevoActual } : m));
         }
       }
 
-      // Revertir inversión
+      // --- Revertir inversión ---
       if (movimiento.categoria === 'inversion') {
-        const inv = inversionesData.find(i => i.nombre === movimiento.descripcion)
+        const inv = inversionesData.find(i => i.nombre === movimiento.descripcion);
         if (inv) {
-          const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto)
-          await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id)
-          setInversionesData(prev => prev.map(i => i.id === inv.id ? { ...i, capital: nuevoCapital } : i))
+          const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto);
+          await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id);
+          setInversionesData(prev => prev.map(i => i.id === inv.id ? { ...i, capital: nuevoCapital } : i));
         }
       }
 
-      // Revertir deuda: sube el pendiente y borra el movimiento en deuda_movimientos
+      // --- Revertir deuda ---
       if (movimiento.categoria === 'deuda') {
-        // Buscar la deuda por descripción (formato "Cuota NombreDeuda" o "Pago letra: NombreDeuda")
         const { data: todasDeudas } = await supabase
-          .from('deudas').select('id, nombre, pendiente, monto, pagadas, estado')
+          .from('deudas').select('id, nombre, pendiente, monto, pagadas, estado');
+
         const deudaMatch = (todasDeudas || []).find(d =>
           movimiento.descripcion?.toLowerCase().includes(d.nombre.toLowerCase())
-        )
-        if (deudaMatch) {
-          const nuevoPendiente = Math.min(
-            deudaMatch.monto || deudaMatch.pendiente + movimiento.monto,
-            (deudaMatch.pendiente || 0) + movimiento.monto
-          )
-          const nuevosPagados = Math.max(0, (deudaMatch.pagadas || 0) - 1)
-          const nuevoEstado   = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+        );
 
+        if (deudaMatch) {
+          const nuevoPendiente = (deudaMatch.pendiente || 0) + movimiento.monto;
+          const nuevosPagados = Math.max(0, (deudaMatch.pagadas || 0) - 1);
+          const nuevoEstado = nuevoPendiente > 0 ? 'activa' : 'pagada';
+
+          // 1. Devolver saldo a la deuda
           await supabase.from('deudas').update({
             pendiente: nuevoPendiente,
-            pagadas:   nuevosPagados,
-            estado:    nuevoEstado,
-          }).eq('id', deudaMatch.id)
+            pagadas: nuevosPagados,
+            estado: nuevoEstado,
+          }).eq('id', deudaMatch.id);
 
-          // También borrar el movimiento espejo en deuda_movimientos
-          await supabase.from('deuda_movimientos').delete()
-            .eq('tipo', 'pago')
-            .eq('monto', movimiento.monto)
-            .ilike('descripcion', `%${deudaMatch.nombre}%`)
+          // 2. Borrar del historial de detalles (Match exacto)
+          await supabase.from('deuda_movimientos')
+            .delete()
+            .match({
+              deuda_id: deudaMatch.id,
+              tipo: 'pago',
+              monto: movimiento.monto,
+              descripcion: movimiento.descripcion, // Match exacto gracias al cambio en handleAdd
+              fecha: movimiento.fecha
+            });
 
           setDeudasData(prev => prev.map(d =>
             d.id === deudaMatch.id ? { ...d, pendiente: nuevoPendiente } : d
-          ))
+          ));
         }
       }
 
-      // Borrar el movimiento principal
-      const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
-      if (!error) setMovs(prev => prev.filter(m => m.id !== movimiento.id))
-      else alert('Error al borrar: ' + error.message)
+      // --- Borrar el movimiento principal ---
+      const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id);
+      if (!error) {
+        setMovs(prev => prev.filter(m => m.id !== movimiento.id));
+      } else {
+        alert('Error al borrar: ' + error.message);
+      }
+
     } catch (err) {
-      console.error('Error en borrado:', err)
+      console.error('Error en borrado:', err);
+    } finally {
+      setDeletingId(null); // Apaga el loading
     }
   }
-
   function aplicarSugerencia(item) {
     const nombre = item.nombre.replace(/^[\p{Emoji}\s]+/u, '').trim()
     setForm(prev => ({ ...prev, descripcion: nombre, monto: item.monto ? item.monto.toString() : '' }))
