@@ -131,6 +131,7 @@ export default function GastosPage() {
         nombre: tarjetaCompra.descripcion || form.descripcion,
         categoria: form.categoria || 'deseo',
         limite: tarjeta?.limite_credito || 0,
+       perfil_tarjeta_id: tarjeta?.id,
         capital: montoCompra,
         monto: montoCompra,
         pendiente: montoCompra,
