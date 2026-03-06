@@ -132,15 +132,24 @@ export default function DeudasPage() {
     setLoading(true); setError(null)
     try {
       const [{ data: deudasData, error: e1 }, { data: tarjetasData, error: e2 }] = await Promise.all([
-        supabase.from('deudas').select('*').order('created_at'),
+        supabase.from('deudas').select('*'), // Quitamos el order de aquí para hacerlo manual abajo
         supabase.from('perfiles_tarjetas').select('*').eq('estado', 'activa'),
       ])
+
       if (e1) throw e1
       if (e2) console.error('Error tarjetas:', e2.message)
-      setDeudas(deudasData || [])
+
+      // ORDENAR: Primero las que tienen fecha de vencimiento próxima, luego las que no tienen fecha
+      const deudasOrdenadas = (deudasData || []).sort((a, b) => {
+        if (!a.fecha_vencimiento) return 1;
+        if (!b.fecha_vencimiento) return -1;
+        return new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento);
+      });
+
+      setDeudas(deudasOrdenadas)
       setMisTarjetas(tarjetasData || [])
 
-      if (deudasData?.length) {
+      if (deudasOrdenadas.length) {
         const { data: movs, error: e3 } = await supabase
           .from('deuda_movimientos').select('*').order('fecha', { ascending: false })
         if (!e3) {
@@ -299,6 +308,21 @@ export default function DeudasPage() {
           const nuevoPendiente = Math.max(0, (deudaOrigen.pendiente || 0) - monto)
           const nuevosPagados = (deudaOrigen.pagadas || 0) + 1
           const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+          // Dentro de handleSaveDeuda, antes del insert/update:
+          const hoy = new Date();
+          let fechaVence = null;
+
+          if (f.dia_pago) {
+            // Creamos una fecha para el mes actual con el día elegido
+            fechaVence = new Date(hoy.getFullYear(), hoy.getMonth(), parseInt(f.dia_pago));
+            // Si ese día ya pasó este mes, ponemos el del mes que viene
+            if (fechaVence < hoy) {
+              fechaVence.setMonth(fechaVence.getMonth() + 1);
+            }
+          }
+
+          payload.fecha_vencimiento = fechaVence;
+
 
           await supabase.from('deuda_movimientos').insert([{
             deuda_id: f.deuda_origen_id, tipo: 'pago',
@@ -482,25 +506,60 @@ export default function DeudasPage() {
   }
 
   // ── Eliminar deuda ─────────────────────────────────────────────────────────
-
   async function handleDeleteDeuda(id) {
-    if (!confirm('¿Eliminar esta deuda y todos sus movimientos?')) return
-    const deuda = deudas.find(d => d.id === id)
-    if (deuda) {
-      await supabase.from('movimientos').delete()
-        .eq('categoria', 'deuda').ilike('descripcion', `%${deuda.nombre}%`)
-    }
-    await supabase.from('deudas').delete().eq('id', id)
-    setDeudas(prev => prev.filter(d => d.id !== id))
-    if (cardActiva === id) setCardActiva(null)
-  }
+    // 1. Confirmación de seguridad
+    if (!confirm('¿Estás seguro de eliminar esta deuda y todos sus registros asociados?')) return
 
+    setSaving(true) // Opcional: para mostrar un loader si lo tienes
+    try {
+      // 2. Borrar movimientos específicos de ESTA deuda usando el ID
+      // (Esto limpia la tabla deuda_movimientos)
+      const { error: err1 } = await supabase
+        .from('deuda_movimientos')
+        .delete()
+        .eq('deuda_id', id)
+
+      if (err1) throw new Error('Error al borrar movimientos: ' + err1.message)
+
+      // 3. Borrar registros en la tabla general de movimientos (si los hay)
+      // Aquí sí mantenemos tu lógica de descripción si esos gastos van a otra tabla
+      const deuda = deudas.find(d => d.id === id)
+      if (deuda) {
+        await supabase
+          .from('movimientos')
+          .delete()
+          .eq('categoria', 'deuda')
+          .ilike('descripcion', `%${deuda.nombre}%`)
+      }
+
+      // 4. Finalmente, borrar la deuda principal
+      const { error: err2 } = await supabase
+        .from('deudas')
+        .delete()
+        .eq('id', id)
+
+      if (err2) throw new Error('Error al borrar la deuda: ' + err2.message)
+
+      // 5. Actualizar la interfaz (Estado local)
+      setDeudas(prev => prev.filter(d => d.id !== id))
+      if (cardActiva === id) setCardActiva(null)
+
+      console.log('Borrado completo con éxito')
+
+    } catch (err) {
+      console.error(err)
+      alert(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
   // ── Totales ────────────────────────────────────────────────────────────────
 
   const activas = deudas.filter(d => d.estado !== 'pagada')
   const totalDeuda = activas.reduce((s, d) => s + (d.pendiente || 0), 0)
   const cuotasMes = activas.reduce((s, d) => s + (d.cuota || 0), 0)
   const vencenProximo = activas.filter(d => { const dias = diasHastaPago(d.dia_pago); return dias !== null && dias <= 7 }).length
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -554,6 +613,9 @@ export default function DeudasPage() {
       ) : (
         <div className="space-y-3">
           {deudas.map((d, i) => {
+            const diasFaltantes = d.fecha_vencimiento
+              ? Math.ceil((new Date(d.fecha_vencimiento) - new Date()) / (1000 * 60 * 60 * 24))
+              : null;
             const cfg = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
             const pct = d.monto > 0 ? Math.min(100, Math.round(((d.monto - (d.pendiente || 0)) / d.monto) * 100)) : 0
             const dias = diasHastaPago(d.dia_pago)
@@ -573,6 +635,16 @@ export default function DeudasPage() {
                 style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px' }}
                 onClick={() => setCardActiva(isActiva ? null : d.id)}
               >
+                {diasFaltantes !== null && (
+                  <div className="absolute top-2 right-2">
+                    <div className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-tighter ${diasFaltantes <= 3
+                        ? 'bg-red-100 text-red-600 animate-pulse'
+                        : 'bg-emerald-100 text-emerald-700'
+                      }`}>
+                      {diasFaltantes <= 0 ? '¡Vence hoy!' : `Vence en ${diasFaltantes}d`}
+                    </div>
+                  </div>
+                )}
                 {/* Fila principal */}
                 <div className="flex items-center gap-2.5 mb-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
