@@ -146,7 +146,7 @@ export default function InversionesPage() {
 
   const totalCapital = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
   const totalAportes = inversiones.reduce((s, i) => s + (i.aporte || 0), 0)
-  const metaLibertad = presupuesto ? presupuesto.total * 12 * 25 : null
+  const metaLibertad = (presupuesto?.total ?? 0) * 12 * 25
 
   // Colores del picker — son colores de cartera (dato del usuario, no del tema)
   const COLORES_PICKER = [

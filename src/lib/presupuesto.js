@@ -31,16 +31,17 @@ export async function getPresupuestoMes() {
   const pctInversiones = (subData || []).find(s => s.categoria === 'inversiones')?.pct || 40
 
   return {
-    ingresoReal,
-    montoFuturo,
-    montoEstilo,
-    montoNecesidades,
-    montoMetas:       montoFuturo * (pctMetas / 100),
-    montoInversiones: montoFuturo * (pctInversiones / 100),
-    pctFuturo,
-    pctEstilo,
-    pctNecesidades,
-    pctMetas,
-    pctInversiones,
-  }
+  total: ingresoReal,
+  ingresoReal,
+  montoFuturo,
+  montoEstilo,
+  montoNecesidades,
+  montoMetas: montoFuturo * (pctMetas / 100),
+  montoInversiones: montoFuturo * (pctInversiones / 100),
+  pctFuturo,
+  pctEstilo,
+  pctNecesidades,
+  pctMetas,
+  pctInversiones,
+}
 }
