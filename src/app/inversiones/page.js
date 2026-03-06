@@ -24,9 +24,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 // Definimos el estado inicial fuera para poder resetearlo fácilmente
-const INITIAL_FORM = { 
-  nombre: '', emoji: '📈', capital: '', aporte: '', 
-  tasa: '', anos: '10', bola_nieve: true, color: '#10b981' 
+const INITIAL_FORM = {
+  nombre: '', emoji: '📈', capital: '', aporte: '',
+  tasa: '', anos: '10', bola_nieve: true, color: '#10b981',
+  invertido_real: ''
 }
 
 export default function InversionesPage() {
@@ -49,9 +50,9 @@ export default function InversionesPage() {
     setLoading(true)
     const { data, error } = await supabase.from('inversiones').select('*').order('created_at')
     if (error) setError(error.message)
-    else { 
+    else {
       setInversiones(data || [])
-      if (data?.length) setSelected(data[0]) 
+      if (data?.length) setSelected(data[0])
     }
     setLoading(false)
   }
@@ -69,10 +70,11 @@ export default function InversionesPage() {
       tasa: parseFloat(form.tasa),
       anos: parseInt(form.anos),
       bola_nieve: form.bola_nieve,
-      color: form.color
+      color: form.color,
+      invertido_real: parseFloat(form.invertido_real || 0)
     }
 
-    const { data, error: saveError } = editandoId 
+    const { data, error: saveError } = editandoId
       ? await supabase.from('inversiones').update(payload).eq('id', editandoId).select()
       : await supabase.from('inversiones').insert([payload]).select()
 
@@ -94,24 +96,24 @@ export default function InversionesPage() {
   }
 
   async function handleDelete(id) {
-    if(!confirm('¿Seguro que quieres eliminar esta inversión?')) return
+    if (!confirm('¿Seguro que quieres eliminar esta inversión?')) return
     const { error } = await supabase.from('inversiones').delete().eq('id', id)
     if (!error) {
       const resto = inversiones.filter(i => i.id !== id)
       setInversiones(resto)
       if (selected?.id === id) setSelected(resto[0] || null)
-    } else { 
-      setError(error.message) 
+    } else {
+      setError(error.message)
     }
   }
 
   // IMPORTANTE: Pasamos "compound" basado en "bola_nieve"
-  const calc = selected ? calculateCompoundInterest({ 
-    principal: selected.capital, 
-    monthlyContribution: selected.aporte, 
-    annualRate: selected.tasa, 
+  const calc = selected ? calculateCompoundInterest({
+    principal: selected.capital,
+    monthlyContribution: selected.aporte,
+    annualRate: selected.tasa,
     years: selected.anos,
-    compound: selected.bola_nieve 
+    compound: selected.bola_nieve
   }) : null
 
   return (
@@ -121,7 +123,7 @@ export default function InversionesPage() {
           <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Módulo Futuro</p>
           <h1 className="text-xl md:text-3xl font-bold text-stone-800" style={{ letterSpacing: '-0.03em' }}>Inversiones</h1>
         </div>
-        <button onClick={() => { setEditandoId(null); setForm(INITIAL_FORM); setModal(true); }} 
+        <button onClick={() => { setEditandoId(null); setForm(INITIAL_FORM); setModal(true); }}
           className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} />Nueva inversión
         </button>
@@ -164,8 +166,8 @@ export default function InversionesPage() {
                       </p>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={e => { e.stopPropagation(); openEditModal(inv) }} className="p-1 hover:bg-stone-100 rounded text-stone-400"><Pencil size={14}/></button>
-                      <button onClick={e => { e.stopPropagation(); handleDelete(inv.id) }} className="p-1 hover:bg-red-50 rounded text-red-400"><Trash2 size={14}/></button>
+                      <button onClick={e => { e.stopPropagation(); openEditModal(inv) }} className="p-1 hover:bg-stone-100 rounded text-stone-400"><Pencil size={14} /></button>
+                      <button onClick={e => { e.stopPropagation(); handleDelete(inv.id) }} className="p-1 hover:bg-red-50 rounded text-red-400"><Trash2 size={14} /></button>
                     </div>
                   </div>
                   <div className="flex justify-between items-end">
@@ -176,7 +178,40 @@ export default function InversionesPage() {
               )
             })}
           </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* DINERO REAL HOY */}
+            <div className="glass-card p-4 border-b-4 border-b-sky-500">
+              <p className="text-[9px] text-stone-400 uppercase font-black mb-1">Invertido Hoy</p>
+              <p className="text-xl font-bold text-stone-800">
+                {formatCurrency(selected.invertido_real || 0)}
+              </p>
+              <p className="text-[9px] text-stone-400 font-bold">DINERO REAL PUESTO</p>
+            </div>
 
+            {/* PROYECCIÓN FINAL */}
+            <div className="glass-card p-4">
+              <p className="text-[9px] text-stone-400 uppercase font-black mb-1">Proyección Final</p>
+              <p className="text-xl font-bold" style={{ color: selected.color }}>
+                {formatCurrency(calc.finalBalance)}
+              </p>
+            </div>
+
+            {/* LO QUE TE FALTA POR PONER */}
+            <div className="glass-card p-4">
+              <p className="text-[9px] text-stone-400 uppercase font-black mb-1">Meta de Aportes</p>
+              <p className="text-xl font-bold text-stone-500">
+                {formatCurrency(calc.totalContributed)}
+              </p>
+            </div>
+
+            {/* BENEFICIO ESTIMADO */}
+            <div className="glass-card p-4">
+              <p className="text-[9px] text-stone-400 uppercase font-black mb-1">Beneficio Est.</p>
+              <p className="text-xl font-bold text-amber-500">
+                {formatCurrency(calc.totalInterest)}
+              </p>
+            </div>
+          </div>
           {/* Detalle y Gráfica */}
           {selected && calc && (
             <div className="col-span-1 lg:col-span-2 space-y-5">
@@ -199,13 +234,13 @@ export default function InversionesPage() {
 
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                   <div>
-                      <h3 className="font-black text-stone-800 uppercase text-xs tracking-widest">{selected.nombre}</h3>
-                      <p className="text-[10px] text-stone-400 font-bold">{selected.bola_nieve ? '🌨 INTERÉS COMPUESTO ACTIVADO' : '⚖️ INTERÉS SIMPLE'}</p>
-                   </div>
-                   <Badge color="emerald" className="text-lg px-3 py-1 font-black">x{(calc.finalBalance / selected.capital).toFixed(1)}</Badge>
+                  <div>
+                    <h3 className="font-black text-stone-800 uppercase text-xs tracking-widest">{selected.nombre}</h3>
+                    <p className="text-[10px] text-stone-400 font-bold">{selected.bola_nieve ? '🌨 INTERÉS COMPUESTO ACTIVADO' : '⚖️ INTERÉS SIMPLE'}</p>
+                  </div>
+                  <Badge color="emerald" className="text-lg px-3 py-1 font-black">x{(calc.finalBalance / selected.capital).toFixed(1)}</Badge>
                 </div>
-                
+
                 <ResponsiveContainer width="100%" height={250}>
                   <AreaChart data={calc.history}>
                     <defs>
@@ -214,7 +249,7 @@ export default function InversionesPage() {
                         <stop offset="95%" stopColor={selected.color} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{fill: '#a8a29e', fontSize: 10}} tickFormatter={v => `Año ${v}`} />
+                    <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: '#a8a29e', fontSize: 10 }} tickFormatter={v => `Año ${v}`} />
                     <Tooltip content={<CustomTooltip />} />
                     <Area type="monotone" dataKey="balance" stroke={selected.color} strokeWidth={3} fill="url(#gColor)" />
                     <Area type="monotone" dataKey="contributed" stroke="#e7e5e4" strokeWidth={2} strokeDasharray="4 4" fill="none" />
@@ -244,6 +279,18 @@ export default function InversionesPage() {
             <div>
               <label className="ff-label">Capital Inicial</label>
               <input className="ff-input" type="number" step="0.01" required value={form.capital} onChange={e => setForm({ ...form, capital: e.target.value })} />
+            </div>
+            <div>
+              <label className="ff-label text-blue-600 font-black">¿Cuánto has invertido ya en total?</label>
+              <input
+                className="ff-input border-blue-200 bg-blue-50/30"
+                type="number"
+                step="0.01"
+                placeholder="Suma de todos tus ingresos hoy"
+                value={form.invertido_real}
+                onChange={e => setForm({ ...form, invertido_real: e.target.value })}
+              />
+              <p className="text-[9px] text-stone-400 mt-1 italic">Este es el dinero "real" que ha salido de tu bolsillo hasta hoy.</p>
             </div>
             <div>
               <label className="ff-label">Aporte Mensual</label>
@@ -286,6 +333,61 @@ export default function InversionesPage() {
           </div>
         </form>
       </Modal>
+      {/* SECCIÓN: RUTA A LA LIBERTAD FINANCIERA */}
+      {selected && presupuesto && (
+        <div className="mt-8 animate-enter" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+              <span className="text-lg">🏝️</span>
+            </div>
+            <h3 className="font-black text-stone-800 uppercase text-xs tracking-widest">Ruta a la Libertad Financiera</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* El Objetivo */}
+            <Card className="p-5 border-l-4 border-l-amber-400">
+              <p className="text-[10px] font-black text-stone-400 uppercase mb-1">Tu Número de Libertad</p>
+              <p className="text-2xl font-black text-stone-800">
+                {formatCurrency(presupuesto.total * 12 * 25)}
+              </p>
+              <p className="text-[10px] text-stone-400 mt-2 font-bold">
+                Gastos actuales: {formatCurrency(presupuesto.total)}/mes
+              </p>
+            </Card>
+
+            {/* Progreso */}
+            <Card className="p-5">
+              <p className="text-[10px] font-black text-stone-400 uppercase mb-1">Progreso del Objetivo</p>
+              <div className="flex items-end gap-2 mb-2">
+                <p className="text-2xl font-black text-stone-800">
+                  {Math.min(100, (calc.finalBalance / (presupuesto.total * 12 * 25) * 100)).toFixed(1)}%
+                </p>
+                <p className="text-[10px] text-stone-400 font-bold mb-1.5">proyectado a {selected.anos} años</p>
+              </div>
+              <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full transition-all duration-1000"
+                  style={{
+                    width: `${Math.min(100, (calc.finalBalance / (presupuesto.total * 12 * 25) * 100))}%`,
+                    backgroundColor: selected.color
+                  }}
+                />
+              </div>
+            </Card>
+
+            {/* El Insight */}
+            <Card className="p-5 bg-stone-900 text-white border-none">
+              <p className="text-[10px] font-black text-stone-500 uppercase mb-1">Análisis de Retiro</p>
+              <p className="text-sm font-medium leading-tight">
+                Al finalizar los {selected.anos} años, podrías retirar <span className="text-amber-400 font-black">{formatCurrency(calc.finalBalance * 0.04 / 12)}/mes</span> sin tocar el capital principal.
+              </p>
+              <div className="mt-3 py-1.5 px-3 bg-white/10 rounded-lg inline-block">
+                <p className="text-[9px] font-bold text-stone-300">ESTADO: {calc.finalBalance > (presupuesto.total * 12 * 25) ? '✅ LIBRE' : '🏗️ CONSTRUYENDO'}</p>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
     </AppShell>
   )
 }
