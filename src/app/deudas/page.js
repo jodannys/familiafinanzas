@@ -103,6 +103,7 @@ export default function DeudasPage() {
   const [error, setError] = useState(null)
   const [expandido, setExpandido] = useState(null)
   const [cardActiva, setCardActiva] = useState(null)
+  const [misTarjetas, setMisTarjetas] = useState([])
 
   // Modal nueva/edición
   const [modalDeuda, setModalDeuda] = useState(false)
@@ -118,8 +119,6 @@ export default function DeudasPage() {
     tipo: 'cargo', descripcion: '', monto: '',
     fecha: new Date().toISOString().slice(0, 10),
   })
-
-  const [misTarjetas, setMisTarjetas] = useState([])
 
   const now = new Date()
   const mes = now.getMonth() + 1
