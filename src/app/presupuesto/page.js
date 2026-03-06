@@ -196,7 +196,20 @@ export default function PresupuestoPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
         {lista.map((bloque) => {
           const Icon = bloque.icon
-          const monto = ingresoNum * (bloque.pct / 100)
+          const gastosBasicosEstilo = gastadoReal('necesidades') + gastadoReal('estilo')
+
+          // Calcular monto según el bloque
+          let monto
+          if (bloque.id === 'futuro') {
+            // Futuro se calcula sobre lo que queda disponible después de necesidades + estilo
+            const ingresoNecesidades = ingresoNum * (bloques.find(b => b.id === 'necesidades')?.pct || 0) / 100
+            const ingresoEstilo = ingresoNum * (bloques.find(b => b.id === 'estilo')?.pct || 0) / 100
+            const disponibleParaFuturo = ingresoNum - ingresoNecesidades - ingresoEstilo
+            monto = disponibleParaFuturo * (bloque.pct / 100)
+          } else {
+            monto = ingresoNum * (bloque.pct / 100)
+          }
+
           const bloqueItems = items.filter(i => i.bloque === bloque.id)
           const totalItems = bloqueItems.reduce((s, i) => s + i.monto, 0)
           const isExpandido = expandido === bloque.id
