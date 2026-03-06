@@ -199,16 +199,7 @@ export default function PresupuestoPage() {
           const gastosBasicosEstilo = gastadoReal('necesidades') + gastadoReal('estilo')
 
           // Calcular monto según el bloque
-          let monto
-          if (bloque.id === 'futuro') {
-            // Futuro se calcula sobre lo que queda disponible después de necesidades + estilo
-            const ingresoNecesidades = ingresoNum * (bloques.find(b => b.id === 'necesidades')?.pct || 0) / 100
-            const ingresoEstilo = ingresoNum * (bloques.find(b => b.id === 'estilo')?.pct || 0) / 100
-            const disponibleParaFuturo = ingresoNum - ingresoNecesidades - ingresoEstilo
-            monto = disponibleParaFuturo * (bloque.pct / 100)
-          } else {
-            monto = ingresoNum * (bloque.pct / 100)
-          }
+          const monto = ingresoNum * (bloque.pct / 100);
 
           const bloqueItems = items.filter(i => i.bloque === bloque.id)
           const totalItems = bloqueItems.reduce((s, i) => s + i.monto, 0)
