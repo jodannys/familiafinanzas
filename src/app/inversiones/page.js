@@ -31,6 +31,7 @@ export default function InversionesPage() {
   const [error, setError] = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
   const [modal, setModal] = useState(false)
+  const [editandoId, setEditandoId] = useState(null)
   const [form, setForm] = useState({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', bola_nieve: true, color: '#10b981' })
 
   useEffect(() => {
@@ -49,15 +50,55 @@ export default function InversionesPage() {
   async function handleAdd(e) {
     e.preventDefault()
     setSaving(true)
-    const { data, error } = await supabase
-      .from('inversiones')
-      .insert([{ nombre: form.nombre, emoji: form.emoji, capital: parseFloat(form.capital), aporte: parseFloat(form.aporte || 0), tasa: parseFloat(form.tasa), anos: parseInt(form.anos), bola_nieve: form.bola_nieve, color: form.color }])
-      .select()
-    if (error) setError(error.message)
-    else { setInversiones(prev => [...prev, data[0]]); setSelected(data[0]); setModal(false); setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', bola_nieve: true, color: '#10b981' }) }
+    setError(null)
+
+    const payload = {
+      nombre: form.nombre,
+      emoji: form.emoji,
+      capital: parseFloat(form.capital),
+      aporte: parseFloat(form.aporte || 0),
+      tasa: parseFloat(form.tasa),
+      anos: parseInt(form.anos),
+      bola_nieve: form.bola_nieve,
+      color: form.color
+    }
+
+    let response;
+
+    if (editandoId) {
+      // Actualizar existente
+      response = await supabase.from('inversiones').update(payload).eq('id', editandoId).select()
+    } else {
+      // Crear nueva
+      response = await supabase.from('inversiones').insert([payload]).select()
+    }
+
+    if (response.error) {
+      setError(response.error.message)
+    } else {
+      setModal(false)
+      setForm(defaultForm)
+      setEditandoId(null)
+      cargar() // Recargamos la lista para asegurar que todo está sincronizado
+    }
     setSaving(false)
   }
 
+  // Nueva función para abrir el modal en modo edición
+  function openEditModal(inv) {
+    setForm({
+      nombre: inv.nombre,
+      emoji: inv.emoji,
+      capital: inv.capital,
+      aporte: inv.aporte,
+      tasa: inv.tasa,
+      anos: inv.anos,
+      bola_nieve: inv.bola_nieve,
+      color: inv.color
+    })
+    setEditandoId(inv.id)
+    setModal(true)
+  }
   async function handleDelete(id) {
     const { error } = await supabase.from('inversiones').delete().eq('id', id)
     if (!error) {
@@ -65,6 +106,7 @@ export default function InversionesPage() {
       setInversiones(resto)
       setSelected(resto[0] || null)
     }
+    else { setError(error.message) }
   }
 
   const calc = selected ? calculateCompoundInterest({ principal: selected.capital, monthlyContribution: selected.aporte, annualRate: selected.tasa, years: selected.anos }) : null
@@ -103,7 +145,13 @@ export default function InversionesPage() {
           {/* Lista */}
           <div className="space-y-3">
             {inversiones.map(inv => {
-              const c = calculateCompoundInterest({ principal: inv.capital, monthlyContribution: inv.aporte, annualRate: inv.tasa, years: inv.anos })
+              const c = calculateCompoundInterest({
+                principal: inv.capital,
+                monthlyContribution: inv.aporte,
+                annualRate: inv.tasa,
+                years: inv.anos,
+                compound: inv.bola_nieve
+              })
               const isSelected = selected?.id === inv.id
               return (
                 <div key={inv.id} onClick={() => setSelected(inv)}
@@ -120,11 +168,18 @@ export default function InversionesPage() {
                         <Snowflake size={12} className="text-sky-400" />
                       </div>
                     )}
-                    <button onClick={e => { e.stopPropagation(); handleDelete(inv.id) }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded-lg transition-opacity"
-                      style={{ color: '#C0605A' }}>
-                      <Trash2 size={13} />
-                    </button>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Botón Editar */}
+                      <button onClick={e => { e.stopPropagation(); openEditModal(inv) }}
+                        className="p-1.5 rounded-lg text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition-colors">
+                        <Pencil size={13} />
+                      </button>
+                      {/* Botón Borrar */}
+                      <button onClick={e => { e.stopPropagation(); handleDelete(inv.id) }}
+                        className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-stone-400">Capital: {formatCurrency(inv.capital)}</span>
@@ -273,6 +328,20 @@ export default function InversionesPage() {
             </button>
           </div>
         </form>
+        <div className="mb-4">
+          <label className="ff-label">Color de la gráfica</label>
+          <div className="flex gap-2 mt-1">
+            {['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'].map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setForm({ ...form, color: c })}
+                className={`w-6 h-6 rounded-full border-2 transition-all ${form.color === c ? 'border-stone-800 scale-110' : 'border-transparent'}`}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
       </Modal>
     </AppShell>
   )
