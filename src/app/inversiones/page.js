@@ -1,71 +1,59 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import { Card, Badge } from '@/components/ui/Card'
+import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { 
-  Plus, Loader2, TrendingUp, Wallet, Target, 
-  Trash2, Pencil, Info, ChevronRight 
+import {
+  Plus, Loader2, Trash2, Pencil,
+  TrendingUp, Target, Wallet, Sparkles,
+  AlertCircle
 } from 'lucide-react'
 import { formatCurrency, calculateCompoundInterest } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
-import { 
-  ResponsiveContainer, AreaChart, Area, XAxis, 
-  YAxis, Tooltip, CartesianGrid 
+import {
+  ResponsiveContainer, AreaChart, Area,
+  XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts'
 
-// --- COMPONENTES AUXILIARES ---
+// ─── Tooltip del gráfico ─────────────────────────────────────────────────────
 
 const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload || !payload.length) return null
+  if (!active || !payload?.length) return null
   return (
-    <div className="glass-card p-4 shadow-2xl border-none" style={{ background: 'var(--bg-card)', backdropFilter: 'blur(10px)' }}>
-      <p className="text-[10px] uppercase font-black mb-2 opacity-60" style={{ color: 'var(--text-primary)' }}>Año {label}</p>
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border-glass)',
+      borderRadius: 12,
+      padding: '8px 12px'
+    }}>
+      <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+        Año {label}
+      </p>
       {payload.map(p => (
-        <div key={p.name} className="flex items-center gap-2 mb-1">
-          <div className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            {p.name === 'balance' ? 'Total: ' : 'Aportado: '}
-            {formatCurrency(p.value)}
-          </p>
-        </div>
+        <p key={p.name} style={{ fontSize: 11, fontWeight: 800, color: p.color }}>
+          {p.name === 'contributed' ? 'Aportado' : 'Balance'}: {formatCurrency(p.value)}
+        </p>
       ))}
     </div>
   )
 }
 
-function SummaryCard({ label, value, icon, color, subtext }) {
-  return (
-    <div className="glass-card p-5 border-none shadow-sm flex flex-col justify-between min-h-[110px]" style={{ background: 'var(--bg-card)' }}>
-      <div className="flex items-center justify-between">
-        <p className="ff-label !mb-0">{label}</p>
-        <div style={{ color: color }} className="opacity-80">{icon}</div>
-      </div>
-      <div>
-        <p className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{value}</p>
-        {subtext && <p className="text-[9px] font-bold opacity-50 uppercase mt-1" style={{ color: 'var(--text-primary)' }}>{subtext}</p>}
-      </div>
-    </div>
-  )
-}
-
-// --- PÁGINA PRINCIPAL ---
-
-const INITIAL_FORM = {
-  nombre: '', emoji: '📈', capital: '', aporte: '', 
-  tasa: '', anos: '10', color: '#2D7A5F', invertido_real: ''
-}
+// ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function InversionesPage() {
   const [inversiones, setInversiones] = useState([])
-  const [selected, setSelected] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [selected, setSelected]       = useState(null)
+  const [loading, setLoading]         = useState(true)
+  const [saving, setSaving]           = useState(false)
+  const [error, setError]             = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
-  const [modal, setModal] = useState(false)
-  const [editandoId, setEditandoId] = useState(null)
-  const [form, setForm] = useState(INITIAL_FORM)
+  const [modal, setModal]             = useState(false)
+  const [editandoId, setEditandoId]   = useState(null)
+  const [form, setForm] = useState({
+    nombre: '', emoji: '📈', capital: '', aporte: '',
+    tasa: '', anos: '10', color: 'var(--accent-green)'
+  })
 
   useEffect(() => {
     cargar()
@@ -74,10 +62,11 @@ export default function InversionesPage() {
 
   async function cargar() {
     setLoading(true)
-    const { data } = await supabase.from('inversiones').select('*').order('created_at')
-    if (data) {
-      setInversiones(data)
-      if (data.length > 0) setSelected(data[0])
+    const { data, error } = await supabase.from('inversiones').select('*').order('created_at')
+    if (error) setError(error.message)
+    else {
+      setInversiones(data || [])
+      if (data?.length) setSelected(data[0])
     }
     setLoading(false)
   }
@@ -85,252 +74,490 @@ export default function InversionesPage() {
   async function handleSave(e) {
     e.preventDefault()
     setSaving(true)
+    setError(null)
     const payload = {
-      ...form,
-      capital: parseFloat(form.capital),
-      aporte: parseFloat(form.aporte || 0),
-      tasa: parseFloat(form.tasa),
-      anos: parseInt(form.anos),
-      invertido_real: parseFloat(form.invertido_real || 0)
+      nombre: form.nombre,
+      emoji: form.emoji,
+      capital: parseFloat(form.capital) || 0,
+      aporte: parseFloat(form.aporte) || 0,
+      tasa: parseFloat(form.tasa) || 0,
+      anos: parseInt(form.anos) || 10,
+      color: form.color,
     }
 
-    const { error } = editandoId 
-      ? await supabase.from('inversiones').update(payload).eq('id', editandoId)
-      : await supabase.from('inversiones').insert([payload])
-
-    if (!error) {
-      setModal(false)
-      setEditandoId(null)
-      setForm(INITIAL_FORM)
-      cargar()
+    if (editandoId) {
+      const { error } = await supabase.from('inversiones').update(payload).eq('id', editandoId)
+      if (error) { setError(error.message); setSaving(false); return }
+      setInversiones(prev => prev.map(i => i.id === editandoId ? { ...i, ...payload } : i))
+      if (selected?.id === editandoId) setSelected(prev => ({ ...prev, ...payload }))
+    } else {
+      const { data, error } = await supabase.from('inversiones').insert([payload]).select()
+      if (error) { setError(error.message); setSaving(false); return }
+      setInversiones(prev => [...prev, data[0]])
+      setSelected(data[0])
     }
+
     setSaving(false)
+    setModal(false)
+    setEditandoId(null)
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: 'var(--accent-green)' })
   }
 
-  async function eliminar(id) {
-    if (!confirm('¿Seguro que quieres eliminar esta cartera?')) return
-    await supabase.from('inversiones').delete().eq('id', id)
-    cargar()
+  function abrirNuevo() {
+    setEditandoId(null)
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: 'var(--accent-green)' })
+    setModal(true)
   }
 
-  const calc = selected ? calculateCompoundInterest({
-    principal: selected.capital,
-    monthlyContribution: selected.aporte,
-    annualRate: selected.tasa,
-    years: selected.anos,
-    compound: true
-  }) : null
+  function abrirEdicion(inv) {
+    setEditandoId(inv.id)
+    setForm({
+      nombre: inv.nombre || '',
+      emoji: inv.emoji || '📈',
+      capital: inv.capital?.toString() || '',
+      aporte: inv.aporte?.toString() || '',
+      tasa: inv.tasa?.toString() || '',
+      anos: inv.anos?.toString() || '10',
+      color: inv.color || 'var(--accent-green)',
+    })
+    setModal(true)
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('¿Eliminar esta cartera?')) return
+    const { error } = await supabase.from('inversiones').delete().eq('id', id)
+    if (!error) {
+      const resto = inversiones.filter(i => i.id !== id)
+      setInversiones(resto)
+      setSelected(resto[0] || null)
+    }
+  }
+
+  const calc = selected
+    ? calculateCompoundInterest({
+        principal: selected.capital,
+        monthlyContribution: selected.aporte,
+        annualRate: selected.tasa,
+        years: selected.anos,
+      })
+    : null
+
+  const historyData = calc?.history?.filter(d => d?.year != null) || []
+
+  const totalCapital = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
+  const totalAportes = inversiones.reduce((s, i) => s + (i.aporte || 0), 0)
+  const metaLibertad = presupuesto ? presupuesto.total * 12 * 25 : null
+
+  // Colores del picker — son colores de cartera (dato del usuario, no del tema)
+  const COLORES_PICKER = [
+    { hex: '#2D7A5F', label: 'Verde' },
+    { hex: '#4A6FA5', label: 'Azul' },
+    { hex: '#818CF8', label: 'Índigo' },
+    { hex: '#C17A3A', label: 'Terra' },
+    { hex: '#C0605A', label: 'Rosa' },
+    { hex: '#10b981', label: 'Menta' },
+    { hex: '#8b5cf6', label: 'Violeta' },
+  ]
+
+  // ─── RENDER ──────────────────────────────────────────────────────────────────
 
   return (
     <AppShell>
-      <div className="max-w-[1400px] mx-auto pb-10">
-        
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 animate-enter">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-               <div className="w-8 h-[2px]" style={{ background: 'var(--accent-green)' }} />
-               <p className="text-[10px] uppercase tracking-[0.2em] font-black" style={{ color: 'var(--text-muted)' }}>Módulo Futuro</p>
-            </div>
-            <h1 className="text-4xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
-              Inversiones<span style={{ color: 'var(--accent-green)' }}>.</span>
-            </h1>
-          </div>
-          <button onClick={() => { setEditandoId(null); setForm(INITIAL_FORM); setModal(true); }} 
-            className="ff-btn-primary flex items-center justify-center gap-2 h-14 px-8 shadow-lg shadow-[var(--accent-green)]/20">
-            <Plus size={20} strokeWidth={3} />
-            <span className="text-xs font-black uppercase tracking-widest">Nueva Cartera</span>
-          </button>
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
+            style={{ color: 'var(--text-muted)' }}>Módulo</p>
+          <h1 className="text-xl font-black tracking-tight truncate"
+            style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
         </div>
-
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 opacity-30">
-            <Loader2 size={40} className="animate-spin mb-4" />
-            <p className="text-xs font-black uppercase tracking-widest">Calculando Proyecciones...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* LISTADO LATERAL (Desktop: Izquierda) */}
-            <div className="lg:col-span-3 space-y-4 order-2 lg:order-1">
-              <div className="flex items-center justify-between px-1">
-                <p className="ff-label !mb-0">Tus Estrategias</p>
-                <Badge color="gray">{inversiones.length}</Badge>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-                {inversiones.map(inv => {
-                  const isSelected = selected?.id === inv.id
-                  return (
-                    <div key={inv.id} className="relative group">
-                      <button onClick={() => setSelected(inv)}
-                        className={`w-full glass-card p-4 transition-all duration-500 text-left relative overflow-hidden ${isSelected ? 'ring-2 ring-inset scale-[1.02]' : 'opacity-60 hover:opacity-100'}`}
-                        style={{ borderColor: isSelected ? inv.color : 'var(--border-glass)', ringColor: inv.color }}>
-                        <div className="flex items-center gap-4">
-                          <div className="text-2xl bg-white/10 w-12 h-12 flex items-center justify-center rounded-2xl shadow-inner">{inv.emoji}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-black truncate uppercase tracking-tight" style={{ color: 'var(--text-primary)' }}>{inv.nombre}</p>
-                            <p className="text-[10px] font-bold opacity-50" style={{ color: 'var(--text-primary)' }}>{formatCurrency(inv.capital)} inicial</p>
-                          </div>
-                          {isSelected && <ChevronRight size={16} style={{ color: inv.color }} />}
-                        </div>
-                      </button>
-                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setForm(inv); setEditandoId(inv.id); setModal(true); }} className="p-2 hover:bg-white/20 rounded-full" style={{ color: 'var(--text-primary)' }}><Pencil size={12}/></button>
-                        <button onClick={() => eliminar(inv.id)} className="p-2 hover:bg-red-500/10 rounded-full text-red-500"><Trash2 size={12}/></button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* CONTENIDO PRINCIPAL (Desktop: Centro/Derecha) */}
-            <div className="lg:col-span-9 space-y-8 order-1 lg:order-2">
-              {selected && calc ? (
-                <>
-                  {/* METRICAS CLAVE */}
-                  <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-                    <SummaryCard label="Inversión Hoy" value={formatCurrency(selected.invertido_real || 0)} icon={<Wallet size={18}/>} color="var(--accent-blue)" subtext="Saldo Actual" />
-                    <SummaryCard label="Valor Final" value={formatCurrency(calc.finalBalance)} icon={<TrendingUp size={18}/>} color={selected.color} subtext={`En ${selected.anos} años`} />
-                    <SummaryCard label="Tu Esfuerzo" value={formatCurrency(calc.totalContributed)} icon={<Plus size={18}/>} color="var(--text-muted)" subtext="Total aportado" />
-                    <SummaryCard label="Interés Neto" value={formatCurrency(calc.totalInterest)} icon={<Target size={18}/>} color="var(--accent-terra)" subtext="Ganancia pura" />
-                  </div>
-
-                  {/* GRÁFICO DE CRECIMIENTO */}
-                  <Card className="p-6 md:p-10 border-none shadow-xl relative overflow-hidden group">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-2xl">{selected.emoji}</span>
-                          <h3 className="text-2xl font-black tracking-tighter uppercase" style={{ color: 'var(--text-primary)' }}>{selected.nombre}</h3>
-                        </div>
-                        <p className="text-xs font-bold opacity-40 uppercase tracking-[0.2em]">Crecimiento Compuesto Estancado al {selected.tasa}%</p>
-                      </div>
-                      <div className="flex items-center gap-6 bg-[var(--bg-secondary)] py-3 px-6 rounded-3xl">
-                        <div className="text-center">
-                          <p className="text-[9px] font-black opacity-40 uppercase mb-1">Potencial</p>
-                          <p className="text-xl font-black" style={{ color: selected.color }}>x{(calc.finalBalance / (selected.capital || 1)).toFixed(1)}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="h-[350px] md:h-[450px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={calc.history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="colorInv" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={selected.color} stopOpacity={0.4} />
-                              <stop offset="95%" stopColor={selected.color} stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-glass)" opacity={0.5} />
-                          <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 11, fontWeight: 700 }} tickFormatter={v => `Año ${v}`} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickFormatter={v => `$${v/1000}k`} />
-                          <Tooltip content={<CustomTooltip />} cursor={{ stroke: selected.color, strokeWidth: 2, strokeDasharray: '6 6' }} />
-                          <Area name="balance" type="monotone" dataKey="balance" stroke={selected.color} strokeWidth={4} fill="url(#colorInv)" animationDuration={2000} />
-                          <Area name="contributed" type="monotone" dataKey="contributed" stroke="var(--text-muted)" strokeWidth={2} strokeDasharray="8 4" fill="transparent" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-
-                  {/* SECCIÓN ANALÍTICA DE RETIRO */}
-                  {presupuesto && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="glass-card p-8 border-none shadow-lg flex flex-col justify-between" style={{ background: 'var(--bg-card)' }}>
-                        <div>
-                          <p className="ff-label">Meta de Libertad Financiera</p>
-                          <h4 className="text-4xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>{formatCurrency(presupuesto.total * 12 * 25)}</h4>
-                          <p className="text-[10px] font-bold opacity-50 mt-2 uppercase">Basado en gastos de {formatCurrency(presupuesto.total)}/mes</p>
-                        </div>
-                        <div className="mt-8">
-                          <div className="flex justify-between text-[10px] font-black uppercase mb-2">
-                             <span style={{ color: 'var(--text-muted)' }}>Progreso Meta</span>
-                             <span style={{ color: 'var(--accent-green)' }}>{Math.min((calc.finalBalance / (presupuesto.total * 12 * 25)) * 100, 100).toFixed(1)}%</span>
-                          </div>
-                          <div className="w-full bg-[var(--bg-secondary)] h-3 rounded-full overflow-hidden shadow-inner">
-                            <div className="h-full transition-all duration-[2s] ease-out shadow-lg" 
-                              style={{ background: 'var(--accent-green)', width: `${Math.min((calc.finalBalance / (presupuesto.total * 12 * 25)) * 100, 100)}%` }} />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-8 rounded-[32px] flex flex-col justify-center border-none shadow-2xl relative overflow-hidden" 
-                        style={{ background: 'var(--accent-green)', color: 'white' }}>
-                        <div className="absolute -right-10 -bottom-10 opacity-10 rotate-12"><Target size={200} /></div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-4 text-white">Estrategia de Salida</p>
-                        <p className="text-2xl font-medium leading-tight text-white/90 italic">
-                          "Al alcanzar tu meta, podrías retirar <span className="text-white font-black underline decoration-white/30">{formatCurrency(calc.finalBalance * 0.04 / 12)}</span> al mes sin que tu dinero se agote nunca."
-                        </p>
-                        <div className="mt-6 flex items-center gap-2 text-white/60">
-                           <Info size={14} />
-                           <p className="text-[9px] font-bold uppercase tracking-widest">Aplicando la Regla del 4% Anual</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="h-[600px] flex flex-col items-center justify-center opacity-20 text-center">
-                  <TrendingUp size={80} className="mb-4" />
-                  <p className="text-xl font-black uppercase tracking-[0.2em]">Selecciona una cartera para proyectar</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <button onClick={abrirNuevo} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
+          <Plus size={16} strokeWidth={3} />
+          <span className="hidden sm:inline text-sm font-bold">Nueva cartera</span>
+        </button>
       </div>
 
-      {/* MODAL PARA CREAR/EDITAR */}
-      <Modal open={modal} onClose={() => setModal(false)} title={editandoId ? "Editar Estrategia" : "Nueva Estrategia de Inversión"}>
-        <form onSubmit={handleSave} className="space-y-6 py-2">
-          <div className="grid grid-cols-4 gap-4">
-            <div className="col-span-1">
-              <label className="ff-label italic">Emoji</label>
-              <input className="ff-input text-center text-2xl h-14" value={form.emoji} onChange={e => setForm({ ...form, emoji: e.target.value })} />
+      {/* ── Error ── */}
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2"
+          style={{
+            background: 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--accent-rose) 25%, transparent)',
+            color: 'var(--accent-rose)'
+          }}>
+          <AlertCircle size={14} />{error}
+        </div>
+      )}
+
+      {/* ── Stats globales ── */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        {[
+          { label: 'Capital total',    value: formatCurrency(totalCapital), color: 'var(--accent-green)' },
+          { label: 'Aportes / mes',    value: formatCurrency(totalAportes), color: 'var(--accent-terra)' },
+          { label: 'Carteras activas', value: `${inversiones.length}`,      color: 'var(--accent-blue)'  },
+        ].map((s, i) => (
+          <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
+            <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
+              style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+            <p className="text-sm font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Contenido principal ── */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={20} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+        </div>
+      ) : inversiones.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No hay carteras registradas</p>
+          <button onClick={abrirNuevo} className="ff-btn-primary">Crear primera cartera</button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+
+          {/* ── Chips selector de cartera ── */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {inversiones.map(inv => (
+              <button key={inv.id}
+                onClick={() => setSelected(inv)}
+                className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
+                style={{
+                  background: selected?.id === inv.id ? `${inv.color}18` : 'var(--bg-secondary)',
+                  color:      selected?.id === inv.id ? inv.color         : 'var(--text-muted)',
+                  border:     `1px solid ${selected?.id === inv.id ? `${inv.color}40` : 'var(--border-glass)'}`,
+                }}>
+                <span>{inv.emoji}</span>
+                <span className="hidden sm:inline">{inv.nombre}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* ── Detalle cartera seleccionada ── */}
+          {selected && calc && (
+            <Card className="animate-enter" style={{ padding: '16px' }}>
+
+              {/* Cabecera */}
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                    style={{ background: `${selected.color}18` }}>
+                    {selected.emoji}
+                  </div>
+                  <div>
+                    <p className="font-black text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {selected.nombre}
+                    </p>
+                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      {selected.tasa}% anual · {selected.anos} años · +{formatCurrency(selected.aporte)}/mes
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button onClick={() => abrirEdicion(selected)}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
+                    style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)', color: 'var(--accent-blue)' }}>
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => handleDelete(selected.id)}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
+                    style={{ background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)', color: 'var(--accent-rose)' }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {/* KPIs */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { icon: <Wallet size={12} />,    label: 'Capital inicial',  value: formatCurrency(selected.capital),       color: 'var(--accent-blue)'  },
+                  { icon: <TrendingUp size={12} />, label: 'Balance final',    value: formatCurrency(calc.finalBalance),      color: selected.color        },
+                  { icon: <Sparkles size={12} />,   label: 'Ganancias netas', value: formatCurrency(calc.totalInterest),     color: 'var(--accent-terra)' },
+                ].map((k, i) => (
+                  <div key={i} className="p-2.5 rounded-xl text-center"
+                    style={{
+                      background: `color-mix(in srgb, ${k.color} 8%, transparent)`,
+                      border:     `1px solid color-mix(in srgb, ${k.color} 20%, transparent)`,
+                    }}>
+                    <div className="flex items-center justify-center gap-1 mb-1" style={{ color: k.color }}>
+                      {k.icon}
+                      <p className="text-[8px] font-black uppercase">{k.label}</p>
+                    </div>
+                    <p className="text-sm font-black" style={{ color: k.color, letterSpacing: '-0.02em' }}>{k.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Multiplicador */}
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
+                style={{
+                  background: `color-mix(in srgb, ${selected.color} 8%, transparent)`,
+                  border:     `1px solid color-mix(in srgb, ${selected.color} 20%, transparent)`,
+                }}>
+                <Target size={13} style={{ color: selected.color, flexShrink: 0 }} />
+                <p className="text-[10px] font-black" style={{ color: selected.color }}>
+                  Tu dinero se multiplica ×{(calc.finalBalance / (selected.capital || 1)).toFixed(1)} en {selected.anos} años
+                </p>
+                <span className="ml-auto text-[9px] font-black px-2 py-0.5 rounded-full"
+                  style={{ background: `color-mix(in srgb, ${selected.color} 15%, transparent)`, color: selected.color }}>
+                  Interés compuesto
+                </span>
+              </div>
+
+              {/* Gráfico */}
+              {historyData.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[9px] font-black uppercase mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>
+                    Proyección de crecimiento
+                  </p>
+                  <div style={{ height: 160 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={historyData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id={`grad-${selected.id}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%"  stopColor={selected.color} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={selected.color} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-glass)" opacity={0.5} />
+                        <XAxis dataKey="year" axisLine={false} tickLine={false}
+                          tick={{ fill: 'var(--text-muted)', fontSize: 9, fontWeight: 700 }}
+                          tickFormatter={v => `A${v}`} interval="preserveStartEnd" />
+                        <YAxis axisLine={false} tickLine={false}
+                          tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
+                          tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                        <Tooltip content={<CustomTooltip />}
+                          cursor={{ stroke: selected.color, strokeWidth: 1.5, strokeDasharray: '4 4' }} />
+                        <Area name="balance" type="monotone" dataKey="balance"
+                          stroke={selected.color} strokeWidth={2.5}
+                          fill={`url(#grad-${selected.id})`} />
+                        <Area name="contributed" type="monotone" dataKey="contributed"
+                          stroke="var(--text-muted)" strokeWidth={1.5}
+                          strokeDasharray="5 3" fill="transparent" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 ml-1">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-0.5 rounded" style={{ background: selected.color }} />
+                      <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>Balance proyectado</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 border-t border-dashed" style={{ borderColor: 'var(--text-muted)' }} />
+                      <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>Total aportado</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Regla del 4% */}
+              <div className="p-3 rounded-xl"
+                style={{
+                  background: 'color-mix(in srgb, var(--accent-green) 6%, transparent)',
+                  border:     '1px solid color-mix(in srgb, var(--accent-green) 15%, transparent)',
+                }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles size={11} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
+                  <p className="text-[9px] font-black uppercase" style={{ color: 'var(--accent-green)' }}>
+                    Retiro mensual sostenible (Regla del 4%)
+                  </p>
+                </div>
+                <p className="text-base font-black" style={{ color: 'var(--accent-green)', letterSpacing: '-0.02em' }}>
+                  {formatCurrency(calc.finalBalance * 0.04 / 12)}
+                  <span className="text-[10px] font-bold opacity-60">/mes para siempre</span>
+                </p>
+              </div>
+            </Card>
+          )}
+
+          {/* ── Meta libertad financiera ── */}
+          {metaLibertad && calc && (
+            <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Target size={13} style={{ color: 'var(--accent-terra)' }} />
+                  <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
+                    Meta libertad financiera
+                  </p>
+                </div>
+                <p className="text-[10px] font-black" style={{ color: 'var(--accent-green)' }}>
+                  {Math.min(100, (calc.finalBalance / metaLibertad * 100)).toFixed(1)}%
+                </p>
+              </div>
+              <ProgressBar
+                value={Math.min(calc.finalBalance, metaLibertad)}
+                max={metaLibertad}
+                color="var(--accent-green)"
+              />
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                  Basado en {formatCurrency(presupuesto.total)}/mes × 12 × 25
+                </p>
+                <p className="text-[9px] font-black" style={{ color: 'var(--text-secondary)' }}>
+                  {formatCurrency(metaLibertad)}
+                </p>
+              </div>
+            </Card>
+          )}
+
+          {/* ── Lista compacta de todas las carteras ── */}
+          {inversiones.length > 1 && (
+            <div className="space-y-2">
+              <p className="text-[9px] font-black uppercase ml-1" style={{ color: 'var(--text-muted)' }}>
+                Todas las carteras
+              </p>
+              {inversiones.map((inv, i) => {
+                const c = calculateCompoundInterest({
+                  principal: inv.capital,
+                  monthlyContribution: inv.aporte,
+                  annualRate: inv.tasa,
+                  years: inv.anos,
+                })
+                return (
+                  <div key={inv.id}
+                    onClick={() => setSelected(inv)}
+                    className="glass-card cursor-pointer transition-all animate-enter"
+                    style={{
+                      animationDelay: `${i * 0.04}s`,
+                      padding: '10px 14px',
+                      border: selected?.id === inv.id ? `1px solid ${inv.color}40` : '',
+                    }}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: `${inv.color}18` }}>
+                        <span className="text-base">{inv.emoji}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-black truncate" style={{ color: 'var(--text-primary)' }}>
+                          {inv.nombre}
+                        </p>
+                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                          {inv.tasa}% · {inv.anos}a · +{formatCurrency(inv.aporte)}/mes
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-black" style={{ color: inv.color, letterSpacing: '-0.02em' }}>
+                          {formatCurrency(c.finalBalance)}
+                        </p>
+                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>en {inv.anos} años</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MODAL CREAR / EDITAR
+      ══════════════════════════════════════════════════ */}
+      <Modal
+        open={modal}
+        onClose={() => { setModal(false); setEditandoId(null) }}
+        title={editandoId ? 'Editar Cartera' : 'Nueva Cartera'}>
+        <form onSubmit={handleSave} className="space-y-4">
+
+          {/* Emoji + Nombre */}
+          <div className="grid grid-cols-4 gap-3">
+            <div>
+              <label className="ff-label">Emoji</label>
+              <input className="ff-input text-center text-xl" maxLength={2}
+                value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))} />
             </div>
             <div className="col-span-3">
-              <label className="ff-label">Nombre de la Cartera</label>
-              <input className="ff-input h-14" placeholder="Ej: S&P 500, Dividendos..." required value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
+              <label className="ff-label">Nombre de la cartera</label>
+              <input className="ff-input" required placeholder="Ej: S&P 500, Dividendos..."
+                value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Capital + Aporte */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ff-label !text-[var(--accent-blue)] font-black">Capital Invertido Real</label>
-              <input className="ff-input h-12 border-[var(--accent-blue)]/30" type="number" step="0.01" placeholder="¿Cuánto hay hoy?" value={form.invertido_real} onChange={e => setForm({ ...form, invertido_real: e.target.value })} />
+              <label className="ff-label">Capital inicial (€)</label>
+              <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
+                value={form.capital} onChange={e => setForm(p => ({ ...p, capital: e.target.value }))} />
             </div>
             <div>
-              <label className="ff-label">Capital Inicial (Cálculo)</label>
-              <input className="ff-input h-12" type="number" step="0.01" required value={form.capital} onChange={e => setForm({ ...form, capital: e.target.value })} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="ff-label">Aporte Mensual</label>
-              <input className="ff-input h-12" type="number" step="0.01" required value={form.aporte} onChange={e => setForm({ ...form, aporte: e.target.value })} />
-            </div>
-            <div>
-              <label className="ff-label">Tasa Anual (%)</label>
-              <input className="ff-input h-12" type="number" step="0.1" required value={form.tasa} onChange={e => setForm({ ...form, tasa: e.target.value })} />
+              <label className="ff-label">Aporte mensual (€)</label>
+              <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
+                value={form.aporte} onChange={e => setForm(p => ({ ...p, aporte: e.target.value }))} />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Tasa + Años */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ff-label">Plazo (Años)</label>
-              <input className="ff-input h-12" type="number" required value={form.anos} onChange={e => setForm({ ...form, anos: e.target.value })} />
+              <label className="ff-label">Tasa anual (%)</label>
+              <input className="ff-input" type="number" min="0" step="0.1" placeholder="Ej: 7" required
+                value={form.tasa} onChange={e => setForm(p => ({ ...p, tasa: e.target.value }))} />
             </div>
             <div>
-              <label className="ff-label">Color Visual</label>
-              <input className="w-full h-12 rounded-xl cursor-pointer border-none" type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} />
+              <label className="ff-label">Plazo (años)</label>
+              <input className="ff-input" type="number" min="1" max="50" placeholder="10" required
+                value={form.anos} onChange={e => setForm(p => ({ ...p, anos: e.target.value }))} />
             </div>
           </div>
 
-          <button type="submit" disabled={saving} className="ff-btn-primary w-full py-5 text-xs font-black uppercase tracking-[0.2em] shadow-xl">
-            {saving ? <Loader2 className="animate-spin mx-auto" size={20} /> : (editandoId ? 'Guardar Cambios' : 'Lanzar Inversión')}
-          </button>
+          {/* Preview en tiempo real */}
+          {form.capital && form.tasa && form.anos && (() => {
+            const prev = calculateCompoundInterest({
+              principal: parseFloat(form.capital) || 0,
+              monthlyContribution: parseFloat(form.aporte) || 0,
+              annualRate: parseFloat(form.tasa) || 0,
+              years: parseInt(form.anos) || 10,
+            })
+            const c = form.color.startsWith('var(') ? 'var(--accent-green)' : form.color
+            return (
+              <div className="px-3 py-2.5 rounded-xl text-[10px] font-bold"
+                style={{
+                  background: `color-mix(in srgb, ${c} 8%, transparent)`,
+                  color: c,
+                  border: `1px solid color-mix(in srgb, ${c} 20%, transparent)`,
+                }}>
+                Balance proyectado:{' '}
+                <span className="font-black text-sm">{formatCurrency(prev.finalBalance)}</span>
+                <span className="opacity-60 ml-1">en {form.anos} años</span>
+              </div>
+            )
+          })()}
+
+          {/* Picker de color de cartera */}
+          <div>
+            <label className="ff-label">Color de la cartera</label>
+            <div className="flex gap-2 mt-1 flex-wrap">
+              {COLORES_PICKER.map(({ hex, label }) => (
+                <button key={hex} type="button" title={label}
+                  onClick={() => setForm(p => ({ ...p, color: hex }))}
+                  className="w-8 h-8 rounded-full transition-all"
+                  style={{
+                    backgroundColor: hex,
+                    outline: form.color === hex ? `3px solid var(--text-secondary)` : 'none',
+                    outlineOffset: 2,
+                    opacity: form.color === hex ? 1 : 0.5,
+                    transform: form.color === hex ? 'scale(1.15)' : 'scale(1)',
+                  }} />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button"
+              onClick={() => { setModal(false); setEditandoId(null) }}
+              className="ff-btn-ghost flex-1">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear cartera'}
+            </button>
+          </div>
         </form>
       </Modal>
     </AppShell>
