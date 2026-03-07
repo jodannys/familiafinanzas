@@ -398,7 +398,7 @@ export default function MetasPage() {
                         : `Quedan ${pctRestante}% libres`}
                     </span>
                     <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>
-                      {pctUsado + pctActual}/{pctMax}% usado
+                      {pctUsado + pctActual}% usado
                     </span>
                   </div>
 
