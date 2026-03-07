@@ -319,12 +319,7 @@ export default function ReportesPage() {
                           <p className="text-[10px] font-black truncate" style={{ color: 'var(--text-secondary)' }}>
                             {g.label}
                           </p>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                            style={{
-                              background: `color-mix(in srgb, ${g.color} 12%, transparent)`,
-                              color: g.color,
-                            }}>
-                          </span>
+                          
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                           <p className="text-[10px] font-black"
