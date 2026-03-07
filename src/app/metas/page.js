@@ -361,16 +361,6 @@ export default function MetasPage() {
                 value={form.pct_mensual}
                 onChange={e => setForm({ ...form, pct_mensual: e.target.value })}
               />
-
-              {/* Aviso fijo de porcentaje libre */}
-              {presupuesto && (
-                <div className="text-[10px] mt-1 pl-1 text-stone-500">
-                  🛈 Te queda{' '}
-                  {Math.max(0, pctDisponible + (editingId ? parseFloat(form.pct_mensual || 0) : 0))}%
-                  libre = {formatCurrency((Math.max(0, pctDisponible + (editingId ? parseFloat(form.pct_mensual || 0) : 0)) / 100) * presupuesto.montoMetas)}/mes
-                </div>
-              )}
-
               {/* Monto equivalente del input */}
               {presupuesto && (
                 <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>
@@ -378,6 +368,15 @@ export default function MetasPage() {
                 </p>
               )}
             </div>
+
+            {/* Aviso fijo de porcentaje libre */}
+            {presupuesto && (
+              <div className="text-[10px] mt-1 pl-1 text-stone-500">
+                🛈 Te queda{' '}
+                {Math.max(0, pctDisponible + (editingId ? parseFloat(form.pct_mensual || 0) : 0))}%
+                libre = {formatCurrency((Math.max(0, pctDisponible + (editingId ? parseFloat(form.pct_mensual || 0) : 0)) / 100) * presupuesto.montoMetas)}/mes
+              </div>
+            )}
           </div>
           <div>
             <label className="ff-label">Color</label>
