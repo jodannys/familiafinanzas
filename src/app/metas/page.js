@@ -253,7 +253,6 @@ export default function MetasPage() {
                       {meta.pct_mensual > 0 && meta.estado !== 'pausada' && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                           style={{ background: `${meta.color}12`, color: meta.color }}>
-                          {meta.pct_mensual}%/mes
                         </span>
                       )}
                     </div>
