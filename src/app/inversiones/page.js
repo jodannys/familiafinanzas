@@ -61,20 +61,28 @@ export default function InversionesPage() {
     cargarGastosMes()
   }, [])
 
-  async function cargarGastosMes() {
-    const now   = new Date()
-    const mes   = String(now.getMonth() + 1).padStart(2, '0')
-    const año   = now.getFullYear()
-    const { data } = await supabase
-      .from('movimientos')
-      .select('monto, categoria')
-      .eq('tipo', 'egreso')
-      .gte('fecha', `${año}-${mes}-01`)
-      .lte('fecha', `${año}-${mes}-31`)
-    const total = (data || []).reduce((s, m) => s + parseFloat(m.monto), 0)
-    setGastosMes(total)
-  }
+ async function cargarGastosMes() {
+  const now = new Date()
+  const mes = String(now.getMonth() + 1).padStart(2, '0')
+  const año = now.getFullYear()
+  
+  const { data } = await supabase
+    .from('movimientos')
+    .select('monto, categoria')
+    .eq('tipo', 'egreso')
+    .gte('fecha', `${año}-${mes}-01`)
+    .lte('fecha', `${año}-${mes}-31`)
 
+  // 1. Definimos qué categorías NO son gastos de vida (Ajusta los nombres según tus categorías)
+  const categoriasExcluidas = ['Inversión', 'Ahorro']
+
+  // 2. Filtramos antes de sumar
+  const total = (data || [])
+    .filter(m => !categoriasExcluidas.includes(m.categoria))
+    .reduce((s, m) => s + parseFloat(m.monto), 0)
+
+  setGastosMes(total)
+}
   async function cargar() {
     setLoading(true)
     const { data, error } = await supabase.from('inversiones').select('*').order('created_at')

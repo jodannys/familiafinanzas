@@ -8,11 +8,11 @@ import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 const CATS = [
-  { value: 'basicos',   label: 'Gastos Básicos' },
-  { value: 'deseo',     label: 'Gastos Deseo' },
-  { value: 'ahorro',    label: 'Ahorro / Metas' },
+  { value: 'basicos', label: 'Gastos Básicos' },
+  { value: 'deseo', label: 'Gastos Deseo' },
+  { value: 'ahorro', label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
-  { value: 'deuda',     label: 'Deudas' },
+  { value: 'deuda', label: 'Deudas' },
 ]
 
 const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose' }
@@ -195,12 +195,12 @@ export default function GastosPage() {
             (deudaMatch.pendiente || 0) + movimiento.monto
           )
           const nuevosPagados = Math.max(0, (deudaMatch.pagadas || 0) - 1)
-          const nuevoEstado   = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
           await supabase.from('deudas').update({
             pendiente: nuevoPendiente,
-            pagadas:   nuevosPagados,
-            estado:    nuevoEstado,
+            pagadas: nuevosPagados,
+            estado: nuevoEstado,
           }).eq('id', deudaMatch.id)
 
           // También borrar el movimiento espejo en deuda_movimientos
@@ -256,7 +256,7 @@ export default function GastosPage() {
     return month - 1 === now.getMonth() && year === now.getFullYear()
   })
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const egresos  = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
@@ -286,7 +286,7 @@ export default function GastosPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Ingresos del mes', value: formatCurrency(ingresos), color: 'var(--accent-green)' },
-          { label: 'Egresos del mes',  value: formatCurrency(egresos),  color: 'var(--accent-rose)' },
+          { label: 'Egresos del mes', value: formatCurrency(egresos), color: 'var(--accent-rose)' },
           { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-4 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -327,7 +327,7 @@ export default function GastosPage() {
         ) : (
           <div className="divide-y" style={{ borderColor: "var(--border-glass)" }}>
             {filtered.map((m, i) => (
-              <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background="var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}
+              <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background = "var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 style={{ animationDelay: `${i * 0.02}s` }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{
@@ -347,7 +347,7 @@ export default function GastosPage() {
                   <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                     {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
                   </p>
-                  <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color="var(--accent-rose)"; e.currentTarget.style.opacity="1" }} onMouseLeave={e => { e.currentTarget.style.color="var(--text-muted)"; e.currentTarget.style.opacity="0.4" }}>
+                  <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color = "var(--accent-rose)"; e.currentTarget.style.opacity = "1" }} onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.4" }}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -359,12 +359,20 @@ export default function GastosPage() {
 
       <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
         <form onSubmit={handleAdd} className="space-y-4">
-
+          
           {/* Tipo toggle */}
           <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: "var(--bg-secondary)" }}>
             {['ingreso', 'egreso'].map(t => (
               <button type="button" key={t}
-                onClick={() => { setForm({ ...form, tipo: t }); setTarjetaSeleccionada('') }}
+                onClick={() => {
+                  setForm({
+                    ...form,
+                    tipo: t,
+                    // Si es ingreso, le ponemos categoría 'ingreso'. Si no, vuelve a 'basicos'
+                    categoria: t === 'ingreso' ? 'ingreso' : 'basicos'
+                  });
+                  setTarjetaSeleccionada('')
+                }}
                 className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
                 style={{
                   background: form.tipo === t ? 'var(--bg-card)' : 'transparent',
@@ -375,7 +383,6 @@ export default function GastosPage() {
               </button>
             ))}
           </div>
-
           {/* Categoría + Quién */}
           <div className="grid grid-cols-2 gap-3">
             {form.tipo === 'egreso' && (
