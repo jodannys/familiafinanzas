@@ -116,7 +116,7 @@ export default function MetasPage() {
 
     // Calcular disponible considerando otras metas activas
     const totalAsignadoActivas = metas.filter(m => m.estado === 'activa')
-                                      .reduce((s, m) => s + (m.pct_mensual || 0), 0)
+      .reduce((s, m) => s + (m.pct_mensual || 0), 0)
     const maxDisponible = (100 - totalAsignadoActivas + pctMeta) / 100 * presupuesto.montoMetas
 
     if (montoAuto > maxDisponible) {
@@ -159,7 +159,7 @@ export default function MetasPage() {
   const totalAhorrado = metas.reduce((s, m) => s + (m.actual || 0), 0)
 
   const totalPctAsignado = metas.filter(m => m.estado === 'activa')
-                                .reduce((s, m) => s + (m.pct_mensual || 0), 0)
+    .reduce((s, m) => s + (m.pct_mensual || 0), 0)
   const pctDisponible = Math.max(0, 100 - totalPctAsignado)
 
   return (
@@ -353,6 +353,11 @@ export default function MetasPage() {
               <label className="ff-label">% presupuesto metas</label>
               <input className="ff-input" type="number" min="0" max="100" placeholder="10" required
                 value={form.pct_mensual} onChange={e => setForm({ ...form, pct_mensual: e.target.value })} />
+              {presupuesto && form.pct_mensual && (
+                <p className="text-[10px] mt-1 pl-1 text-stone-500">
+                  🛈 Te queda {Math.max(0, 100 - (totalPctAsignado - (editingId ? metas.find(m => m.id === editingId)?.pct_mensual || 0 : 0) + parseFloat(form.pct_mensual)))}% libre para otras metas
+                </p>
+              )}
               {presupuesto && form.pct_mensual && (
                 <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>
                   = {formatCurrency((parseFloat(form.pct_mensual) / 100) * presupuesto.montoMetas)}/mes

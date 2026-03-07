@@ -90,22 +90,19 @@ export const CATEGORY_CONFIG = {
 
 
 export function getFlagEmoji(input) {
-  if (!input || typeof input !== 'string') return input;
+  // 1. Si no hay valor, devolver vacío
+  if (!input) return '';
 
-  // Detecta código de país de 2 letras (A-Z, case insensitive)
-  if (/^[a-zA-Z]{2}$/.test(input)) {
-    try {
-      const codePoints = input.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0));
-      return String.fromCodePoint(...codePoints);
-    } catch (e) {
-      return input; // Si falla, devuelve tal cual
-    }
+  // 2. Si ya es un emoji (cualquier carácter que no sea 2 letras A-Z), devolverlo tal cual
+  //    Esto incluye emojis normales como 🏠, 🎯, o banderas reales 🇻🇪
+  const isLetters = /^[a-zA-Z]{2}$/.test(input);
+  if (!isLetters) return input;
+
+  // 3. Si son dos letras (ej: "VE"), generar la bandera
+  try {
+    const codePoints = input.toUpperCase().split('').map(c => 127397 + c.charCodeAt());
+    return String.fromCodePoint(...codePoints);
+  } catch {
+    return input; // si falla, devolver las letras originales
   }
-
-  // Si es un emoji unicode (ej: 🎯 🏠) lo dejamos tal cual
-  const firstCode = input.codePointAt(0);
-  if (firstCode > 127000) return input;
-
-  // Si no es ninguno de los anteriores, devolvemos tal cual
-  return input;
 }
