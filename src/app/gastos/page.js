@@ -400,9 +400,6 @@ export default function GastosPage() {
                       {new Date(m.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                     </span>
                     <span style={{ color: "var(--border-glass)" }}>·</span>
-                    <span className="text-[10px] font-semibold" style={{ color: "var(--text-muted)" }}>
-                      {m.quien}
-                    </span>
                     {m.tipo === 'egreso' && m.categoria && (
                       <>
                         <span style={{ color: "var(--border-glass)" }}>·</span>
