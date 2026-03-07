@@ -48,6 +48,7 @@ export default function InversionesPage() {
   const [saving, setSaving]           = useState(false)
   const [error, setError]             = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
+  const [gastosMes, setGastosMes]     = useState(0)   // ← egresos reales del mes actual
   const [modal, setModal]             = useState(false)
   const [editandoId, setEditandoId]   = useState(null)
   const [form, setForm] = useState({
@@ -58,7 +59,22 @@ export default function InversionesPage() {
   useEffect(() => {
     cargar()
     getPresupuestoMes().then(setPresupuesto)
+    cargarGastosMes()
   }, [])
+
+  async function cargarGastosMes() {
+    const now   = new Date()
+    const mes   = String(now.getMonth() + 1).padStart(2, '0')
+    const año   = now.getFullYear()
+    const { data } = await supabase
+      .from('movimientos')
+      .select('monto')
+      .eq('tipo', 'egreso')
+      .gte('fecha', `${año}-${mes}-01`)
+      .lte('fecha', `${año}-${mes}-31`)
+    const total = (data || []).reduce((s, m) => s + parseFloat(m.monto), 0)
+    setGastosMes(total)
+  }
 
   async function cargar() {
     setLoading(true)
@@ -146,7 +162,10 @@ export default function InversionesPage() {
 
   const totalCapital = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
   const totalAportes = inversiones.reduce((s, i) => s + (i.aporte || 0), 0)
-  const metaLibertad = (presupuesto?.total ?? 0) * 12 * 25
+  // metaLibertad: usa GASTOS reales del mes (regla FIRE: reemplazar gastos, no ingresos)
+  // Fallback: 70% del ingreso si aún no hay movimientos registrados ese mes
+  const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
+  const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
 
   // Colores del picker — son colores de cartera (dato del usuario, no del tema)
   const COLORES_PICKER = [
@@ -393,7 +412,7 @@ export default function InversionesPage() {
               />
               <div className="flex items-center justify-between mt-2">
                 <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                  Basado en {formatCurrency(presupuesto.total)}/mes × 12 × 25
+                  Basado en {formatCurrency(baseGastos)} gastos/mes × 12 × 25
                 </p>
                 <p className="text-[9px] font-black" style={{ color: 'var(--text-secondary)' }}>
                   {formatCurrency(metaLibertad)}

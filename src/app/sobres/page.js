@@ -12,6 +12,12 @@ import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import Modal from '@/components/ui/Modal'
 
+// ── FIX FECHAS: usa fecha local para evitar desfase UTC ──────────────────────
+function fechaHoy() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const ORIGENES = [
   { value: 'basicos',     label: 'Gastos Básicos',   color: 'var(--accent-blue)',  desc: 'Súper, facturas...' },
   { value: 'metas',       label: 'Metas de Ahorro',  color: 'var(--accent-green)', desc: 'Retrasa tu ahorro' },
@@ -20,32 +26,32 @@ const ORIGENES = [
 
 export default function SobrePage() {
   const [presupuesto, setPresupuesto] = useState(null)
-  const [sobreMovs, setSobreMovs] = useState([])
-  const [movsMes, setMovsMes] = useState([])
+  const [sobreMovs, setSobreMovs]     = useState([])
+  const [movsMes, setMovsMes]         = useState([])
   const [tarjetasData, setTarjetasData] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [loading, setLoading]         = useState(true)
+  const [saving, setSaving]           = useState(false)
 
   const [filtroMes, setFiltroMes] = useState(new Date().getMonth() + 1)
   const [filtroAño, setFiltroAño] = useState(new Date().getFullYear())
-  const [busqueda, setBusqueda] = useState('')
+  const [busqueda, setBusqueda]   = useState('')
 
-  const [modal, setModal] = useState(false)
-  const [modalTraspaso, setModalTraspaso] = useState(false)
-  const [modalSobrante, setModalSobrante] = useState(false)
-  const [gastoTemp, setGastoTemp] = useState(null)
+  const [modal, setModal]                   = useState(false)
+  const [modalTraspaso, setModalTraspaso]   = useState(false)
+  const [modalSobrante, setModalSobrante]   = useState(false)
+  const [gastoTemp, setGastoTemp]           = useState(null)
   const [form, setForm] = useState({ descripcion: '', monto: '', quien: 'Ambos' })
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [origenTraspaso, setOrigenTraspaso] = useState('basicos')
   const [destinoSobrante, setDestinoSobrante] = useState('metas')
-  const [montoSobrante, setMontoSobrante] = useState('')
+  const [montoSobrante, setMontoSobrante]   = useState('')
 
   useEffect(() => { cargarTodo() }, [filtroMes, filtroAño])
 
   async function cargarTodo() {
     setLoading(true)
     const fechaInicio = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-01`
-    const fechaFin   = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-31`
+    const fechaFin    = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-31`
 
     try {
       const [pres, { data: sobre }, { data: movs }, { data: tarjetas }] = await Promise.all([
@@ -58,29 +64,44 @@ export default function SobrePage() {
       setSobreMovs(sobre || [])
       setMovsMes(movs || [])
       setTarjetasData(tarjetas || [])
-    } catch (error) {
-      console.error('Error al cargar:', error)
+    } catch (err) {
+      console.error('Error al cargar:', err)
     } finally {
       setLoading(false)
     }
   }
 
   // ── CÁLCULOS DE SALDO ──────────────────────────────────────────────────────
-  const montoEstilo = presupuesto?.montoEstilo || 0
-  const gastadoSobre = movsMes.filter(m => m.tipo === 'egreso' && m.categoria === 'deseo').reduce((s, m) => s + m.monto, 0)
-  const traspasosAlSobre = sobreMovs.filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen)).reduce((s, m) => s + m.monto, 0)
+
+  const montoEstilo    = parseFloat(presupuesto?.montoEstilo)     || 0
+  const montoBasicos   = parseFloat(presupuesto?.montoNecesidades) || 0
+  const montoMetas     = parseFloat(presupuesto?.montoMetas)      || 0
+  const montoInv       = parseFloat(presupuesto?.montoInversiones) || 0
+
+  // Gasto directo del sobre (categoría "deseo")
+  const gastadoSobre = movsMes
+    .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
+    .reduce((s, m) => s + parseFloat(m.monto), 0)
+
+  // Traspasos que SUMAN al sobre (vienen de otras cubetas)
+  const traspasosAlSobre = sobreMovs
+    .filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen))
+    .reduce((s, m) => s + parseFloat(m.monto), 0)
+
+  // FIX: El fondo total del sobre es dinámico:
+  // límite mensual + inyecciones recibidas - gastos realizados
   const saldoSobre = montoEstilo - gastadoSobre + traspasosAlSobre
 
-  const montoBasicos = presupuesto?.montoNecesidades || 0
-  const gastadoBasicos = movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + m.monto, 0)
-  const traspasosBasicos = sobreMovs.filter(m => m.origen === 'basicos').reduce((s, m) => s + m.monto, 0)
+  // Cubeta Básicos: descuenta también lo que se traspasó al sobre desde aquí
+  const gastadoBasicos  = movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + parseFloat(m.monto), 0)
+  const traspasosBasicos = sobreMovs.filter(m => m.origen === 'basicos').reduce((s, m) => s + parseFloat(m.monto), 0)
   const saldoBasicos = montoBasicos - gastadoBasicos - traspasosBasicos
 
-  const traspasosMetas = sobreMovs.filter(m => m.origen === 'metas' && m.monto > 0).reduce((s, m) => s + m.monto, 0)
-  const saldoMetas = (presupuesto?.montoMetas || 0) - traspasosMetas
+  const traspasosMetas = sobreMovs.filter(m => m.origen === 'metas' && parseFloat(m.monto) > 0).reduce((s, m) => s + parseFloat(m.monto), 0)
+  const saldoMetas = montoMetas - traspasosMetas
 
-  const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones' && m.monto > 0).reduce((s, m) => s + m.monto, 0)
-  const saldoInversiones = (presupuesto?.montoInversiones || 0) - traspasosInv
+  const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones' && parseFloat(m.monto) > 0).reduce((s, m) => s + parseFloat(m.monto), 0)
+  const saldoInversiones = montoInv - traspasosInv
 
   function getSaldo(origen) {
     if (origen === 'basicos')     return saldoBasicos
@@ -102,24 +123,22 @@ export default function SobrePage() {
     const monto = parseFloat(form.monto)
     if (!monto || !form.descripcion) return
 
-    // ── PAGO CON TARJETA: va a deuda_movimientos, no afecta el sobre ─────────
+    // TARJETA: va a deuda_movimientos, NO resta del sobre
     if (tarjetaSeleccionada) {
       setSaving(true)
-      const now = new Date()
       const { error } = await supabase.from('deuda_movimientos').insert([{
         deuda_id: tarjetaSeleccionada,
         tipo: 'cargo',
         descripcion: form.descripcion,
         monto,
-        fecha: now.toISOString().slice(0, 10),
+        fecha: fechaHoy(),   // ← fecha local correcta
         mes: filtroMes,
         año: filtroAño,
       }])
       if (!error) {
-        // Aumentar el pendiente de la tarjeta
         const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
         if (tarjeta) {
-          await supabase.from('deudas').update({ pendiente: (tarjeta.pendiente || 0) + monto }).eq('id', tarjetaSeleccionada)
+          await supabase.from('deudas').update({ pendiente: parseFloat(tarjeta.pendiente || 0) + monto }).eq('id', tarjetaSeleccionada)
         }
         resetModal()
         cargarTodo()
@@ -128,13 +147,13 @@ export default function SobrePage() {
       return
     }
 
-    // ── GASTO DIRECTO: lógica original ───────────────────────────────────────
+    // GASTO DIRECTO: si hay saldo, registrar; si no, abrir modal de traspaso
     if (saldoSobre >= monto) {
       setSaving(true)
       const { error } = await supabase.from('movimientos').insert([{
         tipo: 'egreso', categoria: 'deseo',
         descripcion: form.descripcion, monto,
-        fecha: new Date().toISOString().slice(0, 10),
+        fecha: fechaHoy(),   // ← fecha local correcta
         quien: form.quien,
       }])
       if (!error) { resetModal(); cargarTodo() }
@@ -149,18 +168,21 @@ export default function SobrePage() {
   async function confirmarTraspaso() {
     if (!gastoTemp) return
     const saldoOrigen = getSaldo(origenTraspaso)
-    if (saldoOrigen < gastoTemp.monto) { alert('No hay saldo suficiente en el origen seleccionado'); return }
+    if (saldoOrigen < gastoTemp.monto) {
+      alert('No hay saldo suficiente en el origen seleccionado')
+      return
+    }
     setSaving(true)
+    const hoy = fechaHoy()
     await supabase.from('movimientos').insert([{
       tipo: 'egreso', categoria: 'deseo',
       descripcion: gastoTemp.descripcion, monto: gastoTemp.monto,
-      fecha: new Date().toISOString().slice(0, 10), quien: gastoTemp.quien || 'Ambos',
+      fecha: hoy, quien: gastoTemp.quien || 'Ambos',
     }])
     await supabase.from('sobre_movimientos').insert([{
       descripcion: `Traspaso desde ${origenTraspaso} → Sobre`,
       monto: gastoTemp.monto, origen: origenTraspaso,
-      mes: filtroMes, año: filtroAño,
-      fecha: new Date().toISOString().slice(0, 10),
+      mes: filtroMes, año: filtroAño, fecha: hoy,
     }])
     setSaving(false)
     setModalTraspaso(false)
@@ -174,16 +196,17 @@ export default function SobrePage() {
     const monto = parseFloat(montoSobrante)
     if (!monto || monto > saldoSobre) return
     setSaving(true)
+    const hoy = fechaHoy()
     await supabase.from('sobre_movimientos').insert([{
       descripcion: `Sobrante → ${destinoSobrante}`,
       monto, origen: destinoSobrante,
-      mes: filtroMes, año: filtroAño,
-      fecha: new Date().toISOString().slice(0, 10),
+      mes: filtroMes, año: filtroAño, fecha: hoy,
     }])
+    // Registrar el gasto del sobre para que el saldo refleje el movimiento
     await supabase.from('movimientos').insert([{
       tipo: 'egreso', categoria: 'deseo',
       descripcion: `Sobrante enviado a ${destinoSobrante}`,
-      monto, fecha: new Date().toISOString().slice(0, 10), quien: 'Ambos',
+      monto, fecha: hoy, quien: 'Ambos',
     }])
     setSaving(false)
     setModalSobrante(false)
@@ -192,6 +215,7 @@ export default function SobrePage() {
   }
 
   async function handleEliminar(mov) {
+    if (!confirm('¿Eliminar este movimiento?')) return
     if (mov._fuente === 'sobre') {
       await supabase.from('sobre_movimientos').delete().eq('id', mov.id)
       setSobreMovs(prev => prev.filter(m => m.id !== mov.id))
@@ -201,41 +225,59 @@ export default function SobrePage() {
     }
   }
 
-  // ── LISTA UNIFICADA ────────────────────────────────────────────────────────
+  // ── LISTA UNIFICADA con búsqueda en descripción y quien ───────────────────
   const movsFiltrados = [
-    ...movsMes.filter(m => m.tipo === 'egreso' && m.categoria === 'deseo').map(m => ({ ...m, _fuente: 'mov', _label: 'Sobre' })),
+    ...movsMes
+      .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
+      .map(m => ({ ...m, _fuente: 'mov', _label: 'Sobre' })),
     ...sobreMovs.map(m => ({ ...m, _fuente: 'sobre', _label: `Traspaso · ${m.origen}` })),
   ]
-    .filter(m => m.descripcion?.toLowerCase().includes(busqueda.toLowerCase()))
+    .filter(m => {
+      const q = busqueda.toLowerCase()
+      return (
+        m.descripcion?.toLowerCase().includes(q) ||
+        m.quien?.toLowerCase().includes(q)
+      )
+    })
     .sort((a, b) => new Date(b.fecha || b.created_at) - new Date(a.fecha || a.created_at))
 
-  const pctUsado = montoEstilo > 0 ? Math.min(100, (gastadoSobre / montoEstilo) * 100) : 0
+  // ── VISUALES ───────────────────────────────────────────────────────────────
+  const pctUsado   = montoEstilo > 0 ? Math.min(100, (gastadoSobre / montoEstilo) * 100) : 0
   const sobreColor = saldoSobre <= 0
     ? 'var(--accent-rose)'
     : saldoSobre < montoEstilo * 0.2
       ? 'var(--accent-terra)'
       : 'var(--accent-green)'
 
-  const usandoTarjeta = !!tarjetaSeleccionada
+  const usandoTarjeta     = !!tarjetaSeleccionada
+  const esMesActual       = filtroMes === new Date().getMonth() + 1 && filtroAño === new Date().getFullYear()
+  const montoFormParseado = parseFloat(form.monto) || 0
 
+  // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <AppShell>
+
       {/* HEADER */}
       <div className="flex items-start justify-between gap-3 mb-6 animate-enter">
         <div>
-          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Control Diario</p>
-          <h1 className="text-xl font-black text-stone-800 tracking-tight">Sobre Diario</h1>
-          <div className="flex items-center gap-2 mt-1.5 text-[10px] font-bold uppercase tracking-widest text-stone-400">
+          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>
+            Control Diario
+          </p>
+          <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
+          <div className="flex items-center gap-2 mt-1.5 text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: 'var(--text-muted)' }}>
             <Calendar size={11} />
             <select value={filtroMes} onChange={e => setFiltroMes(Number(e.target.value))}
-              className="bg-transparent outline-none cursor-pointer hover:text-stone-600">
+              className="bg-transparent outline-none cursor-pointer"
+              style={{ color: 'var(--text-muted)' }}>
               {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].map((m, i) => (
                 <option key={m} value={i + 1}>{m}</option>
               ))}
             </select>
             <span>/</span>
             <select value={filtroAño} onChange={e => setFiltroAño(Number(e.target.value))}
-              className="bg-transparent outline-none cursor-pointer hover:text-stone-600">
+              className="bg-transparent outline-none cursor-pointer"
+              style={{ color: 'var(--text-muted)' }}>
               {[2025, 2026].map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
@@ -249,35 +291,48 @@ export default function SobrePage() {
       </div>
 
       {loading ? (
-        <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
+        <div className="flex h-[50vh] items-center justify-center">
           <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent-green)' }} />
         </div>
       ) : (
         <>
-          {/* CARD PRINCIPAL */}
-          <Card className="mb-6 relative overflow-hidden" style={{ padding: '20px 20px' }}>
+          {/* CARD PRINCIPAL DEL SOBRE */}
+          <Card className="mb-4 relative overflow-hidden" style={{ padding: '18px 20px' }}>
             <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
               Disponible en el sobre
             </p>
-            <h2 className="text-4xl font-black mb-4 tracking-tighter" style={{ color: '#C17A3A' }}>
+            <h2 className="text-4xl font-black mb-4 tracking-tighter" style={{ color: 'var(--accent-terra)' }}>
               {formatCurrency(Math.max(0, saldoSobre))}
             </h2>
+
+            {/* Barra de progreso */}
             <div className="w-full h-2.5 rounded-full mb-2" style={{ background: 'var(--progress-track)' }}>
-              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pctUsado}%`, background: sobreColor }} />
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${pctUsado}%`, background: sobreColor }} />
             </div>
             <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-3">
               <span style={{ color: 'var(--text-muted)' }}>Gastado: {formatCurrency(gastadoSobre)}</span>
               <span style={{ color: 'var(--text-muted)' }}>Límite: {formatCurrency(montoEstilo)}</span>
             </div>
+
+            {/* Alerta sobre vacío */}
             {saldoSobre <= 0 && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-100">
-                <AlertTriangle size={14} className="text-rose-500 flex-shrink-0" />
-                <p className="text-[10px] font-bold text-rose-600">¡Sobre vacío! Usando dinero de otras categorías.</p>
+              <div className="flex items-center gap-2 p-3 rounded-xl"
+                style={{
+                  background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
+                }}>
+                <AlertTriangle size={14} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
+                <p className="text-[10px] font-bold" style={{ color: 'var(--accent-rose)' }}>
+                  ¡Sobre vacío! Usando dinero de otras categorías.
+                </p>
               </div>
             )}
-            {saldoSobre > 0 && filtroMes === (new Date().getMonth() + 1) && (
+
+            {/* Botón enviar sobrante — solo en mes actual con saldo positivo */}
+            {saldoSobre > 0 && esMesActual && (
               <button onClick={() => setModalSobrante(true)}
-                className="mt-3 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-dashed transition-all hover:bg-stone-50"
+                className="mt-3 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-dashed transition-all"
                 style={{ borderColor: 'var(--accent-green)', color: 'var(--accent-green)' }}>
                 <Sprout size={12} className="inline mr-1.5" />
                 Enviar sobrante a Metas / Inversión
@@ -286,73 +341,90 @@ export default function SobrePage() {
           </Card>
 
           {/* CUBETAS */}
-          <div className="grid grid-cols-3 gap-2 mb-6">
+          <div className="grid grid-cols-3 gap-2 mb-4">
             {[
-              { label: 'Básicos',   saldo: saldoBasicos,    color: 'var(--accent-blue)' },
-              { label: 'Metas',     saldo: saldoMetas,      color: 'var(--accent-green)' },
+              { label: 'Básicos',   saldo: saldoBasicos,     color: 'var(--accent-blue)' },
+              { label: 'Metas',     saldo: saldoMetas,       color: 'var(--accent-green)' },
               { label: 'Inversión', saldo: saldoInversiones, color: '#818CF8' },
             ].map((box, i) => (
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.08}s` }}>
-                <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>{box.label}</p>
-                <p className="text-sm font-black" style={{ color: box.saldo < 0 ? 'var(--accent-rose)' : box.color }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
+                  {box.label}
+                </p>
+                <p className="text-sm font-black"
+                  style={{ color: box.saldo < 0 ? 'var(--accent-rose)' : box.color, letterSpacing: '-0.02em' }}>
                   {formatCurrency(box.saldo)}
                 </p>
               </div>
             ))}
           </div>
 
-          {/* BUSCADOR */}
+          {/* BUSCADOR — busca en descripción y en quien */}
           <div className="relative mb-4">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" style={{ zIndex: 10 }} />
-            <input className="ff-input w-full h-11" style={{ paddingLeft: '3rem' }}
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)', zIndex: 10 }} />
+            <input className="ff-input w-full" style={{ paddingLeft: '2.5rem' }}
               placeholder="Buscar en este sobre..."
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
             {busqueda && (
-              <button onClick={() => setBusqueda('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400">
+              <button onClick={() => setBusqueda('')} className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                style={{ color: 'var(--text-muted)' }}>
                 <X size={15} />
               </button>
             )}
           </div>
 
           {/* LISTA */}
-          <Card className="p-2">
+          <Card style={{ padding: '4px' }}>
             {movsFiltrados.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-xs font-bold text-stone-400 italic">Sin registros este mes</p>
+                <Wallet size={28} className="mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
+                <p className="text-xs font-bold italic" style={{ color: 'var(--text-muted)' }}>Sin registros este mes</p>
               </div>
             ) : (
               <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
                 {movsFiltrados.map((m) => (
                   <div key={`${m._fuente}-${m.id}`}
-                    className="flex items-center gap-3 px-3 py-3.5 hover:bg-stone-50 transition-colors group overflow-hidden">
+                    className="flex items-center gap-3 px-3 py-3.5 group transition-colors"
+                    style={{ borderRadius: 12 }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: m._fuente === 'mov' ? 'rgba(193,122,58,0.1)' : 'rgba(129,140,248,0.1)' }}>
+                      style={{
+                        background: m._fuente === 'mov'
+                          ? 'color-mix(in srgb, var(--accent-terra) 12%, transparent)'
+                          : 'rgba(129,140,248,0.12)',
+                      }}>
                       {m._fuente === 'mov'
-                        ? <ArrowDownRight size={15} style={{ color: '#C17A3A' }} />
+                        ? <ArrowDownRight size={15} style={{ color: 'var(--accent-terra)' }} />
                         : <TrendingUp size={15} style={{ color: '#818CF8' }} />}
                     </div>
+
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-stone-800 truncate leading-tight">{m.descripcion}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-sm font-bold truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
+                        {m.descripcion}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded"
                           style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                           {m._label}
                         </span>
-                        <span className="text-[9px] text-stone-400">
+                        <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
                           {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES') : '—'}
                         </span>
                         {m.quien && m._fuente === 'mov' && (
-                          <span className="text-[9px] text-stone-400">{m.quien}</span>
+                          <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{m.quien}</span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto pl-2">
-                      <p className="text-sm font-black tabular-nums whitespace-nowrap" style={{ color: '#C17A3A' }}>
-                        -{formatCurrency(Math.abs(m.monto))}
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <p className="text-sm font-black tabular-nums" style={{ color: 'var(--accent-terra)' }}>
+                        -{formatCurrency(Math.abs(parseFloat(m.monto)))}
                       </p>
                       <button onClick={() => handleEliminar(m)}
                         className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ color: '#C0605A' }}>
+                        style={{ color: 'var(--accent-rose)' }}>
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -364,17 +436,18 @@ export default function SobrePage() {
         </>
       )}
 
-      {/* MODAL: REGISTRAR GASTO */}
+      {/* ══ MODAL: REGISTRAR GASTO ══════════════════════════════════════════ */}
       <Modal open={modal} onClose={resetModal} title="Registrar Gasto del Sobre">
         <form onSubmit={handleGasto} className="space-y-4">
 
-          {/* ── TARJETA DE CRÉDITO ── */}
           {tarjetasData.length > 0 && (
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-stone-400 ml-1 flex items-center gap-1.5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase flex items-center gap-1.5"
+                style={{ color: 'var(--text-muted)' }}>
                 <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
               </label>
-              <select className="ff-input h-12 text-sm" value={tarjetaSeleccionada}
+              <select className="ff-input" style={{ height: 44, fontSize: 13 }}
+                value={tarjetaSeleccionada}
                 onChange={e => setTarjetaSeleccionada(e.target.value)}>
                 <option value="">— No, pago directo —</option>
                 {tarjetasData.map(t => (
@@ -395,59 +468,90 @@ export default function SobrePage() {
             <input className="ff-input" placeholder="¿En qué gastaste?" required
               value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
           </div>
+
           <div>
             <label className="ff-label">Monto (€)</label>
-            <input className="ff-input text-xl font-black" type="number" step="0.01" placeholder="0.00" required
+            <input className="ff-input text-xl font-black" type="number" step="0.01" min="0.01" placeholder="0.00" required
               value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
+            {/* Indicador de saldo disponible */}
+            {!usandoTarjeta && montoFormParseado > 0 && (
+              <p className="text-[10px] mt-1 font-bold"
+                style={{ color: montoFormParseado > saldoSobre ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
+                {montoFormParseado > saldoSobre
+                  ? `⚠ Faltan ${formatCurrency(montoFormParseado - saldoSobre)} → se pedirá traspaso`
+                  : `Quedan ${formatCurrency(saldoSobre - montoFormParseado)} en el sobre`}
+              </p>
+            )}
           </div>
+
           {!usandoTarjeta && (
             <div>
               <label className="ff-label">¿Quién?</label>
-              <select className="ff-input h-12 text-sm" value={form.quien}
-                onChange={e => setForm({ ...form, quien: e.target.value })}>
+              <select className="ff-input" style={{ height: 44, fontSize: 13 }}
+                value={form.quien} onChange={e => setForm({ ...form, quien: e.target.value })}>
                 <option value="Jodannys">Jodannys</option>
                 <option value="Rolando">Rolando</option>
                 <option value="Ambos">Ambos</option>
               </select>
             </div>
           )}
-          <div className="flex gap-3 pt-2">
+
+          <div className="flex gap-3 pt-1">
             <button type="button" onClick={resetModal} className="ff-btn-ghost flex-1">Cancelar</button>
             <button type="submit" disabled={saving}
               className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
-              style={{ background: usandoTarjeta ? '#818CF8' : undefined }}>
+              style={usandoTarjeta ? { background: '#818CF8' } : {}}>
               {saving && <Loader2 size={14} className="animate-spin" />}
-              {usandoTarjeta ? '💳 Cargar a tarjeta' : saldoSobre < parseFloat(form.monto || 0) ? 'Elegir Origen →' : 'Confirmar'}
+              {usandoTarjeta
+                ? '💳 Cargar a tarjeta'
+                : montoFormParseado > saldoSobre
+                  ? 'Elegir Origen →'
+                  : 'Confirmar'}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* MODAL: TRASPASO */}
+      {/* ══ MODAL: TRASPASO ═════════════════════════════════════════════════ */}
       <Modal open={modalTraspaso} onClose={() => setModalTraspaso(false)} title="¡Sobre Vacío!">
         <div className="space-y-4">
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-rose-500 flex-shrink-0" />
-            <p className="text-xs font-bold text-rose-600">
-              No hay saldo. Para pagar <b>{formatCurrency(gastoTemp?.monto)}</b> elige de dónde tomar:
+          <div className="p-3 rounded-xl flex items-center gap-2"
+            style={{
+              background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
+            }}>
+            <AlertTriangle size={14} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
+            <p className="text-xs font-bold" style={{ color: 'var(--accent-rose)' }}>
+              No hay saldo. Para pagar <b>{formatCurrency(gastoTemp?.monto)}</b>, elige de dónde tomar:
             </p>
           </div>
+
           <div className="space-y-2">
             {ORIGENES.map(o => (
               <button key={o.value} onClick={() => setOrigenTraspaso(o.value)}
                 className="w-full p-3.5 rounded-xl border-2 transition-all flex justify-between items-center text-left"
                 style={{
                   borderColor: origenTraspaso === o.value ? 'var(--accent-green)' : 'var(--border-glass)',
-                  background: origenTraspaso === o.value ? 'rgba(45,122,95,0.05)' : 'transparent'
+                  background:  origenTraspaso === o.value ? 'color-mix(in srgb, var(--accent-green) 5%, transparent)' : 'transparent',
                 }}>
                 <div>
                   <p className="text-xs font-black uppercase" style={{ color: o.color }}>{o.label}</p>
-                  <p className="text-[10px] text-stone-400">Disponible: {formatCurrency(getSaldo(o.value))}</p>
+                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                    Disponible: {formatCurrency(getSaldo(o.value))}
+                  </p>
+                  {getSaldo(o.value) < (gastoTemp?.monto || 0) && (
+                    <p className="text-[9px] font-bold mt-0.5" style={{ color: 'var(--accent-rose)' }}>
+                      ✗ Saldo insuficiente
+                    </p>
+                  )}
                 </div>
-                {origenTraspaso === o.value && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} />}
+                {origenTraspaso === o.value && (
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent-green)' }} />
+                )}
               </button>
             ))}
           </div>
+
           <div className="flex gap-3">
             <button onClick={() => setModalTraspaso(false)} className="ff-btn-ghost flex-1">Cancelar</button>
             <button onClick={confirmarTraspaso} disabled={saving}
@@ -459,33 +563,42 @@ export default function SobrePage() {
         </div>
       </Modal>
 
-      {/* MODAL: SOBRANTE */}
+      {/* ══ MODAL: SOBRANTE ═════════════════════════════════════════════════ */}
       <Modal open={modalSobrante} onClose={() => setModalSobrante(false)} title="Enviar Sobrante">
         <div className="space-y-4">
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-            <p className="text-xs font-bold text-emerald-700">
-              Tienes {formatCurrency(saldoSobre)} sin gastar este mes. ¡Aprovéchalo!
+          <div className="p-3 rounded-xl"
+            style={{
+              background: 'color-mix(in srgb, var(--accent-green) 8%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)',
+            }}>
+            <p className="text-xs font-bold" style={{ color: 'var(--accent-green)' }}>
+              Tienes {formatCurrency(saldoSobre)} sin gastar. ¡Ponlo a trabajar!
             </p>
           </div>
+
           <div>
             <label className="ff-label">Monto a mover</label>
-            <input className="ff-input text-xl font-bold" type="number" step="0.01" max={saldoSobre}
-              placeholder="0.00" value={montoSobrante} onChange={e => setMontoSobrante(e.target.value)} />
+            <input className="ff-input text-xl font-bold" type="number" step="0.01"
+              max={saldoSobre} placeholder="0.00"
+              value={montoSobrante} onChange={e => setMontoSobrante(e.target.value)} />
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             {['metas', 'inversiones'].map(dest => (
               <button key={dest} onClick={() => setDestinoSobrante(dest)}
                 className="p-3 rounded-xl border-2 text-[10px] font-black uppercase transition-all"
                 style={{
                   borderColor: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--border-glass)',
-                  background: destinoSobrante === dest ? 'rgba(45,122,95,0.05)' : 'transparent',
-                  color: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--text-muted)'
+                  background:  destinoSobrante === dest ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)' : 'transparent',
+                  color:       destinoSobrante === dest ? 'var(--accent-green)' : 'var(--text-muted)',
                 }}>
                 {dest}
               </button>
             ))}
           </div>
-          <button onClick={confirmarSobrante} disabled={saving || !montoSobrante}
+
+          <button onClick={confirmarSobrante}
+            disabled={saving || !montoSobrante || parseFloat(montoSobrante) <= 0}
             className="ff-btn-primary w-full flex items-center justify-center gap-2">
             {saving && <Loader2 size={14} className="animate-spin" />}
             Mover a {destinoSobrante}
