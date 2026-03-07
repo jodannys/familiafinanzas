@@ -114,7 +114,6 @@ export default function MetasPage() {
 
     const montoAuto = (pctMeta / 100) * presupuesto.montoMetas
 
-    // Calcular disponible considerando otras metas activas
     const totalAsignadoActivas = metas.filter(m => m.estado === 'activa')
       .reduce((s, m) => s + (m.pct_mensual || 0), 0)
     const maxDisponible = (100 - totalAsignadoActivas + pctMeta) / 100 * presupuesto.montoMetas
@@ -128,14 +127,12 @@ export default function MetasPage() {
 
     const nuevoMonto = montoActual + montoAuto
 
-    // Actualizar meta
     const { error: metaError } = await supabase.from('metas').update({ actual: nuevoMonto }).eq('id', id)
     if (metaError) {
       setError("Error al actualizar la meta")
       return
     }
 
-    // Crear movimiento en historial
     const { error: movError } = await supabase.from('movimientos').insert([{
       tipo: 'egreso',
       monto: montoAuto,
@@ -146,7 +143,6 @@ export default function MetasPage() {
     }])
     if (movError) console.error("Error al crear el movimiento:", movError)
 
-    // Actualizar UI
     setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
   }
 
@@ -343,6 +339,7 @@ export default function MetasPage() {
                 value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Monto objetivo</label>
@@ -353,31 +350,78 @@ export default function MetasPage() {
               <label className="ff-label">% presupuesto metas</label>
               <input
                 className="ff-input"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="10"
-                required
+                type="number" min="0" max="100" placeholder="10" required
                 value={form.pct_mensual}
                 onChange={e => setForm({ ...form, pct_mensual: e.target.value })}
               />
-              {/* Monto equivalente del input */}
-              {presupuesto && (
-                <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>
-                  = {formatCurrency((parseFloat(form.pct_mensual || 0) / 100) * presupuesto.montoMetas)}/mes
-                </p>
-              )}
             </div>
-
-            {/* Aviso fijo de porcentaje libre */}
-            {presupuesto && (
-              <div className="text-[10px] mt-1 pl-1 text-stone-500">
-                🛈 Te queda{' '}
-                {Math.max(0, pctDisponible + (editingId ? parseFloat(form.pct_mensual || 0) : 0))}%
-                libre = {formatCurrency((Math.max(0, pctDisponible + (editingId ? parseFloat(form.pct_mensual || 0) : 0)) / 100) * presupuesto.montoMetas)}/mes
-              </div>
-            )}
           </div>
+
+          {/* Indicador visual de % disponible */}
+          {presupuesto && (() => {
+            const pctUsado     = metas
+              .filter(m => m.id !== editingId)
+              .reduce((s, m) => s + (m.pct_mensual || 0), 0)
+            const pctMax       = presupuesto.pctMetas || 100
+            const pctLibre     = Math.max(0, pctMax - pctUsado)
+            const pctActual    = parseFloat(form.pct_mensual) || 0
+            const pctRestante  = Math.max(0, pctLibre - pctActual)
+            const montoActual  = (pctActual / 100) * presupuesto.montoMetas
+            const montoRestante= (pctRestante / 100) * presupuesto.montoMetas
+            const excede       = pctActual > pctLibre
+            const lleno        = pctRestante === 0 && !excede
+            const barUsado     = pctMax > 0 ? Math.min(100, (pctUsado / pctMax) * 100) : 0
+            const barActual    = pctMax > 0 ? Math.min(100 - barUsado, (pctActual / pctMax) * 100) : 0
+            const color        = excede ? '#C0605A' : lleno ? '#f59e0b' : '#10b981'
+
+            return (
+              <div className="rounded-xl overflow-hidden"
+                style={{ border: `1px solid ${color}25`, background: `${color}06` }}>
+
+                {/* Barra de distribución */}
+                <div className="h-1.5 flex" style={{ background: 'var(--progress-track)' }}>
+                  {/* % ya usado por otras metas */}
+                  <div className="h-full transition-all duration-300"
+                    style={{ width: `${barUsado}%`, background: 'rgba(120,120,120,0.35)' }} />
+                  {/* % de esta meta (en tiempo real) */}
+                  <div className="h-full transition-all duration-300"
+                    style={{ width: `${barActual}%`, background: color }} />
+                </div>
+
+                <div className="px-3 py-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] font-black uppercase" style={{ color }}>
+                      {excede
+                        ? `⚠ Excede en ${pctActual - pctLibre}%`
+                        : lleno
+                        ? '✓ Presupuesto completo'
+                        : `Quedan ${pctRestante}% libres`}
+                    </span>
+                    <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                      {pctUsado + pctActual}/{pctMax}% usado
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <span className="text-sm font-black" style={{ color }}>
+                        {formatCurrency(montoActual)}
+                      </span>
+                      <span className="text-[9px] ml-1" style={{ color: 'var(--text-muted)' }}>
+                        /mes esta meta
+                      </span>
+                    </div>
+                    {!excede && pctRestante > 0 && (
+                      <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                        {formatCurrency(montoRestante)} disponible
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
           <div>
             <label className="ff-label">Color</label>
             <div className="flex gap-3 flex-wrap">
@@ -388,6 +432,7 @@ export default function MetasPage() {
               ))}
             </div>
           </div>
+
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={closeModal} className="ff-btn-ghost flex-1">Cancelar</button>
             <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
