@@ -108,8 +108,6 @@ export default function PresupuestoPage() {
   }
 
   // ── SALDO DINÁMICO: gasto real + traspasos del sobre ─────────────────────
-  // Esto cruza movimientos + sobre_movimientos para que el presupuesto
-  // refleje el dinero que en realidad ya no está disponible.
   function gastadoReal(bloqueId) {
     const deMovimientos = movs
       .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
