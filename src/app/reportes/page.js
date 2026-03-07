@@ -135,17 +135,24 @@ export default function ReportesPage() {
     if (grupoTotales[c.grupo] !== undefined) grupoTotales[c.grupo] += c.total
   })
 
-  // ── FIX 3: Filtros — solo categorías con datos ese año ────────────────────
+ // ── FIX 3: Filtros — Ahora incluimos las categorías que pediste ────────────────────
   const catsConDatos = [...new Set(
     movsAño.filter(m => m.tipo === 'egreso').map(m => normCat(m.categoria))
   )]
+
   const filtroOpciones = [
     { v: 'todos', l: 'Todos', color: 'var(--text-muted)' },
+    { v: 'basicos', l: 'Básicos', color: 'var(--accent-blue)' },
+    { v: 'deuda', l: 'Deuda', color: 'var(--accent-rose)' },
+    { v: 'deseo', l: 'Deseo', color: 'var(--accent-terra)' },
+    { v: 'ahorro', l: 'Ahorro', color: 'var(--accent-green)' },
+    { v: 'inversion', l: 'Inversión', color: 'var(--accent-green)' },
+    { v: 'remesa', l: 'Remesa', color: 'var(--accent-terra)' },
+    // Esto agrega cualquier otra categoría que tengas en la base de datos y no esté arriba
     ...catsConDatos
-      .filter(cat => CAT_VARS[cat])
-      .map(cat => ({ v: cat, l: CAT_VARS[cat].label, color: CAT_VARS[cat].color }))
+      .filter(cat => !['basicos', 'deuda', 'deseo', 'ahorro', 'inversion', 'remesa'].includes(cat))
+      .map(cat => ({ v: cat, l: cat, color: 'var(--text-muted)' }))
   ]
-
   const movsFiltrados = movsAño.filter(m => {
     if (m.tipo !== 'egreso') return false
     return filtro === 'todos' || normCat(m.categoria) === filtro
