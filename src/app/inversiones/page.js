@@ -17,6 +17,7 @@ import {
 } from 'recharts'
 
 // ─── Tooltip del gráfico ─────────────────────────────────────────────────────
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
@@ -39,6 +40,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
+
 export default function InversionesPage() {
   const [inversiones, setInversiones] = useState([])
   const [selected, setSelected]       = useState(null)
@@ -46,60 +48,56 @@ export default function InversionesPage() {
   const [saving, setSaving]           = useState(false)
   const [error, setError]             = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
-  const [gastosMes, setGastosMes]     = useState(0)
+  const [gastosMes, setGastosMes]     = useState(0)   // ← egresos reales del mes actual
   const [modal, setModal]             = useState(false)
   const [editandoId, setEditandoId]   = useState(null)
   const [form, setForm] = useState({
     nombre: '', emoji: '📈', capital: '', aporte: '',
     tasa: '', anos: '10', color: 'var(--accent-green)', bola_nieve: true
   })
-async function cargar() {
-  setLoading(true)
-  const { data, error } = await supabase.from('inversiones').select()
-  if (error) console.error(error)
-  else setInversiones(data || [])
-  setLoading(false)
-}
-  // ─── Cargar datos iniciales ────────────────────────────────────────────────
+
   useEffect(() => {
     cargar()
     getPresupuestoMes().then(setPresupuesto)
     cargarGastosMes()
   }, [])
 
- async function cargarGastosMes() {
+  async function cargarGastosMes() {
+    const now  = new Date()
+    const año  = now.getFullYear()
+    const mes  = now.getMonth()  // 0-indexed para Date()
 
-  const now = new Date()
-  const año = now.getFullYear()
-  const mes = now.getMonth()
+    // rango exacto del mes: primer día al primer día del siguiente
+    const inicioMes      = new Date(año, mes,     1).toISOString().slice(0, 10)
+    const inicioSiguiente = new Date(año, mes + 1, 1).toISOString().slice(0, 10)
 
-  // inicio del mes
-  const inicioMes = new Date(año, mes, 1).toISOString().slice(0,10)
+    const { data, error } = await supabase
+      .from('movimientos')
+      .select('monto, categoria')
+      .eq('tipo', 'egreso')
+      .gte('fecha', inicioMes)
+      .lt('fecha', inicioSiguiente)   // lt en vez de lte mes-31
 
-  // inicio del mes siguiente
-  const inicioMesSiguiente = new Date(año, mes + 1, 1).toISOString().slice(0,10)
+    if (error) { console.error(error); return }
 
-  const { data, error } = await supabase
-    .from('movimientos')
-    .select('monto, categoria')
-    .eq('tipo', 'egreso')
-    .gte('fecha', inicioMes)
-    .lt('fecha', inicioMesSiguiente)
+    // Solo gastos reales: excluye ahorro, inversión y pago de deudas
+    const total = (data || [])
+      .filter(m => ['basicos', 'deseo'].includes((m.categoria || '').toLowerCase()))
+      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
 
-  if (error) {
-    console.error(error)
-    return
+    setGastosMes(total)
   }
 
-  // solo gastos reales
-  const categoriasGasto = ['basicos','deseo']
-
-  const total = (data || [])
-    .filter(m => categoriasGasto.includes((m.categoria || '').toLowerCase()))
-    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-
-  setGastosMes(total)
-}
+  async function cargar() {
+    setLoading(true)
+    const { data, error } = await supabase.from('inversiones').select('*').order('created_at')
+    if (error) setError(error.message)
+    else {
+      setInversiones(data || [])
+      if (data?.length) setSelected(data[0])
+    }
+    setLoading(false)
+  }
 
   async function handleSave(e) {
     e.preventDefault()
@@ -150,7 +148,7 @@ async function cargar() {
       tasa: inv.tasa?.toString() || '',
       anos: inv.anos?.toString() || '10',
       color: inv.color || 'var(--accent-green)',
-      bola_nieve: inv.bola_nieve !== false,
+      bola_nieve: inv.bola_nieve !== false,   // default true si no está guardado
     })
     setModal(true)
   }
@@ -165,7 +163,6 @@ async function cargar() {
     }
   }
 
-  // ─── Cálculos de inversión ────────────────────────────────────────────────
   const calc = selected
     ? calculateCompoundInterest({
         principal: selected.capital,
@@ -180,15 +177,12 @@ async function cargar() {
 
   const totalCapital = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
   const totalAportes = inversiones.reduce((s, i) => s + (i.aporte || 0), 0)
+  // metaLibertad: usa GASTOS reales del mes (regla FIRE: reemplazar gastos, no ingresos)
+  // Fallback: 70% del ingreso si aún no hay movimientos registrados ese mes
+  const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
+  const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
 
-  // ─── AJUSTE FIRE: gastos reales del mes ──────────────────────────────────
-
-const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
-const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
-
-  const progresoFIRE = calc ? Math.min(100, (calc.finalBalance / metaLibertad) * 100) : 0
-
-  // ─── Colores de cartera ───────────────────────────────────────────────────
+  // Colores del picker — son colores de cartera (dato del usuario, no del tema)
   const COLORES_PICKER = [
     { hex: '#2D7A5F', label: 'Verde' },
     { hex: '#4A6FA5', label: 'Azul' },
@@ -417,30 +411,34 @@ const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
           )}
 
           {/* ── Meta libertad financiera ── */}
-           {metaLibertad && calc && (
-        <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Target size={13} style={{ color: 'var(--accent-terra)' }} />
-              <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
-                Meta libertad financiera
-              </p>
-            </div>
-            <p className="text-[10px] font-black" style={{ color: 'var(--accent-green)' }}>
-              {progresoFIRE.toFixed(1)}%
-            </p>
-          </div>
-          <ProgressBar value={Math.min(calc.finalBalance, metaLibertad)} max={metaLibertad} color="var(--accent-green)" />
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-              Basado en {formatCurrency(baseGastos)} gastos/mes × 12 × 25
-            </p>
-            <p className="text-[9px] font-black" style={{ color: 'var(--text-secondary)' }}>
-              {formatCurrency(metaLibertad)}
-            </p>
-          </div>
-        </Card>
-      )}
+          {metaLibertad && calc && (
+            <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Target size={13} style={{ color: 'var(--accent-terra)' }} />
+                  <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
+                    Meta libertad financiera
+                  </p>
+                </div>
+                <p className="text-[10px] font-black" style={{ color: 'var(--accent-green)' }}>
+                  {Math.min(100, (calc.finalBalance / metaLibertad) * 100).toFixed(1)}%
+                </p>
+              </div>
+              <ProgressBar
+                value={Math.min(calc.finalBalance, metaLibertad)}
+                max={metaLibertad}
+                color="var(--accent-green)"
+              />
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                  Basado en {formatCurrency(baseGastos)} gastos/mes × 12 × 25
+                </p>
+                <p className="text-[9px] font-black" style={{ color: 'var(--text-secondary)' }}>
+                  {formatCurrency(metaLibertad)}
+                </p>
+              </div>
+            </Card>
+          )}
 
           {/* ── Lista compacta de todas las carteras ── */}
           {inversiones.length > 1 && (
@@ -454,6 +452,7 @@ const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
                   monthlyContribution: inv.aporte,
                   annualRate: inv.tasa,
                   years: inv.anos,
+                  compound: inv.bola_nieve !== false,  // respeta estrategia de cada cartera
                 })
                 return (
                   <div key={inv.id}
