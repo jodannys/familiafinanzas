@@ -89,26 +89,23 @@ export const CATEGORY_CONFIG = {
 }
 
 
-export function getFlagEmoji(countryCode) {
-  // 1. Si no hay código o no son exactamente 2 letras, devolver tal cual
-  if (!countryCode || typeof countryCode !== 'string' || countryCode.length !== 2) {
-    return countryCode;
-  }
+export function getFlagEmoji(input) {
+  if (!input || typeof input !== 'string') return input;
 
-  // 2. Verificar si son letras de la A a la Z (códigos de país como VE, ES, AR)
-  const isCountryCode = /^[a-zA-Z]{2}$/.test(countryCode);
-  
-  if (isCountryCode) {
+  // Detecta código de país de 2 letras (A-Z, case insensitive)
+  if (/^[a-zA-Z]{2}$/.test(input)) {
     try {
-      const codePoints = countryCode
-        .toUpperCase()
-        .split('')
-        .map(char => 127397 + char.charCodeAt());
-return String.fromCodePoint(...codePoints);
+      const codePoints = input.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0));
+      return String.fromCodePoint(...codePoints);
     } catch (e) {
-      return countryCode; // Si falla el renderizado, muestra "VE" o "ES"
+      return input; // Si falla, devuelve tal cual
     }
   }
 
-  return countryCode; // Si ya era un emoji (ej: 🏠), lo devuelve igual
+  // Si es un emoji unicode (ej: 🎯 🏠) lo dejamos tal cual
+  const firstCode = input.codePointAt(0);
+  if (firstCode > 127000) return input;
+
+  // Si no es ninguno de los anteriores, devolvemos tal cual
+  return input;
 }
