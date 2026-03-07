@@ -69,6 +69,17 @@ export default function MetasPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
+    setError(null)
+    const pctActual = parseFloat(form.pct_mensual) || 0
+    const pctUsado = metas
+      .filter(m => m.id !== editingId && m.estado === 'activa')
+      .reduce((s, m) => s + (m.pct_mensual || 0), 0)
+
+    if (pctActual + pctUsado > 100) {
+      setError(`El porcentaje excede el 100%. Solo tienes un ${100 - pctUsado}% disponible.`)
+      setSaving(false)
+      return
+    }
     const payload = {
       nombre: form.nombre,
       emoji: form.emoji,
@@ -359,20 +370,26 @@ export default function MetasPage() {
 
           {/* Indicador visual de % disponible */}
           {presupuesto && (() => {
-            const pctUsado     = metas
-              .filter(m => m.id !== editingId)
+            // 1. Sumamos solo las activas que NO sean la que estamos editando
+            const pctUsado = metas
+              .filter(m => m.id !== editingId && m.estado === 'activa')
               .reduce((s, m) => s + (m.pct_mensual || 0), 0)
-            const pctMax       = presupuesto.pctMetas || 100
-            const pctLibre     = Math.max(0, pctMax - pctUsado)
-            const pctActual    = parseFloat(form.pct_mensual) || 0
-            const pctRestante  = Math.max(0, pctLibre - pctActual)
-            const montoActual  = (pctActual / 100) * presupuesto.montoMetas
-            const montoRestante= (pctRestante / 100) * presupuesto.montoMetas
-            const excede       = pctActual > pctLibre
-            const lleno        = pctRestante === 0 && !excede
-            const barUsado     = pctMax > 0 ? Math.min(100, (pctUsado / pctMax) * 100) : 0
-            const barActual    = pctMax > 0 ? Math.min(100 - barUsado, (pctActual / pctMax) * 100) : 0
-            const color        = excede ? '#C0605A' : lleno ? '#f59e0b' : '#10b981'
+
+            const pctMax = 100 // Siempre es el 100% del bloque de metas
+            const pctLibre = Math.max(0, pctMax - pctUsado)
+            const pctActual = parseFloat(form.pct_mensual) || 0
+            const pctRestante = Math.max(0, pctLibre - pctActual)
+            const pctTotalSimulado = pctUsado + pctActual // Lo que se usaría en total si guardas
+
+            const montoActual = (pctActual / 100) * presupuesto.montoMetas
+            const montoRestante = (pctRestante / 100) * presupuesto.montoMetas
+
+            const excede = pctActual > pctLibre
+            const lleno = pctRestante === 0 && !excede
+
+            const barUsado = Math.min(100, pctUsado)
+            const barActual = Math.min(100 - barUsado, pctActual)
+            const color = excede ? '#C0605A' : lleno ? '#f59e0b' : '#10b981'
 
             return (
               <div className="rounded-xl overflow-hidden"
@@ -380,10 +397,8 @@ export default function MetasPage() {
 
                 {/* Barra de distribución */}
                 <div className="h-1.5 flex" style={{ background: 'var(--progress-track)' }}>
-                  {/* % ya usado por otras metas */}
                   <div className="h-full transition-all duration-300"
                     style={{ width: `${barUsado}%`, background: 'rgba(120,120,120,0.35)' }} />
-                  {/* % de esta meta (en tiempo real) */}
                   <div className="h-full transition-all duration-300"
                     style={{ width: `${barActual}%`, background: color }} />
                 </div>
@@ -394,11 +409,11 @@ export default function MetasPage() {
                       {excede
                         ? `⚠ Solo hay ${pctLibre}% disponible — reduce el porcentaje`
                         : lleno
-                        ? '✓ Has asignado todo el presupuesto de metas'
-                        : `Quedan ${pctRestante}% sin asignar`}
+                          ? '✓ Has asignado todo el presupuesto de metas'
+                          : `Quedan ${pctRestante}% sin asignar`}
                     </span>
                     <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>
-                     {pctDisponible}% usado
+                      {pctTotalSimulado}% asignado del total
                     </span>
                   </div>
 
@@ -413,7 +428,7 @@ export default function MetasPage() {
                     </div>
                     {!excede && pctRestante > 0 && (
                       <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                        {formatCurrency(montoRestante)} disponible
+                        {formatCurrency(montoRestante)} disponibles
                       </span>
                     )}
                   </div>
