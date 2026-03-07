@@ -8,11 +8,11 @@ import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 const CATS = [
-  { value: 'basicos',   label: 'Gastos Básicos' },
-  { value: 'deseo',     label: 'Gastos Deseo' },
-  { value: 'ahorro',    label: 'Ahorro / Metas' },
+  { value: 'basicos', label: 'Gastos Básicos' },
+  { value: 'deseo', label: 'Gastos Deseo' },
+  { value: 'ahorro', label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
-  { value: 'deuda',     label: 'Deudas' },
+  { value: 'deuda', label: 'Deudas' },
 ]
 
 const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose' }
@@ -153,22 +153,22 @@ export default function GastosPage() {
         const deuda = deudasData.find(d => d.id === deudaSeleccionada)
         if (deuda) {
           const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
-          const nuevosPagados  = (deuda.pagadas || 0) + 1
-          const nuevoEstado    = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+          const nuevosPagados = (deuda.pagadas || 0) + 1
+          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
           await supabase.from('deudas').update({
             pendiente: nuevoPendiente,
-            pagadas:   nuevosPagados,
-            estado:    nuevoEstado,
+            pagadas: nuevosPagados,
+            estado: nuevoEstado,
           }).eq('id', deudaSeleccionada)
 
           // Espejo en deuda_movimientos para historial de la deuda
           await supabase.from('deuda_movimientos').insert([{
-            deuda_id:    deudaSeleccionada,
-            tipo:        'pago',
+            deuda_id: deudaSeleccionada,
+            tipo: 'pago',
             descripcion: form.descripcion,
             monto,
-            fecha:       form.fecha,
+            fecha: form.fecha,
             mes,
             año,
           }])
@@ -222,12 +222,12 @@ export default function GastosPage() {
               (deudaData.pendiente || 0) + movimiento.monto
             )
             const nuevosPagados = Math.max(0, (deudaData.pagadas || 0) - 1)
-            const nuevoEstado   = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+            const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
             await supabase.from('deudas').update({
               pendiente: nuevoPendiente,
-              pagadas:   nuevosPagados,
-              estado:    nuevoEstado,
+              pagadas: nuevosPagados,
+              estado: nuevoEstado,
             }).eq('id', deudaId)
 
             // Borrar espejo en deuda_movimientos: match exacto por deuda_id + fecha + monto
@@ -285,7 +285,7 @@ export default function GastosPage() {
     return month - 1 === now.getMonth() && year === now.getFullYear()
   })
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const egresos  = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
@@ -315,7 +315,7 @@ export default function GastosPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Ingresos del mes', value: formatCurrency(ingresos), color: 'var(--accent-green)' },
-          { label: 'Egresos del mes',  value: formatCurrency(egresos),  color: 'var(--accent-rose)' },
+          { label: 'Egresos del mes', value: formatCurrency(egresos), color: 'var(--accent-rose)' },
           { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-4 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -352,12 +352,20 @@ export default function GastosPage() {
             <Loader2 size={20} className="animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12"><p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No hay registros</p></div>
+          <div className="text-center py-12">
+            <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No hay registros</p>
+          </div>
         ) : (
           <div className="divide-y" style={{ borderColor: "var(--border-glass)" }}>
             {filtered.map((m, i) => (
-              <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background="var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}
-                style={{ animationDelay: `${i * 0.02}s` }}>
+              <div
+                key={m.id}
+                className="flex items-center gap-4 px-4 py-4 transition-colors group"
+                style={{ animationDelay: `${i * 0.02}s` }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--bg-secondary)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                {/* Icono de tipo */}
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{
                     background: m.tipo === 'ingreso' ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
@@ -365,20 +373,52 @@ export default function GastosPage() {
                   }}>
                   {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                 </div>
+
+                {/* Texto Principal (Descripción y Fecha) */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold truncate leading-tight" style={{ color: "var(--text-primary)" }}>{m.descripcion}</p>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-tighter" style={{ color: "var(--text-muted)" }}>{m.quien}</span>
-                    <Badge color={catColor[m.categoria] || 'slate'}>{m.categoria}</Badge>
-                  </div>
-                </div>
-                <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
-                  <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                    {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
+                  <p className="text-sm font-bold truncate leading-tight" style={{ color: "var(--text-primary)" }}>
+                    {m.descripcion}
                   </p>
-                  <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color="var(--accent-rose)"; e.currentTarget.style.opacity="1" }} onMouseLeave={e => { e.currentTarget.style.color="var(--text-muted)"; e.currentTarget.style.opacity="0.4" }}>
-                    <Trash2 size={14} />
-                  </button>
+                  <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    {new Date(m.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                  </p>
+                </div>
+
+                {/* Bloque de Información Derecha (Etiquetas + Monto) */}
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  {/* Etiquetas (Hidden on mobile if space is tight, or just small) */}
+                  <div className="hidden sm:flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500">
+                      {m.quien}
+                    </span>
+                    {/* Lógica corregida para la Categoría */}
+                    {m.tipo === 'ingreso' ? (
+                      <Badge color="emerald">Ingreso</Badge>
+                    ) : (
+                      <Badge color={catColor[m.categoria] || 'slate'}>{m.categoria}</Badge>
+                    )}
+                  </div>
+
+                  {/* Monto y Acción */}
+                  <div className="text-right min-w-[100px]">
+                    <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                      {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
+                    </p>
+                    <div className="flex justify-end items-center gap-2 mt-1">
+                      {/* Badge visible en móvil dentro de este bloque si prefieres */}
+                      <span className="sm:hidden text-[8px] font-bold uppercase"
+                        style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-muted)' }}>
+                        {m.tipo === 'ingreso' ? 'Ingreso' : m.categoria}
+                      </span>
+                      <button
+                        onClick={() => handleDelete(m)}
+                        className="p-1.5 rounded-lg hover:bg-rose-50 transition-all opacity-40 group-hover:opacity-100"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
