@@ -253,6 +253,7 @@ export default function MetasPage() {
                       {meta.pct_mensual > 0 && meta.estado !== 'pausada' && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                           style={{ background: `${meta.color}12`, color: meta.color }}>
+                          {meta.pct_mensual}%/mes
                         </span>
                       )}
                     </div>
@@ -346,7 +347,7 @@ export default function MetasPage() {
                 value={form.meta} onChange={e => setForm({ ...form, meta: e.target.value })} />
             </div>
             <div>
-              <label className="ff-label">% presupuesto</label>
+              <label className="ff-label">% presupuesto metas</label>
               <input
                 className="ff-input"
                 type="number" min="0" max="100" placeholder="10" required
@@ -391,13 +392,13 @@ export default function MetasPage() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[9px] font-black uppercase" style={{ color }}>
                       {excede
-                        ? `⚠ Excede en ${pctActual - pctLibre}%`
+                        ? `⚠ Solo hay ${pctLibre}% disponible — reduce el porcentaje`
                         : lleno
-                        ? '✓ Presupuesto completo'
-                        : `Quedan ${pctRestante}% libres`}
+                        ? '✓ Has asignado todo el presupuesto de metas'
+                        : `Quedan ${pctRestante}% sin asignar`}
                     </span>
                     <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>
-                      {pctUsado + pctActual}% usado
+                      {pctUsado + pctActual}/{pctMax}% usado
                     </span>
                   </div>
 
