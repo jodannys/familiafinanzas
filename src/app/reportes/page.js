@@ -147,7 +147,6 @@ export default function ReportesPage() {
     { v: 'deseo', l: 'Deseo', color: 'var(--accent-terra)' },
     { v: 'ahorro', l: 'Ahorro', color: 'var(--accent-green)' },
     { v: 'inversion', l: 'Inversión', color: 'var(--accent-green)' },
-    { v: 'remesa', l: 'Remesa', color: 'var(--accent-terra)' },
     // Esto agrega cualquier otra categoría que tengas en la base de datos y no esté arriba
     ...catsConDatos
       .filter(cat => !['basicos', 'deuda', 'deseo', 'ahorro', 'inversion', 'remesa'].includes(cat))
@@ -303,7 +302,6 @@ export default function ReportesPage() {
                       background: 'color-mix(in srgb, var(--text-muted) 10%, transparent)',
                       color: 'var(--text-muted)',
                     }}>
-                    Regla 50/30/20 (default)
                   </span>
                 )}
               </div>
@@ -326,7 +324,6 @@ export default function ReportesPage() {
                               background: `color-mix(in srgb, ${g.color} 12%, transparent)`,
                               color: g.color,
                             }}>
-                            ≤{target}%
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
