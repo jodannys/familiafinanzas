@@ -17,7 +17,6 @@ import {
 } from 'recharts'
 
 // ─── Tooltip del gráfico ─────────────────────────────────────────────────────
-
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
@@ -40,7 +39,6 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
-
 export default function InversionesPage() {
   const [inversiones, setInversiones] = useState([])
   const [selected, setSelected]       = useState(null)
@@ -48,14 +46,15 @@ export default function InversionesPage() {
   const [saving, setSaving]           = useState(false)
   const [error, setError]             = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
-  const [gastosMes, setGastosMes]     = useState(0)   // ← egresos reales del mes actual
+  const [gastosMes, setGastosMes]     = useState(0)
   const [modal, setModal]             = useState(false)
   const [editandoId, setEditandoId]   = useState(null)
   const [form, setForm] = useState({
     nombre: '', emoji: '📈', capital: '', aporte: '',
-    tasa: '', anos: '10', color: 'var(--accent-green)'
+    tasa: '', anos: '10', color: 'var(--accent-green)', bola_nieve: true
   })
 
+  // ─── Cargar datos iniciales ────────────────────────────────────────────────
   useEffect(() => {
     cargar()
     getPresupuestoMes().then(setPresupuesto)
@@ -68,7 +67,7 @@ export default function InversionesPage() {
     const año   = now.getFullYear()
     const { data } = await supabase
       .from('movimientos')
-      .select('monto')
+      .select('monto, categoria')
       .eq('tipo', 'egreso')
       .gte('fecha', `${año}-${mes}-01`)
       .lte('fecha', `${año}-${mes}-31`)
@@ -99,6 +98,7 @@ export default function InversionesPage() {
       tasa: parseFloat(form.tasa) || 0,
       anos: parseInt(form.anos) || 10,
       color: form.color,
+      bola_nieve: form.bola_nieve,
     }
 
     if (editandoId) {
@@ -116,12 +116,12 @@ export default function InversionesPage() {
     setSaving(false)
     setModal(false)
     setEditandoId(null)
-    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: 'var(--accent-green)' })
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: 'var(--accent-green)', bola_nieve: true })
   }
 
   function abrirNuevo() {
     setEditandoId(null)
-    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: 'var(--accent-green)' })
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: 'var(--accent-green)', bola_nieve: true })
     setModal(true)
   }
 
@@ -135,6 +135,7 @@ export default function InversionesPage() {
       tasa: inv.tasa?.toString() || '',
       anos: inv.anos?.toString() || '10',
       color: inv.color || 'var(--accent-green)',
+      bola_nieve: inv.bola_nieve !== false,
     })
     setModal(true)
   }
@@ -149,12 +150,14 @@ export default function InversionesPage() {
     }
   }
 
+  // ─── Cálculos de inversión ────────────────────────────────────────────────
   const calc = selected
     ? calculateCompoundInterest({
         principal: selected.capital,
         monthlyContribution: selected.aporte,
         annualRate: selected.tasa,
         years: selected.anos,
+        compound: selected.bola_nieve !== false,
       })
     : null
 
@@ -162,12 +165,18 @@ export default function InversionesPage() {
 
   const totalCapital = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
   const totalAportes = inversiones.reduce((s, i) => s + (i.aporte || 0), 0)
-  // metaLibertad: usa GASTOS reales del mes (regla FIRE: reemplazar gastos, no ingresos)
-  // Fallback: 70% del ingreso si aún no hay movimientos registrados ese mes
-  const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
-  const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
 
-  // Colores del picker — son colores de cartera (dato del usuario, no del tema)
+  // ─── AJUSTE FIRE: gastos reales del mes ──────────────────────────────────
+  // reemplaza baseGastos estimados por suma de Necesidades + Estilo
+  const gastosNecesidades = gastadoReal('necesidades')
+  const gastosEstilo      = gastadoReal('estilo')
+  const gastosReales      = gastosNecesidades + gastosEstilo
+
+  const baseGastos   = gastosReales > 0 ? gastosReales : (presupuesto?.total ?? 0) * 0.7
+  const metaLibertad = baseGastos * 12 * 25
+  const progresoFIRE = calc ? Math.min(100, (calc.finalBalance / metaLibertad) * 100) : 0
+
+  // ─── Colores de cartera ───────────────────────────────────────────────────
   const COLORES_PICKER = [
     { hex: '#2D7A5F', label: 'Verde' },
     { hex: '#4A6FA5', label: 'Azul' },
@@ -271,6 +280,10 @@ export default function InversionesPage() {
                     </p>
                     <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                       {selected.tasa}% anual · {selected.anos} años · +{formatCurrency(selected.aporte)}/mes
+                      {' · '}
+                      <span style={{ color: selected.bola_nieve !== false ? 'var(--accent-green)' : 'var(--accent-terra)' }}>
+                        {selected.bola_nieve !== false ? '🔄 Bola de nieve' : '📤 Sin reinversión'}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -392,34 +405,30 @@ export default function InversionesPage() {
           )}
 
           {/* ── Meta libertad financiera ── */}
-          {metaLibertad && calc && (
-            <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Target size={13} style={{ color: 'var(--accent-terra)' }} />
-                  <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
-                    Meta libertad financiera
-                  </p>
-                </div>
-                <p className="text-[10px] font-black" style={{ color: 'var(--accent-green)' }}>
-                  {Math.min(100, (calc.finalBalance / metaLibertad * 100)).toFixed(1)}%
-                </p>
-              </div>
-              <ProgressBar
-                value={Math.min(calc.finalBalance, metaLibertad)}
-                max={metaLibertad}
-                color="var(--accent-green)"
-              />
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                  Basado en {formatCurrency(baseGastos)} gastos/mes × 12 × 25
-                </p>
-                <p className="text-[9px] font-black" style={{ color: 'var(--text-secondary)' }}>
-                  {formatCurrency(metaLibertad)}
-                </p>
-              </div>
-            </Card>
-          )}
+           {metaLibertad && calc && (
+        <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Target size={13} style={{ color: 'var(--accent-terra)' }} />
+              <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
+                Meta libertad financiera
+              </p>
+            </div>
+            <p className="text-[10px] font-black" style={{ color: 'var(--accent-green)' }}>
+              {progresoFIRE.toFixed(1)}%
+            </p>
+          </div>
+          <ProgressBar value={Math.min(calc.finalBalance, metaLibertad)} max={metaLibertad} color="var(--accent-green)" />
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+              Basado en {formatCurrency(baseGastos)} gastos/mes × 12 × 25
+            </p>
+            <p className="text-[9px] font-black" style={{ color: 'var(--text-secondary)' }}>
+              {formatCurrency(metaLibertad)}
+            </p>
+          </div>
+        </Card>
+      )}
 
           {/* ── Lista compacta de todas las carteras ── */}
           {inversiones.length > 1 && (
@@ -530,6 +539,7 @@ export default function InversionesPage() {
               monthlyContribution: parseFloat(form.aporte) || 0,
               annualRate: parseFloat(form.tasa) || 0,
               years: parseInt(form.anos) || 10,
+              compound: form.bola_nieve,
             })
             const c = form.color.startsWith('var(') ? 'var(--accent-green)' : form.color
             return (
@@ -545,6 +555,33 @@ export default function InversionesPage() {
               </div>
             )
           })()}
+
+          {/* Toggle Bola de Nieve */}
+          <div>
+            <label className="ff-label">Estrategia de interés</label>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {[
+                { val: true,  icon: '🔄', title: 'Bola de nieve', desc: 'Reinvierte las ganancias (interés compuesto)' },
+                { val: false, icon: '📤', title: 'Sin reinversión', desc: 'Retiras las ganancias cada año' },
+              ].map(opt => (
+                <button key={String(opt.val)} type="button"
+                  onClick={() => setForm(p => ({ ...p, bola_nieve: opt.val }))}
+                  className="p-3 rounded-xl text-left transition-all border-2"
+                  style={{
+                    borderColor: form.bola_nieve === opt.val ? 'var(--accent-green)' : 'var(--border-glass)',
+                    background:  form.bola_nieve === opt.val
+                      ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)'
+                      : 'var(--bg-secondary)',
+                  }}>
+                  <p className="text-base mb-0.5">{opt.icon}</p>
+                  <p className="text-[10px] font-black" style={{ color: form.bola_nieve === opt.val ? 'var(--accent-green)' : 'var(--text-primary)' }}>
+                    {opt.title}
+                  </p>
+                  <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Picker de color de cartera */}
           <div>
