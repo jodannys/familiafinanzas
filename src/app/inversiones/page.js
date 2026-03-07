@@ -53,7 +53,13 @@ export default function InversionesPage() {
     nombre: '', emoji: '📈', capital: '', aporte: '',
     tasa: '', anos: '10', color: 'var(--accent-green)', bola_nieve: true
   })
-
+async function cargar() {
+  setLoading(true)
+  const { data, error } = await supabase.from('inversiones').select()
+  if (error) console.error(error)
+  else setInversiones(data || [])
+  setLoading(false)
+}
   // ─── Cargar datos iniciales ────────────────────────────────────────────────
   useEffect(() => {
     cargar()
