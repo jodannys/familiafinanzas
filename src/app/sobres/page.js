@@ -72,46 +72,43 @@ export default function SobrePage() {
   }
 
   // ── CÁLCULOS DE SALDO ──────────────────────────────────────────────────────
-
   const montoEstilo    = parseFloat(presupuesto?.montoEstilo)     || 0
   const montoBasicos   = parseFloat(presupuesto?.montoNecesidades) || 0
   const montoMetas     = parseFloat(presupuesto?.montoMetas)      || 0
   const montoInv       = parseFloat(presupuesto?.montoInversiones) || 0
 
-  // Gasto directo del sobre (categoría "deseo")
   const gastadoSobre = movsMes
     .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
-    .reduce((s, m) => s + parseFloat(m.monto), 0)
+    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
 
-  // Traspasos que SUMAN al sobre (vienen de otras cubetas)
   const traspasosAlSobre = sobreMovs
     .filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen))
-    .reduce((s, m) => s + parseFloat(m.monto), 0)
+    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
 
-  // FIX: El fondo total del sobre es dinámico:
-  // límite mensual + inyecciones recibidas - gastos realizados
-  const saldoSobre = montoEstilo - gastadoSobre + traspasosAlSobre
+  const saldoSobre = (montoEstilo || 0) - gastadoSobre + traspasosAlSobre
 
-  // Cubeta Básicos: descuenta también lo que se traspasó al sobre desde aquí
-  const gastadoBasicos  = movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + parseFloat(m.monto), 0)
-  const traspasosBasicos = sobreMovs.filter(m => m.origen === 'basicos').reduce((s, m) => s + parseFloat(m.monto), 0)
-  const saldoBasicos = montoBasicos - gastadoBasicos - traspasosBasicos
+  const gastadoBasicos  = movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria))
+    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  const traspasosBasicos = sobreMovs.filter(m => m.origen === 'basicos')
+    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  const saldoBasicos = (montoBasicos || 0) - gastadoBasicos - traspasosBasicos
 
-  const traspasosMetas = sobreMovs.filter(m => m.origen === 'metas' && parseFloat(m.monto) > 0).reduce((s, m) => s + parseFloat(m.monto), 0)
-  const saldoMetas = montoMetas - traspasosMetas
+  const traspasosMetas = sobreMovs.filter(m => m.origen === 'metas')
+    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  const saldoMetas = (montoMetas || 0) - traspasosMetas
 
-  const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones' && parseFloat(m.monto) > 0).reduce((s, m) => s + parseFloat(m.monto), 0)
-  const saldoInversiones = montoInv - traspasosInv
+  const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones')
+    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  const saldoInversiones = (montoInv || 0) - traspasosInv
 
   function getSaldo(origen) {
-    if (origen === 'basicos')     return saldoBasicos
-    if (origen === 'metas')       return saldoMetas
-    if (origen === 'inversiones') return saldoInversiones
+    if (origen === 'basicos')     return saldoBasicos || 0
+    if (origen === 'metas')       return saldoMetas || 0
+    if (origen === 'inversiones') return saldoInversiones || 0
     return 0
   }
 
   // ── HANDLERS ───────────────────────────────────────────────────────────────
-
   function resetModal() {
     setModal(false)
     setTarjetaSeleccionada('')
@@ -120,10 +117,9 @@ export default function SobrePage() {
 
   async function handleGasto(e) {
     e.preventDefault()
-    const monto = parseFloat(form.monto)
+    const monto = parseFloat(form.monto) || 0
     if (!monto || !form.descripcion) return
 
-    // TARJETA: va a deuda_movimientos, NO resta del sobre
     if (tarjetaSeleccionada) {
       setSaving(true)
       const { error } = await supabase.from('deuda_movimientos').insert([{
@@ -131,7 +127,7 @@ export default function SobrePage() {
         tipo: 'cargo',
         descripcion: form.descripcion,
         monto,
-        fecha: fechaHoy(),   // ← fecha local correcta
+        fecha: fechaHoy(),
         mes: filtroMes,
         año: filtroAño,
       }])
@@ -147,13 +143,12 @@ export default function SobrePage() {
       return
     }
 
-    // GASTO DIRECTO: si hay saldo, registrar; si no, abrir modal de traspaso
     if (saldoSobre >= monto) {
       setSaving(true)
       const { error } = await supabase.from('movimientos').insert([{
         tipo: 'egreso', categoria: 'deseo',
         descripcion: form.descripcion, monto,
-        fecha: fechaHoy(),   // ← fecha local correcta
+        fecha: fechaHoy(),
         quien: form.quien,
       }])
       if (!error) { resetModal(); cargarTodo() }
@@ -193,16 +188,16 @@ export default function SobrePage() {
   }
 
   async function confirmarSobrante() {
-    const monto = parseFloat(montoSobrante)
+    const monto = parseFloat(montoSobrante) || 0
     if (!monto || monto > saldoSobre) return
     setSaving(true)
     const hoy = fechaHoy()
     await supabase.from('sobre_movimientos').insert([{
       descripcion: `Sobrante → ${destinoSobrante}`,
-      monto, origen: destinoSobrante,
+      monto, origen: 'sobre',
+      destino: destinoSobrante,
       mes: filtroMes, año: filtroAño, fecha: hoy,
     }])
-    // Registrar el gasto del sobre para que el saldo refleje el movimiento
     await supabase.from('movimientos').insert([{
       tipo: 'egreso', categoria: 'deseo',
       descripcion: `Sobrante enviado a ${destinoSobrante}`,
@@ -225,23 +220,14 @@ export default function SobrePage() {
     }
   }
 
-  // ── LISTA UNIFICADA con búsqueda en descripción y quien ───────────────────
   const movsFiltrados = [
-    ...movsMes
-      .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
-      .map(m => ({ ...m, _fuente: 'mov', _label: 'Sobre' })),
+    ...movsMes.filter(m => m.tipo === 'egreso' && m.categoria === 'deseo').map(m => ({ ...m, _fuente: 'mov', _label: 'Sobre' })),
     ...sobreMovs.map(m => ({ ...m, _fuente: 'sobre', _label: `Traspaso · ${m.origen}` })),
-  ]
-    .filter(m => {
-      const q = busqueda.toLowerCase()
-      return (
-        m.descripcion?.toLowerCase().includes(q) ||
-        m.quien?.toLowerCase().includes(q)
-      )
-    })
-    .sort((a, b) => new Date(b.fecha || b.created_at) - new Date(a.fecha || a.created_at))
+  ].filter(m => {
+    const q = busqueda.toLowerCase()
+    return m.descripcion?.toLowerCase().includes(q) || m.quien?.toLowerCase().includes(q)
+  }).sort((a, b) => new Date(b.fecha || b.created_at) - new Date(a.fecha || a.created_at))
 
-  // ── VISUALES ───────────────────────────────────────────────────────────────
   const pctUsado   = montoEstilo > 0 ? Math.min(100, (gastadoSobre / montoEstilo) * 100) : 0
   const sobreColor = saldoSobre <= 0
     ? 'var(--accent-rose)'
