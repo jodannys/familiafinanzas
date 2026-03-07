@@ -95,20 +95,6 @@ export default function InversionesPage() {
   setGastosMes(total)
 }
 
-const total = (data || [])
-  .filter(m => ['basicos','deseo'].includes((m.categoria || '').toLowerCase()))
-  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-  async function cargar() {
-    setLoading(true)
-    const { data, error } = await supabase.from('inversiones').select('*').order('created_at')
-    if (error) setError(error.message)
-    else {
-      setInversiones(data || [])
-      if (data?.length) setSelected(data[0])
-    }
-    setLoading(false)
-  }
-
   async function handleSave(e) {
     e.preventDefault()
     setSaving(true)
