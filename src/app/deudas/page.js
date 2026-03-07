@@ -638,8 +638,8 @@ export default function DeudasPage() {
                 {diasFaltantes !== null && (
                   <div className="absolute top-2 right-2">
                     <div className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-tighter ${diasFaltantes <= 3
-                        ? 'bg-red-100 text-red-600 animate-pulse'
-                        : 'bg-emerald-100 text-emerald-700'
+                      ? 'bg-red-100 text-red-600 animate-pulse'
+                      : 'bg-emerald-100 text-emerald-700'
                       }`}>
                       {diasFaltantes <= 0 ? '¡Vence hoy!' : `Vence en ${diasFaltantes}d`}
                     </div>
@@ -658,10 +658,22 @@ export default function DeudasPage() {
                         style={{ background: `${cfg.color}15`, color: cfg.color }}>{cfg.label}</span>
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
                         style={{
-                          background: d.categoria === 'basicos' ? 'rgba(74,111,165,0.1)' : 'rgba(193,122,58,0.1)',
-                          color: d.categoria === 'basicos' ? '#4A6FA5' : '#C17A3A',
+                          // 1. Decidimos el FONDO (background)
+                          background: d.tipo === 'ingreso'
+                            ? 'rgba(16,185,129,0.1)' // Verde suave para ingresos
+                            : d.categoria === 'basicos'
+                              ? 'rgba(74,111,165,0.1)' // Azul para básicos
+                              : 'rgba(193,122,58,0.1)', // Naranja para deseos
+
+                          // 2. Decidimos el COLOR del texto
+                          color: d.tipo === 'ingreso'
+                            ? '#10B981' // Verde fuerte
+                            : d.categoria === 'basicos'
+                              ? '#4A6FA5' // Azul fuerte
+                              : '#C17A3A', // Naranja fuerte
                         }}>
-                        {d.categoria}
+                        {/* 3. Decidimos el TEXTO a mostrar */}
+                        {d.tipo === 'ingreso' ? 'ingreso' : d.categoria}
                       </span>
                       {urgencia && (
                         <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
