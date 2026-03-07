@@ -167,13 +167,10 @@ export default function InversionesPage() {
   const totalAportes = inversiones.reduce((s, i) => s + (i.aporte || 0), 0)
 
   // ─── AJUSTE FIRE: gastos reales del mes ──────────────────────────────────
-  // reemplaza baseGastos estimados por suma de Necesidades + Estilo
-  const gastosNecesidades = gastadoReal('necesidades')
-  const gastosEstilo      = gastadoReal('estilo')
-  const gastosReales      = gastosNecesidades + gastosEstilo
 
-  const baseGastos   = gastosReales > 0 ? gastosReales : (presupuesto?.total ?? 0) * 0.7
-  const metaLibertad = baseGastos * 12 * 25
+const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
+const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
+
   const progresoFIRE = calc ? Math.min(100, (calc.finalBalance / metaLibertad) * 100) : 0
 
   // ─── Colores de cartera ───────────────────────────────────────────────────
