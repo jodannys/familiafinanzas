@@ -346,7 +346,7 @@ export default function MetasPage() {
                 value={form.meta} onChange={e => setForm({ ...form, meta: e.target.value })} />
             </div>
             <div>
-              <label className="ff-label">% presupuesto metas</label>
+              <label className="ff-label">% presupuesto</label>
               <input
                 className="ff-input"
                 type="number" min="0" max="100" placeholder="10" required
