@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Calendar, Banknote } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Save } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 
@@ -17,19 +17,23 @@ function IconBtn({ onClick, title, bg, color, children }) {
   )
 }
 
+const COLORES = [
+  '#4A6FA5', '#818CF8', '#2D7A5F', '#C17A3A', '#C0605A', '#8b5cf6', '#10b981',
+]
+
 export default function TarjetasPage() {
-  const [tarjetas, setTarjetas] = useState([])
-  const [deudas, setDeudas] = useState([]) // NUEVO: Para guardar el desglose
+  const [tarjetas, setTarjetas]           = useState([])
+  const [deudas, setDeudas]               = useState([])
   const [usadoPorTarjeta, setUsadoPorTarjeta] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [selectedId, setSelectedId] = useState(null)
-  const [modal, setModal] = useState(false)
-  const [editingId, setEditingId] = useState(null)
+  const [loading, setLoading]             = useState(true)
+  const [saving, setSaving]               = useState(false)
+  const [selectedId, setSelectedId]       = useState(null)
+  const [modal, setModal]                 = useState(false)
+  const [editingId, setEditingId]         = useState(null)
 
   const [form, setForm] = useState({
     nombre_tarjeta: '', banco: '', limite_credito: '',
-    dia_corte: '', dia_pago: '', estado: 'activa', color: '#4A6FA5'
+    dia_corte: '', dia_pago: '', estado: 'activa', color: '#4A6FA5',
   })
 
   useEffect(() => {
@@ -51,35 +55,24 @@ export default function TarjetasPage() {
     setTarjetas(tarjetasData || [])
 
     if (tarjetasData?.length) {
-      const ids = tarjetasData.map(t => t.id)
-
-      const { data: movs } = await supabase
-        .from('deuda_movimientos')
-        .select('deuda_id, tipo, monto')
-        .in('deuda_id', ids)
-
+      // Traer deudas de tarjeta con su perfil_tarjeta_id
       const { data: deudasTarjeta } = await supabase
         .from('deudas')
-        .select('id, nombre, perfil_tarjeta_id, pendiente, estado') // Traemos el nombre también
+        .select('id, nombre, perfil_tarjeta_id, pendiente, estado')
         .eq('tipo_deuda', 'tarjeta')
         .neq('estado', 'pagada')
 
-      setDeudas(deudasTarjeta || []) // GUARDAMOS EN EL ESTADO
+      setDeudas(deudasTarjeta || [])
 
+      // FIX BUG 2+3: el "usado" es simplemente la suma de pendiente de las deudas
+      // asociadas a cada perfil_tarjeta_id. No usar deuda_movimientos (IDs distintos).
       const usado = {}
       tarjetasData.forEach(t => { usado[t.id] = 0 })
-
-        ; (movs || []).forEach(m => {
-          if (m.tipo === 'cargo') usado[m.deuda_id] = (usado[m.deuda_id] || 0) + m.monto
-          if (m.tipo === 'pago') usado[m.deuda_id] = (usado[m.deuda_id] || 0) - m.monto
-        })
-
-      tarjetasData.forEach(t => {
-        const deudasEsa = (deudasTarjeta || []).filter(d => d.perfil_tarjeta_id === t.id)
-        const pendienteSuma = deudasEsa.reduce((s, d) => s + (d.pendiente || 0), 0)
-        usado[t.id] = (usado[t.id] || 0) + pendienteSuma
+      ;(deudasTarjeta || []).forEach(d => {
+        if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
+          usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
+        }
       })
-
       Object.keys(usado).forEach(k => { usado[k] = Math.max(0, usado[k]) })
       setUsadoPorTarjeta(usado)
     }
@@ -87,47 +80,73 @@ export default function TarjetasPage() {
     setLoading(false)
   }
 
-  // ... funciones openModal, closeModal, handleSubmit, handleToggleEstado, handleDelete igual que antes ...
   const openModal = (tarjeta = null) => {
     if (tarjeta) {
       setEditingId(tarjeta.id)
-      setForm({ ...tarjeta })
+      setForm({
+        nombre_tarjeta: tarjeta.nombre_tarjeta || '',
+        banco:          tarjeta.banco          || '',
+        limite_credito: tarjeta.limite_credito?.toString() || '',
+        dia_corte:      tarjeta.dia_corte?.toString()      || '',
+        dia_pago:       tarjeta.dia_pago?.toString()       || '',
+        estado:         tarjeta.estado || 'activa',
+        color:          tarjeta.color  || '#4A6FA5',
+      })
     } else {
       setEditingId(null)
       setForm({ nombre_tarjeta: '', banco: '', limite_credito: '', dia_corte: '', dia_pago: '', estado: 'activa', color: '#4A6FA5' })
     }
     setModal(true)
   }
+
   const closeModal = () => { setModal(false); setEditingId(null) }
+
   async function handleSubmit(e) {
-    e.preventDefault(); setSaving(true)
-    const payload = { ...form, limite_credito: parseFloat(form.limite_credito) || 0 }
+    e.preventDefault()
+    setSaving(true)
+    const payload = {
+      nombre_tarjeta: form.nombre_tarjeta,
+      banco:          form.banco,
+      limite_credito: parseFloat(form.limite_credito) || 0,
+      dia_corte:      parseInt(form.dia_corte)  || null,
+      dia_pago:       parseInt(form.dia_pago)   || null,
+      estado:         form.estado,
+      color:          form.color,
+    }
     if (editingId) {
       await supabase.from('perfiles_tarjetas').update(payload).eq('id', editingId)
       setTarjetas(prev => prev.map(t => t.id === editingId ? { ...t, ...payload } : t))
     } else {
       const { data } = await supabase.from('perfiles_tarjetas').insert([payload]).select()
-      setTarjetas(prev => [data[0], ...prev])
+      if (data?.[0]) setTarjetas(prev => [data[0], ...prev])
     }
-    setSaving(false); closeModal()
+    setSaving(false)
+    closeModal()
+    cargar()  // refrescar usado
   }
+
   async function handleToggleEstado(tarjeta) {
     const nuevoEstado = tarjeta.estado === 'activa' ? 'pausada' : 'activa'
     await supabase.from('perfiles_tarjetas').update({ estado: nuevoEstado }).eq('id', tarjeta.id)
     setTarjetas(prev => prev.map(t => t.id === tarjeta.id ? { ...t, estado: nuevoEstado } : t))
   }
+
   async function handleDelete(id) {
-    if (!confirm('¿Seguro?')) return
+    if (!confirm('¿Eliminar esta tarjeta? Las compras a plazos asociadas quedarán sin perfil.')) return
     await supabase.from('perfiles_tarjetas').delete().eq('id', id)
     setTarjetas(prev => prev.filter(t => t.id !== id))
+    if (selectedId === id) setSelectedId(null)
   }
 
   return (
     <AppShell>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-0.5">Configuración</p>
-          <h1 className="text-xl font-black text-stone-800 tracking-tight">Mis Tarjetas</h1>
+          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
+            style={{ color: 'var(--text-muted)' }}>Configuración</p>
+          <h1 className="text-xl font-black tracking-tight"
+            style={{ color: 'var(--text-primary)' }}>Mis Tarjetas</h1>
         </div>
         <button onClick={() => openModal()} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} strokeWidth={3} />
@@ -136,85 +155,123 @@ export default function TarjetasPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-stone-400" /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+        </div>
+      ) : tarjetas.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No hay tarjetas registradas</p>
+          <button onClick={() => openModal()} className="ff-btn-primary">Agregar primera tarjeta</button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tarjetas.map((t, i) => {
+          {tarjetas.map((t) => {
             const isSelected = selectedId === t.id
-            const usado = usadoPorTarjeta[t.id] || 0
-            const limite = t.limite_credito || 0
+            const usado      = usadoPorTarjeta[t.id] || 0
+            const limite     = t.limite_credito || 0
             const disponible = Math.max(0, limite - usado)
-            const gastoTotal = gastadoSobre - traspasosAlSobre  // neto gastado del sobre
-            const pctUsado = montoEstilo > 0 ? Math.min(100, (gastoTotal / montoEstilo) * 100) : 0
+            // FIX BUG 1: pctUsado calculado con los datos de esta tarjeta, no de sobre-page
+            const pctUsado   = limite > 0 ? Math.min(100, Math.round((usado / limite) * 100)) : 0
+            const deudasCard = deudas.filter(d => d.perfil_tarjeta_id === t.id)
 
             return (
               <Card key={t.id}
                 onClick={() => setSelectedId(isSelected ? null : t.id)}
                 className={`cursor-pointer transition-all ${t.estado === 'pausada' ? 'opacity-60' : ''}`}
                 style={{
-                  border: isSelected ? `1px solid ${t.color}80` : '1px solid transparent',
-                  padding: '16px'
+                  border:  isSelected ? `1px solid ${t.color}80` : '1px solid transparent',
+                  padding: '16px',
                 }}>
 
-                {/* Cabecera Tarjeta */}
+                {/* Cabecera */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: `${t.color}20`, color: t.color }}>
                       <CreditCard size={20} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-stone-400 leading-none mb-1">{t.banco}</p>
-                      <h3 className="font-black text-stone-800 text-sm leading-none">{t.nombre_tarjeta}</h3>
+                      <p className="text-[10px] font-black uppercase leading-none mb-1"
+                        style={{ color: 'var(--text-muted)' }}>{t.banco || '—'}</p>
+                      <h3 className="font-black text-sm leading-none"
+                        style={{ color: 'var(--text-primary)' }}>{t.nombre_tarjeta}</h3>
                     </div>
                   </div>
+                  {t.estado === 'pausada' && (
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                      Pausada
+                    </span>
+                  )}
                 </div>
 
-                {/* Barra de Progreso */}
+                {/* Barra de uso */}
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between items-baseline">
-                    <span className="text-[10px] font-black uppercase text-stone-400">Usado</span>
-                    <span className="text-sm font-black" style={{ color: t.color }}>{formatCurrency(usado)}</span>
+                    <span className="text-[10px] font-black uppercase"
+                      style={{ color: 'var(--text-muted)' }}>Usado</span>
+                    <span className="text-sm font-black"
+                      style={{ color: t.color }}>{formatCurrency(usado)}</span>
                   </div>
-                  <ProgressBar value={usado} max={limite} color={pctUsado > 80 ? '#C0605A' : t.color} />
-                  <div className="flex justify-between text-[10px] font-bold text-stone-500">
+                  <ProgressBar value={usado} max={limite} color={pctUsado > 80 ? 'var(--accent-rose)' : t.color} />
+                  <div className="flex justify-between text-[10px] font-bold"
+                    style={{ color: 'var(--text-muted)' }}>
                     <span>{pctUsado}% usado</span>
-                    <span className="text-emerald-600">Disp: {formatCurrency(disponible)}</span>
+                    <span style={{ color: 'var(--accent-green)' }}>Disp: {formatCurrency(disponible)}</span>
                   </div>
                 </div>
 
-                {/* Info Corte/Pago + Botones */}
+                {/* Días de corte y pago */}
                 <div className="flex items-center justify-between">
-                  <div className="flex gap-3 text-[11px] font-bold text-stone-600">
-                    <span>Corte: {t.dia_corte}</span>
-                    <span>Pago: {t.dia_pago}</span>
+                  <div className="flex gap-3 text-[11px] font-bold"
+                    style={{ color: 'var(--text-secondary)' }}>
+                    {t.dia_corte && <span>Corte: día {t.dia_corte}</span>}
+                    {t.dia_pago  && <span>Pago: día {t.dia_pago}</span>}
                   </div>
                   {isSelected && (
                     <div className="flex gap-1">
-                      <IconBtn onClick={e => { e.stopPropagation(); handleToggleEstado(t) }} bg="var(--bg-secondary)" color={t.color}>
+                      <IconBtn
+                        onClick={e => { e.stopPropagation(); handleToggleEstado(t) }}
+                        bg="var(--bg-secondary)" color={t.color}
+                        title={t.estado === 'pausada' ? 'Activar' : 'Pausar'}>
                         {t.estado === 'pausada' ? <Play size={14} /> : <Pause size={14} />}
                       </IconBtn>
-                      <IconBtn onClick={e => { e.stopPropagation(); openModal(t) }} bg="var(--bg-secondary)" color="stone-400">
+                      <IconBtn
+                        onClick={e => { e.stopPropagation(); openModal(t) }}
+                        bg="var(--bg-secondary)" color="var(--text-secondary)"
+                        title="Editar">
                         <Pencil size={14} />
                       </IconBtn>
-                      <IconBtn onClick={e => { e.stopPropagation(); handleDelete(t.id) }} bg="#C0605A15" color="#C0605A">
+                      <IconBtn
+                        onClick={e => { e.stopPropagation(); handleDelete(t.id) }}
+                        bg="color-mix(in srgb, var(--accent-rose) 8%, transparent)"
+                        color="var(--accent-rose)"
+                        title="Eliminar">
                         <Trash2 size={14} />
                       </IconBtn>
                     </div>
                   )}
                 </div>
 
-                {/* DETALLE DE DEUDAS (AHORA SÍ, DENTRO DEL MAP) */}
+                {/* Desglose de compras — visible al seleccionar */}
                 {isSelected && (
-                  <div className="mt-4 pt-4 border-t border-stone-100 space-y-2 animate-in slide-in-from-top-2">
-                    <p className="text-[10px] font-black uppercase text-stone-400">Compras a plazos:</p>
-                    {deudas.filter(d => d.perfil_tarjeta_id === t.id).length === 0 ? (
-                      <p className="text-[11px] text-stone-400 italic">No hay compras activas</p>
+                  <div className="mt-4 pt-4 space-y-2"
+                    style={{ borderTop: '1px solid var(--border-glass)' }}>
+                    <p className="text-[10px] font-black uppercase"
+                      style={{ color: 'var(--text-muted)' }}>Compras a plazos activas:</p>
+                    {deudasCard.length === 0 ? (
+                      <p className="text-[11px] italic" style={{ color: 'var(--text-muted)' }}>
+                        No hay compras activas
+                      </p>
                     ) : (
-                      deudas.filter(d => d.perfil_tarjeta_id === t.id).map(deuda => (
-                        <div key={deuda.id} className="flex justify-between items-center bg-stone-50 p-2 rounded-lg">
-                          <span className="text-[11px] font-bold text-stone-700">{deuda.nombre}</span>
-                          <span className="text-[11px] font-black text-stone-600">{formatCurrency(deuda.pendiente)}</span>
+                      deudasCard.map(deuda => (
+                        <div key={deuda.id}
+                          className="flex justify-between items-center p-2 rounded-lg"
+                          style={{ background: 'var(--bg-secondary)' }}>
+                          <span className="text-[11px] font-bold"
+                            style={{ color: 'var(--text-primary)' }}>{deuda.nombre}</span>
+                          <span className="text-[11px] font-black"
+                            style={{ color: t.color }}>{formatCurrency(deuda.pendiente)}</span>
                         </div>
                       ))
                     )}
@@ -226,9 +283,82 @@ export default function TarjetasPage() {
         </div>
       )}
 
-      {/* Modal - Igual que antes */}
+      {/* Modal crear / editar */}
       <Modal open={modal} onClose={closeModal} title={editingId ? 'Editar Tarjeta' : 'Nueva Tarjeta'}>
-        {/* ... form contenido ... */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* Nombre + Banco */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="ff-label">Nombre de la tarjeta</label>
+              <input className="ff-input" required placeholder="Ej: Visa Oro"
+                value={form.nombre_tarjeta}
+                onChange={e => setForm(p => ({ ...p, nombre_tarjeta: e.target.value }))} />
+            </div>
+            <div>
+              <label className="ff-label">Banco</label>
+              <input className="ff-input" placeholder="Ej: BBVA, Santander..."
+                value={form.banco}
+                onChange={e => setForm(p => ({ ...p, banco: e.target.value }))} />
+            </div>
+          </div>
+
+          {/* Límite */}
+          <div>
+            <label className="ff-label">Límite de crédito (€)</label>
+            <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
+              value={form.limite_credito}
+              onChange={e => setForm(p => ({ ...p, limite_credito: e.target.value }))} />
+          </div>
+
+          {/* Días de corte y pago */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="ff-label">Día de corte</label>
+              <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 25"
+                value={form.dia_corte}
+                onChange={e => setForm(p => ({ ...p, dia_corte: e.target.value }))} />
+            </div>
+            <div>
+              <label className="ff-label">Día de pago</label>
+              <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 15"
+                value={form.dia_pago}
+                onChange={e => setForm(p => ({ ...p, dia_pago: e.target.value }))} />
+            </div>
+          </div>
+
+          {/* Color */}
+          <div>
+            <label className="ff-label">Color</label>
+            <div className="flex gap-2 mt-1 flex-wrap">
+              {COLORES.map(hex => (
+                <button key={hex} type="button"
+                  onClick={() => setForm(p => ({ ...p, color: hex }))}
+                  className="w-8 h-8 rounded-full transition-all"
+                  style={{
+                    backgroundColor: hex,
+                    outline: form.color === hex ? '3px solid var(--text-secondary)' : 'none',
+                    outlineOffset: 2,
+                    opacity: form.color === hex ? 1 : 0.5,
+                    transform: form.color === hex ? 'scale(1.15)' : 'scale(1)',
+                  }} />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={closeModal} className="ff-btn-ghost flex-1">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving
+                ? <><Loader2 size={14} className="animate-spin" /> Guardando...</>
+                : <><Save size={14} /> {editingId ? 'Guardar cambios' : 'Crear tarjeta'}</>
+              }
+            </button>
+          </div>
+        </form>
       </Modal>
     </AppShell>
   )
