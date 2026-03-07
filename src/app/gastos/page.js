@@ -318,7 +318,7 @@ export default function GastosPage() {
           { label: 'Egresos del mes', value: formatCurrency(egresos), color: 'var(--accent-rose)' },
           { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' },
         ].map((s, i) => (
-          <div key={i} className="glass-card p-4 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
+          <div key={i} className="glass-card p-4 animate-enter text-center sm:text-left" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: "var(--text-muted)" }}>{s.label}</p>
             <p className="text-xl font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
           </div>
@@ -412,8 +412,8 @@ export default function GastosPage() {
                       </span>
                       <button
                         onClick={() => handleDelete(m)}
-                        className="p-1.5 rounded-lg hover:bg-rose-50 transition-all opacity-40 group-hover:opacity-100"
-                        style={{ color: "var(--text-muted)" }}
+                        className="p-2 rounded-xl transition-all sm:opacity-40 sm:group-hover:opacity-100"
+                        style={{ color: "var(--text-muted)", background: "var(--bg-secondary)" }}
                       >
                         <Trash2 size={14} />
                       </button>
