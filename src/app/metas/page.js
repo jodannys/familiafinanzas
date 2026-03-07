@@ -354,9 +354,9 @@ export default function MetasPage() {
               <input className="ff-input" type="number" min="0" max="100" placeholder="10" required
                 value={form.pct_mensual} onChange={e => setForm({ ...form, pct_mensual: e.target.value })} />
               {presupuesto && form.pct_mensual && (
-                <p className="text-[10px] mt-1 pl-1 text-stone-500">
-                  🛈 Te queda {Math.max(0, 100 - (totalPctAsignado - (editingId ? metas.find(m => m.id === editingId)?.pct_mensual || 0 : 0) + parseFloat(form.pct_mensual)))}% libre para otras metas
-                </p>
+                <div className="text-[10px] mt-1 pl-1 text-stone-500">
+                  🛈 Te queda {presupuesto ? Math.max(0, pctDisponible) : 0}% libre = {presupuesto ? formatCurrency((Math.max(0, pctDisponible) / 100) * presupuesto.montoMetas) : '—'}/mes
+                </div>
               )}
               {presupuesto && form.pct_mensual && (
                 <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>
