@@ -108,6 +108,8 @@ export default function PresupuestoPage() {
   }
 
   // ── SALDO DINÁMICO: gasto real + traspasos del sobre ─────────────────────
+  // Esto cruza movimientos + sobre_movimientos para que el presupuesto
+  // refleje el dinero que en realidad ya no está disponible.
   function gastadoReal(bloqueId) {
     const deMovimientos = movs
       .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
@@ -533,8 +535,8 @@ export default function PresupuestoPage() {
                           value={formItem.monto} onChange={e => setFormItem({ ...formItem, monto: e.target.value })} />
                         <div className="flex gap-2">
                           <button onClick={() => handleAddItem(bloque.id)}
-                            className="flex-1 py-2 rounded-xl text-sm font-bold text-white"
-                            style={{ background: bloque.color, border: 'none', cursor: 'pointer' }}>
+                            className="flex-1 py-2 rounded-xl text-sm font-bold"
+                            style={{ background: bloque.color, border: 'none', cursor: 'pointer', color: 'var(--bg-card)' }}>
                             Agregar
                           </button>
                           <button onClick={() => { setAddingTo(null); setFormItem({ nombre: '', monto: '' }) }}
