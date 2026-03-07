@@ -46,7 +46,7 @@ export default function TarjetasPage() {
 
     const { data: tarjetasData, error: e1 } = await supabase
       .from('perfiles_tarjetas').select('*').order('created_at', { ascending: false })
-    
+
     if (e1) { setLoading(false); return }
     setTarjetas(tarjetasData || [])
 
@@ -69,10 +69,10 @@ export default function TarjetasPage() {
       const usado = {}
       tarjetasData.forEach(t => { usado[t.id] = 0 })
 
-      ;(movs || []).forEach(m => {
-        if (m.tipo === 'cargo') usado[m.deuda_id] = (usado[m.deuda_id] || 0) + m.monto
-        if (m.tipo === 'pago') usado[m.deuda_id] = (usado[m.deuda_id] || 0) - m.monto
-      })
+        ; (movs || []).forEach(m => {
+          if (m.tipo === 'cargo') usado[m.deuda_id] = (usado[m.deuda_id] || 0) + m.monto
+          if (m.tipo === 'pago') usado[m.deuda_id] = (usado[m.deuda_id] || 0) - m.monto
+        })
 
       tarjetasData.forEach(t => {
         const deudasEsa = (deudasTarjeta || []).filter(d => d.perfil_tarjeta_id === t.id)
@@ -144,17 +144,18 @@ export default function TarjetasPage() {
             const usado = usadoPorTarjeta[t.id] || 0
             const limite = t.limite_credito || 0
             const disponible = Math.max(0, limite - usado)
-            const pctUsado = limite > 0 ? Math.min(100, Math.round((usado / limite) * 100)) : 0
+            const gastoTotal = gastadoSobre - traspasosAlSobre  // neto gastado del sobre
+            const pctUsado = montoEstilo > 0 ? Math.min(100, (gastoTotal / montoEstilo) * 100) : 0
 
             return (
               <Card key={t.id}
                 onClick={() => setSelectedId(isSelected ? null : t.id)}
                 className={`cursor-pointer transition-all ${t.estado === 'pausada' ? 'opacity-60' : ''}`}
-                style={{ 
-                   border: isSelected ? `1px solid ${t.color}80` : '1px solid transparent',
-                   padding: '16px' 
+                style={{
+                  border: isSelected ? `1px solid ${t.color}80` : '1px solid transparent',
+                  padding: '16px'
                 }}>
-                
+
                 {/* Cabecera Tarjeta */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">

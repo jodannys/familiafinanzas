@@ -194,8 +194,7 @@ export default function SobrePage() {
     const hoy = fechaHoy()
     await supabase.from('sobre_movimientos').insert([{
       descripcion: `Sobrante → ${destinoSobrante}`,
-      monto, origen: 'sobre',
-      destino: destinoSobrante,
+      monto, origen: 'sobre',destino: destinoSobrante,
       mes: filtroMes, año: filtroAño, fecha: hoy,
     }])
     await supabase.from('movimientos').insert([{

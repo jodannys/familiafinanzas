@@ -8,11 +8,11 @@ import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 const CATS = [
-  { value: 'basicos', label: 'Gastos Básicos' },
-  { value: 'deseo', label: 'Gastos Deseo' },
-  { value: 'ahorro', label: 'Ahorro / Metas' },
+  { value: 'basicos',   label: 'Gastos Básicos' },
+  { value: 'deseo',     label: 'Gastos Deseo' },
+  { value: 'ahorro',    label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
-  { value: 'deuda', label: 'Deudas' },
+  { value: 'deuda',     label: 'Deudas' },
 ]
 
 const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose' }
@@ -53,9 +53,10 @@ export default function GastosPage() {
     cargarPresupuesto()
     supabase.from('metas').select('id, nombre, meta, actual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
-    supabase.from('deudas').select('id, nombre, pendiente, cuota').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
-    // Solo tarjetas de crédito activas
-    supabase.from('deudas').select('id, nombre, emoji, color').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
+    supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
+    // Tarjetas: misma fuente que sobre-page (deudas tipo_deuda=tarjeta)
+    // Garantiza que tarjetaSeleccionada sea un deudas.id válido para deuda_movimientos
+    supabase.from('deudas').select('id, nombre, emoji, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
       .then(({ data }) => setTarjetasData(data || []))
   }, [])
 
@@ -92,7 +93,7 @@ export default function GastosPage() {
     if (tarjetaSeleccionada && form.tipo === 'egreso') {
       const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
       const { error } = await supabase.from('deuda_movimientos').insert([{
-        deuda_id: tarjetaSeleccionada,
+        deuda_id: tarjetaSeleccionada,  // deudas.id — correcto
         tipo: 'cargo',
         descripcion: form.descripcion,
         monto,
@@ -101,11 +102,11 @@ export default function GastosPage() {
       }])
       if (error) setError('Error al guardar cargo en tarjeta: ' + error.message)
       else {
-        // Aumentar el pendiente de la tarjeta
-        const tarjetaDeuda = deudasData.find(d => d.id === tarjetaSeleccionada) ||
-          await supabase.from('deudas').select('pendiente').eq('id', tarjetaSeleccionada).single().then(r => r.data)
-        if (tarjetaDeuda) {
-          await supabase.from('deudas').update({ pendiente: (tarjetaDeuda.pendiente || 0) + monto }).eq('id', tarjetaSeleccionada)
+        // tarjeta ya tiene pendiente (select incluye ese campo)
+        if (tarjeta) {
+          await supabase.from('deudas').update({
+            pendiente: parseFloat(tarjeta.pendiente || 0) + monto
+          }).eq('id', tarjetaSeleccionada)
         }
         resetModal()
       }
@@ -114,7 +115,13 @@ export default function GastosPage() {
     }
 
     // ── GASTO NORMAL: va a movimientos ────────────────────────────────────────
-    const { data, error } = await supabase.from('movimientos').insert([{ ...form, monto }]).select()
+    // Si es deuda, añadimos deuda_id al registro para poder revertir sin ilike
+    const deudaId = form.categoria === 'deuda' && deudaSeleccionada ? deudaSeleccionada : null
+    const payloadMov = deudaId
+      ? { ...form, monto, deuda_id: deudaId }
+      : { ...form, monto }
+
+    const { data, error } = await supabase.from('movimientos').insert([payloadMov]).select()
 
     if (error) {
       setError('Error al guardar: ' + error.message)
@@ -146,9 +153,29 @@ export default function GastosPage() {
         const deuda = deudasData.find(d => d.id === deudaSeleccionada)
         if (deuda) {
           const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
-          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-          await supabase.from('deudas').update({ pendiente: nuevoPendiente, estado: nuevoEstado }).eq('id', deudaSeleccionada)
-          setDeudasData(prev => prev.map(d => d.id === deudaSeleccionada ? { ...d, pendiente: nuevoPendiente } : d))
+          const nuevosPagados  = (deuda.pagadas || 0) + 1
+          const nuevoEstado    = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+
+          await supabase.from('deudas').update({
+            pendiente: nuevoPendiente,
+            pagadas:   nuevosPagados,
+            estado:    nuevoEstado,
+          }).eq('id', deudaSeleccionada)
+
+          // Espejo en deuda_movimientos para historial de la deuda
+          await supabase.from('deuda_movimientos').insert([{
+            deuda_id:    deudaSeleccionada,
+            tipo:        'pago',
+            descripcion: form.descripcion,
+            monto,
+            fecha:       form.fecha,
+            mes,
+            año,
+          }])
+
+          setDeudasData(prev => prev.map(d =>
+            d.id === deudaSeleccionada ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados } : d
+          ))
         }
         setDeudaSeleccionada('')
       }
@@ -181,37 +208,39 @@ export default function GastosPage() {
         }
       }
 
-      // Revertir deuda: sube el pendiente y borra el movimiento en deuda_movimientos
+      // Revertir deuda: usa deuda_id guardado en el movimiento — sin ilike frágil
       if (movimiento.categoria === 'deuda') {
-        // Buscar la deuda por descripción (formato "Cuota NombreDeuda" o "Pago letra: NombreDeuda")
-        const { data: todasDeudas } = await supabase
-          .from('deudas').select('id, nombre, pendiente, monto, pagadas, estado')
-        const deudaMatch = (todasDeudas || []).find(d =>
-          movimiento.descripcion?.toLowerCase().includes(d.nombre.toLowerCase())
-        )
-        if (deudaMatch) {
-          const nuevoPendiente = Math.min(
-            deudaMatch.monto || deudaMatch.pendiente + movimiento.monto,
-            (deudaMatch.pendiente || 0) + movimiento.monto
-          )
-          const nuevosPagados = Math.max(0, (deudaMatch.pagadas || 0) - 1)
-          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+        const deudaId = movimiento.deuda_id
+        if (deudaId) {
+          const { data: deudaData } = await supabase
+            .from('deudas').select('id, pendiente, monto, pagadas, estado')
+            .eq('id', deudaId).single()
 
-          await supabase.from('deudas').update({
-            pendiente: nuevoPendiente,
-            pagadas: nuevosPagados,
-            estado: nuevoEstado,
-          }).eq('id', deudaMatch.id)
+          if (deudaData) {
+            const nuevoPendiente = Math.min(
+              deudaData.monto || (deudaData.pendiente + movimiento.monto),
+              (deudaData.pendiente || 0) + movimiento.monto
+            )
+            const nuevosPagados = Math.max(0, (deudaData.pagadas || 0) - 1)
+            const nuevoEstado   = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
-          // También borrar el movimiento espejo en deuda_movimientos
-          await supabase.from('deuda_movimientos').delete()
-            .eq('tipo', 'pago')
-            .eq('monto', movimiento.monto)
-            .ilike('descripcion', `%${deudaMatch.nombre}%`)
+            await supabase.from('deudas').update({
+              pendiente: nuevoPendiente,
+              pagadas:   nuevosPagados,
+              estado:    nuevoEstado,
+            }).eq('id', deudaId)
 
-          setDeudasData(prev => prev.map(d =>
-            d.id === deudaMatch.id ? { ...d, pendiente: nuevoPendiente } : d
-          ))
+            // Borrar espejo en deuda_movimientos: match exacto por deuda_id + fecha + monto
+            await supabase.from('deuda_movimientos').delete()
+              .eq('deuda_id', deudaId)
+              .eq('tipo', 'pago')
+              .eq('monto', movimiento.monto)
+              .eq('fecha', movimiento.fecha)
+
+            setDeudasData(prev => prev.map(d =>
+              d.id === deudaId ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados } : d
+            ))
+          }
         }
       }
 
@@ -256,7 +285,7 @@ export default function GastosPage() {
     return month - 1 === now.getMonth() && year === now.getFullYear()
   })
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  const egresos  = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
@@ -286,7 +315,7 @@ export default function GastosPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Ingresos del mes', value: formatCurrency(ingresos), color: 'var(--accent-green)' },
-          { label: 'Egresos del mes', value: formatCurrency(egresos), color: 'var(--accent-rose)' },
+          { label: 'Egresos del mes',  value: formatCurrency(egresos),  color: 'var(--accent-rose)' },
           { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-4 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -327,7 +356,7 @@ export default function GastosPage() {
         ) : (
           <div className="divide-y" style={{ borderColor: "var(--border-glass)" }}>
             {filtered.map((m, i) => (
-              <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background = "var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background="var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}
                 style={{ animationDelay: `${i * 0.02}s` }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{
@@ -347,7 +376,7 @@ export default function GastosPage() {
                   <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                     {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
                   </p>
-                  <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color = "var(--accent-rose)"; e.currentTarget.style.opacity = "1" }} onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.4" }}>
+                  <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color="var(--accent-rose)"; e.currentTarget.style.opacity="1" }} onMouseLeave={e => { e.currentTarget.style.color="var(--text-muted)"; e.currentTarget.style.opacity="0.4" }}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -359,20 +388,12 @@ export default function GastosPage() {
 
       <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
         <form onSubmit={handleAdd} className="space-y-4">
-          
+
           {/* Tipo toggle */}
           <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: "var(--bg-secondary)" }}>
             {['ingreso', 'egreso'].map(t => (
               <button type="button" key={t}
-                onClick={() => {
-                  setForm({
-                    ...form,
-                    tipo: t,
-                    // Si es ingreso, le ponemos categoría 'ingreso'. Si no, vuelve a 'basicos'
-                    categoria: t === 'ingreso' ? 'ingreso' : 'basicos'
-                  });
-                  setTarjetaSeleccionada('')
-                }}
+                onClick={() => { setForm({ ...form, tipo: t }); setTarjetaSeleccionada('') }}
                 className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
                 style={{
                   background: form.tipo === t ? 'var(--bg-card)' : 'transparent',
@@ -383,6 +404,7 @@ export default function GastosPage() {
               </button>
             ))}
           </div>
+
           {/* Categoría + Quién */}
           <div className="grid grid-cols-2 gap-3">
             {form.tipo === 'egreso' && (
@@ -489,7 +511,9 @@ export default function GastosPage() {
                   if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: d.cuota?.toString() || '' }))
                 }}>
                 <option value="">— Seleccionar deuda —</option>
-                {deudasData.map(d => <option key={d.id} value={d.id}>{d.nombre} · Pendiente {formatCurrency(d.pendiente)}</option>)}
+                {deudasData
+                  .filter(d => d.tipo_deuda !== 'tarjeta')  // tarjetas tienen su propio flujo
+                  .map(d => <option key={d.id} value={d.id}>{d.nombre} · Pendiente {formatCurrency(d.pendiente)}</option>)}
               </select>
             </div>
           )}
