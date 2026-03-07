@@ -395,12 +395,12 @@ export default function GastosPage() {
                     {m.tipo === 'ingreso' ? (
                       <Badge color="emerald">Ingreso</Badge>
                     ) : (
-                      <Badge color={catColor[m.categoria] || 'slate'}>{m.categoria}</Badge>
+                      <Badge color={catColor[m.categoria] || 'slate'} className="truncate">{m.categoria}</Badge>
                     )}
                   </div>
 
                   {/* Monto y Acción */}
-                  <div className="text-right min-w-[100px]">
+                  <div className="flex flex-wrap gap-2 overflow-x-auto">
                     <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                       {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
                     </p>
@@ -425,167 +425,171 @@ export default function GastosPage() {
           </div>
         )}
       </Card>
-
+      {/* <div className="text-right w-full sm:min-w-[100px]"></div>*/}
       <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
-        <form onSubmit={handleAdd} className="space-y-4">
+        <div className="max-h-[80vh] overflow-y-auto p-2">
+          <form onSubmit={handleAdd} className="space-y-4">
 
-          {/* Tipo toggle */}
-          <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: "var(--bg-secondary)" }}>
-            {['ingreso', 'egreso'].map(t => (
-              <button type="button" key={t}
-                onClick={() => { setForm({ ...form, tipo: t }); setTarjetaSeleccionada('') }}
-                className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
-                style={{
-                  background: form.tipo === t ? 'var(--bg-card)' : 'transparent',
-                  color: form.tipo === t ? 'var(--text-primary)' : 'var(--text-muted)',
-                  boxShadow: form.tipo === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                }}>
-                {t}
-              </button>
-            ))}
-          </div>
+            {/* Tipo toggle */}
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: "var(--bg-secondary)" }}>
+              {['ingreso', 'egreso'].map(t => (
+                <button type="button" key={t}
+                  onClick={() => { setForm({ ...form, tipo: t }); setTarjetaSeleccionada('') }}
+                  className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
+                  style={{
+                    background: form.tipo === t ? 'var(--bg-card)' : 'transparent',
+                    color: form.tipo === t ? 'var(--text-primary)' : 'var(--text-muted)',
+                    boxShadow: form.tipo === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}>
+                  {t}
+                </button>
+              ))}
+            </div>
 
-          {/* Categoría + Quién */}
-          <div className="grid grid-cols-2 gap-3">
-            {form.tipo === 'egreso' && (
+
+            {/* Categoría + Quién */}
+            <div className="grid grid-cols-2 gap-3">
+              {form.tipo === 'egreso' && (
+                <div className="space-y-1">
+                  <label className="ff-label">Categoría</label>
+                  <select className="ff-input w-full h-12 text-sm" value={form.categoria}
+                    onChange={e => { setForm({ ...form, categoria: e.target.value }); setTarjetaSeleccionada('') }}>
+                    {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="space-y-1">
-                <label className="ff-label">Categoría</label>
-                <select className="ff-input h-12 text-sm" value={form.categoria}
-                  onChange={e => { setForm({ ...form, categoria: e.target.value }); setTarjetaSeleccionada('') }}>
-                  {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                <label className="ff-label">¿Quién?</label>
+                <select className="ff-input w-full h-12 text-sm" value={form.quien}
+                  onChange={e => setForm({ ...form, quien: e.target.value })}>
+                  <option value="Jodannys">Jodannys</option>
+                  <option value="Rolando">Rolando</option>
+                  <option value="Ambos">Ambos</option>
+                </select>
+              </div>
+            </div>
+
+            {/* ── TARJETA DE CRÉDITO: solo para egresos que no son pago de deuda ── */}
+            {form.tipo === 'egreso' && form.categoria !== 'deuda' && tarjetasData.length > 0 && (
+              <div className="space-y-1 animate-enter">
+                <label className="ff-label flex items-center gap-1.5">
+                  <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
+                </label>
+                <select className="ff-input w-full h-12 text-sm" value={tarjetaSeleccionada}
+                  onChange={e => setTarjetaSeleccionada(e.target.value)}>
+                  <option value="">— No, pago directo —</option>
+                  {tarjetasData.map(t => (
+                    <option key={t.id} value={t.id}>{t.emoji} {t.nombre}</option>
+                  ))}
+                </select>
+                {tarjetaSeleccionada && (
+                  <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                    style={{ background: 'rgba(129,140,248,0.08)', color: '#818CF8', border: '1px solid rgba(129,140,248,0.2)' }}>
+                    💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sugerencias — solo si NO usa tarjeta */}
+            {!usandoTarjeta && sugerenciasRicas.length > 0 && (
+              <div className="animate-enter">
+                <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: "var(--text-muted)" }}>Sugerencias del presupuesto</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {sugerenciasRicas.map(item => (
+                    <button type="button" key={item.id}
+                      onClick={() => aplicarSugerencia({ ...item, nombre: `${item.emoji} ${item.nombre}` })}
+                      className="text-left p-3 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95"
+                      style={{ background: `${item.color}08`, borderColor: `${item.color}25` }}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-base leading-none">{item.emoji}</span>
+                        <p className="text-[10px] font-black truncate leading-tight" style={{ color: "var(--text-secondary)" }}>{item.nombre}</p>
+                      </div>
+                      {item.monto > 0 && (
+                        <p className="text-sm font-black mb-1" style={{ color: item.color }}>{formatCurrency(item.monto)}</p>
+                      )}
+                      {item.sub && <p className="text-[9px] truncate mb-1" style={{ color: "var(--text-muted)" }}>{item.sub}</p>}
+                      {item.pct !== null && (
+                        <div className="w-full h-1 rounded-full mt-1" style={{ background: 'var(--progress-track)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: item.color }} />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Selector meta */}
+            {!usandoTarjeta && form.tipo === 'egreso' && form.categoria === 'ahorro' && metasData.length > 0 && (
+              <div className="space-y-1 animate-enter">
+                <label className="ff-label">Añadir a meta</label>
+                <select className="ff-input w-full h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
+                  <option value="">— Sin asignar —</option>
+                  {metasData.map(m => <option key={m.id} value={m.id}>{m.nombre} ({formatCurrency(m.actual || 0)} / {formatCurrency(m.meta)})</option>)}
                 </select>
               </div>
             )}
+
+            {/* Selector inversión */}
+            {!usandoTarjeta && form.tipo === 'egreso' && form.categoria === 'inversion' && inversionesData.length > 0 && (
+              <div className="space-y-1 animate-enter">
+                <label className="ff-label">Añadir a inversión</label>
+                <select className="ff-input w-full h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
+                  <option value="">— Sin asignar —</option>
+                  {inversionesData.map(i => <option key={i.id} value={`inv_${i.id}`}>{i.nombre} (Capital: {formatCurrency(i.capital)})</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Selector deuda */}
+            {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
+              <div className="space-y-1 animate-enter">
+                <label className="ff-label">¿Qué deuda pagas?</label>
+                <select className="ff-input w-full h-12 text-sm" value={deudaSeleccionada}
+                  onChange={e => {
+                    setDeudaSeleccionada(e.target.value)
+                    const d = deudasData.find(d => d.id === e.target.value)
+                    if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: d.cuota?.toString() || '' }))
+                  }}>
+                  <option value="">— Seleccionar deuda —</option>
+                  {deudasData
+                    .filter(d => d.tipo_deuda !== 'tarjeta')  // tarjetas tienen su propio flujo
+                    .map(d => <option key={d.id} value={d.id}>{d.nombre} · Pendiente {formatCurrency(d.pendiente)}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Descripción */}
             <div className="space-y-1">
-              <label className="ff-label">¿Quién?</label>
-              <select className="ff-input h-12 text-sm" value={form.quien}
-                onChange={e => setForm({ ...form, quien: e.target.value })}>
-                <option value="Jodannys">Jodannys</option>
-                <option value="Rolando">Rolando</option>
-                <option value="Ambos">Ambos</option>
-              </select>
+              <label className="ff-label">Descripción</label>
+              <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
+                value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
             </div>
-          </div>
 
-          {/* ── TARJETA DE CRÉDITO: solo para egresos que no son pago de deuda ── */}
-          {form.tipo === 'egreso' && form.categoria !== 'deuda' && tarjetasData.length > 0 && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label flex items-center gap-1.5">
-                <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
-              </label>
-              <select className="ff-input h-12 text-sm" value={tarjetaSeleccionada}
-                onChange={e => setTarjetaSeleccionada(e.target.value)}>
-                <option value="">— No, pago directo —</option>
-                {tarjetasData.map(t => (
-                  <option key={t.id} value={t.id}>{t.emoji} {t.nombre}</option>
-                ))}
-              </select>
-              {tarjetaSeleccionada && (
-                <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
-                  style={{ background: 'rgba(129,140,248,0.08)', color: '#818CF8', border: '1px solid rgba(129,140,248,0.2)' }}>
-                  💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Sugerencias — solo si NO usa tarjeta */}
-          {!usandoTarjeta && sugerenciasRicas.length > 0 && (
-            <div className="animate-enter">
-              <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: "var(--text-muted)" }}>Sugerencias del presupuesto</p>
-              <div className="grid grid-cols-2 gap-2">
-                {sugerenciasRicas.map(item => (
-                  <button type="button" key={item.id}
-                    onClick={() => aplicarSugerencia({ ...item, nombre: `${item.emoji} ${item.nombre}` })}
-                    className="text-left p-3 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95"
-                    style={{ background: `${item.color}08`, borderColor: `${item.color}25` }}>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="text-base leading-none">{item.emoji}</span>
-                      <p className="text-[10px] font-black truncate leading-tight" style={{ color: "var(--text-secondary)" }}>{item.nombre}</p>
-                    </div>
-                    {item.monto > 0 && (
-                      <p className="text-sm font-black mb-1" style={{ color: item.color }}>{formatCurrency(item.monto)}</p>
-                    )}
-                    {item.sub && <p className="text-[9px] truncate mb-1" style={{ color: "var(--text-muted)" }}>{item.sub}</p>}
-                    {item.pct !== null && (
-                      <div className="w-full h-1 rounded-full mt-1" style={{ background: 'var(--progress-track)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: item.color }} />
-                      </div>
-                    )}
-                  </button>
-                ))}
+            {/* Monto + Fecha */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="ff-label">Monto (€)</label>
+                <input className="ff-input w-full h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
+                  style={{ color: 'var(--accent-terra)' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <label className="ff-label">Fecha</label>
+                <input className="ff-input w-full h-12 text-sm font-medium" type="date" required
+                  value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
               </div>
             </div>
-          )}
 
-          {/* Selector meta */}
-          {!usandoTarjeta && form.tipo === 'egreso' && form.categoria === 'ahorro' && metasData.length > 0 && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label">Añadir a meta</label>
-              <select className="ff-input h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
-                <option value="">— Sin asignar —</option>
-                {metasData.map(m => <option key={m.id} value={m.id}>{m.nombre} ({formatCurrency(m.actual || 0)} / {formatCurrency(m.meta)})</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* Selector inversión */}
-          {!usandoTarjeta && form.tipo === 'egreso' && form.categoria === 'inversion' && inversionesData.length > 0 && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label">Añadir a inversión</label>
-              <select className="ff-input h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
-                <option value="">— Sin asignar —</option>
-                {inversionesData.map(i => <option key={i.id} value={`inv_${i.id}`}>{i.nombre} (Capital: {formatCurrency(i.capital)})</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* Selector deuda */}
-          {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label">¿Qué deuda pagas?</label>
-              <select className="ff-input h-12 text-sm" value={deudaSeleccionada}
-                onChange={e => {
-                  setDeudaSeleccionada(e.target.value)
-                  const d = deudasData.find(d => d.id === e.target.value)
-                  if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: d.cuota?.toString() || '' }))
-                }}>
-                <option value="">— Seleccionar deuda —</option>
-                {deudasData
-                  .filter(d => d.tipo_deuda !== 'tarjeta')  // tarjetas tienen su propio flujo
-                  .map(d => <option key={d.id} value={d.id}>{d.nombre} · Pendiente {formatCurrency(d.pendiente)}</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* Descripción */}
-          <div className="space-y-1">
-            <label className="ff-label">Descripción</label>
-            <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
-              value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
-          </div>
-
-          {/* Monto + Fecha */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="ff-label">Monto (€)</label>
-              <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
-                style={{ color: 'var(--accent-terra)' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
-            </div>
-            <div className="space-y-1">
-              <label className="ff-label">Fecha</label>
-              <input className="ff-input h-12 text-sm font-medium" type="date" required
-                value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
-            </div>
-          </div>
-
-          <button type="submit" disabled={saving}
-            className="ff-btn-primary w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2"
-            style={{ background: usandoTarjeta ? '#818CF8' : 'var(--accent-terra)' }}>
-            {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
-          </button>
-        </form>
+            <button type="submit" disabled={saving}
+              className="ff-btn-primary w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2"
+              style={{ background: usandoTarjeta ? '#818CF8' : 'var(--accent-terra)' }}>
+              {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
+            </button>
+          </form>
+        </div>
       </Modal>
     </AppShell>
+
   )
 }
