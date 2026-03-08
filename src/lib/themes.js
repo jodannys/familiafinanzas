@@ -2,18 +2,25 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 export const THEMES = {
-  linen: { /* Tu favorito, intacto */
+  linen: {
     name: 'Warm Linen',
-    themeColor: '#F7F3EE',
+    themeColor: '#B3A89D', // El tono taupe de la imagen
     emoji: '🌾',
-    preview: ['#F7F3EE', '#2D7A5F', '#C17A3A', '#FFFFFF'],
+    preview: ['#B3A89D', '#D99E5C', '#F8F3EE', '#2C241E'],
     vars: {
-      '--bg-primary': '#F7F3EE', '--bg-secondary': '#EFE9E1', '--bg-card': '#FFFFFF',
-      '--bg-glass': 'rgba(255,255,255,0.7)', '--border-glass': '#E4D9CE',
-      '--accent-green': '#2D7A5F', '--accent-terra': '#C17A3A', '--accent-blue': '#4A6FA5',
-      '--accent-rose': '#C0605A', '--text-primary': '#1a140e', '--text-secondary': '#544739',
-      '--text-muted': '#8c7e6d', '--sidebar-bg': '#FFFFFF', '--sidebar-border': '#E4D9CE',
-      '--input-bg': '#FDFCFB', '--progress-track': '#EFE9E1',
+      '--bg-primary': '#B3A89D',
+      '--bg-secondary': '#F1E9E0',
+      '--bg-card': '#F8F3EE',
+      '--bg-dark-card': '#2C241E', // Importante para la gráfica
+      '--bg-glass': 'rgba(255,255,255,0.45)',
+      '--border-glass': 'rgba(255,255,255,0.4)',
+      '--accent-main': '#D99E5C', // El bronce de la gráfica
+      '--accent-green': '#D99E5C', // Mantenemos consistencia
+      '--text-primary': '#1A1410',
+      '--text-secondary': '#6D5F54',
+      '--text-muted': '#918479',
+      '--input-bg': 'rgba(255,255,255,0.3)',
+      '--progress-track': '#EAE2D8',
     }
   },
   obsidian: {

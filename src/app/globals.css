@@ -5,189 +5,155 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary:    #F7F3EE;
-  --bg-secondary:  #EFE9E1;
-  --bg-card:       #FFFFFF;
-  --bg-glass:      rgba(255, 255, 255, 0.75);
-  --border-glass:  #E4D9CE;
-  --accent-green:  #2D7A5F;
-  --accent-terra:  #C17A3A;
-  --accent-blue:   #4A6FA5;
-  --accent-rose:   #C0605A;
-  --text-primary:   #2C2016;
-  --text-secondary: #7A6A58;
-  --text-muted:     #B5A592;
-  --sidebar-bg:     #FFFFFF;
-  --sidebar-border: #E4D9CE;
-  --input-bg:       #EFE9E1;
-  --progress-track: #EFE9E1;
+  /* Fondos Principales */
+  --bg-primary:     #B3A89D; /* Fondo Lino */
+  --bg-card:        #F8F3EE; /* Tarjeta Clara */
+  --bg-dark-card:   #2C241E; /* Tarjeta Oscura (Gráficas) */
+  --bg-glass:       rgba(255, 255, 255, 0.45);
+  --input-bg:       rgba(255, 255, 255, 0.3);
+
+  /* Textos */
+  --text-primary:    #1A1410;
+  --text-secondary:  #6D5F54;
+  --text-muted:      #918479;
+
+  /* Acentos (Son los que cambiarán en otros temas) */
+  --accent-main:     #D99E5C; /* Bronce */
+  --accent-danger:   #C0605A; /* Rosa/Alerta */
+  
+  /* Geometría */
+  --radius-xl:       32px;
+  --border-glass:    rgba(255, 255, 255, 0.4);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent;}
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  -webkit-tap-highlight-color: transparent;
+}
 
 html, body {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-primary) !important;
   color: var(--text-primary);
   font-family: 'Plus Jakarta Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track  { background: var(--bg-secondary); }
-::-webkit-scrollbar-thumb  { background: #C8B9A8; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent-green); }
+/* --- COMPONENTES CORE --- */
 
 .glass-card {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
-  border-radius: 16px;
-  /* Sombra con tono café en lugar de negro puro */
-  box-shadow: 0 4px 20px -4px rgba(44, 32, 22, 0.08); 
-}
-.glow-green { box-shadow: 0 0 24px rgba(45,122,95,0.14); }
-.glow-gold  { box-shadow: 0 0 24px rgba(193,122,58,0.14); }
-
-.gradient-text-green {
-  background: linear-gradient(135deg, #2D7A5F, #3DAA80);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.gradient-text-gold {
-  background: linear-gradient(135deg, #C17A3A, #E09A55);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.progress-bar {
-  background: linear-gradient(90deg, var(--accent-green), #3DAA80);
-  border-radius: 9999px;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.animate-enter { animation: fadeSlideUp 0.4s ease-out forwards; }
-.animate-enter-delay-1 { animation-delay: 0.05s; opacity: 0; }
-.animate-enter-delay-2 { animation-delay: 0.10s; opacity: 0; }
-.animate-enter-delay-3 { animation-delay: 0.15s; opacity: 0; }
-.animate-enter-delay-4 { animation-delay: 0.20s; opacity: 0; }
-.animate-enter-delay-5 { animation-delay: 0.25s; opacity: 0; }
-
-.ff-input {
-  width: 100%;
-  background: var(--input-bg);
-  border: 1px solid var(--border-glass);
-  border-radius: 12px;
-  padding: 12px 16px;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  outline: none;
-}
-.ff-input::placeholder { color: var(--text-muted); }
-.ff-input:focus {
-  border-color: var(--accent-green);
-  box-shadow: 0 0 0 3px rgba(45,122,95,0.12);
-}
-
-.ff-label {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-}
-
-.ff-btn-primary {
-  background: var(--accent-green);
-  color: #FFFFFF;
-  font-weight: 600;
-  padding: 12px 24px;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  transition: opacity 0.2s, box-shadow 0.2s, transform 0.1s;
-}
-.ff-btn-primary:hover { opacity: 0.88; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
-.ff-btn-primary:active { transform: scale(0.97); }
-
-.ff-btn-ghost {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-glass);
-  color: var(--text-secondary);
-  font-weight: 500;
-  padding: 10px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  transition: background 0.2s, color 0.2s;
-}
-.ff-btn-ghost:hover { background: var(--border-glass); color: var(--text-primary); }
-
-/* Mata cualquier línea divisoria automática */
-.sticky {
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-/* Evita que el fondo se vea distinto al estirar la pantalla */
-html, body, main {
-  background-color: var(--bg-primary) !important;
-}
-
-/* Suavizado para Recharts con tu paleta */
-.recharts-cartesian-grid-horizontal line, 
-.recharts-cartesian-grid-vertical line {
-  stroke: var(--border-glass);
-  stroke-opacity: 0.6;
-}
-
-.recharts-text {
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  fill: var(--text-muted) !important;
-  font-weight: 600;
-}
-.ff-btn-terra {
-  background: var(--accent-terra);
-  color: #FFFFFF;
-  font-weight: 600;
-  padding: 12px 24px;
-  border-radius: 12px;
-  transition: all 0.2s;
-}
-.ff-btn-terra:hover { opacity: 0.9; transform: translateY(-1px); }
-.ff-btn-primary:disabled, .ff-btn-terra:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-input[type="date"] {
-  appearance: none;
-  min-height: 3rem; /* Para que coincida con tu h-12 */
-}
-
-/* Efecto de elevación para las tarjetas de los bloques */
-.glass-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: 0 20px 40px -12px rgba(44, 36, 30, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px -4px rgba(44, 32, 22, 0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 30px 60px -12px rgba(44, 36, 30, 0.25);
 }
 
-/* Estilo para cuando el presupuesto está en peligro */
-.border-danger {
-  border-color: var(--accent-rose) !important;
-  background: color-mix(in srgb, var(--accent-rose) 2%, white);
+/* Tarjeta oscura para contraste (Como la de la gráfica en la imagen) */
+.dark-card {
+  background: var(--bg-dark-card);
+  color: #FFFFFF;
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.ff-btn-primary {
+  background: var(--accent-main);
+  color: #FFFFFF;
+  font-weight: 700;
+  padding: 12px 28px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ff-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 20px rgba(217, 158, 92, 0.3);
+}
+
+.ff-btn-primary:active { transform: scale(0.97); }
+
+/* Inputs con el look de la imagen */
+.ff-input {
+  width: 100%;
+  background: var(--input-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.2s;
+}
+
+.ff-input:focus {
+  background: var(--bg-card);
+  border-color: var(--accent-main);
+}
+
+/* Tipografía de la imagen */
+.ff-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.04em;
+  font-weight: 800;
+}
+
+/* Barras de progreso con los nuevos colores */
+.progress-bar {
+  background: var(--accent-main);
+  border-radius: 999px;
+  transition: width 0.8s ease-in-out;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
+
+
+/* Contenedor oscuro para la gráfica */
+.chart-container-dark {
+  background: var(--bg-dark-card); /* El café profundo #2C241E */
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  color: #FFFFFF;
+}
+
+/* Personalización de Recharts para que coincida con el lino */
+.recharts-cartesian-grid-horizontal line {
+  stroke: rgba(255, 255, 255, 0.1); /* Líneas muy sutiles */
+}
+
+.recharts-curve {
+  stroke-width: 4px; /* Línea gruesa como en la imagen */
+}
+
+.recharts-dot {
+  fill: var(--accent-main); /* Puntos en bronce #D99E5C */
+  stroke: var(--bg-dark-card);
+  stroke-width: 2px;
 }
