@@ -1,22 +1,18 @@
 'use client'
 
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 export default function Modal({ open, onClose, title, children, size = 'md' }) {
 
-  // Bloquea el scroll del body cuando el modal está abierto
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  // Cerrar con tecla ESC
   useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose()
-    }
-
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose() }
     if (open) window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
   }, [open, onClose])
@@ -30,16 +26,13 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
     xl: 'max-w-4xl'
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center sm:p-4">
 
       {/* Overlay */}
       <div
         className="absolute inset-0"
-        style={{
-          background: 'rgba(44,32,22,0.45)',
-          backdropFilter: 'blur(4px)'
-        }}
+        style={{ background: 'rgba(44,32,22,0.45)', backdropFilter: 'blur(4px)' }}
         onClick={onClose}
       />
 
@@ -53,41 +46,29 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
           borderRadius: '20px 20px 0 0',
           maxHeight: '92dvh',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
         }}
       >
 
         {/* Handle móvil */}
         <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
-          <div
-            style={{
-              width: 40,
-              height: 4,
-              borderRadius: 2,
-              background: 'var(--border-glass)'
-            }}
-          />
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-glass)' }} />
         </div>
 
         {/* Header */}
         <div
-
           className="flex items-center justify-between px-6 py-5 flex-shrink-0"
           style={{ borderBottom: '1px solid #F0E9DF' }}
         >
           <h3
             className="text-base font-black"
-            style={{
-              color: 'var(--text-primary)',
-              letterSpacing: '-0.02em'
-            }}
+            style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
           >
             {title}
           </h3>
-
           <button
             onClick={onClose}
-            X:style={{
+            style={{
               width: 32,
               height: 32,
               borderRadius: 10,
@@ -99,22 +80,18 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
               border: 'none',
               cursor: 'pointer',
             }}
-
           >
             <X size={16} style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
 
         {/* Contenido scrollable */}
-        <div
-          className="overflow-y-auto flex-1"
-
-          style={{ padding: '24px 24px 40px' }}
-        >
+        <div className="overflow-y-auto flex-1" style={{ padding: '24px 24px 40px' }}>
           {children}
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
