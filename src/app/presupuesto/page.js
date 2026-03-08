@@ -10,9 +10,9 @@ import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 const BLOQUES_META = [
-  { id: 'necesidades', nombre: 'Necesidades', icon: Home,     color: 'var(--accent-blue)',  pct: 50, categorias: ['Básicos', 'Deudas'],      descripcion: 'Gastos obligatorios del mes' },
-  { id: 'estilo',      nombre: 'Estilo de vida', icon: Sparkles, color: 'var(--accent-terra)', pct: 20, categorias: ['Deseo'],                descripcion: 'Gastos de disfrute y ocio' },
-  { id: 'futuro',      nombre: 'Futuro',      icon: Sprout,   color: 'var(--accent-green)', pct: 30, categorias: ['Metas', 'Inversiones'],  descripcion: 'Construye tu patrimonio' },
+  { id: 'necesidades', nombre: 'Necesidades', icon: Home, color: 'var(--accent-blue)', pct: 50, categorias: ['Básicos', 'Deudas'], descripcion: 'Gastos obligatorios del mes' },
+  { id: 'estilo', nombre: 'Estilo de vida', icon: Sparkles, color: 'var(--accent-terra)', pct: 20, categorias: ['Deseo'], descripcion: 'Gastos de disfrute y ocio' },
+  { id: 'futuro', nombre: 'Futuro', icon: Sprout, color: 'var(--accent-green)', pct: 30, categorias: ['Metas', 'Inversiones'], descripcion: 'Construye tu patrimonio' },
 ]
 
 // Categorías de movimientos → bloque al que pertenecen
@@ -30,24 +30,24 @@ const ORIGEN_BLOQUE = {
 }
 
 export default function PresupuestoPage() {
-  const [bloques, setBloques]             = useState(BLOQUES_META)
-  const [ingreso, setIngreso]             = useState('')
-  const [editando, setEditando]           = useState(false)
-  const [borradores, setBorradores]       = useState(null)
-  const [items, setItems]                 = useState([])
-  const [movs, setMovs]                   = useState([])
-  const [sobreMovs, setSobreMovs]         = useState([])
-  const [metasReales, setMetasReales]     = useState([])
+  const [bloques, setBloques] = useState(BLOQUES_META)
+  const [ingreso, setIngreso] = useState('')
+  const [editando, setEditando] = useState(false)
+  const [borradores, setBorradores] = useState(null)
+  const [items, setItems] = useState([])
+  const [movs, setMovs] = useState([])
+  const [sobreMovs, setSobreMovs] = useState([])
+  const [metasReales, setMetasReales] = useState([])
   const [inversionesReales, setInversionesReales] = useState([])
-  const [loadingItems, setLoadingItems]   = useState(true)
-  const [expandido, setExpandido]         = useState(null)
-  const [formItem, setFormItem]           = useState({ nombre: '', monto: '' })
-  const [addingTo, setAddingTo]           = useState(null)
-  const [addingReal, setAddingReal]       = useState(null)
-  const [montoReal, setMontoReal]         = useState('')
-  const [sub, setSub]                     = useState({ metas: 60, inversiones: 40 })
-  const [editandoSub, setEditandoSub]     = useState(false)
-  const [subBorrador, setSubBorrador]     = useState(null)
+  const [loadingItems, setLoadingItems] = useState(true)
+  const [expandido, setExpandido] = useState(null)
+  const [formItem, setFormItem] = useState({ nombre: '', monto: '' })
+  const [addingTo, setAddingTo] = useState(null)
+  const [addingReal, setAddingReal] = useState(null)
+  const [montoReal, setMontoReal] = useState('')
+  const [sub, setSub] = useState({ metas: 60, inversiones: 40 })
+  const [editandoSub, setEditandoSub] = useState(false)
+  const [subBorrador, setSubBorrador] = useState(null)
 
   const now = new Date()
   const mes = now.getMonth() + 1
@@ -145,7 +145,7 @@ export default function PresupuestoPage() {
   }
 
   // ── EDICIÓN DE PORCENTAJES ────────────────────────────────────────────────
-  function iniciarEdicion()  { setBorradores(bloques.map(b => ({ ...b }))); setEditando(true) }
+  function iniciarEdicion() { setBorradores(bloques.map(b => ({ ...b }))); setEditando(true) }
   function cancelarEdicion() { setBorradores(null); setEditando(false) }
 
   async function guardarEdicion() {
@@ -177,11 +177,11 @@ export default function PresupuestoPage() {
 
   // ── DERIVADOS ─────────────────────────────────────────────────────────────
   const ingresoNum = parseFloat(ingreso) || 0
-  const lista      = editando ? borradores : bloques
-  const totalPct   = lista.reduce((s, b) => s + b.pct, 0)
-  const totalOk    = totalPct === 100
-  const subActual  = editandoSub ? subBorrador : sub
-  const subOk      = (subBorrador
+  const lista = editando ? borradores : bloques
+  const totalPct = lista.reduce((s, b) => s + b.pct, 0)
+  const totalOk = totalPct === 100
+  const subActual = editandoSub ? subBorrador : sub
+  const subOk = (subBorrador
     ? subBorrador.metas + subBorrador.inversiones
     : sub.metas + sub.inversiones) === 100
 
@@ -234,19 +234,19 @@ export default function PresupuestoPage() {
       {/* ── BLOQUES ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {lista.map((bloque) => {
-          const Icon          = bloque.icon
-          const monto         = ingresoNum * (bloque.pct / 100)
-          const gastado       = gastadoReal(bloque.id)
-          const disponible    = monto - gastado
-          const pctGastado    = monto > 0 ? Math.min(100, (gastado / monto) * 100) : 0
-          const sobreGiro     = gastado > monto
-          const bloqueItems   = items.filter(i => i.bloque === bloque.id)
-          const totalItems    = bloqueItems.reduce((s, i) => s + parseFloat(i.monto), 0)
-          const isExpandido   = expandido === bloque.id
+          const Icon = bloque.icon
+          const monto = ingresoNum * (bloque.pct / 100)
+          const gastado = gastadoReal(bloque.id)
+          const disponible = monto - gastado
+          const pctGastado = monto > 0 ? Math.min(100, (gastado / monto) * 100) : 0
+          const sobreGiro = gastado > monto
+          const bloqueItems = items.filter(i => i.bloque === bloque.id)
+          const totalItems = bloqueItems.reduce((s, i) => s + parseFloat(i.monto), 0)
+          const isExpandido = expandido === bloque.id
 
           // Alerta sobre-giro para Básicos: incluye traspasos al sobre
-          const metasPendientes     = metasReales.filter(m => !bloqueItems.find(bi => bi.nombre.includes(m.nombre)))
-          const invPendientes       = inversionesReales.filter(i => !bloqueItems.find(bi => bi.nombre.includes(i.nombre)))
+          const metasPendientes = metasReales.filter(m => !bloqueItems.find(bi => bi.nombre.includes(m.nombre)))
+          const invPendientes = inversionesReales.filter(i => !bloqueItems.find(bi => bi.nombre.includes(i.nombre)))
 
           return (
             <Card key={bloque.id} className="animate-enter">
@@ -370,10 +370,10 @@ export default function PresupuestoPage() {
                   )}
 
                   {[
-                    { key: 'metas',      label: 'Metas de Ahorro', color: 'var(--accent-green)' },
-                    { key: 'inversiones', label: 'Inversiones',     color: '#818CF8'             },
+                    { key: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)' },
+                    { key: 'inversiones', label: 'Inversiones', color: '#818CF8' },
                   ].map(cat => {
-                    const pct      = subActual[cat.key] || 0
+                    const pct = subActual[cat.key] || 0
                     const montoSub = monto * (pct / 100)
                     return (
                       <div key={cat.key} className="mb-2">
@@ -476,12 +476,15 @@ export default function PresupuestoPage() {
                           return (
                             <button key={meta.id}
                               onClick={() => {
+                                // Aporte mensual configurado en la meta: pct_mensual% del presupuesto de metas
+                                const aporteMeta = (meta.pct_mensual / 100) * (monto * (sub.metas / 100))
+                                const montoSug = Math.min(restante, aporteMeta > 0 ? aporteMeta : monto * (sub.metas / 100))
                                 setAddingReal({
                                   nombre: `${getFlagEmoji(meta.emoji) || '🎯'} ${meta.nombre}`,
-                                  montoSugerido: Math.min(restante, monto * (sub.metas / 100)),
+                                  montoSugerido: montoSug,
                                   bloque: 'futuro',
                                 })
-                                setMontoReal(Math.min(restante, monto * (sub.metas / 100)).toFixed(2))
+                                setMontoReal(montoSug.toFixed(2))
                               }}
                               className="w-full text-left px-3 py-2.5 rounded-xl border flex items-center justify-between transition-colors"
                               style={{
@@ -580,8 +583,8 @@ export default function PresupuestoPage() {
           </p>
           <div className="space-y-3">
             {bloques.map(b => {
-              const monto   = ingresoNum * (b.pct / 100)
-              const Icon    = b.icon
+              const monto = ingresoNum * (b.pct / 100)
+              const Icon = b.icon
               const gastado = gastadoReal(b.id)
               return (
                 <div key={b.id} className="rounded-xl p-3"
@@ -609,8 +612,8 @@ export default function PresupuestoPage() {
                   {b.id === 'futuro' && (
                     <div className="flex gap-2 mt-2">
                       {[
-                        { k: 'metas',      l: 'Metas',      c: 'var(--accent-green)' },
-                        { k: 'inversiones', l: 'Inversiones', c: '#818CF8'             },
+                        { k: 'metas', l: 'Metas', c: 'var(--accent-green)' },
+                        { k: 'inversiones', l: 'Inversiones', c: '#818CF8' },
                       ].map(s => (
                         <div key={s.k} className="flex-1 px-2 py-1.5 rounded-lg text-center"
                           style={{ background: `color-mix(in srgb, ${s.c} 10%, transparent)` }}>
