@@ -42,9 +42,9 @@ html, body {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(100,70,30,0.07), 0 1px 3px rgba(100,70,30,0.05);
+  /* Sombra con tono café en lugar de negro puro */
+  box-shadow: 0 4px 20px -4px rgba(44, 32, 22, 0.08); 
 }
-
 .glow-green { box-shadow: 0 0 24px rgba(45,122,95,0.14); }
 .glow-gold  { box-shadow: 0 0 24px rgba(193,122,58,0.14); }
 
@@ -166,3 +166,12 @@ html, body, main {
   transition: all 0.2s;
 }
 .ff-btn-terra:hover { opacity: 0.9; transform: translateY(-1px); }
+.ff-btn-primary:disabled, .ff-btn-terra:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+input[type="date"] {
+  appearance: none;
+  min-height: 3rem; /* Para que coincida con tu h-12 */
+}

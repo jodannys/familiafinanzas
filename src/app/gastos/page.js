@@ -8,11 +8,11 @@ import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 const CATS = [
-  { value: 'basicos',   label: 'Gastos Básicos' },
-  { value: 'deseo',     label: 'Gastos Deseo' },
-  { value: 'ahorro',    label: 'Ahorro / Metas' },
+  { value: 'basicos', label: 'Gastos Básicos' },
+  { value: 'deseo', label: 'Gastos Deseo' },
+  { value: 'ahorro', label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
-  { value: 'deuda',     label: 'Deudas' },
+  { value: 'deuda', label: 'Deudas' },
 ]
 
 const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose' }
@@ -61,7 +61,7 @@ export default function GastosPage() {
     supabase.from('deudas').select('id, perfil_tarjeta_id, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
       .then(({ data }) => {
         const map = {}
-        ;(data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
+          ; (data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
         setTarjetaDeudasMap(map)
       })
   }, [])
@@ -165,22 +165,22 @@ export default function GastosPage() {
         const deuda = deudasData.find(d => d.id === deudaSeleccionada)
         if (deuda) {
           const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
-          const nuevosPagados  = (deuda.pagadas || 0) + 1
-          const nuevoEstado    = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+          const nuevosPagados = (deuda.pagadas || 0) + 1
+          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
           await supabase.from('deudas').update({
             pendiente: nuevoPendiente,
-            pagadas:   nuevosPagados,
-            estado:    nuevoEstado,
+            pagadas: nuevosPagados,
+            estado: nuevoEstado,
           }).eq('id', deudaSeleccionada)
 
           // Espejo en deuda_movimientos para historial de la deuda
           await supabase.from('deuda_movimientos').insert([{
-            deuda_id:    deudaSeleccionada,
-            tipo:        'pago',
+            deuda_id: deudaSeleccionada,
+            tipo: 'pago',
             descripcion: form.descripcion,
             monto,
-            fecha:       form.fecha,
+            fecha: form.fecha,
             mes,
             año,
           }])
@@ -234,12 +234,12 @@ export default function GastosPage() {
               (deudaData.pendiente || 0) + movimiento.monto
             )
             const nuevosPagados = Math.max(0, (deudaData.pagadas || 0) - 1)
-            const nuevoEstado   = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+            const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
             await supabase.from('deudas').update({
               pendiente: nuevoPendiente,
-              pagadas:   nuevosPagados,
-              estado:    nuevoEstado,
+              pagadas: nuevosPagados,
+              estado: nuevoEstado,
             }).eq('id', deudaId)
 
             // Borrar espejo en deuda_movimientos: match exacto por deuda_id + fecha + monto
@@ -297,7 +297,7 @@ export default function GastosPage() {
     return month - 1 === now.getMonth() && year === now.getFullYear()
   })
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const egresos  = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  const egresos = movsMes.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
@@ -327,7 +327,7 @@ export default function GastosPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Ingresos del mes', value: formatCurrency(ingresos), color: 'var(--accent-green)' },
-          { label: 'Egresos del mes',  value: formatCurrency(egresos),  color: 'var(--accent-rose)' },
+          { label: 'Egresos del mes', value: formatCurrency(egresos), color: 'var(--accent-rose)' },
           { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' },
         ].map((s, i) => (
           <div key={i} className="glass-card p-4 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -368,7 +368,7 @@ export default function GastosPage() {
         ) : (
           <div className="divide-y" style={{ borderColor: "var(--border-glass)" }}>
             {filtered.map((m, i) => (
-              <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background="var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}
+              <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background = "var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 style={{ animationDelay: `${i * 0.02}s` }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{
@@ -387,7 +387,7 @@ export default function GastosPage() {
                   <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                     {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
                   </p>
-                  <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color="var(--accent-rose)"; e.currentTarget.style.opacity="1" }} onMouseLeave={e => { e.currentTarget.style.color="var(--text-muted)"; e.currentTarget.style.opacity="0.4" }}>
+                  <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color = "var(--accent-rose)"; e.currentTarget.style.opacity = "1" }} onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.4" }}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -529,23 +529,26 @@ export default function GastosPage() {
 
           {/* Monto + Fecha — aparecen tras elegir sugerencia (o siempre si no hay sugerencias) */}
           {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="ff-label">Monto (€)</label>
-              <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
-                style={{ color: 'var(--accent-terra)' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="ff-label">Monto (€)</label>
+                <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
+                  style={{ color: 'var(--accent-terra)' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <label className="ff-label">Fecha</label>
+                <input className="ff-input h-12 text-sm font-medium" type="date" required
+                  value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="ff-label">Fecha</label>
-              <input className="ff-input h-12 text-sm font-medium" type="date" required
-                value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
-            </div>
-          </div>
           )}
 
-          <button type="submit" disabled={saving}
-            className="ff-btn-primary w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2"
-            style={{ background: usandoTarjeta ? '#818CF8' : 'var(--accent-terra)' }}>
+          <button
+            type="submit"
+            disabled={saving}
+            className={`w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ${usandoTarjeta ? 'bg-[#818CF8] text-white' : 'ff-btn-terra'
+              }`}
+          >
             {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
           </button>
         </form>
