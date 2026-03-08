@@ -32,10 +32,11 @@ export function FinanceChart({ data = [] }) {
   useEffect(() => {
     setColores(leerColores())
 
-    const observer = new MutationObserver(() => setColores(leerColores()))
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] })
-    return () => observer.disconnect()
-  }, [])
+    const handler = () => setColores(leerColores())
+  window.addEventListener('theme-change', handler)
+  return () => window.removeEventListener('theme-change', handler)
+}, [])
+  
 
   const { ingresos: colorIngresos, gastos: colorGastos, bgCard } = colores
 

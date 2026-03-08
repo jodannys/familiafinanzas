@@ -61,7 +61,7 @@ export const THEMES = {
 },
   ocean: {
   name: 'Ocean Slate',
-  themeColor: '#0ABDC6',
+  themeColor: '#E8F4F6',
   emoji: '🌊',
   preview: ['#FFFFFF', '#0ABDC6', '#F1F5F9', '#0F172A'],
   vars: {
@@ -132,16 +132,19 @@ export function ThemeProvider({ children }) {
     }
   }, [])
 
-  useEffect(() => {
-    const t = THEMES[theme]
-    if (!t) return
-    const root = document.documentElement
-    Object.entries(t.vars).forEach(([key, val]) => root.style.setProperty(key, val))
-    localStorage.setItem('ff-theme', theme)
-    
-    // CAMBIO AQUÍ: Usamos la función dinámica
-    updateThemeMeta(t.themeColor)
-  }, [theme])
+ // En el useEffect que aplica el tema, añade al final:
+useEffect(() => {
+  const t = THEMES[theme]
+  if (!t) return
+  const root = document.documentElement
+  Object.entries(t.vars).forEach(([key, val]) => root.style.setProperty(key, val))
+  localStorage.setItem('ff-theme', theme)
+  updateThemeMeta(t.themeColor)
+  
+  // ← añade esto:
+  window.dispatchEvent(new CustomEvent('theme-change'))
+}, [theme])
+
 
   function setTheme(t) {
     if (THEMES[t]) setThemeState(t)

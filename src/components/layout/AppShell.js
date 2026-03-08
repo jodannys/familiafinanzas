@@ -13,9 +13,9 @@ export default function AppShell({ children }) {
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-[60] lg:hidden"
-          style={{ 
-            background: 'rgba(0,0,0,0.4)', 
-            backdropFilter: 'blur(2px)' 
+          style={{
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(2px)'
           }}
           onClick={() => setSidebarOpen(false)}
         />
@@ -36,8 +36,10 @@ export default function AppShell({ children }) {
       >
         {/* Header móvil */}
         <div className="lg:hidden flex items-center gap-3 px-5 sticky top-0 z-50 w-full"
+          // En el div del header móvil, cambia el style a:
           style={{
             background: 'var(--bg-primary)',
+            borderBottom: '1px solid transparent', // ← evita el corte visual
             paddingTop: 'calc(env(safe-area-inset-top) + 1rem)',
             paddingBottom: '1rem',
           }}>
