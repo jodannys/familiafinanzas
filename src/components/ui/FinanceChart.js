@@ -16,9 +16,6 @@ export function FinanceChart({ data = [] }) { // <--- Ahora recibe data por prop
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
           Progreso Financiero
         </h3>
-        <p className="text-2xl font-black tracking-tighter text-white">
-          Flujo de Caja Diario
-        </p>
       </div>
 
       <div className="flex-1 w-full min-h-0">

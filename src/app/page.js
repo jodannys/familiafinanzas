@@ -81,31 +81,31 @@ export default function Dashboard() {
     })
   }, [movs, mesActual, añoActual])
 
-  // SUSTITUYE POR:
-  const dataGraficoReal = useMemo(() => {
-    if (!movs || movs.length === 0) return []
+ // SUSTITUYE POR:
+const dataGraficoReal = useMemo(() => {
+  if (!movs || movs.length === 0) return []
 
-    const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
-    const porMes = Array.from({ length: 12 }, (_, i) => ({
-      name: MESES[i],
-      gastos: 0,
-      ingresos: 0,
-    }))
+  const porMes = Array.from({ length: 12 }, (_, i) => ({
+    name: MESES[i],
+    gastos: 0,
+    ingresos: 0,
+  }))
 
-    movs.forEach(mov => {
-      const mes = parseInt(mov.fecha.split('-')[1], 10) - 1  // 0-11, sin UTC
-      const año = parseInt(mov.fecha.split('-')[0], 10)
-      if (año !== añoActual || mes < 0 || mes > 11) return
-      if (mov.tipo === 'egreso') {
-        porMes[mes].gastos += (mov.monto || 0)
-      } else if (mov.tipo === 'ingreso') {
-        porMes[mes].ingresos += (mov.monto || 0)
-      }
-    })
+  movs.forEach(mov => {
+    const mes = parseInt(mov.fecha.split('-')[1], 10) - 1  // 0-11, sin UTC
+    const año = parseInt(mov.fecha.split('-')[0], 10)
+    if (año !== añoActual || mes < 0 || mes > 11) return
+    if (mov.tipo === 'egreso') {
+      porMes[mes].gastos += (mov.monto || 0)
+    } else if (mov.tipo === 'ingreso') {
+      porMes[mes].ingresos += (mov.monto || 0)
+    }
+  })
 
-    return porMes
-  }, [movs, añoActual])
+  return porMes
+}, [movs, añoActual])
 
   // Lógica de KPIs y Alertas
   const ingresosMes = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
@@ -184,7 +184,7 @@ export default function Dashboard() {
           { label: 'Metas', val: totalAhorrado, icon: Target, col: 'var(--accent-terra)' },
           { label: 'Saldo Libre', val: saldo, icon: Wallet, col: 'var(--accent-blue)' },
         ].map((kpi, i) => (
-          <div key={i} className="p-6 rounded-[35px] border shadow-sm flex flex-col justify-between min-h-[140px]"
+          <div key={i} className="p-4 rounded-[24px] border shadow-sm flex flex-col justify-between min-h-[110px]"
             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
             <div className="flex items-center gap-2 opacity-60">
               <div className="p-1.5 rounded-lg" style={{ background: `${kpi.col}15` }}>
@@ -192,7 +192,7 @@ export default function Dashboard() {
               </div>
               <p className="text-[10px] font-black uppercase tracking-widest">{kpi.label}</p>
             </div>
-            <p className="text-2xl font-black tabular-nums tracking-tighter mt-4" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-xl font-black tabular-nums tracking-tighter mt-3" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(kpi.val)}
             </p>
           </div>
