@@ -52,7 +52,7 @@ export default function GastosPage() {
   useEffect(() => {
     cargarMovimientos()
     cargarPresupuesto()
-    supabase.from('metas').select('id, nombre, meta, actual').then(({ data }) => setMetasData(data || []))
+    supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
     supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
     // Tarjetas: perfiles_tarjetas para display + mapa perfil→deuda para insertar cargos

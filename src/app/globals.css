@@ -224,15 +224,6 @@ h1, h2, h3 {
   border-radius: 999px;
   transition: width 0.8s ease-in-out;
 }
-
-/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
-
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
 /* ── Gráficas ───────────────────────────────────────────────────────────────── */
 
 .chart-container-dark {
@@ -258,26 +249,35 @@ h1, h2, h3 {
 }
 
 /* En tu globals.css */
+/* ── Scrollbar Global y Personalizado ───────────────────────────────────────── */
 
-/* 1. Definimos el ancho de la barra (muy fina) */
-.custom-scroll::-webkit-scrollbar {
-  width: 5px;
+/* 1. Esto afecta a TODO el sitio */
+::-webkit-scrollbar {
+  width: 5px; /* Más fina */
 }
 
-/* 2. El fondo del carril (transparente para que no se vea el bloque gris) */
-.custom-scroll::-webkit-scrollbar-track {
-  background: transparent;
-  margin-bottom: 20px; /* Esto evita que choque con el borde de abajo */
-  margin-top: 10px;    /* Esto evita que choque con el borde de arriba */
+::-webkit-scrollbar-track {
+  background: transparent; 
 }
 
-/* 3. El "tirador" (la barrita que sube y baja) */
-.custom-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1); /* Color suave para modo oscuro */
+::-webkit-scrollbar-thumb {
+  background: rgba(145, 132, 121, 0.3); /* Usando un tono de tu --text-muted */
   border-radius: 20px;
 }
 
-/* 4. Color al pasar el mouse */
-.custom-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+/* 2. Clase especial para áreas internas (como tu lista expandible) */
+.custom-scroll {
+  scrollbar-gutter: stable; /* Evita que el contenido salte al aparecer la barra */
 }
+
+.custom-scroll::-webkit-scrollbar-track {
+  /* El secreto: márgenes para que la barra no toque los bordes redondeados arriba/abajo */
+  margin-block: 12px; 
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: rgba(26, 20, 16, 0.2); /* Un tono más oscuro para que se vea sobre el beige */
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+

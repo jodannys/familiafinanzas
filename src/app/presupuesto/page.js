@@ -436,7 +436,7 @@ export default function PresupuestoPage() {
 
                 {isExpandido && (
                   <div
-                    className="space-y-2 mt-2 overflow-y-auto custom-scroll pr-2"
+                    className="space-y-2 mt-2 overflow-y-auto custom-scroll pr-3"
                     style={{ maxHeight: '320px' }}
                   >
                     {loadingItems ? (
