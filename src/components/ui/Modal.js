@@ -14,7 +14,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
 
   return (
     // z-[9999] garantiza que supera sidebar (z-40) y header (z-50) del AppShell
-    <div className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
 
       {/* Overlay */}
       <div
@@ -23,29 +23,21 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
         onClick={onClose}
       />
 
-      {/* Panel — bottom sheet en móvil, dialog centrado en sm+ */}
+      {/* Panel flotante centrado */}
       <div
-        className={`relative w-full sm:rounded-2xl animate-enter ${sizes[size]}`}
+        className={`relative w-full rounded-2xl animate-enter ${sizes[size]}`}
         style={{
           background: 'var(--bg-card)',
           border: '1px solid #E4D9CE',
-          boxShadow: '0 -4px 40px rgba(100,70,30,0.15)',
-          // En móvil: bordes redondeados solo arriba
-          borderRadius: '20px 20px 0 0',
-          // Limitar altura máxima y hacer scroll interno
-          maxHeight: '92dvh',
+          boxShadow: '0 20px 60px rgba(100,70,30,0.22)',
+          maxHeight: '90dvh',
           display: 'flex',
           flexDirection: 'column',
         }}>
 
-        {/* Handle (solo móvil) */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-glass)' }} />
-        </div>
-
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
           style={{ borderBottom: '1px solid #F0E9DF' }}>
           <h3 className="text-base font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             {title}
@@ -62,7 +54,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
         </div>
 
         {/* Contenido — scrolleable */}
-        <div className="overflow-y-auto flex-1" style={{ padding: '20px 20px 32px' }}>
+        <div className="overflow-y-auto flex-1" style={{ padding: '24px' }}>
           {children}
         </div>
       </div>

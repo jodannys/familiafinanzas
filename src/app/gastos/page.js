@@ -368,7 +368,6 @@ export default function GastosPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold truncate leading-tight" style={{ color: "var(--text-primary)" }}>{m.descripcion}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-tighter" style={{ color: "var(--text-muted)" }}>{m.quien}</span>
                     <Badge color={catColor[m.categoria] || 'slate'}>{m.categoria}</Badge>
                   </div>
                 </div>
@@ -394,7 +393,7 @@ export default function GastosPage() {
             {['ingreso', 'egreso'].map(t => (
               <button type="button" key={t}
                 onClick={() => {
-                  setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? '' : 'basicos' })
+                  setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? 'ingreso' : 'basicos' })
                   setTarjetaSeleccionada('')
                 }}
                 className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
