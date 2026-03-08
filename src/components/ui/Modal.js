@@ -10,20 +10,61 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
 
   if (!open) return null
 
-  const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
+  const sizes = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0" style={{ background: 'rgba(44,32,22,0.35)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
-      <div className={`relative w-full rounded-2xl animate-enter ${sizes[size]}`}
-        style={{ background: 'var(--bg-card)', border: '1px solid #E4D9CE', boxShadow: '0 20px 60px rgba(100,70,30,0.18)' }}>
-        <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid #F0E9DF' }}>
-          <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-          <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-primary)', border:'1px solid #E4D9CE', cursor:'pointer' }}>
+    // z-[9999] garantiza que supera sidebar (z-40) y header (z-50) del AppShell
+    <div className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center sm:p-4">
+
+      {/* Overlay */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'rgba(44,32,22,0.45)', backdropFilter: 'blur(4px)' }}
+        onClick={onClose}
+      />
+
+      {/* Panel — bottom sheet en móvil, dialog centrado en sm+ */}
+      <div
+        className={`relative w-full sm:rounded-2xl animate-enter ${sizes[size]}`}
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid #E4D9CE',
+          boxShadow: '0 -4px 40px rgba(100,70,30,0.15)',
+          // En móvil: bordes redondeados solo arriba
+          borderRadius: '20px 20px 0 0',
+          // Limitar altura máxima y hacer scroll interno
+          maxHeight: '92dvh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+
+        {/* Handle (solo móvil) */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-glass)' }} />
+        </div>
+
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid #F0E9DF' }}>
+          <h3 className="text-base font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            {title}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'var(--bg-primary)', border: '1px solid #E4D9CE', cursor: 'pointer',
+            }}>
             <X size={16} style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
-        <div className="p-6">{children}</div>
+
+        {/* Contenido — scrolleable */}
+        <div className="overflow-y-auto flex-1" style={{ padding: '20px 20px 32px' }}>
+          {children}
+        </div>
       </div>
     </div>
   )

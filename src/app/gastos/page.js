@@ -386,44 +386,7 @@ export default function GastosPage() {
         )}
       </Card>
 
-      {/* ── BOTTOM SHEET PROPIO (evita conflicto con sidebar del AppShell) ── */}
-      {modal && (
-        <>
-          {/* Overlay */}
-          <div
-            onClick={resetModal}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 9998,
-              background: 'rgba(0,0,0,0.45)',
-              backdropFilter: 'blur(2px)',
-            }}
-          />
-          {/* Sheet */}
-          <div style={{
-            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 9999,
-            background: 'var(--bg-card)',
-            borderRadius: '20px 20px 0 0',
-            boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-            maxHeight: '92dvh',
-            display: 'flex', flexDirection: 'column',
-          }}>
-            {/* Handle + título */}
-            <div style={{ padding: '12px 20px 0', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-glass)', margin: '0 auto 12px' }} />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <p style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                  Nuevo Movimiento
-                </p>
-                <button onClick={resetModal} style={{
-                  width: 32, height: 32, borderRadius: 10, border: 'none',
-                  background: 'var(--bg-secondary)', color: 'var(--text-muted)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', fontSize: 18, fontWeight: 700,
-                }}>✕</button>
-              </div>
-            </div>
-            {/* Contenido scrollable */}
-            <div style={{ overflowY: 'auto', flex: 1, padding: '0 20px 32px' }}>
+      <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
         <form onSubmit={handleAdd} className="space-y-4">
 
           {/* Tipo toggle */}
@@ -585,10 +548,7 @@ export default function GastosPage() {
             {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
           </button>
         </form>
-            </div>
-          </div>
-        </>
-      )}
+      </Modal>
     </AppShell>
   )
 }
