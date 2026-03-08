@@ -39,6 +39,7 @@ export function FinanceChart({ data = [] }) {
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
         borderColor: 'rgba(255,255,255,0.08)',
+        boxShadow: 'none',
       }}
     >
       <div className="mb-6">

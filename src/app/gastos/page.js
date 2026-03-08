@@ -276,12 +276,19 @@ export default function GastosPage() {
 
   const sugerenciasRicas = form.tipo === 'egreso' ? (() => {
     if (form.categoria === 'deuda') return []
-    if (form.categoria === 'ahorro') return metasData.map(m => ({
-      id: m.id, nombre: m.nombre, monto: 0,
-      sub: `${formatCurrency(m.actual || 0)} / ${formatCurrency(m.meta)}`,
-      pct: Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100)),
-      color: 'var(--accent-green)', emoji: '🎯',
-    }))
+    if (form.categoria === 'ahorro') {
+      const montoMetas = presItems
+        .filter(i => i.bloque === 'futuro')
+        .reduce((s, i) => s + (i.monto || 0), 0)
+
+      return metasData.map(m => ({
+        id: m.id, nombre: m.nombre,
+        monto: Math.round((m.pct_mensual / 100) * montoMetas) || 0,
+        sub: `${formatCurrency(m.actual || 0)} / ${formatCurrency(m.meta)}`,
+        pct: Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100)),
+        color: 'var(--accent-green)', emoji: '🎯',
+      }))
+    }
     if (form.categoria === 'inversion') return inversionesData.map(i => ({
       id: `inv_${i.id}`, nombre: i.nombre, monto: i.aporte || 0,
       sub: `Capital: ${formatCurrency(i.capital || 0)}`,

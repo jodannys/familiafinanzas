@@ -203,7 +203,7 @@ export default function Dashboard() {
           <FinanceChart data={dataGraficoReal} />
         </div>
 
-        <div className="p-8 rounded-[40px] border shadow-sm flex flex-col"
+        <div className="p-8 rounded-[40px] border file:flex flex-col"
           style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
           <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40 mb-8" style={{ color: 'var(--text-secondary)' }}>
             Distribución

@@ -650,7 +650,7 @@ export default function PresupuestoPage() {
           onClose={() => { setAddingReal(null); setMontoReal('') }}
           title={addingReal?.nombre || ''}
         >
-          <>
+          
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
               ¿Cuánto quieres presupuestar este mes?
             </p>
@@ -694,7 +694,6 @@ export default function PresupuestoPage() {
                 Guardar
               </button>
             </div>
-          </>
         </Modal>
       )}
     </AppShell >
