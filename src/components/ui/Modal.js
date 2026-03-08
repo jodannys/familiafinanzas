@@ -27,7 +27,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[9999] flex flex-col justify-center items-center p-4">
 
       {/* Overlay */}
       <div
@@ -43,7 +43,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
           background: 'var(--bg-card)',
           border: '1px solid #E4D9CE',
           boxShadow: '0 -4px 40px rgba(100,70,30,0.15)',
-          borderRadius: '20px 20px 0 0',
+          borderRadius: '20px',
           maxHeight: '92dvh',
           display: 'flex',
           flexDirection: 'column',
