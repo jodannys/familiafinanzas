@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import Modal from '@/components/ui/Modal'
 
 const BLOQUES_META = [
   { id: 'necesidades', nombre: 'Necesidades', icon: Home, color: 'var(--accent-blue)', pct: 50, categorias: ['Básicos', 'Deudas'], descripcion: 'Gastos obligatorios del mes' },
@@ -190,7 +191,7 @@ export default function PresupuestoPage() {
     <AppShell>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6 animate-enter">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6 animate-enter">
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>
             Módulo
@@ -207,7 +208,7 @@ export default function PresupuestoPage() {
             <Edit3 size={14} /> Editar %
           </button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <button onClick={cancelarEdicion} className="ff-btn-ghost">Cancelar</button>
             <button onClick={guardarEdicion} disabled={!totalOk}
               className="ff-btn-primary flex items-center gap-2"
@@ -349,7 +350,7 @@ export default function PresupuestoPage() {
                         <Edit3 size={11} /> Editar
                       </button>
                     ) : (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-shrink-0">
                         <button onClick={() => { setSubBorrador(null); setEditandoSub(false) }}
                           className="text-xs" style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
                           Cancelar
@@ -536,7 +537,7 @@ export default function PresupuestoPage() {
                           value={formItem.nombre} onChange={e => setFormItem({ ...formItem, nombre: e.target.value })} />
                         <input className="ff-input w-full" type="number" step="0.01" placeholder="Monto en €"
                           value={formItem.monto} onChange={e => setFormItem({ ...formItem, monto: e.target.value })} />
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-shrink-0">
                           <button onClick={() => handleAddItem(bloque.id)}
                             className="flex-1 py-2 rounded-xl text-sm font-bold"
                             style={{ background: bloque.color, border: 'none', cursor: 'pointer', color: 'var(--bg-card)' }}>
@@ -647,36 +648,19 @@ export default function PresupuestoPage() {
 
       {/* ── MODAL añadir meta/inversión real ── */}
       {addingReal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
-          <Card className="w-full max-w-xs shadow-2xl" style={{ padding: 20 }}>
-            <h3 className="font-black text-sm mb-1" style={{ color: 'var(--text-primary)' }}>{addingReal.nombre}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <Modal open={!!addingReal} onClose={() => { setAddingReal(null); setMontoReal('') }} title={addingReal?.nombre || ''}>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>¿Cuánto quieres presupuestar este mes?</p>
             <input className="ff-input w-full mb-3" type="number" step="0.01" placeholder="Monto €"
               value={montoReal} onChange={e => setMontoReal(e.target.value)} />
             <div className="flex gap-2">
-              <button onClick={() => { setAddingReal(null); setMontoReal('') }}
-                className="flex-1 py-3 text-xs font-bold"
-                style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  handleAddItem(addingReal.bloque, {
-                    bloque: addingReal.bloque,
-                    nombre: addingReal.nombre,
-                    monto: parseFloat(montoReal) || 0,
-                    mes, año,
-                  })
-                  setAddingReal(null)
-                  setMontoReal('')
-                }}
-                className="flex-1 py-3 rounded-xl text-xs font-black"
-                style={{ background: 'var(--text-primary)', color: 'var(--bg-card)', border: 'none', cursor: 'pointer' }}>
-                Guardar
-              </button>
+              <button onClick={() => { setAddingReal(null); setMontoReal('') }} className="ff-btn-ghost flex-1">Cancelar</button>
+              <button onClick={() => {
+                handleAddItem(addingReal.bloque, { bloque: addingReal.bloque, nombre: addingReal.nombre, monto: parseFloat(montoReal) || 0, mes, año })
+                setAddingReal(null); setMontoReal('')
+              }} className="ff-btn-primary flex-1">Guardar</button>
             </div>
-          </Card>
+          </Modal>
         </div>
       )}
     </AppShell>
