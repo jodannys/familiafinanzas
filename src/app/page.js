@@ -81,35 +81,31 @@ export default function Dashboard() {
     })
   }, [movs, mesActual, añoActual])
 
- // SUSTITUYE POR:
-const dataGraficoReal = useMemo(() => {
-    if (!movsMes || movsMes.length === 0) return [{ name: 'Sin datos', valor: 0 }]
+  // SUSTITUYE POR:
+  const dataGraficoReal = useMemo(() => {
+    if (!movs || movs.length === 0) return []
 
-    const egresos = {}
-    const ingresos = {}
+    const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
-    movsMes.forEach(mov => {
-      // FIX UTC: parsear día directamente del string "YYYY-MM-DD"
-      const dia = parseInt(mov.fecha.split('-')[2], 10)
+    const porMes = Array.from({ length: 12 }, (_, i) => ({
+      name: MESES[i],
+      gastos: 0,
+      ingresos: 0,
+    }))
+
+    movs.forEach(mov => {
+      const mes = parseInt(mov.fecha.split('-')[1], 10) - 1  // 0-11, sin UTC
+      const año = parseInt(mov.fecha.split('-')[0], 10)
+      if (año !== añoActual || mes < 0 || mes > 11) return
       if (mov.tipo === 'egreso') {
-        egresos[dia] = (egresos[dia] || 0) + (mov.monto || 0)
+        porMes[mes].gastos += (mov.monto || 0)
       } else if (mov.tipo === 'ingreso') {
-        ingresos[dia] = (ingresos[dia] || 0) + (mov.monto || 0)
+        porMes[mes].ingresos += (mov.monto || 0)
       }
     })
 
-    const diasUnicos = [...new Set([...Object.keys(egresos), ...Object.keys(ingresos)])]
-      .map(Number)
-      .sort((a, b) => a - b)
-
-    const resultado = diasUnicos.map(dia => ({
-      name: `${dia}`,
-      gastos: egresos[dia] || 0,
-      ingresos: ingresos[dia] || 0,
-    }))
-
-    return resultado.length > 0 ? resultado : [{ name: 'Hoy', gastos: 0, ingresos: 0 }]
-  }, [movsMes])
+    return porMes
+  }, [movs, añoActual])
 
   // Lógica de KPIs y Alertas
   const ingresosMes = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
