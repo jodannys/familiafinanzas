@@ -280,11 +280,13 @@ export default function GastosPage() {
       const montoMetas = presItems
         .filter(i => i.bloque === 'futuro')
         .reduce((s, i) => s + (i.monto || 0), 0)
-     
+
 
       return metasData.map(m => ({
         id: m.id, nombre: m.nombre,
-        monto: Math.round((m.pct_mensual / 100) * montoMetas) || 0,
+        monto: montoMetas > 0
+          ? Math.round((m.pct_mensual / 100) * montoMetas)
+          : Math.round((m.meta || 0) / 12),
         sub: `${formatCurrency(m.actual || 0)} / ${formatCurrency(m.meta)}`,
         pct: Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100)),
         color: 'var(--accent-green)', emoji: '🎯',

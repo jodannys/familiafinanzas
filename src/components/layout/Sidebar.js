@@ -29,6 +29,7 @@ const MENU_GROUPS = [
       { href: '/metas', label: 'Ahorro', icon: Target, color: '#ec4899' },
       { href: '/inversiones', label: 'Inversiones', icon: TrendingUp, color: 'var(--accent-green)' },
       { href: '/deudas', label: 'Deudas', icon: CreditCard, color: '#ef4444' },
+      { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard, color: 'var(--accent-gold)'},
     ]
   }
 ]
