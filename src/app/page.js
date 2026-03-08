@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell'
 import { ProgressBar } from '@/components/ui/Card'
 import {
   Wallet, Target, Loader2, ArrowUpRight, ArrowDownRight
-} from 'lucide-react'
+} from 'lucide-react' // Aquí estaba el error, faltaban los nombres y la ruta estaba pegada
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { FinanceChart } from '@/components/ui/FinanceChart'
@@ -27,17 +27,17 @@ function diasHastaPago(diaPago) {
 }
 
 function urgenciaAlerta(dias) {
-  if (dias <= 3) return { 
-    bg: 'rgba(239, 68, 68, 0.1)', 
-    border: 'var(--accent-rose)', 
-    text: 'var(--accent-rose)', 
-    label: dias === 0 ? '¡Hoy!' : `${dias}d` 
+  if (dias <= 3) return {
+    bg: 'rgba(239, 68, 68, 0.1)',
+    border: 'var(--accent-rose)',
+    text: 'var(--accent-rose)',
+    label: dias === 0 ? '¡Hoy!' : `${dias}d`
   }
-  return { 
-    bg: 'rgba(193, 122, 58, 0.1)', 
-    border: 'var(--accent-terra)', 
-    text: 'var(--accent-terra)', 
-    label: `${dias}d` 
+  return {
+    bg: 'rgba(193, 122, 58, 0.1)',
+    border: 'var(--accent-terra)',
+    text: 'var(--accent-terra)',
+    label: `${dias}d`
   }
 }
 
@@ -60,10 +60,10 @@ export default function Dashboard() {
         setMovs(m || [])
         setMetas(mt || [])
         setDeudas(d || [])
-      } catch (err) { 
-        console.error(err) 
-      } finally { 
-        setLoading(false) 
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
       }
     }
     cargar()
@@ -91,7 +91,7 @@ export default function Dashboard() {
   movsMes.filter(m => m.tipo === 'egreso').forEach(m => {
     catTotales[m.categoria] = (catTotales[m.categoria] || 0) + m.monto
   })
-  
+
   const distribucionReal = Object.entries(catTotales).map(([name, value]) => ({
     name,
     value: Math.round((value / (egresosMes || 1)) * 100),
@@ -111,7 +111,7 @@ export default function Dashboard() {
       </div>
     </AppShell>
   )
-// Esto prepara tus datos de Supabase para el gráfico
+  // Esto prepara tus datos de Supabase para el gráfico
   const dataGraficoReal = useMemo(() => {
     const agrupado = movsMes.reduce((acc, mov) => {
       if (mov.tipo === 'egreso') {
@@ -146,7 +146,7 @@ export default function Dashboard() {
           {alertasDeuda.map(d => {
             const urg = urgenciaAlerta(d.dias)
             return (
-              <div key={d.id} 
+              <div key={d.id}
                 className="relative flex items-center gap-4 p-5 rounded-[30px] border shadow-sm transition-transform hover:scale-[1.01]"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
                 <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: urg.text }} />
@@ -172,7 +172,7 @@ export default function Dashboard() {
           { label: 'Metas', val: totalAhorrado, icon: Target, col: 'var(--accent-terra)' },
           { label: 'Saldo Libre', val: saldo, icon: Wallet, col: 'var(--accent-blue)' },
         ].map((kpi, i) => (
-          <div key={i} className="p-6 rounded-[35px] border shadow-sm flex flex-col justify-between min-h-[140px]" 
+          <div key={i} className="p-6 rounded-[35px] border shadow-sm flex flex-col justify-between min-h-[140px]"
             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
             <div className="flex items-center gap-2 opacity-60">
               <div className="p-1.5 rounded-lg" style={{ background: `${kpi.col}15` }}>
@@ -190,12 +190,12 @@ export default function Dashboard() {
       {/* SECCIÓN GRÁFICA Y DISTRIBUCIÓN */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         <div className="lg:col-span-2">
-       <FinanceChart data={dataGraficoReal} />
+          <FinanceChart data={dataGraficoReal} />
         </div>
 
         {/* TARJETA DE DISTRIBUCIÓN */}
-        <div className="p-8 rounded-[40px] border shadow-sm flex flex-col" 
-             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
+        <div className="p-8 rounded-[40px] border shadow-sm flex flex-col"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
           <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40 mb-8" style={{ color: 'var(--text-secondary)' }}>
             Distribución
           </h3>
@@ -207,8 +207,8 @@ export default function Dashboard() {
                   <span className="text-[11px] font-black" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
                 </div>
                 <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
-                  <div className="h-full rounded-full transition-all duration-1000" 
-                       style={{ width: `${d.value}%`, background: d.color }} />
+                  <div className="h-full rounded-full transition-all duration-1000"
+                    style={{ width: `${d.value}%`, background: d.color }} />
                 </div>
               </div>
             )) : (
@@ -219,8 +219,8 @@ export default function Dashboard() {
       </div>
 
       {/* METAS DE AHORRO */}
-      <div className="p-8 rounded-[40px] border shadow-sm" 
-           style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
+      <div className="p-8 rounded-[40px] border shadow-sm"
+        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
         <div className="flex items-center justify-between mb-8">
           <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40" style={{ color: 'var(--text-secondary)' }}>
             Objetivos de Ahorro
