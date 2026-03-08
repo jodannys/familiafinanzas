@@ -6,6 +6,7 @@ import Modal from '@/components/ui/Modal'
 import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { getPresupuestoMes } from '@/lib/presupuesto'
 
 const CATS = [
   { value: 'basicos', label: 'Gastos Básicos' },
@@ -40,6 +41,7 @@ export default function GastosPage() {
   const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
+  const [presupuesto, setPresupuesto] = useState(null)
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
     categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys'
@@ -50,6 +52,7 @@ export default function GastosPage() {
   const año = now.getFullYear()
 
   useEffect(() => {
+    getPresupuestoMes().then(setPresupuesto)
     cargarMovimientos()
     cargarPresupuesto()
     supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => setMetasData(data || []))
@@ -277,26 +280,24 @@ export default function GastosPage() {
   const sugerenciasRicas = form.tipo === 'egreso' ? (() => {
     if (form.categoria === 'deuda') return []
     if (form.categoria === 'ahorro') {
-      const montoMetas = presItems
-        .filter(i => i.bloque === 'futuro')
-        .reduce((s, i) => s + (i.monto || 0), 0)
-
+      const montoMetas = presupuesto?.montoMetas || 0  // ← reemplaza todo el bloque anterior
 
       return metasData.map(m => ({
         id: m.id, nombre: m.nombre,
-        monto: montoMetas > 0
-          ? Math.round((m.pct_mensual / 100) * montoMetas)
-          : Math.round((m.meta || 0) / 12),
+        monto: Math.round((m.pct_mensual / 100) * montoMetas),
         sub: `${formatCurrency(m.actual || 0)} / ${formatCurrency(m.meta)}`,
         pct: Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100)),
         color: 'var(--accent-green)', emoji: '🎯',
       }))
     }
+
     if (form.categoria === 'inversion') return inversionesData.map(i => ({
       id: `inv_${i.id}`, nombre: i.nombre, monto: i.aporte || 0,
       sub: `Capital: ${formatCurrency(i.capital || 0)}`,
       pct: null, color: '#818CF8', emoji: '📈',
     }))
+
+    
     return presItems
       .filter(i => i.bloque === CAT_BLOQUE[form.categoria])
       .map(i => ({ id: i.id, nombre: i.nombre, monto: i.monto, sub: null, pct: null, color: 'var(--accent-terra)', emoji: '📌' }))
