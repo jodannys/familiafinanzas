@@ -10,24 +10,24 @@ import {
   Tooltip, Cell, Legend
 } from 'recharts'
 
-const MESES       = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-const MESES_CORTO = ['E','F','M','A','M','J','J','A','S','O','N','D']
+const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+const MESES_CORTO = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
 // ── Categorías → CSS vars del tema ────────────────────────────────────────────
 const CAT_VARS = {
-  basicos:   { label: 'Básicos',   color: 'var(--accent-blue)',  grupo: 'necesidades' },
-  deuda:     { label: 'Deuda',     color: 'var(--accent-rose)',  grupo: 'necesidades' },
-  deseo:     { label: 'Deseo',     color: 'var(--accent-terra)', grupo: 'deseos'      },
-  remesa:    { label: 'Remesa',    color: 'var(--accent-terra)', grupo: 'deseos'      },
-  ahorro:    { label: 'Ahorro',    color: 'var(--accent-green)', grupo: 'futuro'      },
-  inversion: { label: 'Inversión', color: 'var(--accent-green)', grupo: 'futuro'      },
+  basicos: { label: 'Básicos', color: 'var(--accent-blue)', grupo: 'necesidades' },
+  deuda: { label: 'Deuda', color: 'var(--accent-rose)', grupo: 'necesidades' },
+  deseo: { label: 'Deseo', color: 'var(--accent-terra)', grupo: 'deseos' },
+  remesa: { label: 'Remesa', color: 'var(--accent-terra)', grupo: 'deseos' },
+  ahorro: { label: 'Ahorro', color: 'var(--accent-green)', grupo: 'futuro' },
+  inversion: { label: 'Inversión', color: 'var(--accent-green)', grupo: 'futuro' },
 }
 
 // Grupos base — los targets se sobreescriben con el presupuesto real del usuario
 const GRUPOS_BASE = {
-  necesidades: { label: 'Necesidades',        color: 'var(--accent-blue)',  targetDefault: 50 },
-  deseos:      { label: 'Deseos / Estilo',    color: 'var(--accent-terra)', targetDefault: 30 },
-  futuro:      { label: 'Ahorro / Inversión', color: 'var(--accent-green)', targetDefault: 20 },
+  necesidades: { label: 'Necesidades', color: 'var(--accent-blue)', targetDefault: 50 },
+  deseos: { label: 'Deseos / Estilo', color: 'var(--accent-terra)', targetDefault: 30 },
+  futuro: { label: 'Ahorro / Inversión', color: 'var(--accent-green)', targetDefault: 20 },
 }
 
 // Clasifica un bloque de presupuesto en uno de los 3 grupos
@@ -65,11 +65,11 @@ const ChartTooltip = ({ active, payload, label }) => {
 }
 
 export default function ReportesPage() {
-  const [movs, setMovs]       = useState([])
+  const [movs, setMovs] = useState([])
   const [bloques, setBloques] = useState([])   // presupuesto_bloques del mes actual
   const [loading, setLoading] = useState(true)
-  const [filtro, setFiltro]   = useState('todos')
-  const [año, setAño]         = useState(new Date().getFullYear())
+  const [filtro, setFiltro] = useState('todos')
+  const [año, setAño] = useState(new Date().getFullYear())
 
   useEffect(() => {
     async function cargar() {
@@ -91,8 +91,8 @@ export default function ReportesPage() {
   const movsAño = movs.filter(m => new Date(m.fecha).getFullYear() === año)
 
   const totalIngresos = movsAño.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const totalGastos   = movsAño.filter(m => m.tipo === 'egreso' ).reduce((s, m) => s + m.monto, 0)
-  const balance       = totalIngresos - totalGastos
+  const totalGastos = movsAño.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  const balance = totalIngresos - totalGastos
 
   // ── FIX 1: Tasa de ahorro = solo ahorro + inversión / ingresos ────────────
   const totalAhorro = movsAño
@@ -135,7 +135,7 @@ export default function ReportesPage() {
     if (grupoTotales[c.grupo] !== undefined) grupoTotales[c.grupo] += c.total
   })
 
- // ── FIX 3: Filtros — Ahora incluimos las categorías que pediste ────────────────────
+  // ── FIX 3: Filtros — Ahora incluimos las categorías que pediste ────────────────────
   const catsConDatos = [...new Set(
     movsAño.filter(m => m.tipo === 'egreso').map(m => normCat(m.categoria))
   )]
@@ -164,7 +164,7 @@ export default function ReportesPage() {
       mes,
       mesCorto: MESES_CORTO[i],
       Ingresos: mm.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
-      Gastos:   mm.filter(m => m.tipo === 'egreso' ).reduce((s, m) => s + m.monto, 0),
+      Gastos: mm.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0),
     }
   })
 
@@ -262,8 +262,9 @@ export default function ReportesPage() {
                 label: 'Tasa de ahorro',
                 value: `${tasaAhorro.toFixed(1)}%`,
                 icon: <PiggyBank size={14} />,
-                color: tasaAhorro >= 20 ? 'var(--accent-green)' : tasaAhorro >= 10 ? 'var(--accent-terra)' : 'var(--accent-rose)',
-                sub:  tasaAhorro >= 20 ? '✓ Meta cumplida' : tasaAhorro >= 10 ? 'Casi allí' : 'Meta: 20%',
+                color: tasaAhorro >= grupoMetas.futuro ? 'var(--accent-green)' : tasaAhorro >= grupoMetas.futuro / 2 ? 'var(--accent-terra)' : 'var(--accent-rose)',
+                sub: tasaAhorro >= grupoMetas.futuro ? '✓ Meta cumplida' : tasaAhorro >= grupoMetas.futuro / 2 ? 'Casi allí' : `Meta: ${grupoMetas.futuro}%`,
+                sub: tasaAhorro >= 20 ? '✓ Meta cumplida' : tasaAhorro >= 10 ? 'Casi allí' : 'Meta: 20%',
                 hint: 'Ahorro + Inversión / Ingresos',
               },
             ].map((s, i) => (
@@ -275,8 +276,8 @@ export default function ReportesPage() {
                   </p>
                 </div>
                 <p className="text-sm font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
-                {s.sub  && <p className="text-[9px] font-bold mt-0.5"   style={{ color: s.color, opacity: 0.7 }}>{s.sub}</p>}
-                {s.hint && <p className="text-[8px] mt-0.5"             style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{s.hint}</p>}
+                {s.sub && <p className="text-[9px] font-bold mt-0.5" style={{ color: s.color, opacity: 0.7 }}>{s.sub}</p>}
+                {s.hint && <p className="text-[8px] mt-0.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{s.hint}</p>}
               </div>
             ))}
           </div>
@@ -308,9 +309,9 @@ export default function ReportesPage() {
               <div className="space-y-3">
                 {Object.entries(GRUPOS_BASE).map(([key, g]) => {
                   const gastado = grupoTotales[key] || 0
-                  const target  = grupoMetas[key]
-                  const pct     = totalIngresos > 0 ? (gastado / totalIngresos) * 100 : 0
-                  const cumple  = pct <= target
+                  const target = grupoMetas[key]
+                  const pct = totalIngresos > 0 ? (gastado / totalIngresos) * 100 : 0
+                  const cumple = pct <= target
                   return (
                     <div key={key}>
                       <div className="flex items-center justify-between mb-1">
@@ -319,7 +320,7 @@ export default function ReportesPage() {
                           <p className="text-[10px] font-black truncate" style={{ color: 'var(--text-secondary)' }}>
                             {g.label}
                           </p>
-                          
+
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                           <p className="text-[10px] font-black"
@@ -362,7 +363,7 @@ export default function ReportesPage() {
                       background: filtro === f.v
                         ? `color-mix(in srgb, ${f.color} 12%, var(--bg-secondary))`
                         : 'transparent',
-                      color:  filtro === f.v ? f.color : 'var(--text-muted)',
+                      color: filtro === f.v ? f.color : 'var(--text-muted)',
                       border: `1px solid ${filtro === f.v
                         ? `color-mix(in srgb, ${f.color} 35%, transparent)`
                         : 'transparent'}`,
@@ -443,8 +444,8 @@ export default function ReportesPage() {
                       wrapperStyle={{ fontSize: 10, fontWeight: 700, paddingTop: 8 }}
                       formatter={v => <span style={{ color: 'var(--text-muted)' }}>{v}</span>}
                     />
-                    <Bar dataKey="Ingresos" fill="var(--accent-green)" radius={[3,3,0,0]} maxBarSize={14} />
-                    <Bar dataKey="Gastos"   fill="var(--accent-rose)"  radius={[3,3,0,0]} maxBarSize={14} />
+                    <Bar dataKey="Ingresos" fill="var(--accent-green)" radius={[3, 3, 0, 0]} maxBarSize={14} />
+                    <Bar dataKey="Gastos" fill="var(--accent-rose)" radius={[3, 3, 0, 0]} maxBarSize={14} />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
@@ -478,14 +479,14 @@ export default function ReportesPage() {
                       axisLine={false} tickLine={false}
                       tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="total" radius={[3,3,0,0]} maxBarSize={20}>
+                    <Bar dataKey="total" radius={[3, 3, 0, 0]} maxBarSize={20}>
                       {porMes.map((m, i) => (
                         <Cell key={i}
                           fill={
-                            m.total === 0         ? 'var(--border-glass)' :
-                            m.mes === maxMes?.mes ? 'var(--accent-rose)'  :
-                            m.mes === minMes?.mes ? 'var(--accent-green)' :
-                                                    'var(--accent-blue)'
+                            m.total === 0 ? 'var(--border-glass)' :
+                              m.mes === maxMes?.mes ? 'var(--accent-rose)' :
+                                m.mes === minMes?.mes ? 'var(--accent-green)' :
+                                  'var(--accent-blue)'
                           }
                         />
                       ))}
