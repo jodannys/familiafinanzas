@@ -11,9 +11,9 @@ import { FinanceChart } from '@/components/ui/FinanceChart'
 
 const COLORES_CAT = {
   basicos: 'var(--accent-blue)',
-  deseo: 'var(--accent-violet, #a78bfa)',
+  deseo: 'var(--accent-violet)',
   ahorro: 'var(--accent-green)',
-  inversion: 'var(--accent-gold, #f59e0b)',
+  inversion: 'var(--accent-gold)',
   deuda: 'var(--accent-rose)',
 }
 
@@ -26,8 +26,18 @@ function diasHastaPago(diaPago) {
 }
 
 function urgenciaAlerta(dias) {
-  if (dias <= 3) return { bg: 'rgba(192,96,90,0.1)', border: 'rgba(192,96,90,0.3)', text: 'var(--accent-rose)', label: dias === 0 ? '¡Hoy!' : `${dias}d` }
-  return { bg: 'rgba(193,122,58,0.1)', border: 'rgba(193,122,58,0.3)', text: 'var(--accent-terra)', label: `${dias}d` }
+  if (dias <= 3) return { 
+    bg: 'rgba(239, 68, 68, 0.1)', 
+    border: 'var(--accent-rose)', 
+    text: 'var(--accent-rose)', 
+    label: dias === 0 ? '¡Hoy!' : `${dias}d` 
+  }
+  return { 
+    bg: 'rgba(193, 122, 58, 0.1)', 
+    border: 'var(--accent-terra)', 
+    text: 'var(--accent-terra)', 
+    label: `${dias}d` 
+  }
 }
 
 export default function Dashboard() {
@@ -49,7 +59,11 @@ export default function Dashboard() {
         setMovs(m || [])
         setMetas(mt || [])
         setDeudas(d || [])
-      } catch (err) { console.error(err) } finally { setLoading(false) }
+      } catch (err) { 
+        console.error(err) 
+      } finally { 
+        setLoading(false) 
+      }
     }
     cargar()
   }, [])
@@ -76,6 +90,7 @@ export default function Dashboard() {
   movsMes.filter(m => m.tipo === 'egreso').forEach(m => {
     catTotales[m.categoria] = (catTotales[m.categoria] || 0) + m.monto
   })
+  
   const distribucionReal = Object.entries(catTotales).map(([name, value]) => ({
     name,
     value: Math.round((value / (egresosMes || 1)) * 100),
@@ -89,40 +104,42 @@ export default function Dashboard() {
 
   if (loading) return (
     <AppShell>
-      <div className="flex h-[70vh] items-center justify-center flex-col gap-4">
-        <Loader2 className="animate-spin" size={40} style={{ color: 'var(--accent-green)' }} />
+      <div className="flex h-[70vh] items-center justify-center flex-col gap-6">
+        <Loader2 className="animate-spin" size={48} style={{ color: 'var(--accent-green)' }} />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Actualizando Patrimonio...</p>
       </div>
     </AppShell>
   )
 
   return (
     <AppShell>
-      {/* HEADER */}
-      <div className="mb-8 animate-enter">
-        <h1 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          Estado de Cuentas
+      {/* HEADER PRINCIPAL */}
+      <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
+        <h1 className="text-3xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
+          Resumen General
         </h1>
-        <p className="text-[10px] font-bold opacity-60 uppercase tracking-[0.2em] mt-1" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[11px] font-bold opacity-50 uppercase tracking-[0.2em] mt-1" style={{ color: 'var(--text-secondary)' }}>
           {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
         </p>
       </div>
 
-      {/* ALERTAS DE DEUDA */}
+      {/* ALERTAS CRÍTICAS */}
       {alertasDeuda.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8 animate-enter">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
           {alertasDeuda.map(d => {
             const urg = urgenciaAlerta(d.dias)
             return (
-              <div key={d.id} className="relative flex items-center gap-4 p-4 rounded-[24px] border shadow-sm overflow-hidden"
+              <div key={d.id} 
+                className="relative flex items-center gap-4 p-5 rounded-[30px] border shadow-sm transition-transform hover:scale-[1.01]"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-                <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: urg.text }} />
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: urg.bg }}>{d.emoji}</div>
+                <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: urg.text }} />
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-inner" style={{ background: urg.bg }}>{d.emoji}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <p className="text-[9px] font-black uppercase opacity-50">Vence en {urg.label}</p>
-                    <span className="text-xs font-black tabular-nums" style={{ color: urg.text }}>{formatCurrency(d.cuota)}</span>
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="text-[10px] font-black uppercase opacity-40">Vence en {urg.label}</p>
+                    <span className="text-sm font-black tabular-nums" style={{ color: urg.text }}>{formatCurrency(d.cuota)}</span>
                   </div>
-                  <p className="text-sm font-bold truncate">{d.nombre}</p>
+                  <p className="text-base font-bold truncate tracking-tight" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
                 </div>
               </div>
             )
@@ -130,60 +147,79 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* KPI GRID */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {[
           { label: 'Ingresos', val: ingresosMes, icon: ArrowUpRight, col: 'var(--accent-green)' },
           { label: 'Gastos', val: gastosMes, icon: ArrowDownRight, col: 'var(--accent-rose)' },
           { label: 'Metas', val: totalAhorrado, icon: Target, col: 'var(--accent-terra)' },
           { label: 'Saldo Libre', val: saldo, icon: Wallet, col: 'var(--accent-blue)' },
         ].map((kpi, i) => (
-          <div key={i} className="p-5 rounded-[32px] border shadow-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-            <div className="flex items-center gap-2 mb-3 opacity-50">
-              <kpi.icon size={14} style={{ color: kpi.col }} />
-              <p className="text-[10px] font-black uppercase tracking-[0.1em]">{kpi.label}</p>
+          <div key={i} className="p-6 rounded-[35px] border shadow-sm flex flex-col justify-between min-h-[140px]" 
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
+            <div className="flex items-center gap-2 opacity-60">
+              <div className="p-1.5 rounded-lg" style={{ background: `${kpi.col}15` }}>
+                <kpi.icon size={14} style={{ color: kpi.col }} />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-widest">{kpi.label}</p>
             </div>
-            <p className="text-xl font-black tabular-nums tracking-tight">{formatCurrency(kpi.val)}</p>
+            <p className="text-2xl font-black tabular-nums tracking-tighter mt-4" style={{ color: 'var(--text-primary)' }}>
+              {formatCurrency(kpi.val)}
+            </p>
           </div>
         ))}
       </div>
 
-      {/* GRÁFICO + DISTRIBUCIÓN (UNIFICADO) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        
-        {/* GRÁFICA OSCURA (Componente externo) */}
+      {/* SECCIÓN GRÁFICA Y DISTRIBUCIÓN */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         <div className="lg:col-span-2">
           <FinanceChart />
         </div>
 
-        {/* DISTRIBUCIÓN LATERAL */}
-        <div className="p-6 rounded-[32px] border shadow-sm flex flex-col justify-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-          <h3 className="font-black text-[10px] uppercase tracking-widest opacity-70 mb-6">Distribución</h3>
-          <div className="space-y-6">
-            {distribucionReal.map(d => (
-              <div key={d.name}>
+        {/* TARJETA DE DISTRIBUCIÓN */}
+        <div className="p-8 rounded-[40px] border shadow-sm flex flex-col" 
+             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
+          <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40 mb-8" style={{ color: 'var(--text-secondary)' }}>
+            Distribución
+          </h3>
+          <div className="space-y-7 flex-1 flex flex-col justify-center">
+            {distribucionReal.length > 0 ? distribucionReal.map(d => (
+              <div key={d.name} className="group">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold capitalize opacity-70">{d.name}</span>
-                  <span className="text-xs font-black">{d.value}%</span>
+                  <span className="text-[11px] font-bold capitalize opacity-70" style={{ color: 'var(--text-primary)' }}>{d.name}</span>
+                  <span className="text-[11px] font-black" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
                 </div>
-                <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--progress-track)' }}>
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${d.value}%`, background: d.color }} />
+                <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                  <div className="h-full rounded-full transition-all duration-1000" 
+                       style={{ width: `${d.value}%`, background: d.color }} />
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-center text-[10px] opacity-30 font-bold uppercase italic">Sin egresos este mes</p>
+            )}
           </div>
         </div>
       </div>
 
       {/* METAS DE AHORRO */}
-      <div className="p-6 rounded-[32px] border shadow-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-        <h3 className="font-black text-[10px] uppercase tracking-widest opacity-70 mb-6">Metas de Ahorro</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+      <div className="p-8 rounded-[40px] border shadow-sm" 
+           style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40" style={{ color: 'var(--text-secondary)' }}>
+            Objetivos de Ahorro
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
           {metas.map(m => (
-            <div key={m.id}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-black">{getFlagEmoji(m.emoji)} {m.nombre}</span>
-                <span className="text-[10px] font-bold opacity-50">{formatCurrency(m.actual)} / {formatCurrency(m.meta)}</span>
+            <div key={m.id} className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{getFlagEmoji(m.emoji)}</span>
+                  <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>{m.nombre}</span>
+                </div>
+                <span className="text-[10px] font-black opacity-40 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                  {formatCurrency(m.actual)} / {formatCurrency(m.meta)}
+                </span>
               </div>
               <ProgressBar value={m.actual} max={m.meta} color={m.color} />
             </div>

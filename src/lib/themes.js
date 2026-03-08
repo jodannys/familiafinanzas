@@ -6,7 +6,7 @@ export const THEMES = {
     name: 'Warm Linen',
     themeColor: '#B3A89D', // El tono taupe de la imagen
     emoji: '🌾',
-    preview: ['#B3A89D', '#D99E5C', '#F8F3EE', '#2C241E'],
+    preview: ['#B3A89D', '#D99E5C', '#F8F3EE','#2C241E'],
     vars: {
       '--bg-primary': '#B3A89D',
       '--bg-secondary': '#F1E9E0',

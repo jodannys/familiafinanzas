@@ -157,3 +157,13 @@ h1, h2, h3 {
   stroke: var(--bg-dark-card);
   stroke-width: 2px;
 }
+/* Ocultar barra de scroll en Chrome, Safari y Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ocultar barra de scroll en IE, Edge y Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

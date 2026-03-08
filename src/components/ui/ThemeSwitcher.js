@@ -8,85 +8,64 @@ export default function ThemeSwitcher() {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="relative w-full">
-      {/* Trigger button - Más alto para móvil */}
+    <div className="relative">
+      {/* Botón Circular Compacto */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="transition-all active:scale-[0.98]"
+        title="Cambiar tema"
+        className="group transition-all active:scale-90 flex items-center justify-center"
         style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '14px 16px', // Más espacio para el pulgar
-          borderRadius: 14,
+          width: 48,
+          height: 48,
+          borderRadius: 16,
           border: '1px solid var(--border-glass)',
           background: 'var(--bg-secondary)',
           cursor: 'pointer',
-          marginBottom: 8,
+          position: 'relative',
+          overflow: 'hidden'
         }}>
         
-        {/* Preview dots - Un poco más grandes */}
-        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-          {THEMES[theme].preview.slice(0, 3).map((c, i) => (
-            <div key={i} style={{ 
-              width: 12, 
-              height: 12, 
-              borderRadius: '50%', 
-              background: c, 
-              border: '1.5px solid rgba(0,0,0,0.05)' 
-            }} />
+        {/* Mini previa de colores en el botón */}
+        <div className="grid grid-cols-2 gap-0.5 p-1 transition-transform group-hover:rotate-12">
+          {THEMES[theme].preview.slice(0, 4).map((c, i) => (
+            <div key={i} style={{ width: 6, height: 6, borderRadius: 2, background: c }} />
           ))}
         </div>
 
-        <span style={{ 
-          flex: 1, 
-          fontSize: 14, // Fuente más legible
-          fontWeight: 700, 
-          color: 'var(--text-primary)', 
-          textAlign: 'left' 
-        }}>
-          {THEMES[theme].name}
-        </span>
-        <Palette size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+        {/* Icono de paleta flotante pequeño */}
+        <div className="absolute bottom-1 right-1 bg-[var(--bg-card)] rounded-full p-0.5 shadow-sm border border-[var(--border-glass)]">
+            <Palette size={8} className="text-[var(--text-muted)]" />
+        </div>
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown Desplegable */}
       {open && (
         <>
-          {/* Backdrop - Cubre toda la pantalla para cerrar al tocar fuera */}
+          {/* Backdrop invisible para cerrar */}
           <div 
             className="fixed inset-0 z-[100]" 
             onClick={() => setOpen(false)} 
-            style={{ background: 'transparent' }}
           />
 
-          {/* Panel - Animado y con sombra dinámica */}
+          {/* Panel de Selección - Posicionado a la derecha del sidebar */}
           <div 
-            className="animate-enter"
+            className="animate-in fade-in zoom-in duration-200"
             style={{
               position: 'absolute',
-              bottom: 'calc(100% + 8px)',
-              left: 0,
-              right: 0,
+              bottom: 0,
+              left: 'calc(100% + 16px)', // Se abre hacia la derecha
+              width: 180,
               background: 'var(--bg-card)',
               border: '1px solid var(--border-glass)',
-              borderRadius: 18,
-              boxShadow: '0 12px 40px var(--shadow-color)',
+              borderRadius: 20,
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
               zIndex: 101,
-              overflow: 'hidden',
-              padding: 8,
+              padding: 6,
+              backdropFilter: 'blur(12px)'
             }}>
             
-            <p style={{ 
-              fontSize: 10, 
-              fontWeight: 800, 
-              color: 'var(--text-muted)', 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.1em', 
-              padding: '8px 12px 10px' 
-            }}>
-              Temas - App
+            <p className="px-3 py-2 text-[9px] font-black uppercase tracking-widest opacity-40">
+              Temas
             </p>
 
             <div className="flex flex-col gap-1">
@@ -99,48 +78,29 @@ export default function ThemeSwitcher() {
                       setTheme(key); 
                       setOpen(false);
                     }}
-                    className="transition-colors"
+                    className="flex items-center gap-3 w-full p-2.5 rounded-xl transition-colors hover:bg-[var(--bg-secondary)]"
                     style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '12px 12px', // Altura cómoda para tocar
-                      borderRadius: 12,
-                      border: 'none',
                       background: active ? 'var(--bg-secondary)' : 'transparent',
-                      cursor: 'pointer',
                     }}>
                     
-                    {/* Color preview circle */}
+                    {/* Círculo de color */}
                     <div style={{ 
-                      width: 20, 
-                      height: 20, 
+                      width: 18, 
+                      height: 18, 
                       borderRadius: '50%', 
-                      background: t.preview[0], // Color principal del tema
+                      background: t.preview[0],
                       border: '2px solid var(--border-glass)',
                       flexShrink: 0 
                     }} />
 
-                    <span style={{ 
-                      fontSize: 14, 
-                      fontWeight: active ? 700 : 500, 
-                      color: active ? 'var(--text-primary)' : 'var(--text-secondary)', 
-                      flex: 1, 
-                      textAlign: 'left' 
-                    }}>
-                      {t.emoji} {t.name}
+                    <span className="flex-1 text-left text-[12px] font-bold"
+                          style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                      {t.name}
                     </span>
 
                     {active && (
-                      <div style={{
-                        background: 'var(--accent-green)',
-                        borderRadius: '50%',
-                        padding: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
+                      <div className="w-4 h-4 rounded-full flex items-center justify-center"
+                           style={{ background: 'var(--accent-green)' }}>
                         <Check size={10} color="white" strokeWidth={4} />
                       </div>
                     )}
