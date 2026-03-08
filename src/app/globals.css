@@ -6,42 +6,44 @@
 
 :root {
   /* Fondos Principales */
-  --bg-primary:     #B3A89D; /* Fondo Lino */
-  --bg-card:        #F8F3EE; /* Tarjeta Clara */
-  --bg-dark-card:   #2C241E; /* Tarjeta Oscura (Gráficas) */
+  --bg-primary:     #B3A89D;
+  --bg-card:        #F8F3EE;
+  --bg-dark-card:   #2C241E;
   --bg-glass:       rgba(255, 255, 255, 0.45);
   --input-bg:       rgba(255, 255, 255, 0.3);
-  /* Variables faltantes en el tema base */
---bg-secondary:    #F1E9E0;
---accent-terra:    #D99E5C;
---accent-blue:     #4A6FA5;
---accent-rose:     #C0605A;
---accent-violet:   #7C6FAB;
---accent-gold:     #C17A3A;
---accent-green:    #2D7A5F;
---sidebar-bg:      #F8F3EE;
---sidebar-border:  rgba(255,255,255,0.4);
---progress-track:  #EAE2D8;
---text-secondary:  #6D5F54;
+
+  /* Variables del tema base */
+  --bg-secondary:    #F1E9E0;
+  --accent-terra:    #D99E5C;
+  --accent-blue:     #4A6FA5;
+  --accent-rose:     #C0605A;
+  --accent-violet:   #7C6FAB;
+  --accent-gold:     #C17A3A;
+  --accent-green:    #2D7A5F;
+  --sidebar-bg:      #F8F3EE;
+  --sidebar-border:  rgba(255,255,255,0.4);
+  --progress-track:  #EAE2D8;
 
   /* Textos */
   --text-primary:    #1A1410;
   --text-secondary:  #6D5F54;
   --text-muted:      #918479;
 
-  /* Acentos (Son los que cambiarán en otros temas) */
-  --accent-main:     #D99E5C; /* Bronce */
-  --accent-danger:   #C0605A; /* Rosa/Alerta */
-  
+  /* Acentos */
+  --accent-main:     #D99E5C;
+  --accent-danger:   #C0605A;
+
   /* Geometría */
   --radius-xl:       32px;
   --border-glass:    rgba(255, 255, 255, 0.4);
 }
 
-* { 
-  box-sizing: border-box; 
-  margin: 0; 
-  padding: 0; 
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -52,7 +54,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- COMPONENTES CORE --- */
+/* ── Cards ──────────────────────────────────────────────────────────────────── */
 
 .glass-card {
   background: var(--bg-card);
@@ -68,7 +70,6 @@ html, body {
   box-shadow: 0 30px 60px -12px rgba(44, 36, 30, 0.25);
 }
 
-/* Tarjeta oscura para contraste (Como la de la gráfica en la imagen) */
 .dark-card {
   background: var(--bg-dark-card);
   color: #FFFFFF;
@@ -76,6 +77,8 @@ html, body {
   padding: 24px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
+
+/* ── Botones ────────────────────────────────────────────────────────────────── */
 
 .ff-btn-primary {
   background: var(--accent-main);
@@ -97,7 +100,9 @@ html, body {
   box-shadow: 0 8px 20px rgba(217, 158, 92, 0.3);
 }
 
-.ff-btn-primary:active { transform: scale(0.97); }
+.ff-btn-primary:active  { transform: scale(0.97); }
+.ff-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .ff-btn-terra {
   background: var(--accent-terra);
   color: #FFFFFF;
@@ -118,85 +123,136 @@ html, body {
   box-shadow: 0 8px 20px color-mix(in srgb, var(--accent-terra) 30%, transparent);
 }
 
-.ff-btn-terra:active { transform: scale(0.97); }
+.ff-btn-terra:active  { transform: scale(0.97); }
 .ff-btn-terra:disabled { opacity: 0.5; cursor: not-allowed; }
-/* Inputs con el look de la imagen */
+
+.ff-btn-ghost {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 700;
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border-glass);
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ff-btn-ghost:hover {
+  background: var(--bg-card);
+  box-shadow: 0 4px 12px rgba(44, 36, 30, 0.08);
+}
+
+.ff-btn-ghost:active { transform: scale(0.97); }
+
+/* ── Formularios — estilo editorial (inspirado en la imagen) ────────────────── */
+
+.ff-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+
 .ff-input {
   width: 100%;
-  background: var(--input-bg);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border-glass);
-  border-radius: 16px;
-  padding: 12px 16px;
-  font-size: 0.875rem;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: none;
+  background: var(--bg-secondary);
   color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
   outline: none;
-  transition: all 0.2s;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .ff-input:focus {
-  background: var(--bg-card);
-  border-color: var(--accent-main);
+  background: color-mix(in srgb, var(--accent-terra) 6%, var(--bg-secondary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-terra) 25%, transparent);
 }
 
-/* Tipografía de la imagen */
-.ff-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+.ff-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+  opacity: 0.6;
 }
+
+select.ff-input {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23918479' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+
+input[type="date"].ff-input {
+  color-scheme: light;
+}
+
+/* ── Tipografía ─────────────────────────────────────────────────────────────── */
 
 h1, h2, h3 {
   letter-spacing: -0.04em;
   font-weight: 800;
 }
 
-/* Barras de progreso con los nuevos colores */
+/* ── Animaciones ────────────────────────────────────────────────────────────── */
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-enter {
+  animation: enter 0.25s ease forwards;
+}
+
+/* ── Progreso ───────────────────────────────────────────────────────────────── */
+
 .progress-bar {
   background: var(--accent-main);
   border-radius: 999px;
   transition: width 0.8s ease-in-out;
 }
 
-/* Scrollbar personalizado */
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
 
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Contenedor oscuro para la gráfica */
+/* ── Gráficas ───────────────────────────────────────────────────────────────── */
+
 .chart-container-dark {
-  background: var(--bg-dark-card); /* El café profundo #2C241E */
+  background: var(--bg-dark-card);
   border-radius: var(--radius-xl);
   padding: 24px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   color: #FFFFFF;
 }
 
-/* Personalización de Recharts para que coincida con el lino */
 .recharts-cartesian-grid-horizontal line {
-  stroke: rgba(255, 255, 255, 0.1); /* Líneas muy sutiles */
+  stroke: rgba(255, 255, 255, 0.1);
 }
 
 .recharts-curve {
-  stroke-width: 4px; /* Línea gruesa como en la imagen */
+  stroke-width: 4px;
 }
 
 .recharts-dot {
-  fill: var(--accent-main); /* Puntos en bronce #D99E5C */
+  fill: var(--accent-main);
   stroke: var(--bg-dark-card);
   stroke-width: 2px;
-}
-/* Ocultar barra de scroll en Chrome, Safari y Opera */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* Ocultar barra de scroll en IE, Edge y Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
 }

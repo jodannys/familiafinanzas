@@ -1,68 +1,120 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+
+import { useEffect } from 'react'
 import { X } from 'lucide-react'
 
 export default function Modal({ open, onClose, title, children, size = 'md' }) {
-  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
-
+  // Bloquea el scroll del body cuando el modal está abierto
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  if (!open || !mounted) return null
+  // Cerrar con tecla ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
 
-  const sizes = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
+    if (open) window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [open, onClose])
 
-  // Portal → renderiza en document.body, fuera de cualquier stacking context del AppShell
-  return createPortal(
-    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+  if (!open) return null
 
-      {/* Overlay — cubre TODO incluyendo el header sticky */}
+  const sizes = {
+    sm: 'max-w-sm',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl'
+  }
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center sm:p-4">
+
+      {/* Overlay */}
       <div
         className="absolute inset-0"
-        style={{ background: 'rgba(44,32,22,0.45)', backdropFilter: 'blur(4px)' }}
+        style={{
+          background: 'rgba(44,32,22,0.45)',
+          backdropFilter: 'blur(4px)'
+        }}
         onClick={onClose}
       />
 
-      {/* Panel flotante */}
+      {/* Panel */}
       <div
-        className={`relative w-full rounded-2xl animate-enter ${sizes[size]}`}
+        className={`relative w-full sm:rounded-2xl animate-enter ${sizes[size]}`}
         style={{
           background: 'var(--bg-card)',
           border: '1px solid #E4D9CE',
-          boxShadow: '0 20px 60px rgba(100,70,30,0.22)',
-          maxHeight: '90dvh',
+          boxShadow: '0 -4px 40px rgba(100,70,30,0.15)',
+          borderRadius: '20px 20px 0 0',
+          maxHeight: '92dvh',
           display: 'flex',
-          flexDirection: 'column',
-        }}>
+          flexDirection: 'column'
+        }}
+      >
 
-        {/* Header del modal */}
+        {/* Handle móvil */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div
+            style={{
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              background: 'var(--border-glass)'
+            }}
+          />
+        </div>
+
+        {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid #F0E9DF' }}>
-          <h3 className="text-base font-black"
-            style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+
+          className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+          style={{ borderBottom: '1px solid #F0E9DF' }}
+        >
+          <h3
+            className="text-base font-black"
+            style={{
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.02em'
+            }}
+          >
             {title}
           </h3>
-          <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-primary)', border: '1px solid #E4D9CE', cursor: 'pointer',
-          }}>
+
+          <button
+            onClick={onClose}
+            X:style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--bg-secondary)',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+
+          >
             <X size={16} style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
 
-        {/* Contenido scrolleable */}
-        <div className="overflow-y-auto flex-1" style={{ padding: '24px' }}>
+        {/* Contenido scrollable */}
+        <div
+          className="overflow-y-auto flex-1"
+
+          style={{ padding: '24px 24px 40px' }}
+        >
           {children}
         </div>
+
       </div>
-    </div>,
-    document.body   // ← escapa del stacking context del AppShell
+    </div>
   )
 }

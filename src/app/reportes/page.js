@@ -406,6 +406,8 @@ export default function ReportesPage() {
                         <div className="h-full rounded-full transition-all duration-700"
                           style={{ width: `${(c.total / grandTotal) * 100}%`, background: c.color }} />
                       </div>
+                      <p className="text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                      </p>
                     </div>
                   ))}
                 </div>
