@@ -309,8 +309,9 @@ export default function ReportesPage() {
                 {Object.entries(GRUPOS_BASE).map(([key, g]) => {
                   const gastado = grupoTotales[key] || 0
                   const target = grupoMetas[key]
-                  const pct = totalIngresos > 0 ? (gastado / totalIngresos) * 100 : 0
-                 const cumple = key === 'futuro' ? pct >= target : pct <= target
+                  const montoBucket = totalIngresos * (target / 100)
+                  const pct = montoBucket > 0 ? Math.min(100, (gastado / montoBucket) * 100) : 0
+                  const cumple = key === 'futuro' ? pct >= 80 : pct <= 100
                   return (
                     <div key={key}>
                       <div className="flex items-center justify-between mb-1">
@@ -339,7 +340,7 @@ export default function ReportesPage() {
                           }} />
                       </div>
                       <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        {formatCurrency(gastado)} de {formatCurrency(totalIngresos)}
+                        {formatCurrency(gastado)} de {formatCurrency(montoBucket)} ({target}% asignado)
                       </p>
                     </div>
                   )
