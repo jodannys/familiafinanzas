@@ -25,9 +25,6 @@ export function FinanceChart() {
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
           Progreso Financiero
         </h3>
-        <p className="text-2xl font-black tracking-tighter text-white">
-          Estado de Cuenta
-        </p>
       </div>
 
       <div className="flex-1 w-full min-h-0">
@@ -35,7 +32,7 @@ export function FinanceChart() {
           <AreaChart
             data={data}
             /* AJUSTE 1: Aumentamos el margen izquierdo a 10 o 20 */
-            margin={{ top: 10, right: 10, left: 10, bottom: 0 }} 
+            margin={{ top: 10, right: 5, left: 5, bottom: 0 }} 
           >
             <defs>
               <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">

@@ -9,19 +9,19 @@ export default function AppShell({ children }) {
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Overlay móvil - Ahora solo oscurece un poco, sin empañar todo */}
+      {/* Overlay móvil - Solo oscurece un poco para dar contraste */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-[60] lg:hidden"
           style={{ 
-            background: 'rgba(0,0,0,0.4)', // Oscurece el fondo para dar foco al menú
-            backdropFilter: 'blur(2px)',   // Un desenfoque muy leve, casi imperceptible
+            background: 'rgba(0,0,0,0.4)', 
+            backdropFilter: 'blur(2px)' 
           }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Contenedor Fijo */}
       <div className={`
         fixed left-0 top-0 h-full z-[70] transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -30,18 +30,9 @@ export default function AppShell({ children }) {
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content - CORREGIDO: Sin opacity-50 */}
-      <main 
-        className={`flex-1 min-h-screen lg:ml-20 transition-all duration-500 ease-in-out flex flex-col
-          ${sidebarOpen 
-            ? 'scale-[0.98] rounded-[32px] shadow-2xl brightness-90' 
-            : 'scale-100 brightness-100'}
-        `}
-        style={{ 
-          background: 'var(--bg-primary)',
-          transformOrigin: 'right center', // Se encoge hacia la derecha para alejarlo del sidebar
-          overflow: sidebarOpen ? 'hidden' : 'visible'
-        }}
+      {/* Main content - SIN EFECTOS DE ESCALA O TRANSPARENCIA */}
+      <main className="flex-1 min-h-screen lg:ml-20 flex flex-col transition-all duration-300"
+        style={{ background: 'var(--bg-primary)' }}
       >
         {/* Header móvil */}
         <div className="lg:hidden flex items-center gap-3 px-5 sticky top-0 z-50 w-full"
