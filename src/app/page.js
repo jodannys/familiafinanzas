@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { ProgressBar } from '@/components/ui/Card'
-import { 
-  Wallet, Target, Loader2, ArrowUpRight, ArrowDownRight 
+import {
+  Wallet, Target, Loader2, ArrowUpRight, ArrowDownRight
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
@@ -12,11 +12,11 @@ import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 const MESES_LABEL = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 const COLORES_CAT = {
-  basicos:   'var(--accent-blue)',
-  deseo:     'var(--accent-violet, #a78bfa)',
-  ahorro:    'var(--accent-green)',
+  basicos: 'var(--accent-blue)',
+  deseo: 'var(--accent-violet, #a78bfa)',
+  ahorro: 'var(--accent-green)',
   inversion: 'var(--accent-gold, #f59e0b)',
-  deuda:     'var(--accent-rose)',
+  deuda: 'var(--accent-rose)',
 }
 
 function generarHistorico(movimientos) {
@@ -32,7 +32,7 @@ function generarHistorico(movimientos) {
     return {
       mes: MESES_LABEL[mesNum],
       ingresos: filtrados.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
-      gastos:   filtrados.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0),
+      gastos: filtrados.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0),
     }
   })
 }
@@ -86,10 +86,10 @@ export default function Dashboard() {
   })
 
   const ingresosMes = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
-  const gastosMes   = movsMes.filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
-  const ahorroMes   = movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
-  const egresosMes  = gastosMes + ahorroMes
-  const saldo       = ingresosMes - egresosMes
+  const gastosMes = movsMes.filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
+  const ahorroMes = movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
+  const egresosMes = gastosMes + ahorroMes
+  const saldo = ingresosMes - egresosMes
   const totalAhorrado = metas.reduce((s, m) => s + (m.actual || 0), 0)
 
   const catTotales = {}
@@ -123,7 +123,7 @@ export default function Dashboard() {
           Estado de Cuentas
         </h1>
         <p className="text-[10px] font-bold opacity-60 uppercase tracking-[0.2em] mt-1" style={{ color: 'var(--text-muted)' }}>
-           {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
+          {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
         </p>
       </div>
 
@@ -177,13 +177,13 @@ export default function Dashboard() {
               <AreaChart data={generarHistorico(movs)} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                 <defs>
                   <linearGradient id="gIng" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-green)" stopOpacity={0.15}/><stop offset="95%" stopColor="var(--accent-green)" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--accent-green)" stopOpacity={0.15} /><stop offset="95%" stopColor="var(--accent-green)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-glass)" opacity={0.4} />
                 <XAxis dataKey="mes" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontWeight: '700' }} dy={15} />
                 <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)' }} tickFormatter={v => `${v}€`} width={45} />
-                <Tooltip cursor={{stroke: 'var(--border-glass)'}} contentStyle={{ borderRadius: '16px', border: 'none', background: 'var(--bg-card)', fontSize: '12px' }} />
+                <Tooltip cursor={{ stroke: 'var(--border-glass)' }} contentStyle={{ borderRadius: '16px', border: 'none', background: 'var(--bg-card)', fontSize: '12px' }} />
                 <Area type="monotone" dataKey="ingresos" stroke="var(--accent-green)" strokeWidth={3} fill="url(#gIng)" dot={{ r: 4, fill: 'var(--accent-green)', stroke: 'var(--bg-card)' }} />
                 <Area type="monotone" dataKey="gastos" stroke="var(--accent-rose)" strokeWidth={3} fill="transparent" strokeDasharray="6 6" dot={{ r: 4, fill: 'var(--accent-rose)', stroke: 'var(--bg-card)' }} />
               </AreaChart>

@@ -144,3 +144,25 @@ html, body {
 html, body, main {
   background-color: var(--bg-primary) !important;
 }
+
+/* Suavizado para Recharts con tu paleta */
+.recharts-cartesian-grid-horizontal line, 
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--border-glass);
+  stroke-opacity: 0.6;
+}
+
+.recharts-text {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  fill: var(--text-muted) !important;
+  font-weight: 600;
+}
+.ff-btn-terra {
+  background: var(--accent-terra);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+.ff-btn-terra:hover { opacity: 0.9; transform: translateY(-1px); }
