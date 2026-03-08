@@ -22,14 +22,14 @@ const COLORES = [
 ]
 
 export default function TarjetasPage() {
-  const [tarjetas, setTarjetas]           = useState([])
-  const [deudas, setDeudas]               = useState([])
+  const [tarjetas, setTarjetas] = useState([])
+  const [deudas, setDeudas] = useState([])
   const [usadoPorTarjeta, setUsadoPorTarjeta] = useState({})
-  const [loading, setLoading]             = useState(true)
-  const [saving, setSaving]               = useState(false)
-  const [selectedId, setSelectedId]       = useState(null)
-  const [modal, setModal]                 = useState(false)
-  const [editingId, setEditingId]         = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [selectedId, setSelectedId] = useState(null)
+  const [modal, setModal] = useState(false)
+  const [editingId, setEditingId] = useState(null)
 
   const [form, setForm] = useState({
     nombre_tarjeta: '', banco: '', limite_credito: '',
@@ -68,11 +68,11 @@ export default function TarjetasPage() {
       // asociadas a cada perfil_tarjeta_id. No usar deuda_movimientos (IDs distintos).
       const usado = {}
       tarjetasData.forEach(t => { usado[t.id] = 0 })
-      ;(deudasTarjeta || []).forEach(d => {
-        if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
-          usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
-        }
-      })
+        ; (deudasTarjeta || []).forEach(d => {
+          if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
+            usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
+          }
+        })
       Object.keys(usado).forEach(k => { usado[k] = Math.max(0, usado[k]) })
       setUsadoPorTarjeta(usado)
     }
@@ -85,12 +85,12 @@ export default function TarjetasPage() {
       setEditingId(tarjeta.id)
       setForm({
         nombre_tarjeta: tarjeta.nombre_tarjeta || '',
-        banco:          tarjeta.banco          || '',
+        banco: tarjeta.banco || '',
         limite_credito: tarjeta.limite_credito?.toString() || '',
-        dia_corte:      tarjeta.dia_corte?.toString()      || '',
-        dia_pago:       tarjeta.dia_pago?.toString()       || '',
-        estado:         tarjeta.estado || 'activa',
-        color:          tarjeta.color  || '#4A6FA5',
+        dia_corte: tarjeta.dia_corte?.toString() || '',
+        dia_pago: tarjeta.dia_pago?.toString() || '',
+        estado: tarjeta.estado || 'activa',
+        color: tarjeta.color || '#4A6FA5',
       })
     } else {
       setEditingId(null)
@@ -106,12 +106,12 @@ export default function TarjetasPage() {
     setSaving(true)
     const payload = {
       nombre_tarjeta: form.nombre_tarjeta,
-      banco:          form.banco,
+      banco: form.banco,
       limite_credito: parseFloat(form.limite_credito) || 0,
-      dia_corte:      parseInt(form.dia_corte)  || null,
-      dia_pago:       parseInt(form.dia_pago)   || null,
-      estado:         form.estado,
-      color:          form.color,
+      dia_corte: parseInt(form.dia_corte) || null,
+      dia_pago: parseInt(form.dia_pago) || null,
+      estado: form.estado,
+      color: form.color,
     }
     if (editingId) {
       await supabase.from('perfiles_tarjetas').update(payload).eq('id', editingId)
@@ -167,11 +167,11 @@ export default function TarjetasPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tarjetas.map((t) => {
             const isSelected = selectedId === t.id
-            const usado      = usadoPorTarjeta[t.id] || 0
-            const limite     = t.limite_credito || 0
+            const usado = usadoPorTarjeta[t.id] || 0
+            const limite = t.limite_credito || 0
             const disponible = Math.max(0, limite - usado)
             // FIX BUG 1: pctUsado calculado con los datos de esta tarjeta, no de sobre-page
-            const pctUsado   = limite > 0 ? Math.min(100, Math.round((usado / limite) * 100)) : 0
+            const pctUsado = limite > 0 ? Math.min(100, Math.round((usado / limite) * 100)) : 0
             const deudasCard = deudas.filter(d => d.perfil_tarjeta_id === t.id)
 
             return (
@@ -179,7 +179,7 @@ export default function TarjetasPage() {
                 onClick={() => setSelectedId(isSelected ? null : t.id)}
                 className={`cursor-pointer transition-all ${t.estado === 'pausada' ? 'opacity-60' : ''}`}
                 style={{
-                  border:  isSelected ? `1px solid ${t.color}80` : '1px solid transparent',
+                  border: isSelected ? `1px solid ${t.color}80` : '1px solid transparent',
                   padding: '16px',
                 }}>
 
@@ -226,7 +226,7 @@ export default function TarjetasPage() {
                   <div className="flex gap-3 text-[11px] font-bold"
                     style={{ color: 'var(--text-secondary)' }}>
                     {t.dia_corte && <span>Corte: día {t.dia_corte}</span>}
-                    {t.dia_pago  && <span>Pago: día {t.dia_pago}</span>}
+                    {t.dia_pago && <span>Pago: día {t.dia_pago}</span>}
                   </div>
                   {isSelected && (
                     <div className="flex gap-1">
@@ -255,23 +255,20 @@ export default function TarjetasPage() {
 
                 {/* Desglose de compras — visible al seleccionar */}
                 {isSelected && (
-                  <div className="mt-4 pt-4 space-y-2"
+                  <div className="mt-4 pt-4 space-y-2 max-h-40 overflow-y-auto custom-scroll pr-2"
                     style={{ borderTop: '1px solid var(--border-glass)' }}>
-                    <p className="text-[10px] font-black uppercase"
-                      style={{ color: 'var(--text-muted)' }}>Compras a plazos activas:</p>
+                    <p className="ff-label">Compras a plazos activas</p>
                     {deudasCard.length === 0 ? (
-                      <p className="text-[11px] italic" style={{ color: 'var(--text-muted)' }}>
-                        No hay compras activas
-                      </p>
+                      <p className="text-[11px] italic opacity-50">No hay compras activas</p>
                     ) : (
                       deudasCard.map(deuda => (
                         <div key={deuda.id}
-                          className="flex justify-between items-center p-2 rounded-lg"
+                          className="flex justify-between items-center p-3 rounded-xl"
                           style={{ background: 'var(--bg-secondary)' }}>
-                          <span className="text-[11px] font-bold"
-                            style={{ color: 'var(--text-primary)' }}>{deuda.nombre}</span>
-                          <span className="text-[11px] font-black"
-                            style={{ color: t.color }}>{formatCurrency(deuda.pendiente)}</span>
+                          <span className="text-[11px] font-bold">{deuda.nombre}</span>
+                          <span className="text-[11px] font-black" style={{ color: t.color }}>
+                            {formatCurrency(deuda.pendiente)}
+                          </span>
                         </div>
                       ))
                     )}
