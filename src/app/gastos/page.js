@@ -387,6 +387,18 @@ export default function GastosPage() {
                   }}
                 >
                   {m.tipo === 'ingreso' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                   <>
+                        <span style={{ color: "var(--border-glass)" }}></span>
+                        <span
+                          className="text-[9px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded-md"
+                          style={{
+                            background: `color-mix(in srgb, ${CAT_CSS_COLOR[m.categoria] ?? 'var(--text-muted)'} 12%, transparent)`,
+                            color: CAT_CSS_COLOR[m.categoria] ?? 'var(--text-muted)',
+                          }}
+                        >
+                          {m.categoria}
+                        </span>
+                      </>
                 </div>
 
                 {/* Descripción + meta info */}
@@ -398,6 +410,10 @@ export default function GastosPage() {
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
                       {new Date(m.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                    </span>
+                    <span style={{ color: "var(--border-glass)" }}>·</span>
+                    <span className="text-[10px] font-semibold" style={{ color: "var(--text-muted)" }}>
+                      {m.quien}
                     </span>
                     {m.tipo === 'egreso' && m.categoria && (
                       <>
