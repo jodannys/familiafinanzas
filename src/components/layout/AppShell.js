@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import { Menu } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+// cada vez que cambia pathname → mostrar spinner breve
 
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -34,6 +36,17 @@ export default function AppShell({ children }) {
       <main className="flex-1 min-h-screen lg:ml-20 flex flex-col transition-all duration-300"
         style={{ background: 'var(--bg-primary)' }}
       >
+        // Encima del header móvil, añade:
+        <div
+          className="lg:hidden"
+          style={{
+            height: 'env(safe-area-inset-top)',
+            background: 'var(--bg-primary)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 51,
+          }}
+        />
         {/* Header móvil */}
         <div className="lg:hidden flex items-center gap-3 px-5 sticky top-0 z-50 w-full"
           // En el div del header móvil, cambia el style a:
