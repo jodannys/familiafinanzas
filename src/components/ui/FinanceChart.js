@@ -1,6 +1,6 @@
 'use client'
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
 const data = [
@@ -15,9 +15,9 @@ const data = [
 export function FinanceChart() {
   return (
     /* Contenedor NEGRO TOTAL para que resalte como en la imagen */
-    <div 
+    <div
       className="h-[380px] w-full flex flex-col p-8 rounded-[40px] border shadow-2xl"
-      style={{ 
+      style={{
         background: '#0A0A0A', // Negro profundo mate
         borderColor: 'rgba(255,255,255,0.05)',
       }}
@@ -33,7 +33,10 @@ export function FinanceChart() {
 
       <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <AreaChart
+            data={data}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }} // El left: 0 es a veces el culpable
+          >
             <defs>
               <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
                 {/* Gradiente en color Tierra/Naranja como tu logo */}
@@ -42,10 +45,10 @@ export function FinanceChart() {
               </linearGradient>
             </defs>
 
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              vertical={false} 
-              stroke="rgba(255,255,255,0.05)" 
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="rgba(255,255,255,0.05)"
             />
 
             <XAxis
@@ -57,7 +60,13 @@ export function FinanceChart() {
               dy={15}
             />
 
-            <YAxis hide={true} domain={['auto', 'auto']} />
+            <YAxis
+              tick={{ fill: 'var(--text-secondary)', fontSize: 10, fontWeight: 700 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(value) => `$${value}`}
+              width={50} // Dale espacio para que los números no se corten
+            />
 
             <Tooltip
               contentStyle={{

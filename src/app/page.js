@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { FinanceChart } from '@/components/ui/FinanceChart'
 
+
 const COLORES_CAT = {
   basicos: 'var(--accent-blue)',
   deseo: 'var(--accent-violet)',
