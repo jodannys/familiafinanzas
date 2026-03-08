@@ -271,7 +271,6 @@ export default function SobrePage() {
           className="ff-btn-primary flex items-center justify-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />
           <span className="text-sm font-bold hidden sm:inline">Registrar Gasto</span>
-          <span className="text-sm font-bold sm:hidden"></span>
         </button>
       </div>
 
