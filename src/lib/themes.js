@@ -8,20 +8,27 @@ export const THEMES = {
     emoji: '🌾',
     preview: ['#B3A89D', '#D99E5C', '#F8F3EE','#2C241E'],
     vars: {
-      '--bg-primary': '#B3A89D',
-      '--bg-secondary': '#F1E9E0',
-      '--bg-card': '#F8F3EE',
-      '--bg-dark-card': '#2C241E', // Importante para la gráfica
-      '--bg-glass': 'rgba(255,255,255,0.45)',
-      '--border-glass': 'rgba(255,255,255,0.4)',
-      '--accent-main': '#D99E5C', // El bronce de la gráfica
-      '--accent-green': '#D99E5C', // Mantenemos consistencia
-      '--text-primary': '#1A1410',
-      '--text-secondary': '#6D5F54',
-      '--text-muted': '#918479',
-      '--input-bg': 'rgba(255,255,255,0.3)',
-      '--progress-track': '#EAE2D8',
-    }
+  '--bg-primary':    '#B3A89D',
+  '--bg-secondary':  '#F1E9E0',
+  '--bg-card':       '#F8F3EE',
+  '--bg-dark-card':  '#2C241E',
+  '--bg-glass':      'rgba(255,255,255,0.45)',
+  '--border-glass':  'rgba(255,255,255,0.4)',
+  '--input-bg':      'rgba(255,255,255,0.3)',
+  '--accent-main':   '#D99E5C',
+  '--accent-green':  '#2D7A5F',   // verde semántico (ingresos, positivo)
+  '--accent-terra':  '#D99E5C',   // bronce — el acento cálido principal
+  '--accent-blue':   '#4A6FA5',   // azul para básicos
+  '--accent-rose':   '#C0605A',   // rojo alertas/deudas
+  '--accent-violet': '#7C6FAB',   // violeta para deseos
+  '--accent-gold':   '#C17A3A',   // dorado inversiones
+  '--sidebar-bg':    '#F8F3EE',
+  '--sidebar-border':'rgba(255,255,255,0.4)',
+  '--progress-track':'#EAE2D8',
+  '--text-primary':  '#1A1410',
+  '--text-secondary':'#6D5F54',
+  '--text-muted':    '#918479',
+}
   },
   obsidian: {
     name: 'Dark Obsidian',

@@ -11,6 +11,18 @@
   --bg-dark-card:   #2C241E; /* Tarjeta Oscura (Gráficas) */
   --bg-glass:       rgba(255, 255, 255, 0.45);
   --input-bg:       rgba(255, 255, 255, 0.3);
+  /* Variables faltantes en el tema base */
+--bg-secondary:    #F1E9E0;
+--accent-terra:    #D99E5C;
+--accent-blue:     #4A6FA5;
+--accent-rose:     #C0605A;
+--accent-violet:   #7C6FAB;
+--accent-gold:     #C17A3A;
+--accent-green:    #2D7A5F;
+--sidebar-bg:      #F8F3EE;
+--sidebar-border:  rgba(255,255,255,0.4);
+--progress-track:  #EAE2D8;
+--text-secondary:  #6D5F54;
 
   /* Textos */
   --text-primary:    #1A1410;
