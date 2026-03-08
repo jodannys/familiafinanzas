@@ -27,12 +27,6 @@ export function FinanceChart({ data = [] }) { // <--- Ahora recibe data por prop
             data={data} // <--- Usa los datos reales
             margin={{ top: 10, right: -10, left: -20, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#C17A3A" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#C17A3A" stopOpacity={0} />
-              </linearGradient>
-            </defs>
 
             <CartesianGrid
               strokeDasharray="3 3"
@@ -74,15 +68,25 @@ export function FinanceChart({ data = [] }) { // <--- Ahora recibe data por prop
               cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 2 }}
             />
 
-            <Area
-              type="monotone"
-              dataKey="valor" // <--- Este es el monto
-              stroke="#C17A3A"
-              strokeWidth={4}
-              fillOpacity={1}
-              fill="url(#colorValor)"
-              animationDuration={1500}
-            />
+            // SUSTITUYE POR:
+            <defs>
+              <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#C0605A" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#C0605A" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#2D7A5F" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#2D7A5F" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <Area type="monotone" dataKey="ingresos"
+              stroke="#2D7A5F" strokeWidth={3}
+              fillOpacity={1} fill="url(#colorIngresos)"
+              animationDuration={1500} name="Ingresos" />
+            <Area type="monotone" dataKey="gastos"
+              stroke="#C0605A" strokeWidth={3}
+              fillOpacity={1} fill="url(#colorGastos)"
+              animationDuration={1500} name="Gastos" />
           </AreaChart>
         </ResponsiveContainer>
       </div>

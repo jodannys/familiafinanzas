@@ -81,28 +81,34 @@ export default function Dashboard() {
     })
   }, [movs, mesActual, añoActual])
 
-  const dataGraficoReal = useMemo(() => {
+ // SUSTITUYE POR:
+const dataGraficoReal = useMemo(() => {
     if (!movsMes || movsMes.length === 0) return [{ name: 'Sin datos', valor: 0 }]
-    
-    const agrupado = movsMes.reduce((acc, mov) => {
+
+    const egresos = {}
+    const ingresos = {}
+
+    movsMes.forEach(mov => {
+      // FIX UTC: parsear día directamente del string "YYYY-MM-DD"
+      const dia = parseInt(mov.fecha.split('-')[2], 10)
       if (mov.tipo === 'egreso') {
-        const fecha = new Date(mov.fecha)
-        if (!isNaN(fecha)) {
-          const dia = fecha.getDate()
-          acc[dia] = (acc[dia] || 0) + (mov.monto || 0)
-        }
+        egresos[dia] = (egresos[dia] || 0) + (mov.monto || 0)
+      } else if (mov.tipo === 'ingreso') {
+        ingresos[dia] = (ingresos[dia] || 0) + (mov.monto || 0)
       }
-      return acc
-    }, {})
+    })
 
-    const resultado = Object.entries(agrupado)
-      .map(([dia, monto]) => ({
-        name: `Día ${dia}`,
-        valor: monto
-      }))
-      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+    const diasUnicos = [...new Set([...Object.keys(egresos), ...Object.keys(ingresos)])]
+      .map(Number)
+      .sort((a, b) => a - b)
 
-    return resultado.length > 0 ? resultado : [{ name: 'Hoy', valor: 0 }]
+    const resultado = diasUnicos.map(dia => ({
+      name: `${dia}`,
+      gastos: egresos[dia] || 0,
+      ingresos: ingresos[dia] || 0,
+    }))
+
+    return resultado.length > 0 ? resultado : [{ name: 'Hoy', gastos: 0, ingresos: 0 }]
   }, [movsMes])
 
   // Lógica de KPIs y Alertas
