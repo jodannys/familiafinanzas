@@ -387,14 +387,15 @@ export default function GastosPage() {
       </Card>
 
       <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
-        <form onSubmit={handleAdd} className="space-y-4">
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 180px)' }}>
+        <form onSubmit={handleAdd} className="space-y-4 pb-2">
 
           {/* Tipo toggle */}
           <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: "var(--bg-secondary)" }}>
             {['ingreso', 'egreso'].map(t => (
               <button type="button" key={t}
                 onClick={() => {
-                  setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? 'ingreso' : 'basicos' })
+                  setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? '' : 'basicos' })
                   setTarjetaSeleccionada('')
                 }}
                 className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
@@ -548,6 +549,7 @@ export default function GastosPage() {
             {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
           </button>
         </form>
+        </div>
       </Modal>
     </AppShell>
   )
