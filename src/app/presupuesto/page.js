@@ -370,7 +370,7 @@ export default function PresupuestoPage() {
 
                   {[
                     { key: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)' },
-                    { key: 'inversiones', label: 'Inversiones', color: '#818CF8' },
+                    { key: 'inversiones', label: 'Inversiones', color: 'var(--accent-violet)' },
                   ].map(cat => {
                     const pct = subActual[cat.key] || 0
                     const montoSub = monto * (pct / 100)
@@ -513,16 +513,16 @@ export default function PresupuestoPage() {
                             }}
                             className="w-full text-left px-3 py-2.5 rounded-xl border flex items-center justify-between transition-colors"
                             style={{
-                              borderColor: 'rgba(129,140,248,0.2)',
-                              background: 'rgba(129,140,248,0.04)',
+                              borderColor: 'color-mix(in srgb, var(--accent-violet) 20%, transparent)',
+                              background: 'color-mix(in srgb, var(--accent-violet) 4%, transparent)',
                             }}>
                             <div>
-                              <p className="text-xs font-bold" style={{ color: '#818CF8' }}>{inv.nombre}</p>
+                              <p className="text-xs font-bold" style={{ color: 'var(--accent-violet)' }}>{inv.nombre}</p>
                               <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
                                 Capital: {formatCurrency(parseFloat(inv.capital))} · Aporte: {formatCurrency(parseFloat(inv.aporte || 0))}/mes
                               </p>
                             </div>
-                            <Plus size={12} style={{ color: '#818CF8', flexShrink: 0 }} />
+                            <Plus size={12} style={{ color: 'var(--accent-violet)', flexShrink: 0 }} />
                           </button>
                         ))}
                       </div>
@@ -612,7 +612,7 @@ export default function PresupuestoPage() {
                     <div className="flex gap-2 mt-2">
                       {[
                         { k: 'metas', l: 'Metas', c: 'var(--accent-green)' },
-                        { k: 'inversiones', l: 'Inversiones', c: '#818CF8' },
+                        { k: 'inversiones', l: 'Inversiones', c: 'var(--accent-violet)' },
                       ].map(s => (
                         <div key={s.k} className="flex-1 px-2 py-1.5 rounded-lg text-center"
                           style={{ background: `color-mix(in srgb, ${s.c} 10%, transparent)` }}>
@@ -646,18 +646,19 @@ export default function PresupuestoPage() {
 
       {/* ── MODAL añadir meta/inversión real ── */}
       {addingReal && (
-          <Modal open={!!addingReal} onClose={() => { setAddingReal(null); setMontoReal('') }} title={addingReal?.nombre || ''}>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>¿Cuánto quieres presupuestar este mes?</p>
-            <input className="ff-input w-full mb-3" type="number" step="0.01" placeholder="Monto €"
-              value={montoReal} onChange={e => setMontoReal(e.target.value)} />
-            <div className="flex gap-2">
-              <button onClick={() => { setAddingReal(null); setMontoReal('') }} className="ff-btn-ghost flex-1">Cancelar</button>
-              <button onClick={() => {
-                handleAddItem(addingReal.bloque, { bloque: addingReal.bloque, nombre: addingReal.nombre, monto: parseFloat(montoReal) || 0, mes, año })
-                setAddingReal(null); setMontoReal('')
-              }} className="ff-btn-primary flex-1">Guardar</button>
-            </div>
-          </Modal>
+        // QUITA el div wrapper, deja solo el Modal directamente:
+        <Modal open={!!addingReal} onClose={() => { setAddingReal(null); setMontoReal('') }} title={addingReal?.nombre || ''}>
+          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>¿Cuánto quieres presupuestar este mes?</p>
+          <input className="ff-input w-full mb-3" type="number" step="0.01" placeholder="Monto €"
+            value={montoReal} onChange={e => setMontoReal(e.target.value)} />
+          <div className="flex gap-2">
+            <button onClick={() => { setAddingReal(null); setMontoReal('') }} className="ff-btn-ghost flex-1">Cancelar</button>
+            <button onClick={() => {
+              handleAddItem(addingReal.bloque, { bloque: addingReal.bloque, nombre: addingReal.nombre, monto: parseFloat(montoReal) || 0, mes, año })
+              setAddingReal(null); setMontoReal('')
+            }} className="ff-btn-primary flex-1">Guardar</button>
+          </div>
+        </Modal>
       )}
     </AppShell>
   )
