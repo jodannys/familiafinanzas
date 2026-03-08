@@ -112,22 +112,35 @@ export default function Dashboard() {
     </AppShell>
   )
   // Esto prepara tus datos de Supabase para el gráfico
+  // Prepara los datos con seguridad (Failsafe)
   const dataGraficoReal = useMemo(() => {
+    // Si no hay movimientos, enviamos un estado vacío para que el gráfico no explote
+    if (!movsMes || movsMes.length === 0) {
+      return [{ name: 'Sin datos', valor: 0 }];
+    }
+
     const agrupado = movsMes.reduce((acc, mov) => {
       if (mov.tipo === 'egreso') {
-        const dia = new Date(mov.fecha).getDate()
-        acc[dia] = (acc[dia] || 0) + (mov.monto || 0)
+        const fecha = new Date(mov.fecha);
+        // Validamos que la fecha sea válida
+        if (!isNaN(fecha)) {
+          const dia = fecha.getDate();
+          acc[dia] = (acc[dia] || 0) + (mov.monto || 0);
+        }
       }
       return acc;
-    }, {})
+    }, {});
 
-    return Object.entries(agrupado)
+    const resultado = Object.entries(agrupado)
       .map(([dia, monto]) => ({
         name: `Día ${dia}`,
         valor: monto
       }))
-      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
-  }, [movsMes])
+      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]));
+
+    // Si después de filtrar no hay egresos, enviamos punto cero
+    return resultado.length > 0 ? resultado : [{ name: 'Hoy', valor: 0 }];
+  }, [movsMes]);
   return (
     <AppShell>
       {/* HEADER PRINCIPAL */}
