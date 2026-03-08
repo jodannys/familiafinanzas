@@ -263,7 +263,7 @@ export default function DeudasPage() {
         pendiente: capital,
         cuota,
         plazo_meses: meses,
-        perfil_tarjeta_id: f.tarjeta_id,
+        perfil_tarjeta_id: f.tarjeta_id || null,
         tasa: 0,
         tasa_interes: 0,
         dia_pago: null,
