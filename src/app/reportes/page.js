@@ -264,7 +264,6 @@ export default function ReportesPage() {
                 icon: <PiggyBank size={14} />,
                 color: tasaAhorro >= grupoMetas.futuro ? 'var(--accent-green)' : tasaAhorro >= grupoMetas.futuro / 2 ? 'var(--accent-terra)' : 'var(--accent-rose)',
                 sub: tasaAhorro >= grupoMetas.futuro ? '✓ Meta cumplida' : tasaAhorro >= grupoMetas.futuro / 2 ? 'Casi allí' : `Meta: ${grupoMetas.futuro}%`,
-                sub: tasaAhorro >= 20 ? '✓ Meta cumplida' : tasaAhorro >= 10 ? 'Casi allí' : 'Meta: 20%',
                 hint: 'Ahorro + Inversión / Ingresos',
               },
             ].map((s, i) => (
