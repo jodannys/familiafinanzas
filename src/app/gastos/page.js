@@ -36,6 +36,7 @@ export default function GastosPage() {
   const [inversionesData, setInversionesData] = useState([])
   const [deudasData, setDeudasData] = useState([])
   const [tarjetasData, setTarjetasData] = useState([])
+  const [tarjetaDeudasMap, setTarjetaDeudasMap] = useState({}) // perfil_id → deuda
   const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
@@ -54,10 +55,15 @@ export default function GastosPage() {
     supabase.from('metas').select('id, nombre, meta, actual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
     supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
-    // Tarjetas: misma fuente que sobre-page (deudas tipo_deuda=tarjeta)
-    // Garantiza que tarjetaSeleccionada sea un deudas.id válido para deuda_movimientos
-    supabase.from('deudas').select('id, nombre, emoji, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
+    // Tarjetas: perfiles_tarjetas para display + mapa perfil→deuda para insertar cargos
+    supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, banco, color').eq('estado', 'activa')
       .then(({ data }) => setTarjetasData(data || []))
+    supabase.from('deudas').select('id, perfil_tarjeta_id, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
+      .then(({ data }) => {
+        const map = {}
+        ;(data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
+        setTarjetaDeudasMap(map)
+      })
   }, [])
 
   async function cargarMovimientos() {
@@ -89,11 +95,16 @@ export default function GastosPage() {
     if (!monto || monto <= 0) return
     setSaving(true)
 
-    // ── PAGO CON TARJETA: va a deuda_movimientos, NO a movimientos ──────────
+    // ── PAGO CON TARJETA: cargo a la deuda asociada al perfil ──────────────
     if (tarjetaSeleccionada && form.tipo === 'egreso') {
-      const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
+      const deudaTarjeta = tarjetaDeudasMap[tarjetaSeleccionada]
+      if (!deudaTarjeta) {
+        setError('Esta tarjeta no tiene una deuda activa asociada. Créala primero en el módulo Deudas.')
+        setSaving(false)
+        return
+      }
       const { error } = await supabase.from('deuda_movimientos').insert([{
-        deuda_id: tarjetaSeleccionada,  // deudas.id — correcto
+        deuda_id: deudaTarjeta.id,  // deudas.id del perfil_tarjeta
         tipo: 'cargo',
         descripcion: form.descripcion,
         monto,
@@ -102,12 +113,13 @@ export default function GastosPage() {
       }])
       if (error) setError('Error al guardar cargo en tarjeta: ' + error.message)
       else {
-        // tarjeta ya tiene pendiente (select incluye ese campo)
-        if (tarjeta) {
-          await supabase.from('deudas').update({
-            pendiente: parseFloat(tarjeta.pendiente || 0) + monto
-          }).eq('id', tarjetaSeleccionada)
-        }
+        await supabase.from('deudas').update({
+          pendiente: parseFloat(deudaTarjeta.pendiente || 0) + monto
+        }).eq('id', deudaTarjeta.id)
+        setTarjetaDeudasMap(prev => ({
+          ...prev,
+          [tarjetaSeleccionada]: { ...deudaTarjeta, pendiente: deudaTarjeta.pendiente + monto }
+        }))
         resetModal()
       }
       setSaving(false)
@@ -439,7 +451,10 @@ export default function GastosPage() {
                 onChange={e => setTarjetaSeleccionada(e.target.value)}>
                 <option value="">— No, pago directo —</option>
                 {tarjetasData.map(t => (
-                  <option key={t.id} value={t.id}>{t.emoji} {t.nombre}</option>
+                  <option key={t.id} value={t.id}>
+                    {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
+                    {!tarjetaDeudasMap[t.id] ? ' ⚠ sin deuda' : ''}
+                  </option>
                 ))}
               </select>
               {tarjetaSeleccionada && (
@@ -494,8 +509,11 @@ export default function GastosPage() {
                 }}>
                 <option value="">— Seleccionar deuda —</option>
                 {deudasData
-                  .filter(d => d.tipo_deuda !== 'tarjeta')  // tarjetas tienen su propio flujo
-                  .map(d => <option key={d.id} value={d.id}>{d.nombre} · Pendiente {formatCurrency(d.pendiente)}</option>)}
+                  .map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.tipo_deuda === 'tarjeta' ? '💳 ' : ''}{d.nombre} · Pendiente {formatCurrency(d.pendiente)}
+                    </option>
+                  ))}
               </select>
             </div>
           )}
