@@ -280,6 +280,7 @@ export default function GastosPage() {
       const montoMetas = presItems
         .filter(i => i.bloque === 'futuro')
         .reduce((s, i) => s + (i.monto || 0), 0)
+     
 
       return metasData.map(m => ({
         id: m.id, nombre: m.nombre,
@@ -466,7 +467,7 @@ export default function GastosPage() {
               </select>
               {tarjetaSeleccionada && (
                 <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
-                style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
+                  style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
                   💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
                 </div>
               )}
