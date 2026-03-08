@@ -31,19 +31,34 @@ export const THEMES = {
 }
   },
   obsidian: {
-    name: 'Dark Obsidian',
-    themeColor: '#0F1115',
-    emoji: '🌑',
-    preview: ['#0F1115', '#4ADE80', '#818CF8', '#1C2127'],
-    vars: {
-      '--bg-primary': '#0F1115', '--bg-secondary': '#16191E', '--bg-card': '#1C2127', 
-      '--bg-glass': 'rgba(28,33,39,0.8)', '--border-glass': 'rgba(255,255,255,0.05)',
-      '--accent-green': '#4ADE80', '--accent-terra': '#D1A35C', '--accent-blue': '#818CF8',
-      '--accent-rose': '#E879F9', '--text-primary': '#E2E8F0', '--text-secondary': '#94A3B8',
-      '--text-muted': '#475569', '--sidebar-bg': '#16191E', '--sidebar-border': 'rgba(255,255,255,0.04)',
-      '--input-bg': '#0F1115', '--progress-track': '#2D3748',
-    }
-  },
+  name: 'Dark Obsidian',
+  themeColor: '#0F1115',
+  emoji: '🌑',
+  preview: ['#0F1115', '#4ADE80', '#818CF8', '#1C2127'],
+  vars: {
+    '--bg-primary':     '#0F1115',
+    '--bg-secondary':   '#16191E',
+    '--bg-card':        '#1C2127',
+    '--bg-dark-card':   '#0F1115',        // ← gráfico
+    '--bg-glass':       'rgba(28,33,39,0.8)',
+    '--border-glass':   'rgba(255,255,255,0.05)',
+    '--accent-green':   '#4ADE80',
+    '--accent-terra':   '#D1A35C',
+    '--accent-blue':    '#818CF8',
+    '--accent-rose':    '#E879F9',
+    '--accent-violet':  '#A78BFA',        // ← badges deseo
+    '--accent-gold':    '#F59E0B',        // ← badges inversión
+    '--accent-main':    '#4ADE80',        // ← botones primarios
+    '--accent-danger':  '#F87171',        // ← errores
+    '--text-primary':   '#E2E8F0',
+    '--text-secondary': '#94A3B8',
+    '--text-muted':     '#475569',
+    '--sidebar-bg':     '#16191E',
+    '--sidebar-border': 'rgba(255,255,255,0.04)',
+    '--input-bg':       '#0F1115',
+    '--progress-track': '#2D3748',
+  }
+},
   ocean: {
   name: 'Ocean Slate',
   themeColor: '#0ABDC6',
