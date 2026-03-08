@@ -435,7 +435,7 @@ export default function PresupuestoPage() {
                 </button>
 
                 {isExpandido && (
-                  <div className="space-y-2 mt-2">
+                  <div className="space-y-2 mt-2 overflow-y-auto" style={{ maxHeight: '320px' }}>
                     {loadingItems ? (
                       <div className="flex justify-center py-2">
                         <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
@@ -650,50 +650,50 @@ export default function PresupuestoPage() {
           onClose={() => { setAddingReal(null); setMontoReal('') }}
           title={addingReal?.nombre || ''}
         >
-          
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-              ¿Cuánto quieres presupuestar este mes?
-            </p>
 
-            <input
-              className="ff-input w-full mb-3"
-              type="number"
-              step="0.01"
-              placeholder="Monto €"
-              value={montoReal}
-              onChange={e => setMontoReal(e.target.value)}
-            />
+          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            ¿Cuánto quieres presupuestar este mes?
+          </p>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setAddingReal(null)
-                  setMontoReal('')
-                }}
-                className="ff-btn-ghost"
-                style={{ flex: 1, width: '100%' }}
-              >
-                Cancelar
-              </button>
+          <input
+            className="ff-input w-full mb-3"
+            type="number"
+            step="0.01"
+            placeholder="Monto €"
+            value={montoReal}
+            onChange={e => setMontoReal(e.target.value)}
+          />
 
-              <button
-                onClick={() => {
-                  handleAddItem(addingReal.bloque, {
-                    bloque: addingReal.bloque,
-                    nombre: addingReal.nombre,
-                    monto: parseFloat(montoReal) || 0,
-                    mes,
-                    año,
-                  })
-                  setAddingReal(null)
-                  setMontoReal('')
-                }}
-                className="ff-btn-primary"
-                style={{ flex: 1, width: '100%' }}
-              >
-                Guardar
-              </button>
-            </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setAddingReal(null)
+                setMontoReal('')
+              }}
+              className="ff-btn-ghost"
+              style={{ flex: 1, width: '100%' }}
+            >
+              Cancelar
+            </button>
+
+            <button
+              onClick={() => {
+                handleAddItem(addingReal.bloque, {
+                  bloque: addingReal.bloque,
+                  nombre: addingReal.nombre,
+                  monto: parseFloat(montoReal) || 0,
+                  mes,
+                  año,
+                })
+                setAddingReal(null)
+                setMontoReal('')
+              }}
+              className="ff-btn-primary"
+              style={{ flex: 1, width: '100%' }}
+            >
+              Guardar
+            </button>
+          </div>
         </Modal>
       )}
     </AppShell >
