@@ -394,11 +394,12 @@ export default function GastosPage() {
                   <p className="text-sm font-bold truncate leading-tight" style={{ color: "var(--text-primary)" }}>
                     {m.descripcion}
                   </p>
-                  {/* Fila secundaria: fecha + categoria */}
+                  {/* Fila secundaria: fecha + quien + categoria */}
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
                       {new Date(m.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                     </span>
+                    
                     {m.tipo === 'egreso' && m.categoria && (
                       <>
                         <span style={{ color: "var(--border-glass)" }}>·</span>
@@ -440,7 +441,8 @@ export default function GastosPage() {
 
       {/* ── MODAL ── */}
       <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
-        <div className="overflow-y-auto" style={{ maxHeight: 'min(calc(100dvh - 120px), 680px)' }}>
+        {/* max-h y scroll dentro del modal para que no se salga en móvil */}
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 160px)' }}>
           <form onSubmit={handleAdd} className="space-y-4 px-1 pb-4">
 
             {/* Tipo toggle */}
