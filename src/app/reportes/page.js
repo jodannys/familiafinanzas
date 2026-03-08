@@ -422,9 +422,6 @@ export default function ReportesPage() {
                 <p className="text-[10px] font-black uppercase mb-1" style={{ color: 'var(--text-muted)' }}>
                   Ingresos vs Gastos — {año}
                 </p>
-                <p className="text-[9px] mb-3" style={{ color: 'var(--text-muted)' }}>
-                  Verde = margen positivo ese mes
-                </p>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart
                     data={resumenMes}
@@ -459,12 +456,6 @@ export default function ReportesPage() {
                     </span>
                   )}
                 </p>
-                {maxMes?.total > 0 && (
-                  <p className="text-[9px] mb-3" style={{ color: 'var(--text-muted)' }}>
-                    Mayor: {maxMes.mes} ({formatCurrency(maxMes.total)})
-                    {minMes?.total > 0 && ` · Menor: ${minMes.mes} (${formatCurrency(minMes.total)})`}
-                  </p>
-                )}
                 <ResponsiveContainer width="100%" height={150}>
                   <BarChart
                     data={porMes}
