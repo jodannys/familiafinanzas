@@ -4,11 +4,10 @@ import AppShell from '@/components/layout/AppShell'
 import { ProgressBar } from '@/components/ui/Card'
 import {
   Wallet, Target, Loader2, ArrowUpRight, ArrowDownRight
-} from 'lucide-react' // Aquí estaba el error, faltaban los nombres y la ruta estaba pegada
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { FinanceChart } from '@/components/ui/FinanceChart'
-
 
 const COLORES_CAT = {
   basicos: 'var(--accent-blue)',
@@ -48,6 +47,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
+  // 1. CARGAR DATOS
   useEffect(() => {
     setMounted(true)
     async function cargar() {
@@ -69,17 +69,43 @@ export default function Dashboard() {
     cargar()
   }, [])
 
-  if (!mounted) return null
-
+  // 2. CÁLCULOS (Deben ir ANTES de cualquier return condicional)
   const now = new Date()
   const mesActual = now.getMonth()
   const añoActual = now.getFullYear()
 
-  const movsMes = movs.filter(m => {
-    const [year, month] = m.fecha.split('-').map(Number)
-    return month - 1 === mesActual && year === añoActual
-  })
+  const movsMes = useMemo(() => {
+    return movs.filter(m => {
+      const [year, month] = m.fecha.split('-').map(Number)
+      return month - 1 === mesActual && year === añoActual
+    })
+  }, [movs, mesActual, añoActual])
 
+  const dataGraficoReal = useMemo(() => {
+    if (!movsMes || movsMes.length === 0) return [{ name: 'Sin datos', valor: 0 }]
+    
+    const agrupado = movsMes.reduce((acc, mov) => {
+      if (mov.tipo === 'egreso') {
+        const fecha = new Date(mov.fecha)
+        if (!isNaN(fecha)) {
+          const dia = fecha.getDate()
+          acc[dia] = (acc[dia] || 0) + (mov.monto || 0)
+        }
+      }
+      return acc
+    }, {})
+
+    const resultado = Object.entries(agrupado)
+      .map(([dia, monto]) => ({
+        name: `Día ${dia}`,
+        valor: monto
+      }))
+      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+
+    return resultado.length > 0 ? resultado : [{ name: 'Hoy', valor: 0 }]
+  }, [movsMes])
+
+  // Lógica de KPIs y Alertas
   const ingresosMes = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
   const gastosMes = movsMes.filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
   const ahorroMes = movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
@@ -103,6 +129,9 @@ export default function Dashboard() {
     .filter(d => d.dias !== null && d.dias <= 7)
     .sort((a, b) => a.dias - b.dias)
 
+  // 3. RETURNS CONDICIONALES (Siempre al final de los Hooks)
+  if (!mounted) return null
+
   if (loading) return (
     <AppShell>
       <div className="flex h-[70vh] items-center justify-center flex-col gap-6">
@@ -111,39 +140,9 @@ export default function Dashboard() {
       </div>
     </AppShell>
   )
-  // Esto prepara tus datos de Supabase para el gráfico
-  // Prepara los datos con seguridad (Failsafe)
-  const dataGraficoReal = useMemo(() => {
-    // Si no hay movimientos, enviamos un estado vacío para que el gráfico no explote
-    if (!movsMes || movsMes.length === 0) {
-      return [{ name: 'Sin datos', valor: 0 }];
-    }
 
-    const agrupado = movsMes.reduce((acc, mov) => {
-      if (mov.tipo === 'egreso') {
-        const fecha = new Date(mov.fecha);
-        // Validamos que la fecha sea válida
-        if (!isNaN(fecha)) {
-          const dia = fecha.getDate();
-          acc[dia] = (acc[dia] || 0) + (mov.monto || 0);
-        }
-      }
-      return acc;
-    }, {});
-
-    const resultado = Object.entries(agrupado)
-      .map(([dia, monto]) => ({
-        name: `Día ${dia}`,
-        valor: monto
-      }))
-      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]));
-
-    // Si después de filtrar no hay egresos, enviamos punto cero
-    return resultado.length > 0 ? resultado : [{ name: 'Hoy', valor: 0 }];
-  }, [movsMes]);
   return (
     <AppShell>
-      {/* HEADER PRINCIPAL */}
       <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
         <h1 className="text-3xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
           Resumen General
@@ -153,7 +152,6 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* ALERTAS CRÍTICAS */}
       {alertasDeuda.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
           {alertasDeuda.map(d => {
@@ -177,7 +175,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* KPI GRID */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {[
           { label: 'Ingresos', val: ingresosMes, icon: ArrowUpRight, col: 'var(--accent-green)' },
@@ -200,13 +197,11 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* SECCIÓN GRÁFICA Y DISTRIBUCIÓN */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         <div className="lg:col-span-2">
           <FinanceChart data={dataGraficoReal} />
         </div>
 
-        {/* TARJETA DE DISTRIBUCIÓN */}
         <div className="p-8 rounded-[40px] border shadow-sm flex flex-col"
           style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
           <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40 mb-8" style={{ color: 'var(--text-secondary)' }}>
@@ -231,7 +226,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* METAS DE AHORRO */}
       <div className="p-8 rounded-[40px] border shadow-sm"
         style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
         <div className="flex items-center justify-between mb-8">
