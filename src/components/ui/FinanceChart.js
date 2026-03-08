@@ -14,11 +14,10 @@ const data = [
 
 export function FinanceChart() {
   return (
-    /* Contenedor NEGRO TOTAL para que resalte como en la imagen */
     <div
       className="h-[380px] w-full flex flex-col p-8 rounded-[40px] border shadow-2xl"
       style={{
-        background: '#0A0A0A', // Negro profundo mate
+        background: '#0A0A0A',
         borderColor: 'rgba(255,255,255,0.05)',
       }}
     >
@@ -35,11 +34,11 @@ export function FinanceChart() {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }} // El left: 0 es a veces el culpable
+            /* AJUSTE 1: Aumentamos el margen izquierdo a 10 o 20 */
+            margin={{ top: 10, right: 10, left: 10, bottom: 0 }} 
           >
             <defs>
               <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
-                {/* Gradiente en color Tierra/Naranja como tu logo */}
                 <stop offset="5%" stopColor="#C17A3A" stopOpacity={0.4} />
                 <stop offset="95%" stopColor="#C17A3A" stopOpacity={0} />
               </linearGradient>
@@ -55,17 +54,19 @@ export function FinanceChart() {
               dataKey="month"
               axisLine={false}
               tickLine={false}
-              /* Letras en blanco tenue para que no compitan con la línea */
               tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 700 }}
               dy={15}
             />
 
             <YAxis
-              tick={{ fill: 'var(--text-secondary)', fontSize: 10, fontWeight: 700 }}
+              /* AJUSTE 2: Usamos un color explícito o blanco/blanco-tenue */
+              /* A veces 'var(--text-secondary)' en fondo negro #0A0A0A no tiene suficiente contraste */
+              tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700 }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(value) => `$${value}`}
-              width={50} // Dale espacio para que los números no se corten
+              /* AJUSTE 3: Formateador para que no ocupen tanto espacio horizontal */
+              tickFormatter={(value) => value >= 1000 ? `${value/1000}k` : value}
+              width={45} 
             />
 
             <Tooltip
@@ -82,7 +83,7 @@ export function FinanceChart() {
             <Area
               type="monotone"
               dataKey="valor"
-              stroke="#C17A3A" /* Color Tierra de la marca */
+              stroke="#C17A3A"
               strokeWidth={4}
               fillOpacity={1}
               fill="url(#colorValor)"
