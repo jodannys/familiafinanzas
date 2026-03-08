@@ -310,7 +310,7 @@ export default function ReportesPage() {
                   const gastado = grupoTotales[key] || 0
                   const target = grupoMetas[key]
                   const pct = totalIngresos > 0 ? (gastado / totalIngresos) * 100 : 0
-                  const cumple = pct <= target
+                 const cumple = key === 'futuro' ? pct >= target : pct <= target
                   return (
                     <div key={key}>
                       <div className="flex items-center justify-between mb-1">
