@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { ProgressBar } from '@/components/ui/Card'
 import {
