@@ -28,7 +28,7 @@ const MENU_GROUPS = [
     items: [
       { href: '/metas', label: 'Ahorro', icon: Target },
       { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
-      { href: '/deudas', label: 'Deudas', icon: CircleDollarSign }, // Icono agregado aquí
+      { href: '/deudas', label: 'Deudas', icon: CircleDollarSign }, 
       { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard },
     ]
   }
