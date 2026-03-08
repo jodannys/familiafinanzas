@@ -393,7 +393,7 @@ export default function GastosPage() {
             {['ingreso', 'egreso'].map(t => (
               <button type="button" key={t}
                 onClick={() => {
-                  setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? 'ingreso' : 'basicos' })
+                  setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? '' : 'basicos' })
                   setTarjetaSeleccionada('')
                 }}
                 className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
@@ -480,27 +480,7 @@ export default function GastosPage() {
             </div>
           )}
 
-          {/* Selector meta */}
-          {!usandoTarjeta && form.tipo === 'egreso' && form.categoria === 'ahorro' && metasData.length > 0 && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label">Añadir a meta</label>
-              <select className="ff-input h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
-                <option value="">— Sin asignar —</option>
-                {metasData.map(m => <option key={m.id} value={m.id}>{m.nombre} ({formatCurrency(m.actual || 0)} / {formatCurrency(m.meta)})</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* Selector inversión */}
-          {!usandoTarjeta && form.tipo === 'egreso' && form.categoria === 'inversion' && inversionesData.length > 0 && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label">Añadir a inversión</label>
-              <select className="ff-input h-12 text-sm" value={metaSeleccionada} onChange={e => setMetaSeleccionada(e.target.value)}>
-                <option value="">— Sin asignar —</option>
-                {inversionesData.map(i => <option key={i.id} value={`inv_${i.id}`}>{i.nombre} (Capital: {formatCurrency(i.capital)})</option>)}
-              </select>
-            </div>
-          )}
+          {/* Sin selector extra — las sugerencias de arriba ya asignan la meta/inversión */}
 
           {/* Selector deuda */}
           {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
@@ -520,14 +500,17 @@ export default function GastosPage() {
             </div>
           )}
 
-          {/* Descripción */}
-          <div className="space-y-1">
-            <label className="ff-label">Descripción</label>
-            <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
-              value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
-          </div>
+          {/* Descripción — se oculta cuando hay sugerencias y todavía no se eligió ninguna */}
+          {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
+            <div className="space-y-1 animate-enter">
+              <label className="ff-label">Descripción</label>
+              <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
+                value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
+            </div>
+          )}
 
-          {/* Monto + Fecha */}
+          {/* Monto + Fecha — aparecen tras elegir sugerencia (o siempre si no hay sugerencias) */}
+          {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="ff-label">Monto (€)</label>
@@ -540,6 +523,7 @@ export default function GastosPage() {
                 value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
             </div>
           </div>
+          )}
 
           <button type="submit" disabled={saving}
             className="ff-btn-primary w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2"
