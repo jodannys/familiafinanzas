@@ -55,7 +55,7 @@ export default function Sidebar({ onClose }) {
         </div>
       </div>
 
-      {/* Nav: Agrupado y limpio */}
+      {/* Nav: Agrupado y alimpio */}
       <nav className="flex-1 px-3 space-y-6 overflow-y-auto no-scrollbar">
         {MENU_GROUPS.map((group, idx) => (
           <div key={idx} className="space-y-1">

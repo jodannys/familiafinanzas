@@ -198,60 +198,86 @@ export default function Dashboard() {
       </div>
 
       {/* --- GRÁFICO + DISTRIBUCIÓN --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2 p-6 rounded-3xl border shadow-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-black text-xs uppercase tracking-widest opacity-70">Flujo de Efectivo</h3>
-            <div className="flex gap-4">
-              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} /> <span className="text-[10px] font-bold opacity-60">Ingresos</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-rose)' }} /> <span className="text-[10px] font-bold opacity-60">Gastos</span></div>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={generarHistorico(movs)} margin={{ left: -15, right: 0 }}>
-              <defs>
-                <linearGradient id="gIng" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--accent-green)" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="var(--accent-green)" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="mes" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontWeight: 'bold' }} />
-              <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)' }} tickFormatter={v => `€${v}`} />
-              <Tooltip 
-                cursor={{stroke: 'var(--border-glass)', strokeWidth: 2}} 
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', background: 'var(--bg-card)', color: 'var(--text-primary)' }} 
-                itemStyle={{ fontWeight: 'bold' }}
-              />
-              <Area type="natural" dataKey="ingresos" stroke="var(--accent-green)" strokeWidth={3} fill="url(#gIng)" />
-              <Area type="natural" dataKey="gastos" stroke="var(--accent-rose)" strokeWidth={3} fill="transparent" strokeDasharray="6 6" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="p-6 rounded-3xl border shadow-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-          <h3 className="font-black text-xs uppercase tracking-widest opacity-70 mb-6">Distribución</h3>
-          {distribucionReal.length > 0 ? (
-            <div className="space-y-5">
-              {distribucionReal.map(d => (
-                <div key={d.name}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold capitalize" style={{ color: 'var(--text-secondary)' }}>{d.name}</span>
-                    <span className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--progress-track)' }}>
-                    <div className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${d.value}%`, background: d.color }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex h-40 items-center justify-center text-[10px] font-bold uppercase opacity-30 tracking-widest text-center">
-              Sin datos de gastos
-            </div>
-          )}
-        </div>
-      </div>
+   <div className="lg:col-span-2 p-6 rounded-3xl border shadow-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
+  <div className="flex items-center justify-between mb-8">
+    <h3 className="font-black text-xs uppercase tracking-widest opacity-70">Flujo de Efectivo</h3>
+    <div className="flex gap-4">
+      <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} /> <span className="text-[10px] font-bold opacity-60">Ingresos</span></div>
+      <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-rose)' }} /> <span className="text-[10px] font-bold opacity-60">Gastos</span></div>
+    </div>
+  </div>
+  
+  <div className="h-[240px] w-full">
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart 
+        data={generarHistorico(movs)} 
+        // Aumentamos bottom para que no se corten las etiquetas de los meses
+        margin={{ top: 10, right: 10, left: -15, bottom: 20 }} 
+      >
+        <defs>
+          <linearGradient id="gIng" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="var(--accent-green)" stopOpacity={0.15}/>
+            <stop offset="95%" stopColor="var(--accent-green)" stopOpacity={0}/>
+          </linearGradient>
+        </defs>
+        
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-glass)" opacity={0.4} />
+        
+        <XAxis 
+          dataKey="mes" 
+          fontSize={10} 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fill: 'var(--text-muted)', fontWeight: '700' }}
+          dy={15} // Empujamos el nombre del mes hacia abajo para que respire la gráfica
+        />
+        
+        <YAxis 
+          fontSize={10} 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fill: 'var(--text-muted)' }} 
+          tickFormatter={v => `${v}€`}
+          width={40} // Ancho fijo para evitar que los números se coman la línea
+        />
+        
+        <Tooltip 
+          cursor={{ stroke: 'var(--border-glass)', strokeWidth: 2 }} 
+          contentStyle={{ 
+            borderRadius: '16px', 
+            border: 'none', 
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', 
+            fontSize: '12px', 
+            background: 'var(--bg-card)', 
+            color: 'var(--text-primary)' 
+          }} 
+        />
+        
+        {/* Usamos monotone para curvas suaves y añadimos los puntos (dots) para mayor claridad */}
+        <Area 
+          type="monotone" 
+          dataKey="ingresos" 
+          stroke="var(--accent-green)" 
+          strokeWidth={3} 
+          fill="url(#gIng)" 
+          dot={{ r: 4, fill: 'var(--accent-green)', strokeWidth: 2, stroke: 'var(--bg-card)' }} 
+          activeDot={{ r: 6, strokeWidth: 0 }}
+        />
+        
+        <Area 
+          type="monotone" 
+          dataKey="gastos" 
+          stroke="var(--accent-rose)" 
+          strokeWidth={3} 
+          fill="transparent" 
+          strokeDasharray="6 6" 
+          dot={{ r: 4, fill: 'var(--accent-rose)', strokeWidth: 2, stroke: 'var(--bg-card)' }} 
+          activeDot={{ r: 6, strokeWidth: 0 }}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  </div>
+</div>
 
       {/* --- METAS --- */}
       <div className="p-6 rounded-3xl border shadow-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
