@@ -399,10 +399,9 @@ export default function GastosPage() {
                     <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
                       {new Date(m.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                     </span>
-                    
                     {m.tipo === 'egreso' && m.categoria && (
                       <>
-                        <span style={{ color: "var(--border-glass)" }}>·</span>
+                        <span style={{ color: "var(--border-glass)" }}></span>
                         <span
                           className="text-[9px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded-md"
                           style={{
