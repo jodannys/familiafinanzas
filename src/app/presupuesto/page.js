@@ -109,8 +109,6 @@ export default function PresupuestoPage() {
   }
 
   // ── SALDO DINÁMICO: gasto real + traspasos del sobre ─────────────────────
-  // Esto cruza movimientos + sobre_movimientos para que el presupuesto
-  // refleje el dinero que en realidad ya no está disponible.
   function gastadoReal(bloqueId) {
     const deMovimientos = movs
       .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
@@ -648,7 +646,6 @@ export default function PresupuestoPage() {
 
       {/* ── MODAL añadir meta/inversión real ── */}
       {addingReal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <Modal open={!!addingReal} onClose={() => { setAddingReal(null); setMontoReal('') }} title={addingReal?.nombre || ''}>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>¿Cuánto quieres presupuestar este mes?</p>
             <input className="ff-input w-full mb-3" type="number" step="0.01" placeholder="Monto €"
@@ -661,7 +658,6 @@ export default function PresupuestoPage() {
               }} className="ff-btn-primary flex-1">Guardar</button>
             </div>
           </Modal>
-        </div>
       )}
     </AppShell>
   )
