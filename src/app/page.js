@@ -145,7 +145,7 @@ export default function Dashboard() {
   return (
     <AppShell>
       <div className="mb-10 animate-enter">
-        <h1 className="text-3xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
+        <h1 className="text-[10px] font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
           Resumen General
         </h1>
         <p className="text-[11px] font-bold opacity-50 uppercase tracking-[0.2em] mt-1" style={{ color: 'var(--text-secondary)' }}>

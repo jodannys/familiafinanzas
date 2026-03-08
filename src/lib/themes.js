@@ -45,19 +45,34 @@ export const THEMES = {
     }
   },
   ocean: {
-    name: 'Ocean Slate',
-    themeColor: '#0F172A',
-    emoji: '🌊',
-    preview: ['#0F172A', '#38BDF8', '#94A3B8', '#1E293B'],
-    vars: {
-      '--bg-primary': '#0F172A', '--bg-secondary': '#1E293B', '--bg-card': '#1E293B',
-      '--bg-glass': 'rgba(30,41,59,0.8)', '--border-glass': 'rgba(255,255,255,0.06)',
-      '--accent-green': '#34D399', '--accent-terra': '#94A3B8', '--accent-blue': '#38BDF8',
-      '--accent-rose': '#F472B6', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8',
-      '--text-muted': '#475569', '--sidebar-bg': '#0F172A', '--sidebar-border': 'rgba(255,255,255,0.04)',
-      '--input-bg': '#0F172A', '--progress-track': '#334155',
-    }
-  },
+  name: 'Ocean Slate',
+  themeColor: '#0ABDC6',
+  emoji: '🌊',
+  preview: ['#FFFFFF', '#0ABDC6', '#F1F5F9', '#0F172A'],
+  vars: {
+    '--bg-primary':     '#E8F4F6',
+    '--bg-secondary':   '#F1F5F9',
+    '--bg-card':        '#FFFFFF',
+    '--bg-glass':       'rgba(255,255,255,0.85)',
+    '--border-glass':   'rgba(10,189,198,0.15)',
+    '--accent-green':   '#0ABDC6',   // teal principal (botones, highlights)
+    '--accent-terra':   '#0ABDC6',   // mismo teal para CTAs
+    '--accent-blue':    '#38BDF8',
+    '--accent-rose':    '#F472B6',
+    '--accent-violet':  '#7C6FAB',
+    '--accent-gold':    '#F59E0B',
+    '--accent-main':    '#0ABDC6',   // ← clave: botones primarios
+    '--accent-danger':  '#EF4444',
+    '--text-primary':   '#0F172A',
+    '--text-secondary': '#334155',
+    '--text-muted':     '#94A3B8',
+    '--sidebar-bg':     '#FFFFFF',
+    '--sidebar-border': 'rgba(10,189,198,0.12)',
+    '--input-bg':       '#F1F5F9',
+    '--progress-track': '#E2E8F0',
+    '--bg-dark-card':   '#0F172A',
+  }
+},
   forest: {
     name: 'Forest Moss',
     themeColor: '#F1F5F1',
