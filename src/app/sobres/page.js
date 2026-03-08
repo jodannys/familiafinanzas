@@ -19,39 +19,39 @@ function fechaHoy() {
 }
 
 const ORIGENES = [
-  { value: 'basicos',     label: 'Gastos Básicos',   color: 'var(--accent-blue)',  desc: 'Súper, facturas...' },
-  { value: 'metas',       label: 'Metas de Ahorro',  color: 'var(--accent-green)', desc: 'Retrasa tu ahorro' },
-  { value: 'inversiones', label: 'Inversiones',      color: '#818CF8',             desc: 'Retrasa tu inversión' },
+  { value: 'basicos', label: 'Gastos Básicos', color: 'var(--accent-blue)', desc: 'Súper, facturas...' },
+  { value: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)', desc: 'Retrasa tu ahorro' },
+  { value: 'inversiones', label: 'Inversiones', color: '#818CF8', desc: 'Retrasa tu inversión' },
 ]
 
 export default function SobrePage() {
   const [presupuesto, setPresupuesto] = useState(null)
-  const [sobreMovs, setSobreMovs]     = useState([])
-  const [movsMes, setMovsMes]         = useState([])
+  const [sobreMovs, setSobreMovs] = useState([])
+  const [movsMes, setMovsMes] = useState([])
   const [tarjetasData, setTarjetasData] = useState([])
-  const [loading, setLoading]         = useState(true)
-  const [saving, setSaving]           = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   const [filtroMes, setFiltroMes] = useState(new Date().getMonth() + 1)
   const [filtroAño, setFiltroAño] = useState(new Date().getFullYear())
-  const [busqueda, setBusqueda]   = useState('')
+  const [busqueda, setBusqueda] = useState('')
 
-  const [modal, setModal]                   = useState(false)
-  const [modalTraspaso, setModalTraspaso]   = useState(false)
-  const [modalSobrante, setModalSobrante]   = useState(false)
-  const [gastoTemp, setGastoTemp]           = useState(null)
+  const [modal, setModal] = useState(false)
+  const [modalTraspaso, setModalTraspaso] = useState(false)
+  const [modalSobrante, setModalSobrante] = useState(false)
+  const [gastoTemp, setGastoTemp] = useState(null)
   const [form, setForm] = useState({ descripcion: '', monto: '', quien: 'Ambos' })
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [origenTraspaso, setOrigenTraspaso] = useState('basicos')
   const [destinoSobrante, setDestinoSobrante] = useState('metas')
-  const [montoSobrante, setMontoSobrante]   = useState('')
+  const [montoSobrante, setMontoSobrante] = useState('')
 
   useEffect(() => { cargarTodo() }, [filtroMes, filtroAño])
 
   async function cargarTodo() {
     setLoading(true)
     const fechaInicio = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-01`
-    const fechaFin    = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-31`
+    const fechaFin = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-31`
 
     try {
       const [pres, { data: sobre }, { data: movs }, { data: tarjetas }] = await Promise.all([
@@ -72,10 +72,10 @@ export default function SobrePage() {
   }
 
   // ── CÁLCULOS DE SALDO ──────────────────────────────────────────────────────
-  const montoEstilo    = parseFloat(presupuesto?.montoEstilo)     || 0
-  const montoBasicos   = parseFloat(presupuesto?.montoNecesidades) || 0
-  const montoMetas     = parseFloat(presupuesto?.montoMetas)      || 0
-  const montoInv       = parseFloat(presupuesto?.montoInversiones) || 0
+  const montoEstilo = parseFloat(presupuesto?.montoEstilo) || 0
+  const montoBasicos = parseFloat(presupuesto?.montoNecesidades) || 0
+  const montoMetas = parseFloat(presupuesto?.montoMetas) || 0
+  const montoInv = parseFloat(presupuesto?.montoInversiones) || 0
 
   const gastadoSobre = movsMes
     .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
@@ -87,7 +87,7 @@ export default function SobrePage() {
 
   const saldoSobre = (montoEstilo || 0) - gastadoSobre + traspasosAlSobre
 
-  const gastadoBasicos  = movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria))
+  const gastadoBasicos = movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria))
     .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
   const traspasosBasicos = sobreMovs.filter(m => m.origen === 'basicos')
     .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
@@ -102,8 +102,8 @@ export default function SobrePage() {
   const saldoInversiones = (montoInv || 0) - traspasosInv
 
   function getSaldo(origen) {
-    if (origen === 'basicos')     return saldoBasicos || 0
-    if (origen === 'metas')       return saldoMetas || 0
+    if (origen === 'basicos') return saldoBasicos || 0
+    if (origen === 'metas') return saldoMetas || 0
     if (origen === 'inversiones') return saldoInversiones || 0
     return 0
   }
@@ -194,7 +194,7 @@ export default function SobrePage() {
     const hoy = fechaHoy()
     await supabase.from('sobre_movimientos').insert([{
       descripcion: `Sobrante → ${destinoSobrante}`,
-      monto, origen: 'sobre',destino: destinoSobrante,
+      monto, origen: 'sobre', destino: destinoSobrante,
       mes: filtroMes, año: filtroAño, fecha: hoy,
     }])
     await supabase.from('movimientos').insert([{
@@ -227,15 +227,15 @@ export default function SobrePage() {
     return m.descripcion?.toLowerCase().includes(q) || m.quien?.toLowerCase().includes(q)
   }).sort((a, b) => new Date(b.fecha || b.created_at) - new Date(a.fecha || a.created_at))
 
-  const pctUsado   = montoEstilo > 0 ? Math.min(100, (gastadoSobre / montoEstilo) * 100) : 0
+  const pctUsado = montoEstilo > 0 ? Math.min(100, (gastadoSobre / montoEstilo) * 100) : 0
   const sobreColor = saldoSobre <= 0
     ? 'var(--accent-rose)'
     : saldoSobre < montoEstilo * 0.2
       ? 'var(--accent-terra)'
       : 'var(--accent-green)'
 
-  const usandoTarjeta     = !!tarjetaSeleccionada
-  const esMesActual       = filtroMes === new Date().getMonth() + 1 && filtroAño === new Date().getFullYear()
+  const usandoTarjeta = !!tarjetaSeleccionada
+  const esMesActual = filtroMes === new Date().getMonth() + 1 && filtroAño === new Date().getFullYear()
   const montoFormParseado = parseFloat(form.monto) || 0
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
@@ -255,7 +255,7 @@ export default function SobrePage() {
             <select value={filtroMes} onChange={e => setFiltroMes(Number(e.target.value))}
               className="bg-transparent outline-none cursor-pointer"
               style={{ color: 'var(--text-muted)' }}>
-              {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].map((m, i) => (
+              {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((m, i) => (
                 <option key={m} value={i + 1}>{m}</option>
               ))}
             </select>
@@ -327,8 +327,8 @@ export default function SobrePage() {
           {/* CUBETAS */}
           <div className="grid grid-cols-3 gap-2 mb-4">
             {[
-              { label: 'Básicos',   saldo: saldoBasicos,     color: 'var(--accent-blue)' },
-              { label: 'Metas',     saldo: saldoMetas,       color: 'var(--accent-green)' },
+              { label: 'Básicos', saldo: saldoBasicos, color: 'var(--accent-blue)' },
+              { label: 'Metas', saldo: saldoMetas, color: 'var(--accent-green)' },
               { label: 'Inversión', saldo: saldoInversiones, color: '#818CF8' },
             ].map((box, i) => (
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.08}s` }}>
@@ -440,7 +440,7 @@ export default function SobrePage() {
               </select>
               {usandoTarjeta && (
                 <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
-                  style={{ background: 'rgba(129,140,248,0.08)', color: '#818CF8', border: '1px solid rgba(129,140,248,0.2)' }}>
+                  style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
                   💳 Este gasto NO restará del sobre. Se acumula en la tarjeta.
                 </div>
               )}
@@ -516,7 +516,7 @@ export default function SobrePage() {
                 className="w-full p-3.5 rounded-xl border-2 transition-all flex justify-between items-center text-left"
                 style={{
                   borderColor: origenTraspaso === o.value ? 'var(--accent-green)' : 'var(--border-glass)',
-                  background:  origenTraspaso === o.value ? 'color-mix(in srgb, var(--accent-green) 5%, transparent)' : 'transparent',
+                  background: origenTraspaso === o.value ? 'color-mix(in srgb, var(--accent-green) 5%, transparent)' : 'transparent',
                 }}>
                 <div>
                   <p className="text-xs font-black uppercase" style={{ color: o.color }}>{o.label}</p>
@@ -573,8 +573,8 @@ export default function SobrePage() {
                 className="p-3 rounded-xl border-2 text-[10px] font-black uppercase transition-all"
                 style={{
                   borderColor: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--border-glass)',
-                  background:  destinoSobrante === dest ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)' : 'transparent',
-                  color:       destinoSobrante === dest ? 'var(--accent-green)' : 'var(--text-muted)',
+                  background: destinoSobrante === dest ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)' : 'transparent',
+                  color: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--text-muted)',
                 }}>
                 {dest}
               </button>

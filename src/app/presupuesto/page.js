@@ -435,7 +435,9 @@ export default function PresupuestoPage() {
                 </button>
 
                 {isExpandido && (
-                  <div className="space-y-2 mt-2 overflow-y-auto" style={{ maxHeight: '320px' }}>
+                  <div
+                    className="space-y-2 mt-2 overflow-y-auto custom-scroll pr-2"
+                  >
                     {loadingItems ? (
                       <div className="flex justify-center py-2">
                         <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />

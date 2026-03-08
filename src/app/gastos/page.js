@@ -267,7 +267,7 @@ export default function GastosPage() {
 
   function aplicarSugerencia(item) {
     const nombre = item.nombre.replace(/^[\p{Emoji}\s]+/u, '').trim()
-    setForm(prev => ({ ...prev, descripcion: nombre, monto: item.monto ? item.monto.toString() : '' }))
+    setForm(prev => ({ ...prev, descripcion: nombre, monto: item.monto != null ? item.monto.toString() : '' }))
     const metaMatch = metasData.find(m => m.nombre.toLowerCase() === nombre.toLowerCase())
     if (metaMatch) setMetaSeleccionada(metaMatch.id)
     const invMatch = inversionesData.find(i => i.nombre.toLowerCase() === nombre.toLowerCase())
@@ -466,7 +466,7 @@ export default function GastosPage() {
               </select>
               {tarjetaSeleccionada && (
                 <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
-                  style={{ background: 'rgba(129,140,248,0.08)', color: '#818CF8', border: '1px solid rgba(129,140,248,0.2)' }}>
+                style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
                   💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
                 </div>
               )}
@@ -553,7 +553,7 @@ export default function GastosPage() {
           <button
             type="submit"
             disabled={saving}
-            className={`w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ${usandoTarjeta ? 'bg-[#818CF8] text-white' : 'ff-btn-terra'
+            className={`w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ${usandoTarjeta ? 'ff-btn-primary' : 'ff-btn-terra'
               }`}
           >
             {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
