@@ -81,31 +81,30 @@ export default function Dashboard() {
     })
   }, [movs, mesActual, añoActual])
 
- // SUSTITUYE POR:
-const dataGraficoReal = useMemo(() => {
-  if (!movs || movs.length === 0) return []
+  const dataGraficoReal = useMemo(() => {
+    if (!movs || movs.length === 0) return []
 
-  const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+    const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
-  const porMes = Array.from({ length: 12 }, (_, i) => ({
-    name: MESES[i],
-    gastos: 0,
-    ingresos: 0,
-  }))
+    const porMes = Array.from({ length: 12 }, (_, i) => ({
+      name: MESES[i],
+      gastos: 0,
+      ingresos: 0,
+    }))
 
-  movs.forEach(mov => {
-    const mes = parseInt(mov.fecha.split('-')[1], 10) - 1  // 0-11, sin UTC
-    const año = parseInt(mov.fecha.split('-')[0], 10)
-    if (año !== añoActual || mes < 0 || mes > 11) return
-    if (mov.tipo === 'egreso') {
-      porMes[mes].gastos += (mov.monto || 0)
-    } else if (mov.tipo === 'ingreso') {
-      porMes[mes].ingresos += (mov.monto || 0)
-    }
-  })
+    movs.forEach(mov => {
+      const mes = parseInt(mov.fecha.split('-')[1], 10) - 1  // 0-11, sin UTC
+      const año = parseInt(mov.fecha.split('-')[0], 10)
+      if (año !== añoActual || mes < 0 || mes > 11) return
+      if (mov.tipo === 'egreso') {
+        porMes[mes].gastos += (mov.monto || 0)
+      } else if (mov.tipo === 'ingreso') {
+        porMes[mes].ingresos += (mov.monto || 0)
+      }
+    })
 
-  return porMes
-}, [movs, añoActual])
+    return porMes
+  }, [movs, añoActual])
 
   // Lógica de KPIs y Alertas
   const ingresosMes = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
@@ -145,7 +144,7 @@ const dataGraficoReal = useMemo(() => {
 
   return (
     <AppShell>
-      <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
+      <div className="mb-10 animate-enter">
         <h1 className="text-3xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
           Resumen General
         </h1>
@@ -192,7 +191,7 @@ const dataGraficoReal = useMemo(() => {
               </div>
               <p className="text-[10px] font-black uppercase tracking-widest">{kpi.label}</p>
             </div>
-          <p className="text-xl font-black tabular-nums tracking-tighter mt-3" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-xl font-black tabular-nums tracking-tighter mt-3" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(kpi.val)}
             </p>
           </div>
