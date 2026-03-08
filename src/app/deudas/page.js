@@ -267,7 +267,6 @@ export default function DeudasPage() {
         tasa: 0,
         tasa_interes: 0,
         dia_pago: null,
-        día_corte: null,
         color: f.color,
         estado: 'activa',
         pagadas: 0,
@@ -283,7 +282,7 @@ export default function DeudasPage() {
         tipo: 'debo',
         emoji: f.emoji,
         nombre: f.nombre,
-        categoria: f.categoria,
+        categorias: f.categoria,
         capital,
         monto: capital,
         pendiente: capital,
@@ -354,7 +353,7 @@ export default function DeudasPage() {
         tipo: 'debo',
         emoji: f.emoji,
         nombre: f.nombre,
-        categoria: f.categoria,
+        categorias: f.categoria,
         cuota: monto,
         monto,
         capital: monto,
@@ -852,7 +851,7 @@ export default function DeudasPage() {
         title={editandoId ? 'Editar Deuda' : 'Nueva Deuda'}
       >
         {/* Selector de tipo (solo al crear) */}
-        <div className="overflow-y-auto pr-1" style={{ maxHeight: 'calc(85vh - 130px)' }}></div>
+        <div className="overflow-y-auto pr-1" style={{ maxHeight: 'min(calc(100dvh - 120px), 680px)' }}>
         {!editandoId && (
           <div className="grid grid-cols-3 gap-2 mb-5">
             {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
@@ -1206,6 +1205,7 @@ export default function DeudasPage() {
               onCancel={() => { setModalDeuda(false); setEditandoId(null) }} />
           </form>
         )}
+        </div>
       </Modal>
       <Modal open={!!modalMov} onClose={() => setModalMov(null)}
         title={formMov.tipo === 'pago' ? 'Registrar Pago' : 'Registrar Cargo'}>
@@ -1250,6 +1250,7 @@ export default function DeudasPage() {
             </button>
           </div>
         </form>
+        
       </Modal>
     </AppShell>
   )
