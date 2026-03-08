@@ -45,14 +45,9 @@ export default function Sidebar({ onClose }) {
         zIndex: 100
       }}>
 
-      {/* Logo */}
-      <div className="flex justify-center w-full mb-12">
-        <img src="/icon.svg" alt="Logo" className="w-7 h-7" />
-      </div>
-
       {/* Navegación */}
       <nav className="flex-1 w-full overflow-y-auto no-scrollbar flex flex-col items-center">
-        <div className="w-full flex flex-col items-center gap-10">
+        <div className="w-full flex flex-col items-center gap-4">
           {MENU_GROUPS.map((group, gIdx) => (
             <div key={gIdx} className="w-full flex flex-col items-center gap-4 relative">
               {gIdx > 0 && (
