@@ -36,7 +36,6 @@ export default function AppShell({ children }) {
       <main className="flex-1 min-h-screen lg:ml-20 flex flex-col transition-all duration-300"
         style={{ background: 'var(--bg-primary)' }}
       >
-        // Encima del header móvil, añade:
         <div
           className="lg:hidden"
           style={{
