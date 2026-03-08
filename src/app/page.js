@@ -111,7 +111,23 @@ export default function Dashboard() {
       </div>
     </AppShell>
   )
+// Esto prepara tus datos de Supabase para el gráfico
+  const dataGraficoReal = useMemo(() => {
+    const agrupado = movsMes.reduce((acc, mov) => {
+      if (mov.tipo === 'egreso') {
+        const dia = new Date(mov.fecha).getDate()
+        acc[dia] = (acc[dia] || 0) + (mov.monto || 0)
+      }
+      return acc;
+    }, {})
 
+    return Object.entries(agrupado)
+      .map(([dia, monto]) => ({
+        name: `Día ${dia}`,
+        valor: monto
+      }))
+      .sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]))
+  }, [movsMes])
   return (
     <AppShell>
       {/* HEADER PRINCIPAL */}
@@ -174,7 +190,7 @@ export default function Dashboard() {
       {/* SECCIÓN GRÁFICA Y DISTRIBUCIÓN */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         <div className="lg:col-span-2">
-          <FinanceChart />
+       <FinanceChart data={dataGraficoReal} />
         </div>
 
         {/* TARJETA DE DISTRIBUCIÓN */}
