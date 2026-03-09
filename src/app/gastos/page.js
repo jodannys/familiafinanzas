@@ -16,7 +16,13 @@ const CATS = [
   { value: 'deuda', label: 'Deudas' },
 ]
 
-const catColor = { basicos: 'sky', deseo: 'violet', ahorro: 'emerald', inversion: 'gold', deuda: 'rose' }
+const CAT_COLOR_VAR = {
+  basicos: 'var(--accent-blue)',
+  deseo: 'var(--accent-violet)',
+  ahorro: 'var(--accent-green)',
+  inversion: 'var(--accent-gold)',
+  deuda: 'var(--accent-rose)',
+}
 
 const CAT_BLOQUE = {
   basicos: 'necesidades', deuda: 'necesidades',
@@ -297,7 +303,7 @@ export default function GastosPage() {
       pct: null, color: '#818CF8', emoji: '📈',
     }))
 
-    
+
     return presItems
       .filter(i => i.bloque === CAT_BLOQUE[form.categoria])
       .map(i => ({ id: i.id, nombre: i.nombre, monto: i.monto, sub: null, pct: null, color: 'var(--accent-terra)', emoji: '📌' }))
@@ -391,7 +397,21 @@ export default function GastosPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold truncate leading-tight" style={{ color: "var(--text-primary)" }}>{m.descripcion}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <Badge color={catColor[m.categoria] || 'slate'}>{m.categoria}</Badge>
+                    {(() => {
+                      const esIngreso = m.tipo === 'ingreso'
+                      const color = esIngreso ? 'var(--accent-green)' : (CAT_COLOR_VAR[m.categoria] || 'var(--text-muted)')
+                      const label = esIngreso ? 'ingreso' : m.categoria
+                      return (
+                        <span style={{
+                          fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
+                          letterSpacing: '0.12em', padding: '3px 8px', borderRadius: 999,
+                          background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                          color: color,
+                        }}>
+                          {label}
+                        </span>
+                      )
+                    })()}
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
