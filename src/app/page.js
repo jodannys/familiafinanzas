@@ -117,10 +117,10 @@ export default function Dashboard() {
     .sort((a, b) => a.dias - b.dias)
 
   const KPI_CONFIG = [
-    { label: 'Ingresos',    val: ingresosMes,   col: 'var(--accent-green)', icon: ArrowUpRight,   signo: '+' },
-    { label: 'Gastos',      val: gastosMes,      col: 'var(--accent-rose)',  icon: ArrowDownRight, signo: '-' },
-    { label: 'Metas',       val: totalAhorrado,  col: 'var(--accent-terra)', icon: Target,         signo: ''  },
-    { label: 'Saldo Libre', val: saldo,          col: saldo >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: Wallet, signo: '' },
+    { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', icon: ArrowUpRight, signo: '+' },
+    { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', icon: ArrowDownRight, signo: '-' },
+    { label: 'Metas', val: totalAhorrado, col: 'var(--accent-terra)', icon: Target, signo: '' },
+    { label: 'Saldo Libre', val: saldo, col: saldo >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: Wallet, signo: '' },
   ]
 
   if (!mounted) return null
@@ -182,7 +182,7 @@ export default function Dashboard() {
               animationDelay: `${i * 0.06}s`,
             }}
           >
-          
+
 
             {/* Label + icono */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -237,56 +237,156 @@ export default function Dashboard() {
       </div>
 
       {/* ── Gráfico + Distribución ── */}
+      {/* ── Gráfico + Distribución ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         <div className="lg:col-span-2">
           <FinanceChart data={dataGraficoReal} />
         </div>
 
-        <div className="p-8 rounded-[40px] border flex flex-col"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-          <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40 mb-8" style={{ color: 'var(--text-secondary)' }}>
-            Distribución
-          </h3>
-          <div className="space-y-7 flex-1 flex flex-col justify-center">
-            {distribucionReal.length > 0 ? distribucionReal.map(d => (
+        {/* Distribución */}
+        <div className="flex flex-col rounded-[40px] overflow-hidden"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
+
+          {/* Header con fondo sutil */}
+          <div style={{
+            padding: '24px 28px 20px',
+            borderBottom: '1px solid var(--border-glass)',
+          }}>
+            <p style={{
+              fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
+              letterSpacing: '0.2em', color: 'var(--text-muted)',
+            }}>
+              Distribución
+            </p>
+          </div>
+
+          {/* Items */}
+          <div style={{ padding: '20px 28px 28px', flex: 1, display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {distribucionReal.length > 0 ? distribucionReal.map((d, i) => (
               <div key={d.name}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold capitalize opacity-70" style={{ color: 'var(--text-primary)' }}>{d.name}</span>
-                  <span className="text-[11px] font-black" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {/* Dot de color */}
+                    <div style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: d.color, flexShrink: 0,
+                    }} />
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, textTransform: 'capitalize',
+                      color: 'var(--text-secondary)',
+                    }}>{d.name}</span>
+                  </div>
+                  <span style={{
+                    fontSize: 13, fontWeight: 900, letterSpacing: '-0.02em',
+                    color: 'var(--text-primary)',
+                  }}>{d.value}%</span>
                 </div>
-                <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
-                  <div className="h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${d.value}%`, background: d.color }} />
+                {/* Barra más delgada y elegante */}
+                <div style={{
+                  height: 4, borderRadius: 999,
+                  background: 'var(--progress-track)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${d.value}%`,
+                    background: d.color,
+                    borderRadius: 999,
+                    transition: 'width 1s cubic-bezier(0.2,0,0.2,1)',
+                  }} />
                 </div>
               </div>
             )) : (
-              <p className="text-center text-[10px] opacity-30 font-bold uppercase italic">Sin egresos este mes</p>
+              <p style={{
+                textAlign: 'center', fontSize: 10, fontWeight: 700,
+                textTransform: 'uppercase', opacity: 0.3, fontStyle: 'italic',
+                color: 'var(--text-muted)', marginTop: 'auto', marginBottom: 'auto',
+              }}>Sin egresos este mes</p>
             )}
           </div>
         </div>
       </div>
 
       {/* ── Metas ── */}
-      <div className="p-8 rounded-[40px] border shadow-sm"
-        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-        <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40 mb-8" style={{ color: 'var(--text-secondary)' }}>
-          Objetivos de Ahorro
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
-          {metas.map(m => (
-            <div key={m.id} className="relative">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{getFlagEmoji(m.emoji)}</span>
-                  <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>{m.nombre}</span>
+      <div className="rounded-[40px] overflow-hidden mb-4"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
+
+        {/* Header */}
+        <div style={{
+          padding: '24px 32px 20px',
+          borderBottom: '1px solid var(--border-glass)',
+        }}>
+          <p style={{
+            fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
+            letterSpacing: '0.2em', color: 'var(--text-muted)',
+          }}>
+            Objetivos de Ahorro
+          </p>
+        </div>
+
+        {/* Grid de metas */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: 1,
+          background: 'var(--border-glass)',
+        }}>
+          {metas.map(m => {
+            const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
+            return (
+              <div key={m.id} style={{
+                background: 'var(--bg-card)',
+                padding: '24px 28px',
+              }}>
+                {/* Top: emoji + nombre + porcentaje */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 12, flexShrink: 0,
+                      background: `${m.color}18`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 18,
+                    }}>
+                      {getFlagEmoji(m.emoji)}
+                    </div>
+                    <span style={{
+                      fontSize: 13, fontWeight: 800, letterSpacing: '-0.02em',
+                      color: 'var(--text-primary)', lineHeight: 1.2,
+                    }}>{m.nombre}</span>
+                  </div>
+                  <span style={{
+                    fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em',
+                    color: m.color, flexShrink: 0, marginLeft: 8,
+                  }}>{pct}%</span>
                 </div>
-                <span className="text-[10px] font-black opacity-40 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                  {formatCurrency(m.actual)} / {formatCurrency(m.meta)}
-                </span>
+
+                {/* Barra */}
+                <div style={{
+                  height: 5, borderRadius: 999,
+                  background: 'var(--progress-track)',
+                  overflow: 'hidden', marginBottom: 12,
+                }}>
+                  <div style={{
+                    height: '100%', width: `${pct}%`,
+                    background: m.color, borderRadius: 999,
+                    transition: 'width 1.2s cubic-bezier(0.2,0,0.2,1)',
+                  }} />
+                </div>
+
+                {/* Montos */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{
+                    fontSize: 13, fontWeight: 900, letterSpacing: '-0.02em',
+                    color: m.color,
+                  }}>{formatCurrency(m.actual || 0)}</span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600,
+                    color: 'var(--text-muted)',
+                  }}>/ {formatCurrency(m.meta)}</span>
+                </div>
               </div>
-              <ProgressBar value={m.actual} max={m.meta} color={m.color} />
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </AppShell>
