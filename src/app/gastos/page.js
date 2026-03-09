@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import { Card, Badge } from '@/components/ui/Card'
+import { Card } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -15,14 +15,6 @@ const CATS = [
   { value: 'inversion', label: 'Inversión' },
   { value: 'deuda', label: 'Deudas' },
 ]
-
-const CAT_COLOR_VAR = {
-  basicos: 'colores.blue',
-  deseo: 'colores.violet',
-  ahorro: 'colores.green',
-  inversion: 'var(--accent-gold)',
-  deuda: colores.rose,
-}
 
 const CAT_BLOQUE = {
   basicos: 'necesidades', deuda: 'necesidades',
@@ -43,11 +35,12 @@ export default function GastosPage() {
   const [inversionesData, setInversionesData] = useState([])
   const [deudasData, setDeudasData] = useState([])
   const [tarjetasData, setTarjetasData] = useState([])
-  const [tarjetaDeudasMap, setTarjetaDeudasMap] = useState({}) // perfil_id → deuda
+  const [tarjetaDeudasMap, setTarjetaDeudasMap] = useState({})
   const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [presupuesto, setPresupuesto] = useState(null)
+  const [colores, setColores] = useState({})
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
     categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys'
@@ -57,6 +50,38 @@ export default function GastosPage() {
   const mes = now.getMonth() + 1
   const año = now.getFullYear()
 
+  // ── Colores del tema ──────────────────────────────────────────────────────
+  useEffect(() => {
+    function leer() {
+      const s = getComputedStyle(document.documentElement)
+      const v = (n) => s.getPropertyValue(n).trim()
+      setColores({
+        green:  v('--accent-green'),
+        rose:   v('--accent-rose'),
+        blue:   v('--accent-blue'),
+        terra:  v('--accent-terra'),
+        violet: v('--accent-violet'),
+        gold:   v('--accent-gold'),
+        muted:  v('--text-muted'),
+        border: v('--border-glass'),
+        card:   v('--bg-card'),
+        track:  v('--progress-track'),
+      })
+    }
+    leer()
+    window.addEventListener('theme-change', leer)
+    return () => window.removeEventListener('theme-change', leer)
+  }, [])
+
+  // CAT_COLOR_VAR dentro del componente para que use colores resueltos
+  const CAT_COLOR_VAR = {
+    basicos:   colores.blue,
+    deseo:     colores.violet,
+    ahorro:    colores.green,
+    inversion: colores.gold,
+    deuda:     colores.rose,
+  }
+
   useEffect(() => {
     getPresupuestoMes().then(setPresupuesto)
     cargarMovimientos()
@@ -64,13 +89,12 @@ export default function GastosPage() {
     supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
     supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
-    // Tarjetas: perfiles_tarjetas para display + mapa perfil→deuda para insertar cargos
     supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, banco, color').eq('estado', 'activa')
       .then(({ data }) => setTarjetasData(data || []))
     supabase.from('deudas').select('id, perfil_tarjeta_id, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
       .then(({ data }) => {
         const map = {}
-          ; (data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
+        ;(data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
         setTarjetaDeudasMap(map)
       })
   }, [])
@@ -104,7 +128,7 @@ export default function GastosPage() {
     if (!monto || monto <= 0) return
     setSaving(true)
 
-    // ── PAGO CON TARJETA: cargo a la deuda asociada al perfil ──────────────
+    // ── PAGO CON TARJETA ──────────────────────────────────────────────────
     if (tarjetaSeleccionada && form.tipo === 'egreso') {
       const deudaTarjeta = tarjetaDeudasMap[tarjetaSeleccionada]
       if (!deudaTarjeta) {
@@ -113,7 +137,7 @@ export default function GastosPage() {
         return
       }
       const { error } = await supabase.from('deuda_movimientos').insert([{
-        deuda_id: deudaTarjeta.id,  // deudas.id del perfil_tarjeta
+        deuda_id: deudaTarjeta.id,
         tipo: 'cargo',
         descripcion: form.descripcion,
         monto,
@@ -135,12 +159,9 @@ export default function GastosPage() {
       return
     }
 
-    // ── GASTO NORMAL: va a movimientos ────────────────────────────────────────
-    // Si es deuda, añadimos deuda_id al registro para poder revertir sin ilike
+    // ── GASTO NORMAL ──────────────────────────────────────────────────────
     const deudaId = form.categoria === 'deuda' && deudaSeleccionada ? deudaSeleccionada : null
-    const payloadMov = deudaId
-      ? { ...form, monto, deuda_id: deudaId }
-      : { ...form, monto }
+    const payloadMov = deudaId ? { ...form, monto, deuda_id: deudaId } : { ...form, monto }
 
     const { data, error } = await supabase.from('movimientos').insert([payloadMov]).select()
 
@@ -183,7 +204,6 @@ export default function GastosPage() {
             estado: nuevoEstado,
           }).eq('id', deudaSeleccionada)
 
-          // Espejo en deuda_movimientos para historial de la deuda
           await supabase.from('deuda_movimientos').insert([{
             deuda_id: deudaSeleccionada,
             tipo: 'pago',
@@ -209,7 +229,6 @@ export default function GastosPage() {
   async function handleDelete(movimiento) {
     if (!confirm(`¿Eliminar "${movimiento.descripcion}"?`)) return
     try {
-      // Revertir ahorro
       if (movimiento.categoria === 'ahorro') {
         const meta = metasData.find(m => m.nombre === movimiento.descripcion)
         if (meta) {
@@ -219,7 +238,6 @@ export default function GastosPage() {
         }
       }
 
-      // Revertir inversión
       if (movimiento.categoria === 'inversion') {
         const inv = inversionesData.find(i => i.nombre === movimiento.descripcion)
         if (inv) {
@@ -229,7 +247,6 @@ export default function GastosPage() {
         }
       }
 
-      // Revertir deuda: usa deuda_id guardado en el movimiento — sin ilike frágil
       if (movimiento.categoria === 'deuda') {
         const deudaId = movimiento.deuda_id
         if (deudaId) {
@@ -251,7 +268,6 @@ export default function GastosPage() {
               estado: nuevoEstado,
             }).eq('id', deudaId)
 
-            // Borrar espejo en deuda_movimientos: match exacto por deuda_id + fecha + monto
             await supabase.from('deuda_movimientos').delete()
               .eq('deuda_id', deudaId)
               .eq('tipo', 'pago')
@@ -265,7 +281,6 @@ export default function GastosPage() {
         }
       }
 
-      // Borrar el movimiento principal
       const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
       if (!error) setMovs(prev => prev.filter(m => m.id !== movimiento.id))
       else alert('Error al borrar: ' + error.message)
@@ -285,28 +300,27 @@ export default function GastosPage() {
 
   const sugerenciasRicas = form.tipo === 'egreso' ? (() => {
     if (form.categoria === 'deuda') return []
-    if (form.categoria === 'ahorro') {
-      const montoMetas = presupuesto?.montoMetas || 0  // ← reemplaza todo el bloque anterior
 
+    if (form.categoria === 'ahorro') {
+      const montoMetas = presupuesto?.montoMetas || 0
       return metasData.map(m => ({
         id: m.id, nombre: m.nombre,
         monto: Math.round((m.pct_mensual / 100) * montoMetas),
         sub: `${formatCurrency(m.actual || 0)} / ${formatCurrency(m.meta)}`,
         pct: Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100)),
-        color: 'colores.green', emoji: '🎯',
+        color: colores.green, emoji: '🎯',
       }))
     }
 
     if (form.categoria === 'inversion') return inversionesData.map(i => ({
       id: `inv_${i.id}`, nombre: i.nombre, monto: i.aporte || 0,
       sub: `Capital: ${formatCurrency(i.capital || 0)}`,
-      pct: null, color: '#818CF8', emoji: '📈',
+      pct: null, color: colores.violet, emoji: '📈',
     }))
-
 
     return presItems
       .filter(i => i.bloque === CAT_BLOQUE[form.categoria])
-      .map(i => ({ id: i.id, nombre: i.nombre, monto: i.monto, sub: null, pct: null, color: 'colores.terra', emoji: '📌' }))
+      .map(i => ({ id: i.id, nombre: i.nombre, monto: i.monto, sub: null, pct: null, color: colores.terra, emoji: '📌' }))
   })() : []
 
   const movsMes = movs.filter(m => {
@@ -325,11 +339,13 @@ export default function GastosPage() {
   return (
     <AppShell>
       <div className="w-full max-w-full overflow-x-hidden">
+
+        {/* HEADER */}
         <div className="mb-6 animate-enter px-1">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
-              <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: "var(--text-primary)" }}>Registro</h1>
+              <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: 'var(--text-primary)' }}>Registro</h1>
             </div>
             <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2">
               <Plus size={18} strokeWidth={3} />
@@ -338,22 +354,33 @@ export default function GastosPage() {
           </div>
         </div>
 
+        {/* ERROR */}
         {error && (
-          <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold" style={{ background: "color-mix(in srgb, colores.rose 8%, transparent)", border: "1px solid color-mix(in srgb, colores.rose 20%, transparent)", color: "colores.rose" }}>{error}</div>
+          <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold" style={{
+            background: `color-mix(in srgb, ${colores.rose} 8%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${colores.rose} 20%, transparent)`,
+            color: colores.rose,
+          }}>{error}</div>
         )}
 
+        {/* KPI CARDS */}
         <div className="grid grid-cols-3 gap-2 mb-6">
           {[
-            { label: 'Ingresos', value: formatCurrency(ingresos), color: 'colores.green', icon: ArrowUpRight },
+            { label: 'Ingresos', value: formatCurrency(ingresos), color: colores.green, icon: ArrowUpRight },
             { label: 'Egresos', value: formatCurrency(egresos), color: colores.rose, icon: ArrowDownRight },
-            { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'colores.green' : colores.rose, icon: ingresos - egresos >= 0 ? ArrowUpRight : ArrowDownRight },
+            {
+              label: 'Balance',
+              value: formatCurrency(ingresos - egresos),
+              color: ingresos - egresos >= 0 ? colores.green : colores.rose,
+              icon: ingresos - egresos >= 0 ? ArrowUpRight : ArrowDownRight,
+            },
           ].map((s, i) => (
             <div key={i} className="animate-enter"
               style={{
                 background: colores.card,
                 borderRadius: 20,
                 padding: '12px 14px',
-                border: '1px solid colores.glass',
+                border: `1px solid ${colores.border}`,
                 animationDelay: `${i * 0.05}s`,
                 display: 'flex',
                 flexDirection: 'column',
@@ -380,6 +407,7 @@ export default function GastosPage() {
           ))}
         </div>
 
+        {/* BÚSQUEDA Y FILTROS */}
         <div className="flex flex-col gap-3 mb-6">
           <div className="relative w-full">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: colores.muted, zIndex: 10 }} />
@@ -391,9 +419,9 @@ export default function GastosPage() {
               <button key={f.v} onClick={() => setFiltro(f.v)}
                 className="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border"
                 style={{
-                  background: filtro === f.v ? 'color-mix(in srgb, colores.green 10%, transparent)' : 'transparent',
-                  color: filtro === f.v ? 'colores.green' : colores.muted,
-                  borderColor: filtro === f.v ? 'color-mix(in srgb, colores.green 20%, transparent)' : 'transparent',
+                  background: filtro === f.v ? `color-mix(in srgb, ${colores.green} 10%, transparent)` : 'transparent',
+                  color: filtro === f.v ? colores.green : colores.muted,
+                  borderColor: filtro === f.v ? `color-mix(in srgb, ${colores.green} 20%, transparent)` : 'transparent',
                 }}>
                 {f.l}
               </button>
@@ -401,31 +429,43 @@ export default function GastosPage() {
           </div>
         </div>
 
+        {/* LISTA DE MOVIMIENTOS */}
         <Card className="overflow-hidden border-none shadow-sm">
           {loading ? (
             <div className="flex items-center justify-center py-12 gap-3 opacity-50">
               <Loader2 size={20} className="animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12"><p className="text-sm italic" style={{ color: colores.muted }}>No hay registros</p></div>
+            <div className="text-center py-12">
+              <p className="text-sm italic" style={{ color: colores.muted }}>No hay registros</p>
+            </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: "colores.glass" }}>
+            <div className="divide-y" style={{ borderColor: colores.border }}>
               {filtered.map((m, i) => (
-                <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background = "var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                <div key={m.id}
+                  className="flex items-center gap-3 px-3 py-4 transition-colors group"
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   style={{ animationDelay: `${i * 0.02}s` }}>
+
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{
-                      background: m.tipo === 'ingreso' ? 'color-mix(in srgb, colores.green 10%, transparent)' : 'color-mix(in srgb, colores.rose 10%, transparent)',
-                      color: m.tipo === 'ingreso' ? 'colores.green' : colores.rose,
+                      background: m.tipo === 'ingreso'
+                        ? `color-mix(in srgb, ${colores.green} 10%, transparent)`
+                        : `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
+                      color: m.tipo === 'ingreso' ? colores.green : colores.rose,
                     }}>
                     {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                   </div>
+
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate leading-tight" style={{ color: "var(--text-primary)" }}>{m.descripcion}</p>
+                    <p className="text-sm font-bold truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {m.descripcion}
+                    </p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {(() => {
                         const esIngreso = m.tipo === 'ingreso'
-                        const color = esIngreso ? 'colores.green' : (CAT_COLOR_VAR[m.categoria] || colores.muted)
+                        const color = esIngreso ? colores.green : (CAT_COLOR_VAR[m.categoria] || colores.muted)
                         const label = esIngreso ? 'ingreso' : m.categoria
                         return (
                           <span style={{
@@ -440,11 +480,18 @@ export default function GastosPage() {
                       })()}
                     </div>
                   </div>
+
                   <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
-                    <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'colores.green' : colores.rose }}>
+                    <p className="text-sm font-black tabular-nums"
+                      style={{ color: m.tipo === 'ingreso' ? colores.green : colores.rose }}>
                       {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
                     </p>
-                    <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: colores.muted, opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color = "colores.rose"; e.currentTarget.style.opacity = "1" }} onMouseLeave={e => { e.currentTarget.style.color = colores.muted; e.currentTarget.style.opacity = "0.4" }}>
+                    <button
+                      onClick={() => handleDelete(m)}
+                      className="p-1 transition-all"
+                      style={{ color: colores.muted, opacity: 0.4 }}
+                      onMouseEnter={e => { e.currentTarget.style.color = colores.rose; e.currentTarget.style.opacity = '1' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = colores.muted; e.currentTarget.style.opacity = '0.4' }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -454,18 +501,19 @@ export default function GastosPage() {
           )}
         </Card>
 
+        {/* MODAL NUEVO MOVIMIENTO */}
         <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
           <form onSubmit={handleAdd} className="space-y-4">
 
             {/* Tipo toggle */}
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: "var(--bg-secondary)" }}>
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: 'var(--bg-secondary)' }}>
               {['ingreso', 'egreso'].map(t => (
                 <button type="button" key={t}
                   onClick={() => {
                     setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? '' : 'basicos' })
                     setTarjetaSeleccionada('')
                   }}
-                  className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
+                  className="py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
                   style={{
                     background: form.tipo === t ? colores.card : 'transparent',
                     color: form.tipo === t ? 'var(--text-primary)' : colores.muted,
@@ -498,7 +546,7 @@ export default function GastosPage() {
               </div>
             </div>
 
-            {/* ── TARJETA DE CRÉDITO: solo para egresos que no son pago de deuda ── */}
+            {/* Tarjeta de crédito */}
             {form.tipo === 'egreso' && form.categoria !== 'deuda' && tarjetasData.length > 0 && (
               <div className="space-y-1 animate-enter">
                 <label className="ff-label flex items-center gap-1.5">
@@ -516,31 +564,46 @@ export default function GastosPage() {
                 </select>
                 {tarjetaSeleccionada && (
                   <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
-                    style={{ background: 'color-mix(in srgb, colores.violet 8%, transparent)', color: 'colores.violet', border: '1px solid color-mix(in srgb, colores.violet 20%, transparent)' }}>
+                    style={{
+                      background: `color-mix(in srgb, ${colores.violet} 8%, transparent)`,
+                      color: colores.violet,
+                      border: `1px solid color-mix(in srgb, ${colores.violet} 20%, transparent)`,
+                    }}>
                     💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
                   </div>
                 )}
               </div>
             )}
 
-            {/* Sugerencias — solo si NO usa tarjeta */}
+            {/* Sugerencias */}
             {!usandoTarjeta && sugerenciasRicas.length > 0 && (
               <div className="animate-enter">
-                <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: colores.muted }}>Sugerencias del presupuesto</p>
-                <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
+                <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: colores.muted }}>
+                  Sugerencias del presupuesto
+                </p>
+                <div className="grid grid-cols-2 gap-2">
                   {sugerenciasRicas.map(item => (
                     <button type="button" key={item.id}
                       onClick={() => aplicarSugerencia({ ...item, nombre: `${item.emoji} ${item.nombre}` })}
                       className="text-left p-3 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95"
-                      style={{ background: `${item.color}08`, borderColor: `${item.color}25` }}>
+                      style={{
+                        background: `color-mix(in srgb, ${item.color} 8%, transparent)`,
+                        borderColor: `color-mix(in srgb, ${item.color} 25%, transparent)`,
+                      }}>
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className="text-base leading-none">{item.emoji}</span>
-                        <p className="text-[10px] font-black truncate leading-tight" style={{ color: "var(--text-secondary)" }}>{item.nombre}</p>
+                        <p className="text-[10px] font-black truncate leading-tight" style={{ color: 'var(--text-secondary)' }}>
+                          {item.nombre}
+                        </p>
                       </div>
                       {item.monto > 0 && (
-                        <p className="text-sm font-black mb-1" style={{ color: item.color }}>{formatCurrency(item.monto)}</p>
+                        <p className="text-sm font-black mb-1" style={{ color: item.color }}>
+                          {formatCurrency(item.monto)}
+                        </p>
                       )}
-                      {item.sub && <p className="text-[9px] truncate mb-1" style={{ color: colores.muted }}>{item.sub}</p>}
+                      {item.sub && (
+                        <p className="text-[9px] truncate mb-1" style={{ color: colores.muted }}>{item.sub}</p>
+                      )}
                       {item.pct !== null && (
                         <div className="w-full h-1 rounded-full mt-1" style={{ background: colores.track }}>
                           <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: item.color }} />
@@ -551,8 +614,6 @@ export default function GastosPage() {
                 </div>
               </div>
             )}
-
-            {/* Sin selector extra — las sugerencias de arriba ya asignan la meta/inversión */}
 
             {/* Selector deuda */}
             {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
@@ -565,17 +626,16 @@ export default function GastosPage() {
                     if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: (d.cuota || d.pendiente || '').toString() }))
                   }}>
                   <option value="">— Seleccionar deuda —</option>
-                  {deudasData
-                    .map(d => (
-                      <option key={d.id} value={d.id}>
-                        {d.tipo_deuda === 'tarjeta' ? '💳 ' : ''}{d.nombre} · Pendiente {formatCurrency(d.pendiente)}
-                      </option>
-                    ))}
+                  {deudasData.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.tipo_deuda === 'tarjeta' ? '💳 ' : ''}{d.nombre} · Pendiente {formatCurrency(d.pendiente)}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
 
-            {/* Descripción — se oculta cuando hay sugerencias y todavía no se eligió ninguna */}
+            {/* Descripción */}
             {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
               <div className="space-y-1 animate-enter">
                 <label className="ff-label">Descripción</label>
@@ -584,13 +644,14 @@ export default function GastosPage() {
               </div>
             )}
 
-            {/* Monto + Fecha — aparecen tras elegir sugerencia (o siempre si no hay sugerencias) */}
+            {/* Monto + Fecha */}
             {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="ff-label">Monto (€)</label>
                   <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
-                    style={{ color: 'colores.terra' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
+                    style={{ color: colores.terra }}
+                    value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
                 </div>
                 <div className="space-y-1">
                   <label className="ff-label">Fecha</label>
@@ -603,13 +664,13 @@ export default function GastosPage() {
             <button
               type="submit"
               disabled={saving}
-              className={`w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ${usandoTarjeta ? 'ff-btn-primary' : 'ff-btn-terra'
-                }`}
+              className={`w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ${usandoTarjeta ? 'ff-btn-primary' : 'ff-btn-terra'}`}
             >
               {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
             </button>
           </form>
         </Modal>
+
       </div>
     </AppShell>
   )
