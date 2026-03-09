@@ -324,291 +324,293 @@ export default function GastosPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 animate-enter px-1">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: "var(--text-muted)" }}>Módulo</p>
-            <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: "var(--text-primary)" }}>Registro</h1>
-          </div>
-          <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2">
-            <Plus size={18} strokeWidth={3} />
-            <span className="hidden sm:inline">Nuevo registro</span>
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold" style={{ background: "color-mix(in srgb, var(--accent-rose) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)", color: "var(--accent-rose)" }}>{error}</div>
-      )}
-
-      <div className="grid grid-cols-3 gap-2 mb-6">
-        {[
-          { label: 'Ingresos', value: formatCurrency(ingresos), color: 'var(--accent-green)', icon: ArrowUpRight },
-          { label: 'Egresos', value: formatCurrency(egresos), color: 'var(--accent-rose)', icon: ArrowDownRight },
-          { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: ingresos - egresos >= 0 ? ArrowUpRight : ArrowDownRight },
-        ].map((s, i) => (
-          <div key={i} className="animate-enter"
-            style={{
-              background: 'var(--bg-card)',
-              borderRadius: 20,
-              padding: '12px 14px',
-              border: '1px solid var(--border-glass)',
-              animationDelay: `${i * 0.05}s`,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-            }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: 8, flexShrink: 0,
-              background: `color-mix(in srgb, ${s.color} 12%, transparent)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <s.icon size={12} style={{ color: s.color }} strokeWidth={2.5} />
-            </div>
+      <div className="w-full max-w-full overflow-x-hidden">
+        <div className="mb-6 animate-enter px-1">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <p style={{
-                fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
-                letterSpacing: '0.12em', color: 'var(--text-muted)', marginBottom: 4,
-              }}>{s.label}</p>
-              <p style={{
-                fontSize: 14, fontWeight: 900, letterSpacing: '-0.03em',
-                color: s.color, lineHeight: 1,
-              }}>{s.value}</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: "var(--text-muted)" }}>Módulo</p>
+              <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: "var(--text-primary)" }}>Registro</h1>
             </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3 mb-6">
-        <div className="relative w-full">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)", zIndex: 10 }} />
-          <input className="ff-input w-full h-12" style={{ paddingLeft: '3.5rem' }}
-            placeholder="Buscar movimiento..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }].map(f => (
-            <button key={f.v} onClick={() => setFiltro(f.v)}
-              className="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border"
-              style={{
-                background: filtro === f.v ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'transparent',
-                color: filtro === f.v ? 'var(--accent-green)' : 'var(--text-muted)',
-                borderColor: filtro === f.v ? 'color-mix(in srgb, var(--accent-green) 20%, transparent)' : 'transparent',
-              }}>
-              {f.l}
+            <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2">
+              <Plus size={18} strokeWidth={3} />
+              <span className="hidden sm:inline">Nuevo registro</span>
             </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold" style={{ background: "color-mix(in srgb, var(--accent-rose) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)", color: "var(--accent-rose)" }}>{error}</div>
+        )}
+
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          {[
+            { label: 'Ingresos', value: formatCurrency(ingresos), color: 'var(--accent-green)', icon: ArrowUpRight },
+            { label: 'Egresos', value: formatCurrency(egresos), color: 'var(--accent-rose)', icon: ArrowDownRight },
+            { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: ingresos - egresos >= 0 ? ArrowUpRight : ArrowDownRight },
+          ].map((s, i) => (
+            <div key={i} className="animate-enter"
+              style={{
+                background: 'var(--bg-card)',
+                borderRadius: 20,
+                padding: '12px 14px',
+                border: '1px solid var(--border-glass)',
+                animationDelay: `${i * 0.05}s`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+                background: `color-mix(in srgb, ${s.color} 12%, transparent)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <s.icon size={12} style={{ color: s.color }} strokeWidth={2.5} />
+              </div>
+              <div>
+                <p style={{
+                  fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
+                  letterSpacing: '0.12em', color: 'var(--text-muted)', marginBottom: 4,
+                }}>{s.label}</p>
+                <p style={{
+                  fontSize: 14, fontWeight: 900, letterSpacing: '-0.03em',
+                  color: s.color, lineHeight: 1,
+                }}>{s.value}</p>
+              </div>
+            </div>
           ))}
         </div>
-      </div>
 
-      <Card className="overflow-hidden border-none shadow-sm">
-        {loading ? (
-          <div className="flex items-center justify-center py-12 gap-3 opacity-50">
-            <Loader2 size={20} className="animate-spin" />
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="relative w-full">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)", zIndex: 10 }} />
+            <input className="ff-input w-full h-12" style={{ paddingLeft: '3.5rem' }}
+              placeholder="Buscar movimiento..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12"><p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No hay registros</p></div>
-        ) : (
-          <div className="divide-y" style={{ borderColor: "var(--border-glass)" }}>
-            {filtered.map((m, i) => (
-              <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background = "var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                style={{ animationDelay: `${i * 0.02}s` }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: m.tipo === 'ingreso' ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
-                    color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)',
-                  }}>
-                  {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold truncate leading-tight" style={{ color: "var(--text-primary)" }}>{m.descripcion}</p>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {(() => {
-                      const esIngreso = m.tipo === 'ingreso'
-                      const color = esIngreso ? 'var(--accent-green)' : (CAT_COLOR_VAR[m.categoria] || 'var(--text-muted)')
-                      const label = esIngreso ? 'ingreso' : m.categoria
-                      return (
-                        <span style={{
-                          fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
-                          letterSpacing: '0.12em', padding: '3px 8px', borderRadius: 999,
-                          background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                          color: color,
-                        }}>
-                          {label}
-                        </span>
-                      )
-                    })()}
-                  </div>
-                </div>
-                <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
-                  <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                    {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
-                  </p>
-                  <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color = "var(--accent-rose)"; e.currentTarget.style.opacity = "1" }} onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.4" }}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
-        <form onSubmit={handleAdd} className="space-y-4">
-
-          {/* Tipo toggle */}
-          <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: "var(--bg-secondary)" }}>
-            {['ingreso', 'egreso'].map(t => (
-              <button type="button" key={t}
-                onClick={() => {
-                  setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? '' : 'basicos' })
-                  setTarjetaSeleccionada('')
-                }}
-                className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }].map(f => (
+              <button key={f.v} onClick={() => setFiltro(f.v)}
+                className="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border"
                 style={{
-                  background: form.tipo === t ? 'var(--bg-card)' : 'transparent',
-                  color: form.tipo === t ? 'var(--text-primary)' : 'var(--text-muted)',
-                  boxShadow: form.tipo === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  background: filtro === f.v ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'transparent',
+                  color: filtro === f.v ? 'var(--accent-green)' : 'var(--text-muted)',
+                  borderColor: filtro === f.v ? 'color-mix(in srgb, var(--accent-green) 20%, transparent)' : 'transparent',
                 }}>
-                {t}
+                {f.l}
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Categoría + Quién */}
-          <div className={`grid ${form.tipo === 'egreso' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
-            {form.tipo === 'egreso' && (
+        <Card className="overflow-hidden border-none shadow-sm">
+          {loading ? (
+            <div className="flex items-center justify-center py-12 gap-3 opacity-50">
+              <Loader2 size={20} className="animate-spin" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12"><p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No hay registros</p></div>
+          ) : (
+            <div className="divide-y" style={{ borderColor: "var(--border-glass)" }}>
+              {filtered.map((m, i) => (
+                <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background = "var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  style={{ animationDelay: `${i * 0.02}s` }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: m.tipo === 'ingreso' ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
+                      color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)',
+                    }}>
+                    {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate leading-tight" style={{ color: "var(--text-primary)" }}>{m.descripcion}</p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {(() => {
+                        const esIngreso = m.tipo === 'ingreso'
+                        const color = esIngreso ? 'var(--accent-green)' : (CAT_COLOR_VAR[m.categoria] || 'var(--text-muted)')
+                        const label = esIngreso ? 'ingreso' : m.categoria
+                        return (
+                          <span style={{
+                            fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
+                            letterSpacing: '0.12em', padding: '3px 8px', borderRadius: 999,
+                            background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                            color: color,
+                          }}>
+                            {label}
+                          </span>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                  <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
+                    <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                      {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
+                    </p>
+                    <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color = "var(--accent-rose)"; e.currentTarget.style.opacity = "1" }} onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.4" }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
+          <form onSubmit={handleAdd} className="space-y-4">
+
+            {/* Tipo toggle */}
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: "var(--bg-secondary)" }}>
+              {['ingreso', 'egreso'].map(t => (
+                <button type="button" key={t}
+                  onClick={() => {
+                    setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? '' : 'basicos' })
+                    setTarjetaSeleccionada('')
+                  }}
+                  className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
+                  style={{
+                    background: form.tipo === t ? 'var(--bg-card)' : 'transparent',
+                    color: form.tipo === t ? 'var(--text-primary)' : 'var(--text-muted)',
+                    boxShadow: form.tipo === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Categoría + Quién */}
+            <div className={`grid ${form.tipo === 'egreso' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+              {form.tipo === 'egreso' && (
+                <div className="space-y-1">
+                  <label className="ff-label">Categoría</label>
+                  <select className="ff-input h-12 text-sm" value={form.categoria}
+                    onChange={e => { setForm({ ...form, categoria: e.target.value }); setTarjetaSeleccionada('') }}>
+                    {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="space-y-1">
-                <label className="ff-label">Categoría</label>
-                <select className="ff-input h-12 text-sm" value={form.categoria}
-                  onChange={e => { setForm({ ...form, categoria: e.target.value }); setTarjetaSeleccionada('') }}>
-                  {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                <label className="ff-label">¿Quién?</label>
+                <select className="ff-input h-12 text-sm" value={form.quien}
+                  onChange={e => setForm({ ...form, quien: e.target.value })}>
+                  <option value="Jodannys">Jodannys</option>
+                  <option value="Rolando">Rolando</option>
+                  <option value="Ambos">Ambos</option>
+                </select>
+              </div>
+            </div>
+
+            {/* ── TARJETA DE CRÉDITO: solo para egresos que no son pago de deuda ── */}
+            {form.tipo === 'egreso' && form.categoria !== 'deuda' && tarjetasData.length > 0 && (
+              <div className="space-y-1 animate-enter">
+                <label className="ff-label flex items-center gap-1.5">
+                  <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
+                </label>
+                <select className="ff-input h-12 text-sm" value={tarjetaSeleccionada}
+                  onChange={e => setTarjetaSeleccionada(e.target.value)}>
+                  <option value="">— No, pago directo —</option>
+                  {tarjetasData.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
+                      {!tarjetaDeudasMap[t.id] ? ' ⚠ sin deuda' : ''}
+                    </option>
+                  ))}
+                </select>
+                {tarjetaSeleccionada && (
+                  <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                    style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
+                    💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sugerencias — solo si NO usa tarjeta */}
+            {!usandoTarjeta && sugerenciasRicas.length > 0 && (
+              <div className="animate-enter">
+                <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: "var(--text-muted)" }}>Sugerencias del presupuesto</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {sugerenciasRicas.map(item => (
+                    <button type="button" key={item.id}
+                      onClick={() => aplicarSugerencia({ ...item, nombre: `${item.emoji} ${item.nombre}` })}
+                      className="text-left p-3 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95"
+                      style={{ background: `${item.color}08`, borderColor: `${item.color}25` }}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-base leading-none">{item.emoji}</span>
+                        <p className="text-[10px] font-black truncate leading-tight" style={{ color: "var(--text-secondary)" }}>{item.nombre}</p>
+                      </div>
+                      {item.monto > 0 && (
+                        <p className="text-sm font-black mb-1" style={{ color: item.color }}>{formatCurrency(item.monto)}</p>
+                      )}
+                      {item.sub && <p className="text-[9px] truncate mb-1" style={{ color: "var(--text-muted)" }}>{item.sub}</p>}
+                      {item.pct !== null && (
+                        <div className="w-full h-1 rounded-full mt-1" style={{ background: 'var(--progress-track)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: item.color }} />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sin selector extra — las sugerencias de arriba ya asignan la meta/inversión */}
+
+            {/* Selector deuda */}
+            {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
+              <div className="space-y-1 animate-enter">
+                <label className="ff-label">¿Qué deuda pagas?</label>
+                <select className="ff-input h-12 text-sm" value={deudaSeleccionada}
+                  onChange={e => {
+                    setDeudaSeleccionada(e.target.value)
+                    const d = deudasData.find(d => d.id === e.target.value)
+                    if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: (d.cuota || d.pendiente || '').toString() }))
+                  }}>
+                  <option value="">— Seleccionar deuda —</option>
+                  {deudasData
+                    .map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.tipo_deuda === 'tarjeta' ? '💳 ' : ''}{d.nombre} · Pendiente {formatCurrency(d.pendiente)}
+                      </option>
+                    ))}
                 </select>
               </div>
             )}
-            <div className="space-y-1">
-              <label className="ff-label">¿Quién?</label>
-              <select className="ff-input h-12 text-sm" value={form.quien}
-                onChange={e => setForm({ ...form, quien: e.target.value })}>
-                <option value="Jodannys">Jodannys</option>
-                <option value="Rolando">Rolando</option>
-                <option value="Ambos">Ambos</option>
-              </select>
-            </div>
-          </div>
 
-          {/* ── TARJETA DE CRÉDITO: solo para egresos que no son pago de deuda ── */}
-          {form.tipo === 'egreso' && form.categoria !== 'deuda' && tarjetasData.length > 0 && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label flex items-center gap-1.5">
-                <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
-              </label>
-              <select className="ff-input h-12 text-sm" value={tarjetaSeleccionada}
-                onChange={e => setTarjetaSeleccionada(e.target.value)}>
-                <option value="">— No, pago directo —</option>
-                {tarjetasData.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
-                    {!tarjetaDeudasMap[t.id] ? ' ⚠ sin deuda' : ''}
-                  </option>
-                ))}
-              </select>
-              {tarjetaSeleccionada && (
-                <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
-                  style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
-                  💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
+            {/* Descripción — se oculta cuando hay sugerencias y todavía no se eligió ninguna */}
+            {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
+              <div className="space-y-1 animate-enter">
+                <label className="ff-label">Descripción</label>
+                <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
+                  value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
+              </div>
+            )}
+
+            {/* Monto + Fecha — aparecen tras elegir sugerencia (o siempre si no hay sugerencias) */}
+            {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="ff-label">Monto (€)</label>
+                  <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
+                    style={{ color: 'var(--accent-terra)' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Sugerencias — solo si NO usa tarjeta */}
-          {!usandoTarjeta && sugerenciasRicas.length > 0 && (
-            <div className="animate-enter">
-              <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: "var(--text-muted)" }}>Sugerencias del presupuesto</p>
-              <div className="grid grid-cols-2 gap-2">
-                {sugerenciasRicas.map(item => (
-                  <button type="button" key={item.id}
-                    onClick={() => aplicarSugerencia({ ...item, nombre: `${item.emoji} ${item.nombre}` })}
-                    className="text-left p-3 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95"
-                    style={{ background: `${item.color}08`, borderColor: `${item.color}25` }}>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="text-base leading-none">{item.emoji}</span>
-                      <p className="text-[10px] font-black truncate leading-tight" style={{ color: "var(--text-secondary)" }}>{item.nombre}</p>
-                    </div>
-                    {item.monto > 0 && (
-                      <p className="text-sm font-black mb-1" style={{ color: item.color }}>{formatCurrency(item.monto)}</p>
-                    )}
-                    {item.sub && <p className="text-[9px] truncate mb-1" style={{ color: "var(--text-muted)" }}>{item.sub}</p>}
-                    {item.pct !== null && (
-                      <div className="w-full h-1 rounded-full mt-1" style={{ background: 'var(--progress-track)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: item.color }} />
-                      </div>
-                    )}
-                  </button>
-                ))}
+                <div className="space-y-1">
+                  <label className="ff-label">Fecha</label>
+                  <input className="ff-input h-12 text-sm font-medium" type="date" required
+                    value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Sin selector extra — las sugerencias de arriba ya asignan la meta/inversión */}
-
-          {/* Selector deuda */}
-          {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label">¿Qué deuda pagas?</label>
-              <select className="ff-input h-12 text-sm" value={deudaSeleccionada}
-                onChange={e => {
-                  setDeudaSeleccionada(e.target.value)
-                  const d = deudasData.find(d => d.id === e.target.value)
-                  if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: (d.cuota || d.pendiente || '').toString() }))
-                }}>
-                <option value="">— Seleccionar deuda —</option>
-                {deudasData
-                  .map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.tipo_deuda === 'tarjeta' ? '💳 ' : ''}{d.nombre} · Pendiente {formatCurrency(d.pendiente)}
-                    </option>
-                  ))}
-              </select>
-            </div>
-          )}
-
-          {/* Descripción — se oculta cuando hay sugerencias y todavía no se eligió ninguna */}
-          {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
-            <div className="space-y-1 animate-enter">
-              <label className="ff-label">Descripción</label>
-              <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
-                value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
-            </div>
-          )}
-
-          {/* Monto + Fecha — aparecen tras elegir sugerencia (o siempre si no hay sugerencias) */}
-          {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="ff-label">Monto (€)</label>
-                <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
-                  style={{ color: 'var(--accent-terra)' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <label className="ff-label">Fecha</label>
-                <input className="ff-input h-12 text-sm font-medium" type="date" required
-                  value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={saving}
-            className={`w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ${usandoTarjeta ? 'ff-btn-primary' : 'ff-btn-terra'
-              }`}
-          >
-            {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
-          </button>
-        </form>
-      </Modal>
+            <button
+              type="submit"
+              disabled={saving}
+              className={`w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ${usandoTarjeta ? 'ff-btn-primary' : 'ff-btn-terra'
+                }`}
+            >
+              {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
+            </button>
+          </form>
+        </Modal>
+      </div>
     </AppShell>
   )
 }
