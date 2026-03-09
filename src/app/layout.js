@@ -35,24 +35,29 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="Familia Finanzas" />
         <link rel="apple-touch-icon" href="/icon.svg" />
 
-        {/* ← AÑADE ESTO: aplica theme-color antes de que React hidrate */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function() {
-            var COLORS = {
-              linen:    '#B3A89D',
-              obsidian: '#0F1115',
-              ocean:    '#E8F4F6',
-              forest:   '#F1F5F1',
-            };
-            var saved = localStorage.getItem('ff-theme');
-            var color = COLORS[saved] || '#B3A89D';
-            var meta = document.createElement('meta');
-            meta.name = 'theme-color';
-            meta.content = color;
-            document.head.appendChild(meta);
-            document.documentElement.style.backgroundColor = color;
-          })();
-        `}} />
+        <script dangerouslySetInnerHTML={{
+          __html: `
+  (function() {
+    var THEMES = {
+      linen:    { bg: '#B3A89D' },
+      obsidian: { bg: '#0F1115' },
+      ocean:    { bg: '#E8F4F6' },
+      forest:   { bg: '#F1F5F1' },
+    };
+    var saved = localStorage.getItem('ff-theme');
+    var t = THEMES[saved] || THEMES.linen;
+    
+    // ← aplica TANTO el backgroundColor como la variable CSS
+    document.documentElement.style.backgroundColor = t.bg;
+    document.documentElement.style.setProperty('--bg-primary', t.bg);
+    document.body && (document.body.style.backgroundColor = t.bg);
+    
+    var meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    meta.content = t.bg;
+    document.head.appendChild(meta);
+  })();
+`}} />
       </head>
 
       <body>
