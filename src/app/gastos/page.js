@@ -17,11 +17,11 @@ const CATS = [
 ]
 
 const CAT_COLOR_VAR = {
-  basicos: 'var(--accent-blue)',
-  deseo: 'var(--accent-violet)',
-  ahorro: 'var(--accent-green)',
+  basicos: 'colores.blue',
+  deseo: 'colores.violet',
+  ahorro: 'colores.green',
   inversion: 'var(--accent-gold)',
-  deuda: 'var(--accent-rose)',
+  deuda: colores.rose,
 }
 
 const CAT_BLOQUE = {
@@ -293,7 +293,7 @@ export default function GastosPage() {
         monto: Math.round((m.pct_mensual / 100) * montoMetas),
         sub: `${formatCurrency(m.actual || 0)} / ${formatCurrency(m.meta)}`,
         pct: Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100)),
-        color: 'var(--accent-green)', emoji: '🎯',
+        color: 'colores.green', emoji: '🎯',
       }))
     }
 
@@ -306,7 +306,7 @@ export default function GastosPage() {
 
     return presItems
       .filter(i => i.bloque === CAT_BLOQUE[form.categoria])
-      .map(i => ({ id: i.id, nombre: i.nombre, monto: i.monto, sub: null, pct: null, color: 'var(--accent-terra)', emoji: '📌' }))
+      .map(i => ({ id: i.id, nombre: i.nombre, monto: i.monto, sub: null, pct: null, color: 'colores.terra', emoji: '📌' }))
   })() : []
 
   const movsMes = movs.filter(m => {
@@ -328,7 +328,7 @@ export default function GastosPage() {
         <div className="mb-6 animate-enter px-1">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: "var(--text-muted)" }}>Módulo</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
               <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: "var(--text-primary)" }}>Registro</h1>
             </div>
             <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2">
@@ -339,21 +339,21 @@ export default function GastosPage() {
         </div>
 
         {error && (
-          <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold" style={{ background: "color-mix(in srgb, var(--accent-rose) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)", color: "var(--accent-rose)" }}>{error}</div>
+          <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold" style={{ background: "color-mix(in srgb, colores.rose 8%, transparent)", border: "1px solid color-mix(in srgb, colores.rose 20%, transparent)", color: "colores.rose" }}>{error}</div>
         )}
 
         <div className="grid grid-cols-3 gap-2 mb-6">
           {[
-            { label: 'Ingresos', value: formatCurrency(ingresos), color: 'var(--accent-green)', icon: ArrowUpRight },
-            { label: 'Egresos', value: formatCurrency(egresos), color: 'var(--accent-rose)', icon: ArrowDownRight },
-            { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: ingresos - egresos >= 0 ? ArrowUpRight : ArrowDownRight },
+            { label: 'Ingresos', value: formatCurrency(ingresos), color: 'colores.green', icon: ArrowUpRight },
+            { label: 'Egresos', value: formatCurrency(egresos), color: colores.rose, icon: ArrowDownRight },
+            { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'colores.green' : colores.rose, icon: ingresos - egresos >= 0 ? ArrowUpRight : ArrowDownRight },
           ].map((s, i) => (
             <div key={i} className="animate-enter"
               style={{
-                background: 'var(--bg-card)',
+                background: colores.card,
                 borderRadius: 20,
                 padding: '12px 14px',
-                border: '1px solid var(--border-glass)',
+                border: '1px solid colores.glass',
                 animationDelay: `${i * 0.05}s`,
                 display: 'flex',
                 flexDirection: 'column',
@@ -369,7 +369,7 @@ export default function GastosPage() {
               <div>
                 <p style={{
                   fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
-                  letterSpacing: '0.12em', color: 'var(--text-muted)', marginBottom: 4,
+                  letterSpacing: '0.12em', color: colores.muted, marginBottom: 4,
                 }}>{s.label}</p>
                 <p style={{
                   fontSize: 14, fontWeight: 900, letterSpacing: '-0.03em',
@@ -382,7 +382,7 @@ export default function GastosPage() {
 
         <div className="flex flex-col gap-3 mb-6">
           <div className="relative w-full">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)", zIndex: 10 }} />
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: colores.muted, zIndex: 10 }} />
             <input className="ff-input w-full h-12" style={{ paddingLeft: '3.5rem' }}
               placeholder="Buscar movimiento..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
@@ -391,9 +391,9 @@ export default function GastosPage() {
               <button key={f.v} onClick={() => setFiltro(f.v)}
                 className="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border"
                 style={{
-                  background: filtro === f.v ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'transparent',
-                  color: filtro === f.v ? 'var(--accent-green)' : 'var(--text-muted)',
-                  borderColor: filtro === f.v ? 'color-mix(in srgb, var(--accent-green) 20%, transparent)' : 'transparent',
+                  background: filtro === f.v ? 'color-mix(in srgb, colores.green 10%, transparent)' : 'transparent',
+                  color: filtro === f.v ? 'colores.green' : colores.muted,
+                  borderColor: filtro === f.v ? 'color-mix(in srgb, colores.green 20%, transparent)' : 'transparent',
                 }}>
                 {f.l}
               </button>
@@ -407,16 +407,16 @@ export default function GastosPage() {
               <Loader2 size={20} className="animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12"><p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No hay registros</p></div>
+            <div className="text-center py-12"><p className="text-sm italic" style={{ color: colores.muted }}>No hay registros</p></div>
           ) : (
-            <div className="divide-y" style={{ borderColor: "var(--border-glass)" }}>
+            <div className="divide-y" style={{ borderColor: "colores.glass" }}>
               {filtered.map((m, i) => (
                 <div key={m.id} className="flex items-center gap-3 px-3 py-4 transition-colors group" onMouseEnter={e => e.currentTarget.style.background = "var(--bg-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   style={{ animationDelay: `${i * 0.02}s` }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{
-                      background: m.tipo === 'ingreso' ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
-                      color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)',
+                      background: m.tipo === 'ingreso' ? 'color-mix(in srgb, colores.green 10%, transparent)' : 'color-mix(in srgb, colores.rose 10%, transparent)',
+                      color: m.tipo === 'ingreso' ? 'colores.green' : colores.rose,
                     }}>
                     {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                   </div>
@@ -425,7 +425,7 @@ export default function GastosPage() {
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {(() => {
                         const esIngreso = m.tipo === 'ingreso'
-                        const color = esIngreso ? 'var(--accent-green)' : (CAT_COLOR_VAR[m.categoria] || 'var(--text-muted)')
+                        const color = esIngreso ? 'colores.green' : (CAT_COLOR_VAR[m.categoria] || colores.muted)
                         const label = esIngreso ? 'ingreso' : m.categoria
                         return (
                           <span style={{
@@ -441,10 +441,10 @@ export default function GastosPage() {
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
-                    <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                    <p className="text-sm font-black tabular-nums" style={{ color: m.tipo === 'ingreso' ? 'colores.green' : colores.rose }}>
                       {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
                     </p>
-                    <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: "var(--text-muted)", opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color = "var(--accent-rose)"; e.currentTarget.style.opacity = "1" }} onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.4" }}>
+                    <button onClick={() => handleDelete(m)} className="p-1 transition-all" style={{ color: colores.muted, opacity: 0.4 }} onMouseEnter={e => { e.currentTarget.style.color = "colores.rose"; e.currentTarget.style.opacity = "1" }} onMouseLeave={e => { e.currentTarget.style.color = colores.muted; e.currentTarget.style.opacity = "0.4" }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -467,8 +467,8 @@ export default function GastosPage() {
                   }}
                   className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all`}
                   style={{
-                    background: form.tipo === t ? 'var(--bg-card)' : 'transparent',
-                    color: form.tipo === t ? 'var(--text-primary)' : 'var(--text-muted)',
+                    background: form.tipo === t ? colores.card : 'transparent',
+                    color: form.tipo === t ? 'var(--text-primary)' : colores.muted,
                     boxShadow: form.tipo === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                   }}>
                   {t}
@@ -516,7 +516,7 @@ export default function GastosPage() {
                 </select>
                 {tarjetaSeleccionada && (
                   <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
-                    style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
+                    style={{ background: 'color-mix(in srgb, colores.violet 8%, transparent)', color: 'colores.violet', border: '1px solid color-mix(in srgb, colores.violet 20%, transparent)' }}>
                     💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
                   </div>
                 )}
@@ -526,7 +526,7 @@ export default function GastosPage() {
             {/* Sugerencias — solo si NO usa tarjeta */}
             {!usandoTarjeta && sugerenciasRicas.length > 0 && (
               <div className="animate-enter">
-                <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: "var(--text-muted)" }}>Sugerencias del presupuesto</p>
+                <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: colores.muted }}>Sugerencias del presupuesto</p>
                 <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
                   {sugerenciasRicas.map(item => (
                     <button type="button" key={item.id}
@@ -540,9 +540,9 @@ export default function GastosPage() {
                       {item.monto > 0 && (
                         <p className="text-sm font-black mb-1" style={{ color: item.color }}>{formatCurrency(item.monto)}</p>
                       )}
-                      {item.sub && <p className="text-[9px] truncate mb-1" style={{ color: "var(--text-muted)" }}>{item.sub}</p>}
+                      {item.sub && <p className="text-[9px] truncate mb-1" style={{ color: colores.muted }}>{item.sub}</p>}
                       {item.pct !== null && (
-                        <div className="w-full h-1 rounded-full mt-1" style={{ background: 'var(--progress-track)' }}>
+                        <div className="w-full h-1 rounded-full mt-1" style={{ background: colores.track }}>
                           <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: item.color }} />
                         </div>
                       )}
@@ -590,7 +590,7 @@ export default function GastosPage() {
                 <div className="space-y-1">
                   <label className="ff-label">Monto (€)</label>
                   <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
-                    style={{ color: 'var(--accent-terra)' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
+                    style={{ color: 'colores.terra' }} value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
                 </div>
                 <div className="space-y-1">
                   <label className="ff-label">Fecha</label>
