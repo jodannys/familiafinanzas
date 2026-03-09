@@ -236,7 +236,7 @@ export default function ReportesPage() {
         <div className="flex items-center gap-0.5 flex-shrink-0"
           style={{
             background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-glass)',
+            border: '1px solid colores.border',
             borderRadius: 12,
             padding: '3px 4px',
           }}>
@@ -315,7 +315,7 @@ export default function ReportesPage() {
                 {totalPresupuesto > 0 ? (
                   <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
                     style={{
-                      background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
+                      background: 'color-mix(in srgb, colores.green, 10%, transparent)',
                       color: colores.green,
                     }}>
                     Metas de tu presupuesto
@@ -323,7 +323,7 @@ export default function ReportesPage() {
                 ) : (
                   <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
                     style={{
-                      background: 'color-mix(in srgb, var(--text-muted) 10%, transparent)',
+                      background: 'color-mix(in srgb, colores.muted 10%, transparent)',
                       color: colores.muted,
                     }}>
                   </span>
@@ -413,7 +413,7 @@ export default function ReportesPage() {
                         border: filtro === c.cat
                           ? `1px solid color-mix(in srgb, ${c.color} 35%, transparent)` : '',
                         background: filtro === c.cat
-                          ? `color-mix(in srgb, ${c.color} 5%, var(--bg-card))` : '',
+                          ? `color-mix(in srgb, ${c.color} 5%, colores.card)` : '',
                       }}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
@@ -518,7 +518,7 @@ export default function ReportesPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full" style={{ fontSize: 11 }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                      <tr style={{ borderBottom: '1px solid colores.border' }}>
                         {['Mes', 'Ingresos', 'Gastos', 'Balance'].map((h, i) => (
                           <th key={h} className="pb-2 font-black uppercase"
                             style={{
@@ -535,7 +535,7 @@ export default function ReportesPage() {
                       {resumenMes.filter(m => m.Ingresos > 0 || m.Gastos > 0).map(m => {
                         const bal = m.Ingresos - m.Gastos
                         return (
-                          <tr key={m.mes} style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                          <tr key={m.mes} style={{ borderBottom: '1px solid colores.border' }}>
                             <td className="py-2 font-black" style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{m.mes}</td>
                             <td className="py-2 text-right font-bold" style={{ color: colores.green, fontSize: 11 }}>
                               {formatCurrency(m.Ingresos)}
@@ -552,7 +552,7 @@ export default function ReportesPage() {
                           </tr>
                         )
                       })}
-                      <tr style={{ borderTop: '2px solid var(--border-glass)' }}>
+                      <tr style={{ borderTop: '2px solid colores.border' }}>
                         <td className="pt-2.5 font-black text-[10px] uppercase" style={{ color: colores.muted }}>Total</td>
                         <td className="pt-2.5 text-right font-black" style={{ color: colores.green, fontSize: 12 }}>
                           {formatCurrency(totalIngresos)}
