@@ -18,16 +18,16 @@ import {
 
 // ─── Tooltip del gráfico ─────────────────────────────────────────────────────
 
-const CustomTooltip = ({ active, payload, label }) => {
+function CustomTooltip({ active, payload, label, colores }) {
   if (!active || !payload?.length) return null
   return (
     <div style={{
-      background: 'var(--bg-card)',
-      border: '1px solid var(--border-glass)',
+      background: colores.card,
+      border: `1px solid ${colores.border}`,
       borderRadius: 12,
-      padding: '8px 12px'
+      padding: '8px 12px',
     }}>
-      <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+      <p style={{ fontSize: 9, fontWeight: 800, color: colores.muted, textTransform: 'uppercase', marginBottom: 4 }}>
         Año {label}
       </p>
       {payload.map(p => (
@@ -48,13 +48,39 @@ export default function InversionesPage() {
   const [saving, setSaving]           = useState(false)
   const [error, setError]             = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
-  const [gastosMes, setGastosMes]     = useState(0)   // ← egresos reales del mes actual
+  const [gastosMes, setGastosMes]     = useState(0)
   const [modal, setModal]             = useState(false)
   const [editandoId, setEditandoId]   = useState(null)
+  const [colores, setColores]         = useState({
+    green: '', rose: '', blue: '', terra: '', violet: '',
+    muted: '', border: '', card: '', track: '',
+  })
   const [form, setForm] = useState({
     nombre: '', emoji: '📈', capital: '', aporte: '',
-    tasa: '', anos: '10', color: 'var(--accent-green)', bola_nieve: true
+    tasa: '', anos: '10', color: '#2D7A5F', bola_nieve: true,
   })
+
+  // ── Colores del tema ──────────────────────────────────────────────────────
+  useEffect(() => {
+    function leer() {
+      const s = getComputedStyle(document.documentElement)
+      const v = (n) => s.getPropertyValue(n).trim()
+      setColores({
+        green:  v('--accent-green'),
+        rose:   v('--accent-rose'),
+        blue:   v('--accent-blue'),
+        terra:  v('--accent-terra'),
+        violet: v('--accent-violet'),
+        muted:  v('--text-muted'),
+        border: v('--border-glass'),
+        card:   v('--bg-card'),
+        track:  v('--progress-track'),
+      })
+    }
+    leer()
+    window.addEventListener('theme-change', leer)
+    return () => window.removeEventListener('theme-change', leer)
+  }, [])
 
   useEffect(() => {
     cargar()
@@ -65,10 +91,8 @@ export default function InversionesPage() {
   async function cargarGastosMes() {
     const now  = new Date()
     const año  = now.getFullYear()
-    const mes  = now.getMonth()  // 0-indexed para Date()
-
-    // rango exacto del mes: primer día al primer día del siguiente
-    const inicioMes      = new Date(año, mes,     1).toISOString().slice(0, 10)
+    const mes  = now.getMonth()
+    const inicioMes       = new Date(año, mes,     1).toISOString().slice(0, 10)
     const inicioSiguiente = new Date(año, mes + 1, 1).toISOString().slice(0, 10)
 
     const { data, error } = await supabase
@@ -76,11 +100,10 @@ export default function InversionesPage() {
       .select('monto, categoria')
       .eq('tipo', 'egreso')
       .gte('fecha', inicioMes)
-      .lt('fecha', inicioSiguiente)   // lt en vez de lte mes-31
+      .lt('fecha', inicioSiguiente)
 
     if (error) { console.error(error); return }
 
-    // Solo gastos reales: excluye ahorro, inversión y pago de deudas
     const total = (data || [])
       .filter(m => ['basicos', 'deseo'].includes((m.categoria || '').toLowerCase()))
       .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
@@ -104,13 +127,13 @@ export default function InversionesPage() {
     setSaving(true)
     setError(null)
     const payload = {
-      nombre: form.nombre,
-      emoji: form.emoji,
-      capital: parseFloat(form.capital) || 0,
-      aporte: parseFloat(form.aporte) || 0,
-      tasa: parseFloat(form.tasa) || 0,
-      anos: parseInt(form.anos) || 10,
-      color: form.color,
+      nombre:     form.nombre,
+      emoji:      form.emoji,
+      capital:    parseFloat(form.capital) || 0,
+      aporte:     parseFloat(form.aporte)  || 0,
+      tasa:       parseFloat(form.tasa)    || 0,
+      anos:       parseInt(form.anos)      || 10,
+      color:      form.color,
       bola_nieve: form.bola_nieve,
     }
 
@@ -129,26 +152,26 @@ export default function InversionesPage() {
     setSaving(false)
     setModal(false)
     setEditandoId(null)
-    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: 'var(--accent-green)', bola_nieve: true })
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: '#2D7A5F', bola_nieve: true })
   }
 
   function abrirNuevo() {
     setEditandoId(null)
-    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: 'var(--accent-green)', bola_nieve: true })
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: '#2D7A5F', bola_nieve: true })
     setModal(true)
   }
 
   function abrirEdicion(inv) {
     setEditandoId(inv.id)
     setForm({
-      nombre: inv.nombre || '',
-      emoji: inv.emoji || '📈',
-      capital: inv.capital?.toString() || '',
-      aporte: inv.aporte?.toString() || '',
-      tasa: inv.tasa?.toString() || '',
-      anos: inv.anos?.toString() || '10',
-      color: inv.color || 'var(--accent-green)',
-      bola_nieve: inv.bola_nieve !== false,   // default true si no está guardado
+      nombre:     inv.nombre    || '',
+      emoji:      inv.emoji     || '📈',
+      capital:    inv.capital?.toString() || '',
+      aporte:     inv.aporte?.toString()  || '',
+      tasa:       inv.tasa?.toString()    || '',
+      anos:       inv.anos?.toString()    || '10',
+      color:      inv.color     || '#2D7A5F',
+      bola_nieve: inv.bola_nieve !== false,
     })
     setModal(true)
   }
@@ -165,24 +188,21 @@ export default function InversionesPage() {
 
   const calc = selected
     ? calculateCompoundInterest({
-        principal: selected.capital,
-        monthlyContribution: selected.aporte,
-        annualRate: selected.tasa,
-        years: selected.anos,
-        compound: selected.bola_nieve !== false,
+        principal:            selected.capital,
+        monthlyContribution:  selected.aporte,
+        annualRate:           selected.tasa,
+        years:                selected.anos,
+        compound:             selected.bola_nieve !== false,
       })
     : null
 
   const historyData = calc?.history?.filter(d => d?.year != null) || []
 
   const totalCapital = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
-  const totalAportes = inversiones.reduce((s, i) => s + (i.aporte || 0), 0)
-  // metaLibertad: usa GASTOS reales del mes (regla FIRE: reemplazar gastos, no ingresos)
-  // Fallback: 70% del ingreso si aún no hay movimientos registrados ese mes
+  const totalAportes = inversiones.reduce((s, i) => s + (i.aporte  || 0), 0)
   const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
   const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
 
-  // Colores del picker — son colores de cartera (dato del usuario, no del tema)
   const COLORES_PICKER = [
     { hex: '#2D7A5F', label: 'Verde' },
     { hex: '#4A6FA5', label: 'Azul' },
@@ -193,16 +213,19 @@ export default function InversionesPage() {
     { hex: '#8b5cf6', label: 'Violeta' },
   ]
 
+  // Tooltip con colores inyectados (necesario porque Recharts pasa props al content)
+  const TooltipConColores = (props) => <CustomTooltip {...props} colores={colores} />
+
   // ─── RENDER ──────────────────────────────────────────────────────────────────
 
   return (
     <AppShell>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
-            style={{ color: 'var(--text-muted)' }}>Módulo</p>
+            style={{ color: colores.muted }}>Módulo</p>
           <h1 className="text-xl font-black tracking-tight truncate"
             style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
         </div>
@@ -212,47 +235,47 @@ export default function InversionesPage() {
         </button>
       </div>
 
-      {/* ── Error ── */}
+      {/* Error */}
       {error && (
         <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2"
           style={{
-            background: 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--accent-rose) 25%, transparent)',
-            color: 'var(--accent-rose)'
+            background: `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
+            border:     `1px solid color-mix(in srgb, ${colores.rose} 25%, transparent)`,
+            color:      colores.rose,
           }}>
           <AlertCircle size={14} />{error}
         </div>
       )}
 
-      {/* ── Stats globales ── */}
+      {/* Stats globales */}
       <div className="grid grid-cols-3 gap-2 mb-6">
         {[
-          { label: 'Capital total',    value: formatCurrency(totalCapital), color: 'var(--accent-green)' },
-          { label: 'Aportes / mes',    value: formatCurrency(totalAportes), color: 'var(--accent-terra)' },
-          { label: 'Carteras activas', value: `${inversiones.length}`,      color: 'var(--accent-blue)'  },
+          { label: 'Capital total',    value: formatCurrency(totalCapital), color: colores.green },
+          { label: 'Aportes / mes',    value: formatCurrency(totalAportes), color: colores.terra },
+          { label: 'Carteras activas', value: `${inversiones.length}`,      color: colores.blue  },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
-              style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+              style={{ color: colores.muted }}>{s.label}</p>
             <p className="text-sm font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* ── Contenido principal ── */}
+      {/* Contenido principal */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={20} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+          <Loader2 size={20} className="animate-spin" style={{ color: colores.muted }} />
         </div>
       ) : inversiones.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No hay carteras registradas</p>
+          <p className="text-sm mb-4" style={{ color: colores.muted }}>No hay carteras registradas</p>
           <button onClick={abrirNuevo} className="ff-btn-primary">Crear primera cartera</button>
         </div>
       ) : (
         <div className="space-y-4">
 
-          {/* ── Chips selector de cartera ── */}
+          {/* Chips selector de cartera */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {inversiones.map(inv => (
               <button key={inv.id}
@@ -260,8 +283,8 @@ export default function InversionesPage() {
                 className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
                 style={{
                   background: selected?.id === inv.id ? `${inv.color}18` : 'var(--bg-secondary)',
-                  color:      selected?.id === inv.id ? inv.color         : 'var(--text-muted)',
-                  border:     `1px solid ${selected?.id === inv.id ? `${inv.color}40` : 'var(--border-glass)'}`,
+                  color:      selected?.id === inv.id ? inv.color         : colores.muted,
+                  border:     `1px solid ${selected?.id === inv.id ? `${inv.color}40` : colores.border}`,
                 }}>
                 <span>{inv.emoji}</span>
                 <span className="hidden sm:inline">{inv.nombre}</span>
@@ -269,7 +292,7 @@ export default function InversionesPage() {
             ))}
           </div>
 
-          {/* ── Detalle cartera seleccionada ── */}
+          {/* Detalle cartera seleccionada */}
           {selected && calc && (
             <Card className="animate-enter" style={{ padding: '16px' }}>
 
@@ -284,10 +307,10 @@ export default function InversionesPage() {
                     <p className="font-black text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {selected.nombre}
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[10px] mt-0.5" style={{ color: colores.muted }}>
                       {selected.tasa}% anual · {selected.anos} años · +{formatCurrency(selected.aporte)}/mes
                       {' · '}
-                      <span style={{ color: selected.bola_nieve !== false ? 'var(--accent-green)' : 'var(--accent-terra)' }}>
+                      <span style={{ color: selected.bola_nieve !== false ? colores.green : colores.terra }}>
                         {selected.bola_nieve !== false ? '🔄 Bola de nieve' : '📤 Sin reinversión'}
                       </span>
                     </p>
@@ -296,12 +319,18 @@ export default function InversionesPage() {
                 <div className="flex gap-1.5 flex-shrink-0">
                   <button onClick={() => abrirEdicion(selected)}
                     className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
-                    style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)', color: 'var(--accent-blue)' }}>
+                    style={{
+                      background: `color-mix(in srgb, ${colores.blue} 10%, transparent)`,
+                      color: colores.blue,
+                    }}>
                     <Pencil size={13} />
                   </button>
                   <button onClick={() => handleDelete(selected.id)}
                     className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
-                    style={{ background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)', color: 'var(--accent-rose)' }}>
+                    style={{
+                      background: `color-mix(in srgb, ${colores.rose} 8%, transparent)`,
+                      color: colores.rose,
+                    }}>
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -310,9 +339,9 @@ export default function InversionesPage() {
               {/* KPIs */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
-                  { icon: <Wallet size={12} />,    label: 'Capital inicial',  value: formatCurrency(selected.capital),       color: 'var(--accent-blue)'  },
-                  { icon: <TrendingUp size={12} />, label: 'Balance final',    value: formatCurrency(calc.finalBalance),      color: selected.color        },
-                  { icon: <Sparkles size={12} />,   label: 'Ganancias netas', value: formatCurrency(calc.totalInterest),     color: 'var(--accent-terra)' },
+                  { icon: <Wallet size={12} />,    label: 'Capital inicial', value: formatCurrency(selected.capital),   color: colores.blue  },
+                  { icon: <TrendingUp size={12} />, label: 'Balance final',   value: formatCurrency(calc.finalBalance), color: selected.color },
+                  { icon: <Sparkles size={12} />,   label: 'Ganancias netas', value: formatCurrency(calc.totalInterest), color: colores.terra  },
                 ].map((k, i) => (
                   <div key={i} className="p-2.5 rounded-xl text-center"
                     style={{
@@ -339,7 +368,10 @@ export default function InversionesPage() {
                   Tu dinero se multiplica ×{(calc.finalBalance / (selected.capital || 1)).toFixed(1)} en {selected.anos} años
                 </p>
                 <span className="ml-auto text-[9px] font-black px-2 py-0.5 rounded-full"
-                  style={{ background: `color-mix(in srgb, ${selected.color} 15%, transparent)`, color: selected.color }}>
+                  style={{
+                    background: `color-mix(in srgb, ${selected.color} 15%, transparent)`,
+                    color: selected.color,
+                  }}>
                   Interés compuesto
                 </span>
               </div>
@@ -347,7 +379,7 @@ export default function InversionesPage() {
               {/* Gráfico */}
               {historyData.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-[9px] font-black uppercase mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[9px] font-black uppercase mb-2 ml-1" style={{ color: colores.muted }}>
                     Proyección de crecimiento
                   </p>
                   <div style={{ height: 160 }}>
@@ -359,32 +391,58 @@ export default function InversionesPage() {
                             <stop offset="95%" stopColor={selected.color} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-glass)" opacity={0.5} />
-                        <XAxis dataKey="year" axisLine={false} tickLine={false}
-                          tick={{ fill: 'var(--text-muted)', fontSize: 9, fontWeight: 700 }}
-                          tickFormatter={v => `A${v}`} interval="preserveStartEnd" />
-                        <YAxis axisLine={false} tickLine={false}
-                          tick={{ fill: 'var(--text-muted)', fontSize: 9 }}
-                          tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                        <Tooltip content={<CustomTooltip />}
-                          cursor={{ stroke: selected.color, strokeWidth: 1.5, strokeDasharray: '4 4' }} />
-                        <Area name="balance" type="monotone" dataKey="balance"
-                          stroke={selected.color} strokeWidth={2.5}
-                          fill={`url(#grad-${selected.id})`} />
-                        <Area name="contributed" type="monotone" dataKey="contributed"
-                          stroke="var(--text-muted)" strokeWidth={1.5}
-                          strokeDasharray="5 3" fill="transparent" />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke={colores.border}
+                          opacity={0.5}
+                        />
+                        <XAxis
+                          dataKey="year"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: colores.muted, fontSize: 9, fontWeight: 700 }}
+                          tickFormatter={v => `A${v}`}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: colores.muted, fontSize: 9 }}
+                          tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                        />
+                        <Tooltip
+                          content={<TooltipConColores />}
+                          cursor={{ stroke: selected.color, strokeWidth: 1.5, strokeDasharray: '4 4' }}
+                        />
+                        <Area
+                          name="balance"
+                          type="monotone"
+                          dataKey="balance"
+                          stroke={selected.color}
+                          strokeWidth={2.5}
+                          fill={`url(#grad-${selected.id})`}
+                        />
+                        <Area
+                          name="contributed"
+                          type="monotone"
+                          dataKey="contributed"
+                          stroke={colores.muted}
+                          strokeWidth={1.5}
+                          strokeDasharray="5 3"
+                          fill="transparent"
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="flex items-center gap-4 mt-2 ml-1">
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 h-0.5 rounded" style={{ background: selected.color }} />
-                      <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>Balance proyectado</span>
+                      <span className="text-[9px] font-bold" style={{ color: colores.muted }}>Balance proyectado</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 border-t border-dashed" style={{ borderColor: 'var(--text-muted)' }} />
-                      <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>Total aportado</span>
+                      <div className="w-3 border-t border-dashed" style={{ borderColor: colores.muted }} />
+                      <span className="text-[9px] font-bold" style={{ color: colores.muted }}>Total aportado</span>
                     </div>
                   </div>
                 </div>
@@ -393,16 +451,16 @@ export default function InversionesPage() {
               {/* Regla del 4% */}
               <div className="p-3 rounded-xl"
                 style={{
-                  background: 'color-mix(in srgb, var(--accent-green) 6%, transparent)',
-                  border:     '1px solid color-mix(in srgb, var(--accent-green) 15%, transparent)',
+                  background: `color-mix(in srgb, ${colores.green} 6%, transparent)`,
+                  border:     `1px solid color-mix(in srgb, ${colores.green} 15%, transparent)`,
                 }}>
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles size={11} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
-                  <p className="text-[9px] font-black uppercase" style={{ color: 'var(--accent-green)' }}>
+                  <Sparkles size={11} style={{ color: colores.green, flexShrink: 0 }} />
+                  <p className="text-[9px] font-black uppercase" style={{ color: colores.green }}>
                     Retiro mensual sostenible (Regla del 4%)
                   </p>
                 </div>
-                <p className="text-base font-black" style={{ color: 'var(--accent-green)', letterSpacing: '-0.02em' }}>
+                <p className="text-base font-black" style={{ color: colores.green, letterSpacing: '-0.02em' }}>
                   {formatCurrency(calc.finalBalance * 0.04 / 12)}
                   <span className="text-[10px] font-bold opacity-60">/mes para siempre</span>
                 </p>
@@ -410,27 +468,27 @@ export default function InversionesPage() {
             </Card>
           )}
 
-          {/* ── Meta libertad financiera ── */}
+          {/* Meta libertad financiera */}
           {metaLibertad && calc && (
             <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Target size={13} style={{ color: 'var(--accent-terra)' }} />
+                  <Target size={13} style={{ color: colores.terra }} />
                   <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
                     Meta libertad financiera
                   </p>
                 </div>
-                <p className="text-[10px] font-black" style={{ color: 'var(--accent-green)' }}>
+                <p className="text-[10px] font-black" style={{ color: colores.green }}>
                   {Math.min(100, (calc.finalBalance / metaLibertad) * 100).toFixed(1)}%
                 </p>
               </div>
               <ProgressBar
                 value={Math.min(calc.finalBalance, metaLibertad)}
                 max={metaLibertad}
-                color="var(--accent-green)"
+                color={colores.green}
               />
               <div className="flex items-center justify-between mt-2">
-                <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[9px]" style={{ color: colores.muted }}>
                   Basado en {formatCurrency(baseGastos)} gastos/mes × 12 × 25
                 </p>
                 <p className="text-[9px] font-black" style={{ color: 'var(--text-secondary)' }}>
@@ -440,19 +498,19 @@ export default function InversionesPage() {
             </Card>
           )}
 
-          {/* ── Lista compacta de todas las carteras ── */}
+          {/* Lista compacta de todas las carteras */}
           {inversiones.length > 1 && (
             <div className="space-y-2">
-              <p className="text-[9px] font-black uppercase ml-1" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[9px] font-black uppercase ml-1" style={{ color: colores.muted }}>
                 Todas las carteras
               </p>
               {inversiones.map((inv, i) => {
                 const c = calculateCompoundInterest({
-                  principal: inv.capital,
+                  principal:           inv.capital,
                   monthlyContribution: inv.aporte,
-                  annualRate: inv.tasa,
-                  years: inv.anos,
-                  compound: inv.bola_nieve !== false,  // respeta estrategia de cada cartera
+                  annualRate:          inv.tasa,
+                  years:               inv.anos,
+                  compound:            inv.bola_nieve !== false,
                 })
                 return (
                   <div key={inv.id}
@@ -472,7 +530,7 @@ export default function InversionesPage() {
                         <p className="text-xs font-black truncate" style={{ color: 'var(--text-primary)' }}>
                           {inv.nombre}
                         </p>
-                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[9px]" style={{ color: colores.muted }}>
                           {inv.tasa}% · {inv.anos}a · +{formatCurrency(inv.aporte)}/mes
                         </p>
                       </div>
@@ -480,7 +538,7 @@ export default function InversionesPage() {
                         <p className="text-sm font-black" style={{ color: inv.color, letterSpacing: '-0.02em' }}>
                           {formatCurrency(c.finalBalance)}
                         </p>
-                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>en {inv.anos} años</p>
+                        <p className="text-[9px]" style={{ color: colores.muted }}>en {inv.anos} años</p>
                       </div>
                     </div>
                   </div>
@@ -492,9 +550,7 @@ export default function InversionesPage() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════
-          MODAL CREAR / EDITAR
-      ══════════════════════════════════════════════════ */}
+      {/* MODAL CREAR / EDITAR */}
       <Modal
         open={modal}
         onClose={() => { setModal(false); setEditandoId(null) }}
@@ -546,13 +602,13 @@ export default function InversionesPage() {
           {/* Preview en tiempo real */}
           {form.capital && form.tasa && form.anos && (() => {
             const prev = calculateCompoundInterest({
-              principal: parseFloat(form.capital) || 0,
-              monthlyContribution: parseFloat(form.aporte) || 0,
-              annualRate: parseFloat(form.tasa) || 0,
-              years: parseInt(form.anos) || 10,
-              compound: form.bola_nieve,
+              principal:            parseFloat(form.capital) || 0,
+              monthlyContribution:  parseFloat(form.aporte)  || 0,
+              annualRate:           parseFloat(form.tasa)    || 0,
+              years:                parseInt(form.anos)      || 10,
+              compound:             form.bola_nieve,
             })
-            const c = form.color.startsWith('var(') ? 'var(--accent-green)' : form.color
+            const c = form.color
             return (
               <div className="px-3 py-2.5 rounded-xl text-[10px] font-bold"
                 style={{
@@ -572,23 +628,24 @@ export default function InversionesPage() {
             <label className="ff-label">Estrategia de interés</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {[
-                { val: true,  icon: '🔄', title: 'Bola de nieve', desc: 'Reinvierte las ganancias (interés compuesto)' },
+                { val: true,  icon: '🔄', title: 'Bola de nieve',    desc: 'Reinvierte las ganancias (interés compuesto)' },
                 { val: false, icon: '📤', title: 'Sin reinversión', desc: 'Retiras las ganancias cada año' },
               ].map(opt => (
                 <button key={String(opt.val)} type="button"
                   onClick={() => setForm(p => ({ ...p, bola_nieve: opt.val }))}
                   className="p-3 rounded-xl text-left transition-all border-2"
                   style={{
-                    borderColor: form.bola_nieve === opt.val ? 'var(--accent-green)' : 'var(--border-glass)',
+                    borderColor: form.bola_nieve === opt.val ? colores.green : colores.border,
                     background:  form.bola_nieve === opt.val
-                      ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)'
+                      ? `color-mix(in srgb, ${colores.green} 6%, transparent)`
                       : 'var(--bg-secondary)',
                   }}>
                   <p className="text-base mb-0.5">{opt.icon}</p>
-                  <p className="text-[10px] font-black" style={{ color: form.bola_nieve === opt.val ? 'var(--accent-green)' : 'var(--text-primary)' }}>
+                  <p className="text-[10px] font-black"
+                    style={{ color: form.bola_nieve === opt.val ? colores.green : 'var(--text-primary)' }}>
                     {opt.title}
                   </p>
-                  <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                  <p className="text-[9px]" style={{ color: colores.muted }}>{opt.desc}</p>
                 </button>
               ))}
             </div>
@@ -604,9 +661,9 @@ export default function InversionesPage() {
                   className="w-8 h-8 rounded-full transition-all"
                   style={{
                     backgroundColor: hex,
-                    outline: form.color === hex ? `3px solid var(--text-secondary)` : 'none',
+                    outline:      form.color === hex ? `3px solid var(--text-secondary)` : 'none',
                     outlineOffset: 2,
-                    opacity: form.color === hex ? 1 : 0.5,
+                    opacity:   form.color === hex ? 1 : 0.5,
                     transform: form.color === hex ? 'scale(1.15)' : 'scale(1)',
                   }} />
               ))}
