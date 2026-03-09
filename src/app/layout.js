@@ -7,7 +7,7 @@ export const metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent', // ← era 'default'
+    statusBarStyle: 'black-translucent',
     title: 'Familia Finanzas',
   },
   icons: {
@@ -15,7 +15,7 @@ export const metadata = {
     apple: '/icon.svg',
   },
 }
-// 1. AÑADE EL THEME COLOR AQUÍ (Para Android y navegadores modernos)
+
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -37,26 +37,29 @@ export default function RootLayout({ children }) {
 
         <script dangerouslySetInnerHTML={{
           __html: `
-  (function() {
-    var THEMES = {
-      linen:    { bg: '#B3A89D' },
-      obsidian: { bg: '#0F1115' },
-      ocean:    { bg: '#E8F4F6' },
-      forest:   { bg: '#F1F5F1' },
-    };
-    var saved = localStorage.getItem('ff-theme');
-    var t = THEMES[saved] || THEMES.linen;
-    
-    // ← aplica TANTO el backgroundColor como la variable CSS
-    document.documentElement.style.backgroundColor = t.bg;
-    document.documentElement.style.setProperty('--bg-primary', t.bg);
-    document.body && (document.body.style.backgroundColor = t.bg);
-    
-    var meta = document.createElement('meta');
-    meta.name = 'theme-color';
-    meta.content = t.bg;
-    document.head.appendChild(meta);
-  })();
+(function() {
+  var THEMES = {
+    linen:    { bg: '#B3A89D' },
+    obsidian: { bg: '#0F1115' },
+    ocean:    { bg: '#E8F4F6' },
+    forest:   { bg: '#F1F5F1' },
+  };
+  var saved = localStorage.getItem('ff-theme') || 'linen';
+  var t = THEMES[saved] || THEMES.linen;
+
+  // ← ESTA es la línea que faltaba: activa todas las CSS vars del tema
+  document.documentElement.setAttribute('data-theme', saved);
+
+  // Fondo inmediato para evitar destello blanco
+  document.documentElement.style.backgroundColor = t.bg;
+  document.documentElement.style.setProperty('--bg-primary', t.bg);
+
+  // theme-color para la barra del navegador / PWA
+  var meta = document.createElement('meta');
+  meta.name = 'theme-color';
+  meta.content = t.bg;
+  document.head.appendChild(meta);
+})();
 `}} />
       </head>
 
