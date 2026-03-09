@@ -21,7 +21,7 @@ function fechaHoy() {
 const ORIGENES = [
   { value: 'basicos', label: 'Gastos Básicos', color: 'var(--accent-blue)', desc: 'Súper, facturas...' },
   { value: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)', desc: 'Retrasa tu ahorro' },
-  { value: 'inversiones', label: 'Inversiones', color: '#818CF8', desc: 'Retrasa tu inversión' },
+  { value: 'inversiones', label: 'Inversiones', color: 'var(--accent-violet)', desc: 'Retrasa tu inversión' },
 ]
 
 export default function SobrePage() {
@@ -329,7 +329,7 @@ export default function SobrePage() {
             {[
               { label: 'Básicos', saldo: saldoBasicos, color: 'var(--accent-blue)' },
               { label: 'Metas', saldo: saldoMetas, color: 'var(--accent-green)' },
-              { label: 'Inversión', saldo: saldoInversiones, color: '#818CF8' },
+              { label: 'Inversión', saldo: saldoInversiones, color: 'var(--accent-violet)' },
             ].map((box, i) => (
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.08}s` }}>
                 <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
@@ -377,11 +377,12 @@ export default function SobrePage() {
                       style={{
                         background: m._fuente === 'mov'
                           ? 'color-mix(in srgb, var(--accent-terra) 12%, transparent)'
-                          : 'rgba(129,140,248,0.12)',
+                          : 'color-mix(in srgb, var(--accent-violet) 12%, transparent)',
+
                       }}>
                       {m._fuente === 'mov'
                         ? <ArrowDownRight size={15} style={{ color: 'var(--accent-terra)' }} />
-                        : <TrendingUp size={15} style={{ color: '#818CF8' }} />}
+                        : <TrendingUp size={15} style={{ color: 'var(--accent-violet)' }} />}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -484,7 +485,7 @@ export default function SobrePage() {
             <button type="button" onClick={resetModal} className="ff-btn-ghost flex-1">Cancelar</button>
             <button type="submit" disabled={saving}
               className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
-              style={usandoTarjeta ? { background: '#818CF8' } : {}}>
+              style={usandoTarjeta ? { background: 'var(--accent-violet)' } : {}}>
               {saving && <Loader2 size={14} className="animate-spin" />}
               {usandoTarjeta
                 ? '💳 Cargar a tarjeta'
