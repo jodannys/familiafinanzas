@@ -328,7 +328,7 @@ export default function GastosPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: "var(--text-muted)" }}>Módulo</p>
-            <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: "var(--text-primary)" }}>Ingresos & Egresos</h1>
+            <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: "var(--text-primary)" }}>Registro</h1>
           </div>
           <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2">
             <Plus size={18} strokeWidth={3} />
@@ -341,15 +341,40 @@ export default function GastosPage() {
         <div className="mb-6 px-4 py-3 rounded-xl text-xs font-semibold" style={{ background: "color-mix(in srgb, var(--accent-rose) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)", color: "var(--accent-rose)" }}>{error}</div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-2 mb-6">
         {[
-          { label: 'Ingresos del mes', value: formatCurrency(ingresos), color: 'var(--accent-green)' },
-          { label: 'Egresos del mes', value: formatCurrency(egresos), color: 'var(--accent-rose)' },
-          { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' },
+          { label: 'Ingresos', value: formatCurrency(ingresos), color: 'var(--accent-green)', icon: ArrowUpRight },
+          { label: 'Egresos', value: formatCurrency(egresos), color: 'var(--accent-rose)', icon: ArrowDownRight },
+          { label: 'Balance', value: formatCurrency(ingresos - egresos), color: ingresos - egresos >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: ingresos - egresos >= 0 ? ArrowUpRight : ArrowDownRight },
         ].map((s, i) => (
-          <div key={i} className="glass-card p-4 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
-            <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: "var(--text-muted)" }}>{s.label}</p>
-            <p className="text-xl font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+          <div key={i} className="animate-enter"
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: 20,
+              padding: '12px 14px',
+              border: '1px solid var(--border-glass)',
+              animationDelay: `${i * 0.05}s`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+              background: `color-mix(in srgb, ${s.color} 12%, transparent)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <s.icon size={12} style={{ color: s.color }} strokeWidth={2.5} />
+            </div>
+            <div>
+              <p style={{
+                fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
+                letterSpacing: '0.12em', color: 'var(--text-muted)', marginBottom: 4,
+              }}>{s.label}</p>
+              <p style={{
+                fontSize: 14, fontWeight: 900, letterSpacing: '-0.03em',
+                color: s.color, lineHeight: 1,
+              }}>{s.value}</p>
+            </div>
           </div>
         ))}
       </div>
