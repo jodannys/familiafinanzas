@@ -527,7 +527,7 @@ export default function GastosPage() {
             {!usandoTarjeta && sugerenciasRicas.length > 0 && (
               <div className="animate-enter">
                 <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: "var(--text-muted)" }}>Sugerencias del presupuesto</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
                   {sugerenciasRicas.map(item => (
                     <button type="button" key={item.id}
                       onClick={() => aplicarSugerencia({ ...item, nombre: `${item.emoji} ${item.nombre}` })}
