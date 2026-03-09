@@ -90,33 +90,38 @@ export const THEMES = {
   },
   forest: {
     name: 'Forest Moss',
-    themeColor: '#F1F5F1',
-    emoji: '🌿',
-    preview: ['#F1F5F1', '#3A5A40', '#A3B18A', '#FFFFFF'],
-    vars: {
-      '--bg-primary': '#F1F5F1',
-      '--bg-secondary': '#E2E8E2',
-      '--bg-card': '#FFFFFF',
-      '--bg-dark-card': '#1B2E1B',   // ← faltaba
-      '--bg-glass': 'rgba(255,255,255,0.7)',
-      '--border-glass': '#D4DDD4',
-      '--input-bg': '#F8FAF8',
-      '--progress-track': '#E2E8E2',
-      '--accent-main': '#3A5A40',   // ← faltaba
-      '--accent-green': '#3A5A40',
-      '--accent-terra': '#A3B18A',
-      '--accent-blue': '#588157',
-      '--accent-rose': '#BC4749',
-      '--accent-violet': '#6B7FD4',   // ← faltaba
-      '--accent-gold': '#B5833A',   // ← faltaba
-      '--accent-danger': '#BC4749',   // ← faltaba
-      '--text-primary': '#1B2E1B',
-      '--text-secondary': '#344E41',
-      '--text-muted': '#6B8E6B',
-      '--sidebar-bg': '#FFFFFF',
-      '--sidebar-border': '#D4DDD4',
-    }
-  },
+    themeColor: '#0A0C10',
+  emoji: '🌑',
+  preview: ['#0A0C10', '#3B82F6', '#1F2937', '#F3F4F6'],
+  vars: {
+    // Fondos: Estética de "Carbonized Stone"
+    '--bg-primary': '#0A0C10',      // Negro profundo azulado
+    '--bg-secondary': '#161920',    // Gris oscuro para secciones
+    '--bg-card': '#1C212C',         // Gris grafito para tarjetas
+    '--bg-dark-card': '#050608',    // Fondo ultra oscuro
+    '--bg-glass': 'rgba(28, 33, 44, 0.75)',
+    '--border-glass': '#2D3544',    // Borde metálico sutil
+    '--input-bg': '#0F1218',
+    '--progress-track': '#2D3544',
+
+    // Acentos: Colores vibrantes sobre base oscura
+    '--accent-main': '#3B82F6',     // Azul eléctrico (Steel Blue)
+    '--accent-green': '#10B981',    // Verde Esmeralda técnico
+    '--accent-terra': '#F59E0B',    // Ámbar / Oro industrial
+    '--accent-blue': '#60A5FA',     // Azul cielo suave
+    '--accent-rose': '#F43F5E',     // Rojo vibrante
+    '--accent-violet': '#8B5CF6',   // Violeta neón
+    '--accent-gold': '#D97706',     // Bronce
+    '--accent-danger': '#EF4444',
+
+    // Tipografía: Alto contraste y legibilidad
+    '--text-primary': '#F3F4F6',    // Blanco roto (evita fatiga visual)
+    '--text-secondary': '#9CA3AF',  // Gris medio
+    '--text-muted': '#6B7280',      // Gris oscuro para detalles
+    '--sidebar-bg': '#050608',
+    '--sidebar-border': '#1C212C',
+  }
+},
 }
 const ThemeContext = createContext({ theme: 'linen', setTheme: () => { } })
 
