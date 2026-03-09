@@ -47,7 +47,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
-  // 1. CARGAR DATOS
   useEffect(() => {
     setMounted(true)
     async function cargar() {
@@ -69,7 +68,6 @@ export default function Dashboard() {
     cargar()
   }, [])
 
-  // 2. CÁLCULOS (Deben ir ANTES de cualquier return condicional)
   const now = new Date()
   const mesActual = now.getMonth()
   const añoActual = now.getFullYear()
@@ -83,30 +81,18 @@ export default function Dashboard() {
 
   const dataGraficoReal = useMemo(() => {
     if (!movs || movs.length === 0) return []
-
     const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-
-    const porMes = Array.from({ length: 12 }, (_, i) => ({
-      name: MESES[i],
-      gastos: 0,
-      ingresos: 0,
-    }))
-
+    const porMes = Array.from({ length: 12 }, (_, i) => ({ name: MESES[i], gastos: 0, ingresos: 0 }))
     movs.forEach(mov => {
-      const mes = parseInt(mov.fecha.split('-')[1], 10) - 1  // 0-11, sin UTC
+      const mes = parseInt(mov.fecha.split('-')[1], 10) - 1
       const año = parseInt(mov.fecha.split('-')[0], 10)
       if (año !== añoActual || mes < 0 || mes > 11) return
-      if (mov.tipo === 'egreso') {
-        porMes[mes].gastos += (mov.monto || 0)
-      } else if (mov.tipo === 'ingreso') {
-        porMes[mes].ingresos += (mov.monto || 0)
-      }
+      if (mov.tipo === 'egreso') porMes[mes].gastos += (mov.monto || 0)
+      else if (mov.tipo === 'ingreso') porMes[mes].ingresos += (mov.monto || 0)
     })
-
     return porMes
   }, [movs, añoActual])
 
-  // Lógica de KPIs y Alertas
   const ingresosMes = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
   const gastosMes = movsMes.filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
   const ahorroMes = movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
@@ -130,7 +116,13 @@ export default function Dashboard() {
     .filter(d => d.dias !== null && d.dias <= 7)
     .sort((a, b) => a.dias - b.dias)
 
-  // 3. RETURNS CONDICIONALES (Siempre al final de los Hooks)
+  const KPI_CONFIG = [
+    { label: 'Ingresos',    val: ingresosMes,   col: 'var(--accent-green)', icon: ArrowUpRight,   signo: '+' },
+    { label: 'Gastos',      val: gastosMes,      col: 'var(--accent-rose)',  icon: ArrowDownRight, signo: '-' },
+    { label: 'Metas',       val: totalAhorrado,  col: 'var(--accent-terra)', icon: Target,         signo: ''  },
+    { label: 'Saldo Libre', val: saldo,          col: saldo >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: Wallet, signo: '' },
+  ]
+
   if (!mounted) return null
 
   if (loading) return (
@@ -161,8 +153,8 @@ export default function Dashboard() {
               <div key={d.id}
                 className="relative flex items-center gap-4 p-5 rounded-[30px] border shadow-sm transition-transform hover:scale-[1.01]"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-                <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: urg.text }} />
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-inner" style={{ background: urg.bg }}>{d.emoji}</div>
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-[30px]" style={{ background: urg.text }} />
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{ background: urg.bg }}>{d.emoji}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1">
                     <p className="text-[10px] font-black uppercase opacity-40">Vence en {urg.label}</p>
@@ -176,41 +168,103 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {[
-          { label: 'Ingresos', val: ingresosMes, icon: ArrowUpRight, col: 'var(--accent-green)' },
-          { label: 'Gastos', val: gastosMes, icon: ArrowDownRight, col: 'var(--accent-rose)' },
-          { label: 'Metas', val: totalAhorrado, icon: Target, col: 'var(--accent-terra)' },
-          { label: 'Saldo Libre', val: saldo, icon: Wallet, col: 'var(--accent-blue)' },
-        ].map((kpi, i) => (
-          <div key={i} className="p-4 rounded-[24px] border shadow-sm flex flex-col justify-between min-h-[110px]"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-            <div className="flex items-center gap-2 opacity-60">
-              <div className="p-1.5 rounded-lg" style={{ background: `${kpi.col}15` }}>
-                <kpi.icon size={14} style={{ color: kpi.col }} />
+      {/* ── KPI Cards rediseñadas ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
+        {KPI_CONFIG.map((kpi, i) => (
+          <div key={i}
+            className="relative overflow-hidden flex flex-col justify-between animate-enter"
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: 28,
+              padding: '20px 20px 16px',
+              minHeight: 130,
+              border: '1px solid var(--border-glass)',
+              animationDelay: `${i * 0.06}s`,
+            }}
+          >
+            {/* Número fantasma decorativo */}
+            <span style={{
+              position: 'absolute',
+              bottom: -10,
+              right: 0,
+              fontSize: 88,
+              fontWeight: 900,
+              color: kpi.col,
+              opacity: 0.06,
+              lineHeight: 1,
+              letterSpacing: '-0.05em',
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}>
+              {String(i + 1).padStart(2, '0')}
+            </span>
+
+            {/* Label + icono */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{
+                fontSize: 9,
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                letterSpacing: '0.18em',
+                color: 'var(--text-muted)',
+              }}>
+                {kpi.label}
+              </span>
+              <div style={{
+                width: 28, height: 28,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${kpi.col} 12%, transparent)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <kpi.icon size={13} style={{ color: kpi.col }} strokeWidth={2.5} />
               </div>
-              <p className="text-[10px] font-black uppercase tracking-widest">{kpi.label}</p>
             </div>
-            <p className="text-xl font-black tabular-nums tracking-tighter mt-3" style={{ color: 'var(--text-primary)' }}>
-              {formatCurrency(kpi.val)}
-            </p>
+
+            {/* Valor + barra */}
+            <div>
+              <p style={{
+                fontSize: 20,
+                fontWeight: 900,
+                letterSpacing: '-0.04em',
+                color: 'var(--text-primary)',
+                lineHeight: 1.1,
+                marginBottom: 10,
+              }}>
+                {kpi.signo}{formatCurrency(Math.abs(kpi.val))}
+              </p>
+              <div style={{
+                height: 3,
+                borderRadius: 999,
+                background: `color-mix(in srgb, ${kpi.col} 15%, transparent)`,
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: `${[75, 55, 40, 65][i]}%`,
+                  background: kpi.col,
+                  borderRadius: 999,
+                }} />
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
+      {/* ── Gráfico + Distribución ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         <div className="lg:col-span-2">
           <FinanceChart data={dataGraficoReal} />
         </div>
 
-        <div className="p-8 rounded-[40px] border file:flex flex-col"
+        <div className="p-8 rounded-[40px] border flex flex-col"
           style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
           <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40 mb-8" style={{ color: 'var(--text-secondary)' }}>
             Distribución
           </h3>
           <div className="space-y-7 flex-1 flex flex-col justify-center">
             {distribucionReal.length > 0 ? distribucionReal.map(d => (
-              <div key={d.name} className="group">
+              <div key={d.name}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-bold capitalize opacity-70" style={{ color: 'var(--text-primary)' }}>{d.name}</span>
                   <span className="text-[11px] font-black" style={{ color: 'var(--text-primary)' }}>{d.value}%</span>
@@ -227,13 +281,12 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ── Metas ── */}
       <div className="p-8 rounded-[40px] border shadow-sm"
         style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-        <div className="flex items-center justify-between mb-8">
-          <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40" style={{ color: 'var(--text-secondary)' }}>
-            Objetivos de Ahorro
-          </h3>
-        </div>
+        <h3 className="font-black text-[11px] uppercase tracking-[0.2em] opacity-40 mb-8" style={{ color: 'var(--text-secondary)' }}>
+          Objetivos de Ahorro
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
           {metas.map(m => (
             <div key={m.id} className="relative">
