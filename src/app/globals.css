@@ -205,3 +205,15 @@ html, body {
 }
 
 h1, h2, h3 { letter-spacing: -0.04em; font-weight: 800; }
+
+/* Tapa la zona de la hora en PWA — sin depender de React */
+html::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: var(--bg-primary);
+  z-index: 9999;
+}

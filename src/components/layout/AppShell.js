@@ -36,20 +36,6 @@ export default function AppShell({ children }) {
       <main className="flex-1 min-h-screen lg:ml-20 flex flex-col transition-all duration-300"
         style={{ background: 'var(--bg-primary)' }}
       >
-        {/* Safe area fija — tapa la zona de la hora */}
-        <div
-          className="lg:hidden"
-          style={{
-            position: 'fixed',        // ← fixed, no sticky
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 'env(safe-area-inset-top)',
-            background: 'var(--bg-primary)',
-            zIndex: 99,               // ← encima del header
-          }}
-        />
-
         {/* Header móvil */}
         <div className="lg:hidden flex items-center gap-3 px-5 sticky z-50 w-full"
           style={{
