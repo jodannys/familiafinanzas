@@ -36,23 +36,28 @@ export default function AppShell({ children }) {
       <main className="flex-1 min-h-screen lg:ml-20 flex flex-col transition-all duration-300"
         style={{ background: 'var(--bg-primary)' }}
       >
+        {/* Safe area fija — tapa la zona de la hora */}
         <div
           className="lg:hidden"
           style={{
+            position: 'fixed',        // ← fixed, no sticky
+            top: 0,
+            left: 0,
+            right: 0,
             height: 'env(safe-area-inset-top)',
             background: 'var(--bg-primary)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 51,
+            zIndex: 99,               // ← encima del header
           }}
         />
+
         {/* Header móvil */}
-        <div className="lg:hidden flex items-center gap-3 px-5 sticky top-0 z-50 w-full"
-          // En el div del header móvil, cambia el style a:
+        <div className="lg:hidden flex items-center gap-3 px-5 sticky z-50 w-full"
           style={{
+            top: 'env(safe-area-inset-top)',  // ← empieza DESPUÉS de la safe area
             background: 'var(--bg-primary)',
-            borderBottom: '1px solid transparent', // ← evita el corte visual
-            paddingTop: 'calc(env(safe-area-inset-top) + 1rem)',
+            boxShadow: 'none',
+            borderBottom: 'none',
+            paddingTop: '1rem',               // ← sin safe-area aquí
             paddingBottom: '1rem',
           }}>
           <button
