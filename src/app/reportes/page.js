@@ -276,8 +276,7 @@ export default function ReportesPage() {
                 value: `${tasaAhorro.toFixed(1)}%`,
                 icon: <PiggyBank size={14} />,
                 color: tasaAhorro >= grupoMetas.futuro ? colores.green : tasaAhorro >= grupoMetas.futuro / 2 ? colores.terra : colores.rose,
-                sub: tasaAhorro >= grupoMetas.futuro ? '✓ Meta cumplida' : tasaAhorro >= grupoMetas.futuro / 2 ? 'Casi allí' : `Meta: ${grupoMetas.futuro}%`,
-                hint: 'Ahorro + Inversión / Ingresos',
+                sub: tasaAhorro >= grupoMetas.futuro ? '✓ Meta cumplida' : tasaAhorro >= grupoMetas.futuro / 2 ? 'Casi llegas a la meta' : `Meta: ${grupoMetas.futuro}%`,
               },
             ].map((s, i) => (
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
