@@ -90,36 +90,36 @@ export const THEMES = {
   },
   forest: {
     name: 'Forest Moss',
-    themeColor: '#0A0C10',
-  emoji: '🌑',
-  preview: ['#0A0C10', '#3B82F6', '#1F2937', '#F3F4F6'],
+    themeColor: '#1A1A1A',
+  emoji: '🛰️',
+  preview: ['#1A1A1A', '#0056D6', '#4C7862', '#D35400'], // Carbón, Cobalto, Verde Militar, Cobre
   vars: {
-    // Fondos: Estética de "Carbonized Stone"
-    '--bg-primary': '#0A0C10',      // Negro profundo azulado
-    '--bg-secondary': '#161920',    // Gris oscuro para secciones
-    '--bg-card': '#1C212C',         // Gris grafito para tarjetas
-    '--bg-dark-card': '#050608',    // Fondo ultra oscuro
-    '--bg-glass': 'rgba(28, 33, 44, 0.75)',
-    '--border-glass': '#2D3544',    // Borde metálico sutil
-    '--input-bg': '#0F1218',
-    '--progress-track': '#2D3544',
+    // Fondos Base: Texturas de Pizarra Forjada y Acero
+    '--bg-primary': '#EAECEE',      // Gris pálido técnico
+    '--bg-secondary': '#F4F6F7',    // Gris metálico Aluminium
+    '--bg-card': '#F4F6F7',         // Gris metálico Aluminium
+    '--bg-dark-card': '#1A1A1A',    // Carbón Profundo
+    '--bg-glass': 'rgba(234, 236, 238, 0.75)',
+    '--border-glass': '#BDC3C7',    // Gris Pizarra Técnica
+    '--input-bg': '#EAECEE',
+    '--progress-track': '#F4F6F7',
 
-    // Acentos: Colores vibrantes sobre base oscura
-    '--accent-main': '#3B82F6',     // Azul eléctrico (Steel Blue)
-    '--accent-green': '#10B981',    // Verde Esmeralda técnico
-    '--accent-terra': '#F59E0B',    // Ámbar / Oro industrial
-    '--accent-blue': '#60A5FA',     // Azul cielo suave
-    '--accent-rose': '#F43F5E',     // Rojo vibrante
-    '--accent-violet': '#8B5CF6',   // Violeta neón
-    '--accent-gold': '#D97706',     // Bronce
-    '--accent-danger': '#EF4444',
+    // Acentos: Colores Vibrantes pero Técnicos
+    '--accent-main': '#4C7862',     // Verde Militar Técnico (hostoo)
+    '--accent-green': '#4C7862',    // Verde Militar Técnico (basicos)
+    '--accent-terra': '#D35400',    // Naranja Cobre Técnico (ahorro)
+    '--accent-blue': '#0056D6',     // Azul Cobalto Técnico (inversiones)
+    '--accent-rose': '#C0392B',     // Carmesí Industrial
+    '--accent-violet': '#8E44AD',   // Violeta Neón Industrial (deuda)
+    '--accent-gold': '#B5833A',     // Oro Metálico Técnico
+    '--accent-danger': '#C0392B',
 
-    // Tipografía: Alto contraste y legibilidad
-    '--text-primary': '#F3F4F6',    // Blanco roto (evita fatiga visual)
-    '--text-secondary': '#9CA3AF',  // Gris medio
-    '--text-muted': '#6B7280',      // Gris oscuro para detalles
-    '--sidebar-bg': '#050608',
-    '--sidebar-border': '#1C212C',
+    // Tipografía: Alto Contraste y Legibilidad Técnica
+    '--text-primary': '#1A1A1A',    // Carbón Profundo
+    '--text-secondary': '#7F8C8D',  // Gris Técnica
+    '--text-muted': '#95A5A6',      // Gris Técnica Media
+    '--sidebar-bg': '#F4F6F7',
+    '--sidebar-border': '#BDC3C7',
   }
 },
 }
