@@ -31,10 +31,28 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        {/* 2. ESTA LÍNEA ES LA QUE QUITA EL VERDE DE ARRIBA */}
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Familia Finanzas" />
         <link rel="apple-touch-icon" href="/icon.svg" />
+
+        {/* ← AÑADE ESTO: aplica theme-color antes de que React hidrate */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            var COLORS = {
+              linen:    '#B3A89D',
+              obsidian: '#0F1115',
+              ocean:    '#E8F4F6',
+              forest:   '#F1F5F1',
+            };
+            var saved = localStorage.getItem('ff-theme');
+            var color = COLORS[saved] || '#B3A89D';
+            var meta = document.createElement('meta');
+            meta.name = 'theme-color';
+            meta.content = color;
+            document.head.appendChild(meta);
+            document.documentElement.style.backgroundColor = color;
+          })();
+        `}} />
       </head>
 
       <body>
