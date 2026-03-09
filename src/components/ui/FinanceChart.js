@@ -14,7 +14,7 @@ function leerColores() {
     bgCard: v('--bg-dark-card'),
     bgPrimary: v('--bg-primary'),
     borderColor: v('--border-glass'),
-  tickColor: v('--text-secondary'),
+    tickColor: v('--text-secondary'),
     tooltipBg: v('--bg-card'),
     tooltipText: v('--text-primary'),
     tooltipBorder: v('--border-glass'),
@@ -141,7 +141,7 @@ export function FinanceChart({ data = [] }) {
                 fontSize: 10,
                 fontWeight: 700,
                 textAnchor: 'end',
-                fillOpacity: 0.6   
+                fillOpacity: 0.6
               }}
               tickFormatter={(v) => v === 0 ? '0' : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
               dx={-4}
