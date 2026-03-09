@@ -9,13 +9,13 @@ function leerColores() {
   const s = getComputedStyle(document.documentElement)
   const v = (name) => s.getPropertyValue(name).trim()
   return {
-    ingresos:    v('--accent-green'),
-    gastos:      v('--accent-rose'),
-    bgCard:      v('--bg-dark-card'),
-    bgPrimary:   v('--bg-primary'),
+    ingresos: v('--accent-green'),
+    gastos: v('--accent-rose'),
+    bgCard: v('--bg-dark-card'),
+    bgPrimary: v('--bg-primary'),
     borderColor: v('--border-glass'),
-    tickColor:   v('--text-muted'),
-    tooltipBg:   v('--bg-card'),
+    tickColor: v('--text-muted'),
+    tooltipBg: v('--bg-card'),
     tooltipText: v('--text-primary'),
     tooltipBorder: v('--border-glass'),
   }
@@ -103,11 +103,11 @@ export function FinanceChart({ data = [] }) {
           <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="gradIngresos" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor={colores.ingresos} stopOpacity={0.25} />
+                <stop offset="0%" stopColor={colores.ingresos} stopOpacity={0.25} />
                 <stop offset="100%" stopColor={colores.ingresos} stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gradGastos" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor={colores.gastos} stopOpacity={0.2} />
+                <stop offset="0%" stopColor={colores.gastos} stopOpacity={0.2} />
                 <stop offset="100%" stopColor={colores.gastos} stopOpacity={0} />
               </linearGradient>
             </defs>
@@ -123,7 +123,12 @@ export function FinanceChart({ data = [] }) {
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: colores.tickColor, fontSize: 10, fontWeight: 700, opacity: 0.5 }}
+              tick={{
+                fill: colores.tickColor || '#918479',
+                fontSize: 10,
+                fontWeight: 700,
+                fillOpacity: 0.6
+              }}
               dy={12}
             />
 
@@ -131,7 +136,13 @@ export function FinanceChart({ data = [] }) {
               axisLine={false}
               tickLine={false}
               width={48}
-              tick={{ fill: colores.tickColor, fontSize: 10, fontWeight: 700, opacity: 0.5, textAnchor: 'end' }}
+              tick={{
+                fill: colores.tickColor || '#918479',
+                fontSize: 10,
+                fontWeight: 700,
+                textAnchor: 'end',
+                fillOpacity: 0.6   
+              }}
               tickFormatter={(v) => v === 0 ? '0' : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
               dx={-4}
             />

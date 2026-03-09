@@ -182,22 +182,7 @@ export default function Dashboard() {
               animationDelay: `${i * 0.06}s`,
             }}
           >
-            {/* Número fantasma decorativo */}
-            <span style={{
-              position: 'absolute',
-              bottom: -10,
-              right: 0,
-              fontSize: 88,
-              fontWeight: 900,
-              color: kpi.col,
-              opacity: 0.06,
-              lineHeight: 1,
-              letterSpacing: '-0.05em',
-              userSelect: 'none',
-              pointerEvents: 'none',
-            }}>
-              {String(i + 1).padStart(2, '0')}
-            </span>
+          
 
             {/* Label + icono */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
