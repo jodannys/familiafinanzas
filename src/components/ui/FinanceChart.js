@@ -14,7 +14,7 @@ function leerColores() {
     bgCard: v('--bg-dark-card'),
     bgPrimary: v('--bg-primary'),
     borderColor: v('--border-glass'),
-    tickColor: v('--text-muted'),
+  tickColor: v('--text-secondary'),
     tooltipBg: v('--bg-card'),
     tooltipText: v('--text-primary'),
     tooltipBorder: v('--border-glass'),
