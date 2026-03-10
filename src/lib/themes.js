@@ -156,6 +156,40 @@ carbon: {
     '--sidebar-border': '#1A1A1A',
   }
 },
+silk: {
+  name: 'Desert Silk',
+  themeColor: '#F7F3F0',
+  emoji: '🏺',
+  preview: ['#F7F3F0', '#D4A373', '#6B705C', '#BC6C25'],
+  vars: {
+    // Fondos: Estética de "Lino y Arena"
+    '--bg-primary': '#F7F3F0',      // Crema suave hueso
+    '--bg-secondary': '#EFE9E4',    // Arena cálida
+    '--bg-card': '#FFFFFF',         // Blanco seda puro
+    '--bg-dark-card': '#2D2824',    // Marrón café profundo (para contraste)
+    '--bg-glass': 'rgba(255, 255, 255, 0.7)',
+    '--border-glass': '#E2D9D2',    // Borde arcilla suave
+    '--input-bg': '#FAF9F8',
+    '--progress-track': '#EFE9E4',
+
+    // Acentos: Tonos Tierra y Botánicos (Sin rosas ni azules)
+    '--accent-main': '#D4A373',     // Champagne Gold (Elegancia pura)
+    '--accent-green': '#6B705C',    // Verde Oliva Seco (Básicos)
+    '--accent-terra': '#BC6C25',    // Terracotta (Ahorro / Metas)
+    '--accent-blue': '#A98467',     // Café con leche (Inversiones - sustituye al azul)
+    '--accent-rose': '#A44A3F',     // Rojo Ladrillo / Óxido (Peligro - sin ser rosa)
+    '--accent-violet': '#582F0E',   // Madera de Caoba (Deuda - sustituye al morado)
+    '--accent-gold': '#B5833A',     // Bronce satinado
+    '--accent-danger': '#8B322C',
+
+    // Tipografía: Suave pero legible
+    '--text-primary': '#2D2824',    // Carbón café (menos agresivo que el negro)
+    '--text-secondary': '#6B6158',  // Taupe
+    '--text-muted': '#A39990',      // Piedra clara
+    '--sidebar-bg': '#FFFFFF',
+    '--sidebar-border': '#E2D9D2',
+  }
+},
 }
 const ThemeContext = createContext({ theme: 'linen', setTheme: () => { } })
 
