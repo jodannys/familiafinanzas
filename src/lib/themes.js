@@ -122,6 +122,40 @@ export const THEMES = {
     '--sidebar-border': '#BDC3C7',
   }
 },
+carbon: {
+  name: 'Forged Carbon',
+  themeColor: '#080808',
+  emoji: '🕶️',
+  preview: ['#080808', '#B8860B', '#1A1A1A', '#E0E0E0'],
+  vars: {
+    // Fondos: El look de "Piedra Carbonizada"
+    '--bg-primary': '#080808',      // Negro absoluto
+    '--bg-secondary': '#121212',    // Gris petróleo muy oscuro
+    '--bg-card': '#171717',         // Carbono texturizado
+    '--bg-dark-card': '#050505',    // Fondo para modales
+    '--bg-glass': 'rgba(23, 23, 23, 0.8)',
+    '--border-glass': '#262626',    // Bordes sutiles de acero
+    '--input-bg': '#0F0F0F',
+    '--progress-track': '#262626',
+
+    // Acentos: Metales refinados
+    '--accent-main': '#B8860B',     // Oro viejo / Bronce (El "estilo")
+    '--accent-green': '#3E5C45',    // Verde bosque profundo (no brillante)
+    '--accent-terra': '#8B4513',    // Cuero / Madera oscura
+    '--accent-blue': '#243447',     // Azul medianoche técnico
+    '--accent-rose': '#5C2E2E',     // Vino tinto oxidado (peligro)
+    '--accent-violet': '#3D2B56',   // Púrpura imperial oscuro
+    '--accent-gold': '#D4AF37',     // Oro metálico
+    '--accent-danger': '#7F1D1D',
+
+    // Tipografía: Contraste "Premium"
+    '--text-primary': '#E5E5E5',    // Blanco platino
+    '--text-secondary': '#A3A3A3',  // Gris ceniza
+    '--text-muted': '#525252',      // Gris carbón
+    '--sidebar-bg': '#0A0A0A',
+    '--sidebar-border': '#1A1A1A',
+  }
+},
 }
 const ThemeContext = createContext({ theme: 'linen', setTheme: () => { } })
 
