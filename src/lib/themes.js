@@ -190,6 +190,40 @@ silk: {
     '--sidebar-border': '#E2D9D2',
   }
 },
+vogue: {
+  name: 'Vogue Obsidian',
+  themeColor: '#050505',
+  emoji: '💎',
+  preview: ['#050505', '#D4AF37', '#1A1A1A', '#F3E5D8'],
+  vars: {
+    // Fondos: Negro Profundo "Glossy"
+    '--bg-primary': '#050505',      // Negro puro para resaltar el contenido
+    '--bg-secondary': '#111111',    // Negro suave
+    '--bg-card': '#161616',         // Gris casi negro (se siente muy premium)
+    '--bg-dark-card': '#000000',
+    '--bg-glass': 'rgba(22, 22, 22, 0.8)',
+    '--border-glass': '#2A2A2A',    // Bordes finos como joyería
+    '--input-bg': '#0F0F0F',
+    '--progress-track': '#2A2A2A',
+
+    // Acentos: Joyería y Alta Costura (Cero Rosas/Azules/Morados)
+    '--accent-main': '#D4AF37',     // Oro Champagne (El toque de estilo)
+    '--accent-green': '#004D40',    // Esmeralda Profundo (Básicos / Positivo)
+    '--accent-terra': '#A67C52',    // Bronce Bruñido (Ahorro)
+    '--accent-blue': '#404040',     // Gris Acero (Para básicos - sustituye al azul)
+    '--accent-rose': '#601010',     // Rojo Oxblood / Sangre de Toro (Peligro - no es rosa)
+    '--accent-violet': '#2C2C2C',   // Titanio (Deseos - sustituye al morado)
+    '--accent-gold': '#B8860B',     // Oro Viejo (Inversiones)
+    '--accent-danger': '#800000',
+
+    // Tipografía: Contraste Máximo
+    '--text-primary': '#F3E5D8',    // Blanco Crema / Marfil (Muy suave al ojo)
+    '--text-secondary': '#A0A0A0',  // Gris Plata
+    '--text-muted': '#555555',      // Gris Carbón
+    '--sidebar-bg': '#080808',
+    '--sidebar-border': '#1A1A1A',
+  }
+},
 }
 const ThemeContext = createContext({ theme: 'linen', setTheme: () => { } })
 
