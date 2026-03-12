@@ -50,7 +50,6 @@ export default function GastosPage() {
   const mes = now.getMonth() + 1
   const año = now.getFullYear()
 
-  // ── Colores del tema ──────────────────────────────────────────────────────
   useEffect(() => {
     function leer() {
       const s = getComputedStyle(document.documentElement)
@@ -62,6 +61,7 @@ export default function GastosPage() {
         terra: v('--accent-terra'),
         violet: v('--accent-violet'),
         gold: v('--accent-gold'),
+        main: v('--accent-main'),
         muted: v('--text-muted'),
         border: v('--border-glass'),
         card: v('--bg-card'),
@@ -73,7 +73,6 @@ export default function GastosPage() {
     return () => window.removeEventListener('theme-change', leer)
   }, [])
 
-  // CAT_COLOR_VAR dentro del componente para que use colores resueltos
   const CAT_COLOR_VAR = {
     basicos: colores.blue,
     deseo: colores.violet,
@@ -128,7 +127,6 @@ export default function GastosPage() {
     if (!monto || monto <= 0) return
     setSaving(true)
 
-    // ── PAGO CON TARJETA ──────────────────────────────────────────────────
     if (tarjetaSeleccionada && form.tipo === 'egreso') {
       const deudaTarjeta = tarjetaDeudasMap[tarjetaSeleccionada]
       if (!deudaTarjeta) {
@@ -159,7 +157,6 @@ export default function GastosPage() {
       return
     }
 
-    // ── GASTO NORMAL ──────────────────────────────────────────────────────
     const deudaId = form.categoria === 'deuda' && deudaSeleccionada ? deudaSeleccionada : null
     const payloadMov = deudaId ? { ...form, monto, deuda_id: deudaId } : { ...form, monto }
 
@@ -347,7 +344,8 @@ export default function GastosPage() {
               <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
               <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: 'var(--text-primary)' }}>Registro</h1>
             </div>
-            <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2">
+            <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2"
+              style={{ background: colores.main }}>
               <Plus size={18} strokeWidth={3} />
               <span className="hidden sm:inline">Nuevo registro</span>
             </button>
@@ -664,8 +662,8 @@ export default function GastosPage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ff-btn-primary"
-              style={{ background: usandoTarjeta ? 'var(--accent-main)' : 'var(--accent-terra)' }}
+              className="w-full h-14 text-sm font-black text-white shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl"
+              style={{ background: usandoTarjeta ? colores.main : colores.terra }}
             >
               {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
             </button>
