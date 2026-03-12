@@ -56,16 +56,16 @@ export default function GastosPage() {
       const s = getComputedStyle(document.documentElement)
       const v = (n) => s.getPropertyValue(n).trim()
       setColores({
-        green:  v('--accent-green'),
-        rose:   v('--accent-rose'),
-        blue:   v('--accent-blue'),
-        terra:  v('--accent-terra'),
+        green: v('--accent-green'),
+        rose: v('--accent-rose'),
+        blue: v('--accent-blue'),
+        terra: v('--accent-terra'),
         violet: v('--accent-violet'),
-        gold:   v('--accent-gold'),
-        muted:  v('--text-muted'),
+        gold: v('--accent-gold'),
+        muted: v('--text-muted'),
         border: v('--border-glass'),
-        card:   v('--bg-card'),
-        track:  v('--progress-track'),
+        card: v('--bg-card'),
+        track: v('--progress-track'),
       })
     }
     leer()
@@ -75,11 +75,11 @@ export default function GastosPage() {
 
   // CAT_COLOR_VAR dentro del componente para que use colores resueltos
   const CAT_COLOR_VAR = {
-    basicos:   colores.blue,
-    deseo:     colores.violet,
-    ahorro:    colores.green,
+    basicos: colores.blue,
+    deseo: colores.violet,
+    ahorro: colores.green,
     inversion: colores.gold,
-    deuda:     colores.rose,
+    deuda: colores.rose,
   }
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function GastosPage() {
     supabase.from('deudas').select('id, perfil_tarjeta_id, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
       .then(({ data }) => {
         const map = {}
-        ;(data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
+          ; (data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
         setTarjetaDeudasMap(map)
       })
   }, [])
@@ -664,7 +664,8 @@ export default function GastosPage() {
             <button
               type="submit"
               disabled={saving}
-              className={`w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ${usandoTarjeta ? 'ff-btn-primary' : 'ff-btn-terra'}`}
+              className="w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl ff-btn-primary"
+              style={{ background: usandoTarjeta ? 'var(--accent-main)' : 'var(--accent-terra)' }}
             >
               {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
             </button>
