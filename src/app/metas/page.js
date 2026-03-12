@@ -7,6 +7,7 @@ import { Plus, Loader2, Trash2, Pencil, Pause, Play, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
+import { useTheme, getThemeColors } from '@/lib/themes'
 
 function mesesRestantes(actual, meta, pctMensual, montoDisponible = 0) {
   const aporteMensual = (pctMensual / 100) * montoDisponible
@@ -22,9 +23,9 @@ function mesesRestantes(actual, meta, pctMensual, montoDisponible = 0) {
 
 // Colores de estado usando CSS vars del tema
 const ESTADO_CONFIG = {
-  activa:     { label: 'Activa',   bg: 'color-mix(in srgb, var(--accent-green) 10%, transparent)', text: 'var(--accent-green)' },
-  pausada:    { label: 'Pausada',  bg: 'color-mix(in srgb, var(--accent-terra) 10%, transparent)', text: 'var(--accent-terra)' },
-  completada: { label: '✓ Lista', bg: 'color-mix(in srgb, var(--accent-blue)  10%, transparent)', text: 'var(--accent-blue)'  },
+  activa: { label: 'Activa', bg: 'color-mix(in srgb, var(--accent-green) 10%, transparent)', text: 'var(--accent-green)' },
+  pausada: { label: 'Pausada', bg: 'color-mix(in srgb, var(--accent-terra) 10%, transparent)', text: 'var(--accent-terra)' },
+  completada: { label: '✓ Lista', bg: 'color-mix(in srgb, var(--accent-blue)  10%, transparent)', text: 'var(--accent-blue)' },
 }
 
 function IconBtn({ onClick, title, bg, color, children }) {
@@ -47,6 +48,8 @@ export default function MetasPage() {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: '#10b981' })
   const [selectedMetaId, setSelectedMetaId] = useState(null)
+  const { theme } = useTheme()
+  const themeColors = getThemeColors(theme)
 
   useEffect(() => {
     cargar()
@@ -167,8 +170,8 @@ export default function MetasPage() {
         <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold"
           style={{
             background: 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
-            border:     '1px solid color-mix(in srgb, var(--accent-rose) 25%, transparent)',
-            color:      'var(--accent-rose)',
+            border: '1px solid color-mix(in srgb, var(--accent-rose) 25%, transparent)',
+            color: 'var(--accent-rose)',
           }}>
           {error}
         </div>
@@ -177,8 +180,8 @@ export default function MetasPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {[
-          { label: 'Ahorrado',   value: formatCurrency(totalAhorrado),                                    color: 'var(--accent-green)', badge: null },
-          { label: 'Destinado',  value: presupuesto ? formatCurrency(presupuesto.montoMetas) : '—',       color: 'var(--accent-terra)', badge: presupuesto ? `${presupuesto.pctMetas}%` : null },
+          { label: 'Ahorrado', value: formatCurrency(totalAhorrado), color: 'var(--accent-green)', badge: null },
+          { label: 'Destinado', value: presupuesto ? formatCurrency(presupuesto.montoMetas) : '—', color: 'var(--accent-terra)', badge: presupuesto ? `${presupuesto.pctMetas}%` : null },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter relative" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-[9px] uppercase tracking-wider font-bold mb-1 truncate"
@@ -373,15 +376,15 @@ export default function MetasPage() {
             const pctUsado = metas
               .filter(m => m.id !== editingId && m.estado === 'activa')
               .reduce((s, m) => s + (m.pct_mensual || 0), 0)
-            const pctLibre   = Math.max(0, 100 - pctUsado)
-            const pctActual  = parseFloat(form.pct_mensual) || 0
+            const pctLibre = Math.max(0, 100 - pctUsado)
+            const pctActual = parseFloat(form.pct_mensual) || 0
             const pctRestante = Math.max(0, pctLibre - pctActual)
             const pctTotalSimulado = pctUsado + pctActual
-            const montoActual  = (pctActual   / 100) * presupuesto.montoMetas
+            const montoActual = (pctActual / 100) * presupuesto.montoMetas
             const montoRestante = (pctRestante / 100) * presupuesto.montoMetas
             const excede = pctActual > pctLibre
-            const lleno  = pctRestante === 0 && !excede
-            const barUsado  = Math.min(100, pctUsado)
+            const lleno = pctRestante === 0 && !excede
+            const barUsado = Math.min(100, pctUsado)
             const barActual = Math.min(100 - barUsado, pctActual)
 
             // Colores semáforo usando CSS vars
@@ -390,7 +393,7 @@ export default function MetasPage() {
             return (
               <div className="rounded-xl overflow-hidden"
                 style={{
-                  border:     `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
                   background: `color-mix(in srgb, ${color} 6%, transparent)`,
                 }}>
                 <div className="h-1.5 flex" style={{ background: 'var(--progress-track)' }}>
@@ -432,7 +435,7 @@ export default function MetasPage() {
           <div>
             <label className="ff-label">Color</label>
             <div className="flex gap-3 flex-wrap">
-              {['#10b981', '#f59e0b', '#8b5cf6', '#38bdf8', '#C0605A', '#C17A3A'].map(c => (
+              {themeColors.map(c => (
                 <button type="button" key={c} onClick={() => setForm({ ...form, color: c })}
                   className="w-8 h-8 rounded-full transition-all"
                   style={{

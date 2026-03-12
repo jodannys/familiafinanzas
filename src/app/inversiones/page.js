@@ -11,6 +11,7 @@ import {
 import { formatCurrency, calculateCompoundInterest } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
+import { useTheme, getThemeColors } from '@/lib/themes'
 import {
   ResponsiveContainer, AreaChart, Area,
   XAxis, YAxis, Tooltip, CartesianGrid
@@ -42,6 +43,8 @@ function CustomTooltip({ active, payload, label, colores }) {
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function InversionesPage() {
+  const { theme } = useTheme()
+
   const [inversiones, setInversiones] = useState([])
   const [selected, setSelected]       = useState(null)
   const [loading, setLoading]         = useState(true)
@@ -57,10 +60,10 @@ export default function InversionesPage() {
   })
   const [form, setForm] = useState({
     nombre: '', emoji: '📈', capital: '', aporte: '',
-    tasa: '', anos: '10', color: '#2D7A5F', bola_nieve: true,
+    tasa: '', anos: '10', color: '', bola_nieve: true,
   })
 
-  // ── Colores del tema ──────────────────────────────────────────────────────
+  // ── Colores del tema (CSS vars para Recharts y estilos inline) ────────────
   useEffect(() => {
     function leer() {
       const s = getComputedStyle(document.documentElement)
@@ -81,6 +84,20 @@ export default function InversionesPage() {
     window.addEventListener('theme-change', leer)
     return () => window.removeEventListener('theme-change', leer)
   }, [])
+
+  // ── Paleta del picker reactiva al tema ────────────────────────────────────
+  const themeColors = getThemeColors(theme)
+
+  // Si el color actual no pertenece a la nueva paleta, resetear al primero
+  useEffect(() => {
+    if (themeColors.length && form.color && !themeColors.includes(form.color)) {
+      setForm(f => ({ ...f, color: themeColors[0] }))
+    }
+    // Inicializar color si está vacío (primera carga)
+    if (!form.color && themeColors.length) {
+      setForm(f => ({ ...f, color: themeColors[0] }))
+    }
+  }, [theme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     cargar()
@@ -152,12 +169,12 @@ export default function InversionesPage() {
     setSaving(false)
     setModal(false)
     setEditandoId(null)
-    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: '#2D7A5F', bola_nieve: true })
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: themeColors[0] || '', bola_nieve: true })
   }
 
   function abrirNuevo() {
     setEditandoId(null)
-    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: '#2D7A5F', bola_nieve: true })
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: themeColors[0] || '', bola_nieve: true })
     setModal(true)
   }
 
@@ -170,7 +187,7 @@ export default function InversionesPage() {
       aporte:     inv.aporte?.toString()  || '',
       tasa:       inv.tasa?.toString()    || '',
       anos:       inv.anos?.toString()    || '10',
-      color:      inv.color     || '#2D7A5F',
+      color:      inv.color     || themeColors[0] || '',
       bola_nieve: inv.bola_nieve !== false,
     })
     setModal(true)
@@ -203,17 +220,7 @@ export default function InversionesPage() {
   const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
   const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
 
-  const COLORES_PICKER = [
-    { hex: '#2D7A5F', label: 'Verde' },
-    { hex: '#4A6FA5', label: 'Azul' },
-    { hex: '#818CF8', label: 'Índigo' },
-    { hex: '#C17A3A', label: 'Terra' },
-    { hex: '#C0605A', label: 'Rosa' },
-    { hex: '#10b981', label: 'Menta' },
-    { hex: '#8b5cf6', label: 'Violeta' },
-  ]
-
-  // Tooltip con colores inyectados (necesario porque Recharts pasa props al content)
+  // Tooltip con colores inyectados
   const TooltipConColores = (props) => <CustomTooltip {...props} colores={colores} />
 
   // ─── RENDER ──────────────────────────────────────────────────────────────────
@@ -651,12 +658,12 @@ export default function InversionesPage() {
             </div>
           </div>
 
-          {/* Picker de color de cartera */}
+          {/* Picker de color — reactivo al tema activo */}
           <div>
             <label className="ff-label">Color de la cartera</label>
             <div className="flex gap-2 mt-1 flex-wrap">
-              {COLORES_PICKER.map(({ hex, label }) => (
-                <button key={hex} type="button" title={label}
+              {themeColors.map(hex => (
+                <button key={hex} type="button"
                   onClick={() => setForm(p => ({ ...p, color: hex }))}
                   className="w-8 h-8 rounded-full transition-all"
                   style={{

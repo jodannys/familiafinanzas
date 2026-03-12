@@ -6,6 +6,7 @@ import Modal from '@/components/ui/Modal'
 import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Save } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { useTheme, getThemeColors } from '@/lib/themes'
 
 function IconBtn({ onClick, title, bg, color, children }) {
   return (
@@ -17,11 +18,10 @@ function IconBtn({ onClick, title, bg, color, children }) {
   )
 }
 
-const COLORES = [
-  '#4A6FA5', '#818CF8', '#2D7A5F', '#C17A3A', '#C0605A', '#8b5cf6', '#10b981',
-]
-
 export default function TarjetasPage() {
+  const { theme } = useTheme()
+  const themeColors = getThemeColors(theme)
+
   const [tarjetas, setTarjetas] = useState([])
   const [deudas, setDeudas] = useState([])
   const [usadoPorTarjeta, setUsadoPorTarjeta] = useState({})
@@ -33,8 +33,18 @@ export default function TarjetasPage() {
 
   const [form, setForm] = useState({
     nombre_tarjeta: '', banco: '', limite_credito: '',
-    dia_corte: '', dia_pago: '', estado: 'activa', color: '#4A6FA5',
+    dia_corte: '', dia_pago: '', estado: 'activa', color: '',
   })
+
+  // Inicializar color y resetear si el tema cambia
+  useEffect(() => {
+    if (themeColors.length && form.color && !themeColors.includes(form.color)) {
+      setForm(f => ({ ...f, color: themeColors[0] }))
+    }
+    if (!form.color && themeColors.length) {
+      setForm(f => ({ ...f, color: themeColors[0] }))
+    }
+  }, [theme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     cargar()
@@ -55,7 +65,6 @@ export default function TarjetasPage() {
     setTarjetas(tarjetasData || [])
 
     if (tarjetasData?.length) {
-      // Traer deudas de tarjeta con su perfil_tarjeta_id
       const { data: deudasTarjeta } = await supabase
         .from('deudas')
         .select('id, nombre, perfil_tarjeta_id, pendiente, estado')
@@ -64,8 +73,6 @@ export default function TarjetasPage() {
 
       setDeudas(deudasTarjeta || [])
 
-      // FIX BUG 2+3: el "usado" es simplemente la suma de pendiente de las deudas
-      // asociadas a cada perfil_tarjeta_id. No usar deuda_movimientos (IDs distintos).
       const usado = {}
       tarjetasData.forEach(t => { usado[t.id] = 0 })
         ; (deudasTarjeta || []).forEach(d => {
@@ -90,11 +97,11 @@ export default function TarjetasPage() {
         dia_corte: tarjeta.dia_corte?.toString() || '',
         dia_pago: tarjeta.dia_pago?.toString() || '',
         estado: tarjeta.estado || 'activa',
-        color: tarjeta.color || '#4A6FA5',
+        color: tarjeta.color || themeColors[0] || '',
       })
     } else {
       setEditingId(null)
-      setForm({ nombre_tarjeta: '', banco: '', limite_credito: '', dia_corte: '', dia_pago: '', estado: 'activa', color: '#4A6FA5' })
+      setForm({ nombre_tarjeta: '', banco: '', limite_credito: '', dia_corte: '', dia_pago: '', estado: 'activa', color: themeColors[0] || '' })
     }
     setModal(true)
   }
@@ -122,7 +129,7 @@ export default function TarjetasPage() {
     }
     setSaving(false)
     closeModal()
-    cargar()  // refrescar usado
+    cargar()
   }
 
   async function handleToggleEstado(tarjeta) {
@@ -169,7 +176,6 @@ export default function TarjetasPage() {
             const usado = usadoPorTarjeta[t.id] || 0
             const limite = t.limite_credito || 0
             const disponible = Math.max(0, limite - usado)
-            // FIX BUG 1: pctUsado calculado con los datos de esta tarjeta, no de sobre-page
             const pctUsado = limite > 0 ? Math.min(100, Math.round((usado / limite) * 100)) : 0
             const deudasCard = deudas.filter(d => d.perfil_tarjeta_id === t.id)
 
@@ -252,7 +258,7 @@ export default function TarjetasPage() {
                   )}
                 </div>
 
-                {/* Desglose de compras — visible al seleccionar */}
+                {/* Desglose de compras */}
                 {isSelected && (
                   <div className="mt-4 pt-4 space-y-2 max-h-40 overflow-y-auto custom-scroll pr-2"
                     style={{ borderTop: '1px solid var(--border-glass)' }}>
@@ -283,7 +289,6 @@ export default function TarjetasPage() {
       <Modal open={modal} onClose={closeModal} title={editingId ? 'Editar Tarjeta' : 'Nueva Tarjeta'}>
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Nombre + Banco */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Nombre de la tarjeta</label>
@@ -299,7 +304,6 @@ export default function TarjetasPage() {
             </div>
           </div>
 
-          {/* Límite */}
           <div>
             <label className="ff-label">Límite de crédito (€)</label>
             <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
@@ -307,7 +311,6 @@ export default function TarjetasPage() {
               onChange={e => setForm(p => ({ ...p, limite_credito: e.target.value }))} />
           </div>
 
-          {/* Días de corte y pago */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Día de corte</label>
@@ -323,11 +326,11 @@ export default function TarjetasPage() {
             </div>
           </div>
 
-          {/* Color */}
+          {/* Color picker — reactivo al tema activo */}
           <div>
             <label className="ff-label">Color</label>
             <div className="flex gap-2 mt-1 flex-wrap">
-              {COLORES.map(hex => (
+              {themeColors.map(hex => (
                 <button key={hex} type="button"
                   onClick={() => setForm(p => ({ ...p, color: hex }))}
                   className="w-8 h-8 rounded-full transition-all"
