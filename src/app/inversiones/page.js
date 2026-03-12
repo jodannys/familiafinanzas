@@ -686,7 +686,7 @@ export default function InversionesPage() {
             <button type="submit" disabled={saving}
               className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
               {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear cartera'}
+              {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear'}
             </button>
           </div>
         </form>

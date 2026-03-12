@@ -727,8 +727,7 @@ export default function DeudasPage() {
           </div>
         )}
 
-        {/* Área scrollable — solo el cuerpo del form, sin el footer */}
-        <div className="overflow-y-auto -mx-1 px-1" style={{ maxHeight: 'calc(100dvh - 280px)' }}>
+        <div>
 
           {/* ── TARJETA ── */}
           {tipoSeleccionado === 'tarjeta' && (
@@ -999,8 +998,7 @@ export default function DeudasPage() {
 
         </div>
 
-        {/* Footer con botones — FUERA del scroll, siempre visible */}
-        <div className="flex gap-3 pt-4 mt-2 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+        <div className="flex gap-3 pt-4">
           <button type="button"
             onClick={() => { setModalDeuda(false); setEditandoId(null) }}
             className="ff-btn-ghost flex-1">
@@ -1010,8 +1008,8 @@ export default function DeudasPage() {
             onClick={handleSaveDeuda}
             disabled={saving}
             className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
-            {saving && <Loader2 size={14} className="animate-spin" />}
-            {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear deuda'}
+          {saving && <Loader2 size={12} className="animate-spin" />}
+            {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear'}
           </button>
         </div>
       </Modal>

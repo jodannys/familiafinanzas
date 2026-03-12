@@ -353,7 +353,7 @@ export default function TarjetasPage() {
               className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
               {saving
                 ? <><Loader2 size={14} className="animate-spin" /> Guardando...</>
-                : <><Save size={14} /> {editingId ? 'Guardar cambios' : 'Crear tarjeta'}</>
+                : <><Save size={14} /> {editingId ? 'Guardar cambios' : 'Crear'}</>
               }
             </button>
           </div>
