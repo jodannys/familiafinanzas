@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { useTheme, getThemeColors } from '@/context/theme-context'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,6 @@ function diasHastaPago(diaPago) {
   return diaPago >= hoy ? diaPago - hoy : 30 - hoy + diaPago
 }
 
-// Usa CSS vars — funciona en style={{}} HTML
 function urgenciaColor(dias) {
   if (dias === null) return null
   if (dias <= 3) return {
@@ -46,11 +46,10 @@ function urgenciaColor(dias) {
   }
 }
 
-// Colores de tipo usando CSS vars
 const TIPO_CONFIG = {
-  tarjeta: { label: 'Tarjeta',  icon: CreditCard, color: 'var(--accent-violet)' },
+  tarjeta:  { label: 'Tarjeta',  icon: CreditCard, color: 'var(--accent-violet)' },
   prestamo: { label: 'Préstamo', icon: Landmark,   color: 'var(--accent-rose)'   },
-  cuota:   { label: 'Cuota',    icon: Calendar,   color: 'var(--accent-terra)'   },
+  cuota:    { label: 'Cuota',    icon: Calendar,   color: 'var(--accent-terra)'   },
 }
 
 function IconBtn({ onClick, title, bg, color, children }) {
@@ -59,34 +58,49 @@ function IconBtn({ onClick, title, bg, color, children }) {
       onClick={e => { e.stopPropagation(); onClick() }}
       title={title}
       className="flex items-center justify-center rounded-xl transition-all active:scale-90"
-      style={{ background: bg, color, width: 34, height: 34, flexShrink: 0 }}
-    >
+      style={{ background: bg, color, width: 34, height: 34, flexShrink: 0 }}>
       {children}
     </button>
   )
 }
 
-// ─── Form defaults por tipo ──────────────────────────────────────────────────
-// Los colores de estos forms son datos del usuario (se guardan en DB), se mantienen como hex
+// ─── Color picker reutilizable ────────────────────────────────────────────────
 
-const FORM_TARJETA = {
-  tipo_deuda: 'tarjeta', emoji: '💳', nombre: '', categoria: 'deseo',
-  tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '',
-  fecha_operacion: new Date().toISOString().slice(0, 10), color: '#818CF8',
-}
-const FORM_PRESTAMO = {
-  tipo_deuda: 'prestamo', emoji: '🏦', nombre: '', categoria: 'basicos',
-  capital: '', tasa_interes: '', tiene_interes: false,
-  plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: '#C0605A',
-}
-const FORM_CUOTA = {
-  tipo_deuda: 'cuota', emoji: '📅', nombre: '', categoria: 'deseo',
-  deuda_origen_id: '', monto: '', dia_pago: '', color: '#C17A3A',
+function ColorPicker({ value, onChange, colors }) {
+  return (
+    <div>
+      <label className="ff-label">Color</label>
+      <div className="flex gap-2 mt-1 flex-wrap">
+        {colors.map(hex => (
+          <button key={hex} type="button"
+            onClick={() => onChange(hex)}
+            className="w-8 h-8 rounded-full transition-all"
+            style={{
+              backgroundColor: hex,
+              outline:      value === hex ? '3px solid var(--text-secondary)' : 'none',
+              outlineOffset: 2,
+              opacity:   value === hex ? 1 : 0.5,
+              transform: value === hex ? 'scale(1.15)' : 'scale(1)',
+            }} />
+        ))}
+      </div>
+    </div>
+  )
 }
 
-// ─── Component Principal ─────────────────────────────────────────────────────
+// ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function DeudasPage() {
+  const { theme } = useTheme()
+  const themeColors = getThemeColors(theme)
+
+  // Color por defecto reactivo al tema
+  const defaultColor = () => themeColors[0] || '#818CF8'
+
+  const makeFormTarjeta  = () => ({ tipo_deuda: 'tarjeta',  emoji: '💳', nombre: '', categoria: 'deseo',   tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: new Date().toISOString().slice(0, 10), color: defaultColor() })
+  const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', emoji: '🏦', nombre: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor() })
+  const makeFormCuota    = () => ({ tipo_deuda: 'cuota',    emoji: '📅', nombre: '', categoria: 'deseo',   deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor() })
+
   const [deudas, setDeudas] = useState([])
   const [movimientos, setMovimientos] = useState({})
   const [loading, setLoading] = useState(true)
@@ -99,9 +113,9 @@ export default function DeudasPage() {
   const [modalDeuda, setModalDeuda] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [tipoSeleccionado, setTipoSeleccionado] = useState('tarjeta')
-  const [formTarjeta, setFormTarjeta] = useState(FORM_TARJETA)
-  const [formPrestamo, setFormPrestamo] = useState(FORM_PRESTAMO)
-  const [formCuota, setFormCuota] = useState(FORM_CUOTA)
+  const [formTarjeta, setFormTarjeta]   = useState(makeFormTarjeta)
+  const [formPrestamo, setFormPrestamo] = useState(makeFormPrestamo)
+  const [formCuota, setFormCuota]       = useState(makeFormCuota)
 
   const [modalMov, setModalMov] = useState(null)
   const [formMov, setFormMov] = useState({
@@ -112,6 +126,15 @@ export default function DeudasPage() {
   const now = new Date()
   const mes = now.getMonth() + 1
   const año = now.getFullYear()
+
+  // Resetear colores si el tema cambia
+  useEffect(() => {
+    if (!themeColors.length) return
+    const c = themeColors[0]
+    setFormTarjeta(p  => ({ ...p,  color: themeColors.includes(p.color)  ? p.color  : c }))
+    setFormPrestamo(p => ({ ...p,  color: themeColors.includes(p.color)  ? p.color  : c }))
+    setFormCuota(p    => ({ ...p,  color: themeColors.includes(p.color)  ? p.color  : c }))
+  }, [theme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { cargar() }, [])
 
@@ -152,22 +175,23 @@ export default function DeudasPage() {
   function abrirNueva() {
     setEditandoId(null)
     setTipoSeleccionado('tarjeta')
-    setFormTarjeta(FORM_TARJETA)
-    setFormPrestamo(FORM_PRESTAMO)
-    setFormCuota(FORM_CUOTA)
+    setFormTarjeta(makeFormTarjeta())
+    setFormPrestamo(makeFormPrestamo())
+    setFormCuota(makeFormCuota())
     setModalDeuda(true)
   }
 
   function abrirEdicion(d) {
     setEditandoId(d.id)
     setTipoSeleccionado(d.tipo_deuda || 'tarjeta')
+    const c = d.color || defaultColor()
     if (d.tipo_deuda === 'tarjeta') {
       setFormTarjeta({
         tipo_deuda: 'tarjeta', emoji: d.emoji || '💳', nombre: d.nombre || '',
         categoria: d.categoria || 'deseo', tarjeta_id: '',
         limite: d.limite?.toString() || '', monto_compra: d.capital?.toString() || '',
         num_cuotas: d.plazo_meses?.toString() || '',
-        fecha_operacion: new Date().toISOString().slice(0, 10), color: d.color || '#818CF8',
+        fecha_operacion: new Date().toISOString().slice(0, 10), color: c,
       })
     } else if (d.tipo_deuda === 'prestamo') {
       setFormPrestamo({
@@ -177,13 +201,13 @@ export default function DeudasPage() {
         tiene_interes: (d.tasa_interes || d.tasa || 0) > 0,
         plazo_meses: d.plazo_meses?.toString() || '', plazo_libre: !d.plazo_meses,
         fecha_primer_pago: d.fecha_primer_pago || '', dia_pago: d.dia_pago?.toString() || '',
-        color: d.color || '#C0605A',
+        color: c,
       })
     } else {
       setFormCuota({
         tipo_deuda: 'cuota', emoji: d.emoji || '📅', nombre: d.nombre || '',
         categoria: d.categoria || 'deseo', monto: d.cuota?.toString() || '',
-        dia_pago: d.dia_pago?.toString() || '', color: d.color || '#C17A3A',
+        dia_pago: d.dia_pago?.toString() || '', color: c,
       })
     }
     setModalDeuda(true)
@@ -194,7 +218,8 @@ export default function DeudasPage() {
     if (!t) return
     setFormTarjeta(prev => ({
       ...prev, tarjeta_id: t.id, limite: t.limite_credito?.toString() || '',
-      color: t.color || '#818CF8', dia_pago: t.dia_pago?.toString() || prev.dia_pago || '',
+      color: themeColors.includes(t.color) ? t.color : (themeColors[0] || t.color),
+      dia_pago: t.dia_pago?.toString() || prev.dia_pago || '',
     }))
   }
 
@@ -237,13 +262,6 @@ export default function DeudasPage() {
           const nuevoPendiente = Math.max(0, (deudaOrigen.pendiente || 0) - monto)
           const nuevosPagados = (deudaOrigen.pagadas || 0) + 1
           const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-          const hoy = new Date()
-          let fechaVence = null
-          if (f.dia_pago) {
-            fechaVence = new Date(hoy.getFullYear(), hoy.getMonth(), parseInt(f.dia_pago))
-            if (fechaVence < hoy) fechaVence.setMonth(fechaVence.getMonth() + 1)
-          }
-          payload.fecha_vencimiento = fechaVence
           await supabase.from('deuda_movimientos').insert([{
             deuda_id: f.deuda_origen_id, tipo: 'pago',
             descripcion: f.nombre || `Cuota ${deudaOrigen.nombre}`,
@@ -483,7 +501,6 @@ export default function DeudasPage() {
                 style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px' }}
                 onClick={() => setCardActiva(isActiva ? null : d.id)}>
 
-                {/* Badge de vencimiento */}
                 {diasFaltantes !== null && (
                   <div className="absolute top-2 right-2">
                     <div className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-tighter"
@@ -492,14 +509,12 @@ export default function DeudasPage() {
                           ? 'color-mix(in srgb, var(--accent-rose)  15%, transparent)'
                           : 'color-mix(in srgb, var(--accent-green) 15%, transparent)',
                         color: diasFaltantes <= 3 ? 'var(--accent-rose)' : 'var(--accent-green)',
-                        animation: diasFaltantes <= 3 ? 'pulse 2s infinite' : 'none',
                       }}>
                       {diasFaltantes <= 0 ? '¡Vence hoy!' : `Vence en ${diasFaltantes}d`}
                     </div>
                   </div>
                 )}
 
-                {/* Fila principal */}
                 <div className="flex items-center gap-2.5 mb-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                     style={{ background: `${d.color || cfg.color}18` }}>
@@ -509,12 +524,10 @@ export default function DeudasPage() {
                     <p className="font-black truncate text-sm leading-tight"
                       style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      {/* Badge tipo */}
                       <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
                         style={{ background: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, color: cfg.color }}>
                         {cfg.label}
                       </span>
-                      {/* Badge categoría */}
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
                         style={{
                           background: d.categoria === 'basicos'
@@ -550,14 +563,12 @@ export default function DeudasPage() {
                   </div>
                 </div>
 
-                {/* Barra progreso */}
                 {d.monto > 0 && (
                   <div className="mb-2.5">
                     <ProgressBar value={d.monto - (d.pendiente || 0)} max={d.monto} color={d.color || cfg.color} />
                   </div>
                 )}
 
-                {/* Info extra */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {d.cuota > 0 && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
@@ -587,11 +598,9 @@ export default function DeudasPage() {
                   )}
                 </div>
 
-                {/* Acciones */}
                 <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-16 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
                   style={{ borderColor: 'var(--border-glass)' }}>
                   <div className="flex items-center gap-2 flex-wrap">
-
                     {(esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0)) && d.estado !== 'pagada' && (
                       <button
                         onClick={e => { e.stopPropagation(); handleMarcarPagada(d) }}
@@ -607,7 +616,6 @@ export default function DeudasPage() {
                         {pagadaHoy ? 'Ya pagada' : 'Marcar pagada'}
                       </button>
                     )}
-
                     <IconBtn
                       onClick={() => { setModalMov(d.id); setFormMov({ tipo: 'cargo', descripcion: 'Nuevo cargo', monto: '', fecha: new Date().toISOString().split('T')[0] }) }}
                       title="Registrar cargo"
@@ -615,7 +623,6 @@ export default function DeudasPage() {
                       color="var(--accent-rose)">
                       <ArrowDownRight size={13} strokeWidth={2.5} />
                     </IconBtn>
-
                     <IconBtn
                       onClick={() => { setModalMov(d.id); setFormMov({ tipo: 'pago', descripcion: `Pago ${d.nombre}`, monto: d.cuota || d.pendiente || '', fecha: new Date().toISOString().split('T')[0] }) }}
                       title="Registrar pago"
@@ -623,18 +630,15 @@ export default function DeudasPage() {
                       color="var(--accent-green)">
                       <ArrowUpRight size={13} strokeWidth={2.5} />
                     </IconBtn>
-
                     <IconBtn onClick={() => setExpandido(isExp ? null : d.id)}
                       title="Ver historial" bg="var(--bg-secondary)" color="var(--text-muted)">
                       {isExp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </IconBtn>
-
                     <IconBtn onClick={() => abrirEdicion(d)} title="Editar"
                       bg="color-mix(in srgb, var(--accent-blue) 10%, transparent)"
                       color="var(--accent-blue)">
                       <Pencil size={12} />
                     </IconBtn>
-
                     <IconBtn onClick={() => handleDeleteDeuda(d.id)} title="Eliminar"
                       bg="color-mix(in srgb, var(--accent-rose) 8%, transparent)"
                       color="var(--accent-rose)">
@@ -643,7 +647,6 @@ export default function DeudasPage() {
                   </div>
                 </div>
 
-                {/* Historial expandido */}
                 {isExp && (
                   <div className="mt-3 pt-3 border-t space-y-1" style={{ borderColor: 'var(--border-glass)' }}>
                     {movsDeuda.length === 0 ? (
@@ -698,33 +701,38 @@ export default function DeudasPage() {
         </div>
       )}
 
-      {/* ── MODAL CREAR / EDITAR ── */}
+      {/* ── MODAL CREAR / EDITAR ──
+          FIX: flex-col con footer fijo fuera del scroll,
+          para que los botones siempre sean visibles en móvil */}
       <Modal
         open={modalDeuda}
         onClose={() => { setModalDeuda(false); setEditandoId(null) }}
         title={editandoId ? 'Editar Deuda' : 'Nueva Deuda'}>
-        <div className="overflow-y-auto pr-1" style={{ maxHeight: 'min(calc(100dvh - 120px), 680px)' }}>
 
-          {!editandoId && (
-            <div className="grid grid-cols-3 gap-2 mb-5">
-              {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
-                <button type="button" key={key}
-                  onClick={() => setTipoSeleccionado(key)}
-                  className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
-                  style={{
-                    background: tipoSeleccionado === key ? `color-mix(in srgb, ${cfg.color} 15%, transparent)` : 'var(--bg-secondary)',
-                    color:  tipoSeleccionado === key ? cfg.color : 'var(--text-muted)',
-                    border: `1px solid ${tipoSeleccionado === key ? `color-mix(in srgb, ${cfg.color} 40%, transparent)` : 'var(--border-glass)'}`,
-                  }}>
-                  {cfg.label}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Selector de tipo — fuera del scroll */}
+        {!editandoId && (
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
+              <button type="button" key={key}
+                onClick={() => setTipoSeleccionado(key)}
+                className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                style={{
+                  background: tipoSeleccionado === key ? `color-mix(in srgb, ${cfg.color} 15%, transparent)` : 'var(--bg-secondary)',
+                  color:  tipoSeleccionado === key ? cfg.color : 'var(--text-muted)',
+                  border: `1px solid ${tipoSeleccionado === key ? `color-mix(in srgb, ${cfg.color} 40%, transparent)` : 'var(--border-glass)'}`,
+                }}>
+                {cfg.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Área scrollable — solo el cuerpo del form, sin el footer */}
+        <div className="overflow-y-auto -mx-1 px-1" style={{ maxHeight: 'calc(100dvh - 280px)' }}>
 
           {/* ── TARJETA ── */}
           {tipoSeleccionado === 'tarjeta' && (
-            <form onSubmit={handleSaveDeuda} className="space-y-4">
+            <div className="space-y-4">
               {!editandoId && misTarjetas.length > 0 && (
                 <div className="p-3 rounded-2xl border border-dashed"
                   style={{
@@ -800,14 +808,14 @@ export default function DeudasPage() {
                   value={formTarjeta.fecha_operacion}
                   onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
               </div>
-              <FormFooter saving={saving} editandoId={editandoId}
-                onCancel={() => { setModalDeuda(false); setEditandoId(null) }} />
-            </form>
+              <ColorPicker value={formTarjeta.color} colors={themeColors}
+                onChange={c => setFormTarjeta(p => ({ ...p, color: c }))} />
+            </div>
           )}
 
           {/* ── PRÉSTAMO ── */}
           {tipoSeleccionado === 'prestamo' && (
-            <form onSubmit={handleSaveDeuda} className="space-y-4">
+            <div className="space-y-4">
               <div className="grid grid-cols-4 gap-3">
                 <div>
                   <label className="ff-label">Emoji</label>
@@ -902,21 +910,21 @@ export default function DeudasPage() {
                     value={formPrestamo.fecha_primer_pago}
                     onChange={e => setFormPrestamo(p => ({ ...p, fecha_primer_pago: e.target.value }))} />
                 </div>
+                <div>
+                  <label className="ff-label">Día de pago mensual</label>
+                  <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 5"
+                    value={formPrestamo.dia_pago}
+                    onChange={e => setFormPrestamo(p => ({ ...p, dia_pago: e.target.value }))} />
+                </div>
               </div>
-              <div>
-                <label className="ff-label">Día de pago mensual</label>
-                <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 5"
-                  value={formPrestamo.dia_pago}
-                  onChange={e => setFormPrestamo(p => ({ ...p, dia_pago: e.target.value }))} />
-              </div>
-              <FormFooter saving={saving} editandoId={editandoId}
-                onCancel={() => { setModalDeuda(false); setEditandoId(null) }} />
-            </form>
+              <ColorPicker value={formPrestamo.color} colors={themeColors}
+                onChange={c => setFormPrestamo(p => ({ ...p, color: c }))} />
+            </div>
           )}
 
           {/* ── CUOTA ── */}
           {tipoSeleccionado === 'cuota' && (
-            <form onSubmit={handleSaveDeuda} className="space-y-4">
+            <div className="space-y-4">
               <div className="px-3 py-2.5 rounded-xl text-[10px] leading-relaxed"
                 style={{
                   background: 'color-mix(in srgb, var(--accent-terra) 8%, transparent)',
@@ -938,7 +946,8 @@ export default function DeudasPage() {
                         setFormCuota(p => ({
                           ...p, deuda_origen_id: id, nombre: `Cuota ${d.nombre}`,
                           emoji: d.emoji || '📅', monto: d.cuota?.toString() || d.pendiente?.toString() || '',
-                          dia_pago: d.dia_pago?.toString() || '', color: d.color || '#C17A3A',
+                          dia_pago: d.dia_pago?.toString() || '',
+                          color: themeColors.includes(d.color) ? d.color : (themeColors[0] || d.color),
                           categoria: d.categoria || 'deseo',
                         }))
                       } else {
@@ -983,10 +992,27 @@ export default function DeudasPage() {
                     onChange={e => setFormCuota(p => ({ ...p, dia_pago: e.target.value }))} />
                 </div>
               </div>
-              <FormFooter saving={saving} editandoId={editandoId}
-                onCancel={() => { setModalDeuda(false); setEditandoId(null) }} />
-            </form>
+              <ColorPicker value={formCuota.color} colors={themeColors}
+                onChange={c => setFormCuota(p => ({ ...p, color: c }))} />
+            </div>
           )}
+
+        </div>
+
+        {/* Footer con botones — FUERA del scroll, siempre visible */}
+        <div className="flex gap-3 pt-4 mt-2 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+          <button type="button"
+            onClick={() => { setModalDeuda(false); setEditandoId(null) }}
+            className="ff-btn-ghost flex-1">
+            Cancelar
+          </button>
+          <button
+            onClick={handleSaveDeuda}
+            disabled={saving}
+            className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear deuda'}
+          </button>
         </div>
       </Modal>
 
@@ -1046,7 +1072,8 @@ export default function DeudasPage() {
   )
 }
 
-// ── Componente reutilizable para toggle de categoría ─────────────────────────
+// ── Componentes reutilizables ─────────────────────────────────────────────────
+
 function CategoriaToggle({ value, onChange }) {
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -1061,18 +1088,6 @@ function CategoriaToggle({ value, onChange }) {
           {c.l}
         </button>
       ))}
-    </div>
-  )
-}
-
-function FormFooter({ saving, editandoId, onCancel }) {
-  return (
-    <div className="flex gap-3 pt-2">
-      <button type="button" onClick={onCancel} className="ff-btn-ghost flex-1">Cancelar</button>
-      <button type="submit" disabled={saving} className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
-        {saving && <Loader2 size={14} className="animate-spin" />}
-        {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear deuda'}
-      </button>
     </div>
   )
 }
