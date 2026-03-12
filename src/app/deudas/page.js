@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
-import { useTheme, getThemeColors } from '@/context/theme-context'
+import { useTheme, getThemeColors } from '@/lib/themes'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
