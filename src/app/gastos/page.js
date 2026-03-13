@@ -7,6 +7,7 @@ import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
+import { useTheme, getThemeColors } from '@/lib/themes'
 
 const CATS = [
   { value: 'basicos', label: 'Gastos Básicos' },
@@ -23,6 +24,9 @@ const CAT_BLOQUE = {
 }
 
 export default function GastosPage() {
+  const { theme } = useTheme()
+  const themeColors = getThemeColors(theme)
+
   const [movs, setMovs] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -663,7 +667,7 @@ export default function GastosPage() {
               type="submit"
               disabled={saving}
               className="w-full h-14 text-sm font-black text-white shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl"
-              style={{ background: usandoTarjeta ? colores.main : colores.terra }}
+              style={{ background: colores.green }}
             >
               {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
             </button>
