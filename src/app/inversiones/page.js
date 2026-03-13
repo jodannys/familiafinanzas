@@ -215,8 +215,18 @@ export default function InversionesPage() {
 
   const historyData = calc?.history?.filter(d => d?.year != null) || []
 
-  const totalCapital = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
-  const totalAportes = inversiones.reduce((s, i) => s + (i.aporte  || 0), 0)
+  const totalCapital    = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
+  const totalAportes    = inversiones.reduce((s, i) => s + (i.aporte  || 0), 0)
+  const totalProyectado = inversiones.reduce((s, i) => {
+    const c = calculateCompoundInterest({
+      principal:           i.capital,
+      monthlyContribution: i.aporte,
+      annualRate:          i.tasa,
+      years:               i.anos,
+      compound:            i.bola_nieve !== false,
+    })
+    return s + (c.finalBalance || 0)
+  }, 0)
   const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
   const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
 
@@ -255,11 +265,12 @@ export default function InversionesPage() {
       )}
 
       {/* Stats globales */}
-      <div className="grid grid-cols-3 gap-2 mb-6">
+      <div className="grid grid-cols-2 gap-2 mb-6">
         {[
-          { label: 'Capital total',    value: formatCurrency(totalCapital), color: colores.green },
-          { label: 'Aportes / mes',    value: formatCurrency(totalAportes), color: colores.terra },
-          { label: 'Carteras activas', value: `${inversiones.length}`,      color: colores.blue  },
+          { label: 'Capital total',      value: formatCurrency(totalCapital),    color: colores.green  },
+          { label: 'Aportes / mes',      value: formatCurrency(totalAportes),    color: colores.terra  },
+          { label: 'Carteras activas',   value: `${inversiones.length}`,         color: colores.blue   },
+          { label: 'Total proyectado',   value: formatCurrency(totalProyectado), color: colores.violet },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
