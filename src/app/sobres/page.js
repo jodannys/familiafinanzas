@@ -71,35 +71,56 @@ export default function SobrePage() {
     }
   }
 
-  // ── CÁLCULOS DE SALDO ──────────────────────────────────────────────────────
-  const montoEstilo = parseFloat(presupuesto?.montoEstilo) || 0
-  const montoBasicos = parseFloat(presupuesto?.montoNecesidades) || 0
-  const montoMetas = parseFloat(presupuesto?.montoMetas) || 0
-  const montoInv = parseFloat(presupuesto?.montoInversiones) || 0
+ // ── CÁLCULOS DE SALDO ──────────────────────────────────────────────────────
+const montoEstilo = parseFloat(presupuesto?.montoEstilo) || 0
+const montoBasicos = parseFloat(presupuesto?.montoNecesidades) || 0
+const montoMetas = parseFloat(presupuesto?.montoMetas) || 0
+const montoInv = parseFloat(presupuesto?.montoInversiones) || 0
 
-  const gastadoSobre = movsMes
-    .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
-    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+// Gastos directos del sobre (excluye sobrantes enviados desde el sobre)
+const gastadoSobre = movsMes
+  .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
 
-  const traspasosAlSobre = sobreMovs
-    .filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen))
-    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+// Traspasos entrantes al sobre (desde otras cubetas)
+const traspasosAlSobre = sobreMovs
+  .filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen))
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
 
-  const saldoSobre = (montoEstilo || 0) - gastadoSobre + traspasosAlSobre
+// Sobrantes enviados desde el sobre a metas/inversiones
+const sobranteDesdeElSobre = sobreMovs
+  .filter(m => m.origen === 'sobre')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
 
-  const gastadoBasicos = movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria))
-    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-  const traspasosBasicos = sobreMovs.filter(m => m.origen === 'basicos')
-    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-  const saldoBasicos = (montoBasicos || 0) - gastadoBasicos - traspasosBasicos
+// FIX 1: el sobrante ya está en gastadoSobre (via movimientos categoria:deseo),
+// así que lo restamos para no descontarlo doble
+const saldoSobre = (montoEstilo || 0) - gastadoSobre + traspasosAlSobre + sobranteDesdeElSobre
 
-  const traspasosMetas = sobreMovs.filter(m => m.origen === 'metas')
-    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-  const saldoMetas = (montoMetas || 0) - traspasosMetas
+// FIX 2: barra de progreso usa el límite real (monto + traspasos entrantes)
+const limiteReal = montoEstilo + traspasosAlSobre
 
-  const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones')
-    .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-  const saldoInversiones = (montoInv || 0) - traspasosInv
+const gastadoBasicos = movsMes
+  .filter(m => m.tipo === 'egreso' && ['basicos', 'deuda'].includes(m.categoria))
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+const traspasosBasicos = sobreMovs.filter(m => m.origen === 'basicos')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+const saldoBasicos = (montoBasicos || 0) - gastadoBasicos - traspasosBasicos
+
+const traspasosMetas = sobreMovs.filter(m => m.origen === 'metas')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+// FIX 3: sumar sobrantes recibidos en metas
+const sobranteAMetas = sobreMovs
+  .filter(m => m.origen === 'sobre' && m.destino === 'metas')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+const saldoMetas = (montoMetas || 0) - traspasosMetas + sobranteAMetas
+
+const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+// FIX 3: sumar sobrantes recibidos en inversiones
+const sobranteAInv = sobreMovs
+  .filter(m => m.origen === 'sobre' && m.destino === 'inversiones')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
 
   function getSaldo(origen) {
     if (origen === 'basicos') return saldoBasicos || 0
@@ -187,26 +208,23 @@ export default function SobrePage() {
     cargarTodo()
   }
 
-  async function confirmarSobrante() {
-    const monto = parseFloat(montoSobrante) || 0
-    if (!monto || monto > saldoSobre) return
-    setSaving(true)
-    const hoy = fechaHoy()
-    await supabase.from('sobre_movimientos').insert([{
-      descripcion: `Sobrante → ${destinoSobrante}`,
-      monto, origen: 'sobre', destino: destinoSobrante,
-      mes: filtroMes, año: filtroAño, fecha: hoy,
-    }])
-    await supabase.from('movimientos').insert([{
-      tipo: 'egreso', categoria: 'deseo',
-      descripcion: `Sobrante enviado a ${destinoSobrante}`,
-      monto, fecha: hoy, quien: 'Ambos',
-    }])
-    setSaving(false)
-    setModalSobrante(false)
-    setMontoSobrante('')
-    cargarTodo()
-  }
+ async function confirmarSobrante() {
+  const monto = parseFloat(montoSobrante) || 0
+  if (!monto || monto > saldoSobre) return
+  setSaving(true)
+  const hoy = fechaHoy()
+
+  await supabase.from('sobre_movimientos').insert([{
+    descripcion: `Sobrante → ${destinoSobrante}`,
+    monto, origen: 'sobre', destino: destinoSobrante,
+    mes: filtroMes, año: filtroAño, fecha: hoy,
+  }])
+
+  setSaving(false)
+  setModalSobrante(false)
+  setMontoSobrante('')
+  cargarTodo()
+}
 
   async function handleEliminar(mov) {
     if (!confirm('¿Eliminar este movimiento?')) return

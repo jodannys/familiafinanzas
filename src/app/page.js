@@ -79,49 +79,87 @@ export default function Dashboard() {
     })
   }, [movs, mesActual, añoActual])
 
-  const dataGraficoReal = useMemo(() => {
-    if (!movs || movs.length === 0) return []
-    const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-    const porMes = Array.from({ length: 12 }, (_, i) => ({ name: MESES[i], gastos: 0, ingresos: 0 }))
-    movs.forEach(mov => {
-      const mes = parseInt(mov.fecha.split('-')[1], 10) - 1
-      const año = parseInt(mov.fecha.split('-')[0], 10)
-      if (año !== añoActual || mes < 0 || mes > 11) return
-      if (mov.tipo === 'egreso') porMes[mes].gastos += (mov.monto || 0)
-      else if (mov.tipo === 'ingreso') porMes[mes].ingresos += (mov.monto || 0)
-    })
-    return porMes
-  }, [movs, añoActual])
+// ── FIX 1: gráfico anual solo cuenta gastos corrientes (no ahorro/inversión)
+const dataGraficoReal = useMemo(() => {
+  if (!movs || movs.length === 0) return []
+  const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  const porMes = Array.from({ length: 12 }, (_, i) => ({ name: MESES[i], gastos: 0, ingresos: 0 }))
+  movs.forEach(mov => {
+    const mes = parseInt(mov.fecha.split('-')[1], 10) - 1
+    const año = parseInt(mov.fecha.split('-')[0], 10)
+    if (año !== añoActual || mes < 0 || mes > 11) return
+    if (mov.tipo === 'ingreso') {
+      porMes[mes].ingresos += (mov.monto || 0)
+    } else if (mov.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(mov.categoria)) {
+      // FIX 1: excluir ahorro e inversión de "gastos" en el gráfico
+      porMes[mes].gastos += (mov.monto || 0)
+    }
+  })
+  return porMes
+}, [movs, añoActual])
 
-  const ingresosMes = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
-  const gastosMes = movsMes.filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
-  const ahorroMes = movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
-  const egresosMes = gastosMes + ahorroMes
-  const saldo = ingresosMes - egresosMes
-  const totalAhorrado = metas.reduce((s, m) => s + (m.actual || 0), 0)
+const ingresosMes = movsMes
+  .filter(m => m.tipo === 'ingreso')
+  .reduce((s, m) => s + (m.monto || 0), 0)
 
-  const catTotales = {}
-  movsMes.filter(m => m.tipo === 'egreso').forEach(m => {
+const gastosMes = movsMes
+  .filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria))
+  .reduce((s, m) => s + (m.monto || 0), 0)
+
+const ahorroMes = movsMes
+  .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria))
+  .reduce((s, m) => s + (m.monto || 0), 0)
+
+const egresosMes = gastosMes + ahorroMes
+
+// FIX 3: saldo libre = ingresos - gastos corrientes (sin descontar ahorro)
+// Saldo Libre = ingresos − todos los egresos (gastos + ahorro)
+const saldoLibre = ingresosMes - egresosMes
+// FIX 2: aporte de metas del mes actual (no acumulado histórico)
+const aporteMesMetas = movsMes
+  .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria))
+  .reduce((s, m) => s + (m.monto || 0), 0)
+
+// FIX 5: distribución calculada solo sobre gastos corrientes
+const catTotales = {}
+movsMes
+  .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(m.categoria))
+  .forEach(m => {
     catTotales[m.categoria] = (catTotales[m.categoria] || 0) + m.monto
   })
 
-  const distribucionReal = Object.entries(catTotales).map(([name, value]) => ({
-    name,
-    value: Math.round((value / (egresosMes || 1)) * 100),
-    color: COLORES_CAT[name] || 'var(--text-muted)',
-  }))
+const distribucionReal = Object.entries(catTotales).map(([name, value]) => ({
+  name,
+  value: Math.round((value / (gastosMes || 1)) * 100), // FIX 5: base = gastosMes
+  color: COLORES_CAT[name] || 'var(--text-muted)',
+}))
 
-  const alertasDeuda = deudas
-    .map(d => ({ ...d, dias: diasHastaPago(d.dia_pago) }))
-    .filter(d => d.dias !== null && d.dias <= 7)
-    .sort((a, b) => a.dias - b.dias)
+// FIX 6: filtrar deudas que ya tienen un pago registrado este mes
+const deudasPagadasEsteMes = new Set(
+  movsMes
+    .filter(m => m.tipo === 'egreso' && m.categoria === 'deuda' && m.deuda_id)
+    .map(m => m.deuda_id)
+)
 
-  const KPI_CONFIG = [
-    { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', icon: ArrowUpRight, signo: '+' },
-    { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', icon: ArrowDownRight, signo: '-' },
-    { label: 'Metas', val: totalAhorrado, col: 'var(--accent-terra)', icon: Target, signo: '' },
-    { label: 'Saldo Libre', val: saldo, col: saldo >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: Wallet, signo: '' },
-  ]
+const alertasDeuda = deudas
+  .map(d => ({ ...d, dias: diasHastaPago(d.dia_pago) }))
+  .filter(d => d.dias !== null && d.dias <= 7 && !deudasPagadasEsteMes.has(d.id))
+  .sort((a, b) => a.dias - b.dias)
+
+// FIX 4: barras KPI con porcentajes reales
+const pctIngresos  = ingresosMes > 0 ? 100 : 0
+const pctGastos    = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes / ingresosMes) * 100)) : 0
+const pctAhorro    = ingresosMes > 0 ? Math.min(100, Math.round((aporteMesMetas / ingresosMes) * 100)) : 0
+const pctSaldoLibre = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
+
+const KPI_CONFIG = [
+  { label: 'Ingresos',   val: ingresosMes,    col: 'var(--accent-green)', icon: ArrowUpRight,  signo: '+', pct: pctIngresos   },
+  { label: 'Gastos',     val: gastosMes,      col: 'var(--accent-rose)',  icon: ArrowDownRight, signo: '-', pct: pctGastos    },
+  // FIX 2: muestra aporte del mes, no acumulado histórico
+  { label: 'Ahorro mes', val: aporteMesMetas, col: 'var(--accent-terra)', icon: Target,         signo: '',  pct: pctAhorro    },
+  // FIX 3: saldo libre sin descontar ahorro
+  { label: 'Saldo Libre', val: saldoLibre,    col: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: Wallet, signo: '', pct: pctSaldoLibre },
+]
 
   if (!mounted) return null
 
@@ -226,7 +264,7 @@ export default function Dashboard() {
               }}>
                 <div style={{
                   height: '100%',
-                  width: `${[75, 55, 40, 65][i]}%`,
+                  width: `${kpi.pct}%`,
                   background: kpi.col,
                   borderRadius: 999,
                 }} />
