@@ -321,18 +321,23 @@ export default function InversionesPage() {
           {/* Chips selector de cartera */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {inversiones.map(inv => (
-              <button key={inv.id}
-                onClick={() => setSelected(inv)}
-                className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
-                style={{
-                  background: selected?.id === inv.id ? `${inv.color}18` : 'var(--bg-secondary)',
-                  color: selected?.id === inv.id ? inv.color : colores.muted,
-                  border: `1px solid ${selected?.id === inv.id ? `${inv.color}40` : colores.border}`,
-                }}>
-                <span>{inv.emoji}</span>
-                <span className="hidden sm:inline">{inv.nombre}</span>
-              </button>
-            ))}
+                <button key={inv.id}
+                  onClick={() => setSelected(inv)}
+                  className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
+                  style={{
+                    background: selected?.id === inv.id ? `color-mix(in srgb, ${inv.color} 12%, var(--bg-card))` : 'var(--bg-secondary)',
+                    color: selected?.id === inv.id ? inv.color : colores.muted,
+                    border: selected?.id === inv.id ? `2px solid ${inv.color}` : `1px solid ${colores.border}`,
+                    fontWeight: selected?.id === inv.id ? 900 : 600,
+                  }}>
+                  {/* Dot de color solo cuando activo */}
+                  {selected?.id === inv.id && (
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: inv.color, flexShrink: 0 }} />
+                  )}
+                  <span>{inv.emoji}</span>
+                  <span className="hidden sm:inline">{inv.nombre}</span>
+                </button>
+              ))}
           </div>
 
           {/* Detalle cartera seleccionada */}
@@ -633,26 +638,6 @@ export default function InversionesPage() {
               <p className="text-[9px] font-black uppercase ml-1" style={{ color: colores.muted }}>
                 Todas las carteras
               </p>
-              // Reemplaza los chips actuales por esto
-              {inversiones.map(inv => (
-                <button key={inv.id}
-                  onClick={() => setSelected(inv)}
-                  className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
-                  style={{
-                    // FIX: borde más grueso + fondo de color cuando activo
-                    background: selected?.id === inv.id ? `color-mix(in srgb, ${inv.color} 12%, var(--bg-card))` : 'var(--bg-secondary)',
-                    color: selected?.id === inv.id ? inv.color : colores.muted,
-                    border: selected?.id === inv.id ? `2px solid ${inv.color}` : `1px solid ${colores.border}`,
-                    fontWeight: selected?.id === inv.id ? 900 : 600,
-                  }}>
-                  {/* Dot de color solo cuando activo */}
-                  {selected?.id === inv.id && (
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: inv.color, flexShrink: 0 }} />
-                  )}
-                  <span>{inv.emoji}</span>
-                  <span className="hidden sm:inline">{inv.nombre}</span>
-                </button>
-              ))}
             </div>
           )}
 
