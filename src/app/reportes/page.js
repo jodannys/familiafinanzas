@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import { Loader2, TrendingUp, TrendingDown, Wallet, PiggyBank, BarChart3, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -17,18 +17,23 @@ function getCatVars(col) {
   return {
     basicos:   { label: 'Básicos',   color: col.blue,  grupo: 'necesidades' },
     deuda:     { label: 'Deuda',     color: col.rose,  grupo: 'necesidades' },
-    deseo:     { label: 'Deseo',     color: col.terra, grupo: 'deseos' },
-    remesa:    { label: 'Remesa',    color: col.terra, grupo: 'deseos' },
-    ahorro:    { label: 'Ahorro',    color: col.green, grupo: 'futuro' },
-    inversion: { label: 'Inversión', color: col.green, grupo: 'futuro' },
+    deseo:     { label: 'Deseo',     color: col.terra, grupo: 'deseos'      },
+    remesa:    { label: 'Remesa',    color: col.terra, grupo: 'deseos'      },
+    ahorro:    { label: 'Ahorro',    color: col.green, grupo: 'futuro'      },
+    inversion: { label: 'Inversión', color: col.green, grupo: 'futuro'      },
   }
 }
 
-function grupoDeBloque(nombre) {
-  const n = (nombre || '').toLowerCase()
-  if (n.includes('necesid') || n.includes('basic') || n.includes('esencial')) return 'necesidades'
-  if (n.includes('ahorro') || n.includes('invers') || n.includes('meta') || n.includes('futuro')) return 'futuro'
-  if (n.includes('estilo') || n.includes('deseo') || n.includes('ocio')) return 'deseos'
+// FIX 5: usar el campo bloque (id estable) en vez del nombre
+function grupoDeBloque(bloqueId) {
+  const id = (bloqueId || '').toLowerCase()
+  if (id === 'necesidades') return 'necesidades'
+  if (id === 'futuro')      return 'futuro'
+  if (id === 'estilo')      return 'deseos'
+  // fallback legacy por nombre
+  if (id.includes('necesid') || id.includes('basic') || id.includes('esencial')) return 'necesidades'
+  if (id.includes('ahorro')  || id.includes('invers') || id.includes('meta') || id.includes('futuro')) return 'futuro'
+  if (id.includes('estilo')  || id.includes('deseo')  || id.includes('ocio')) return 'deseos'
   return null
 }
 
@@ -59,11 +64,11 @@ function ChartTooltip({ active, payload, label, colores }) {
 }
 
 export default function ReportesPage() {
-  const [movs, setMovs] = useState([])
+  const [movs, setMovs]       = useState([])
   const [bloques, setBloques] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filtro, setFiltro] = useState('todos')
-  const [año, setAño] = useState(new Date().getFullYear())
+  const [filtro, setFiltro]   = useState('todos')
+  const [año, setAño]         = useState(new Date().getFullYear())
   const [colores, setColores] = useState({
     green: '', rose: '', blue: '', terra: '', violet: '',
     muted: '', border: '', card: '', track: '',
@@ -91,21 +96,20 @@ export default function ReportesPage() {
     return () => window.removeEventListener('theme-change', leer)
   }, [])
 
-  const CAT_VARS = getCatVars(colores)
-  const GRUPOS_BASE = {
+  const CAT_VARS = useMemo(() => getCatVars(colores), [colores])
+
+  const GRUPOS_BASE = useMemo(() => ({
     necesidades: { label: 'Necesidades',     color: colores.blue,  targetDefault: 50 },
     deseos:      { label: 'Deseos / Estilo', color: colores.terra, targetDefault: 30 },
     futuro:      { label: 'Ahorro / Inv.',   color: colores.green, targetDefault: 20 },
-  }
+  }), [colores])
 
+  // FIX 1: presupuesto_bloques no tiene mes/año — quitar esos filtros
   useEffect(() => {
     async function cargar() {
       const [{ data: movData }, { data: blqData }] = await Promise.all([
         supabase.from('movimientos').select('*').order('fecha'),
-        supabase.from('presupuesto_bloques')
-          .select('*')
-          .eq('mes', new Date().getMonth() + 1)
-          .eq('año', new Date().getFullYear()),
+        supabase.from('presupuesto_bloques').select('*'),
       ])
       setMovs(movData || [])
       setBloques(blqData || [])
@@ -114,89 +118,137 @@ export default function ReportesPage() {
     cargar()
   }, [])
 
-  const movsAño = movs.filter(m => new Date(m.fecha).getFullYear() === año)
-  const totalIngresos = movsAño.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const totalGastos   = movsAño.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
-  const balance = totalIngresos - totalGastos
+  // FIX 4: todos los cálculos derivados memoizados
+  const movsAño = useMemo(() =>
+    movs.filter(m => new Date(m.fecha).getFullYear() === año)
+  , [movs, año])
 
-  const totalAhorro = movsAño
-    .filter(m => m.tipo === 'egreso' && (normCat(m.categoria) === 'ahorro' || normCat(m.categoria) === 'inversion'))
-    .reduce((s, m) => s + m.monto, 0)
-  const tasaAhorro = totalIngresos > 0 ? (totalAhorro / totalIngresos) * 100 : 0
+  const totalIngresos = useMemo(() =>
+    movsAño.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
+  , [movsAño])
 
-  const totalPresupuesto = bloques.reduce((s, b) => s + (b.monto || 0), 0)
-  const grupoMetas = { necesidades: 50, deseos: 30, futuro: 20 }
-  if (totalPresupuesto > 0) {
-    const montosPorGrupo = { necesidades: 0, deseos: 0, futuro: 0 }
-    bloques.forEach(b => {
-      const g = grupoDeBloque(b.nombre)
-      if (g) montosPorGrupo[g] += (b.monto || 0)
+  // FIX 2: separar gastos corrientes de ahorro
+  const totalGastosCorrientes = useMemo(() =>
+    movsAño
+      .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(normCat(m.categoria)))
+      .reduce((s, m) => s + m.monto, 0)
+  , [movsAño])
+
+  const totalAhorro = useMemo(() =>
+    movsAño
+      .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(normCat(m.categoria)))
+      .reduce((s, m) => s + m.monto, 0)
+  , [movsAño])
+
+  // FIX 2: balance incluye todo; tasa de ahorro = ahorro / ingresos
+  const totalGastos = totalGastosCorrientes + totalAhorro
+  const balance     = totalIngresos - totalGastos
+  const tasaAhorro  = totalIngresos > 0 ? (totalAhorro / totalIngresos) * 100 : 0
+
+  const totalPresupuesto = useMemo(() =>
+    bloques.reduce((s, b) => s + (b.monto || 0), 0)
+  , [bloques])
+
+  const grupoMetas = useMemo(() => {
+    const gm = { necesidades: 50, deseos: 30, futuro: 20 }
+    if (totalPresupuesto > 0) {
+      const montosPorGrupo = { necesidades: 0, deseos: 0, futuro: 0 }
+      bloques.forEach(b => {
+        // FIX 5: usar b.bloque (id estable) en vez de b.nombre
+        const g = grupoDeBloque(b.bloque)
+        if (g) montosPorGrupo[g] += (b.monto || 0)
+      })
+      Object.keys(gm).forEach(g => {
+        if (montosPorGrupo[g] > 0)
+          gm[g] = Math.round((montosPorGrupo[g] / totalPresupuesto) * 100)
+      })
+    }
+    return gm
+  }, [bloques, totalPresupuesto])
+
+  const catList = useMemo(() => {
+    const porCat = {}
+    movsAño.filter(m => m.tipo === 'egreso').forEach(m => {
+      const key = normCat(m.categoria)
+      porCat[key] = (porCat[key] || 0) + m.monto
     })
-    Object.keys(grupoMetas).forEach(g => {
-      if (montosPorGrupo[g] > 0)
-        grupoMetas[g] = Math.round((montosPorGrupo[g] / totalPresupuesto) * 100)
-    })
-  }
+    return Object.entries(porCat)
+      .map(([cat, total]) => {
+        const meta = CAT_VARS[cat] || { label: cat, color: colores.muted, grupo: 'deseos' }
+        return { cat, total, label: meta.label, color: meta.color, grupo: meta.grupo }
+      })
+      .sort((a, b) => b.total - a.total)
+  }, [movsAño, CAT_VARS, colores.muted])
 
-  const porCat = {}
-  movsAño.filter(m => m.tipo === 'egreso').forEach(m => {
-    const key = normCat(m.categoria)
-    porCat[key] = (porCat[key] || 0) + m.monto
-  })
-  const catList = Object.entries(porCat)
-    .map(([cat, total]) => {
-      const meta = CAT_VARS[cat] || { label: cat, color: colores.muted, grupo: 'deseos' }
-      return { cat, total, label: meta.label, color: meta.color, grupo: meta.grupo }
-    })
-    .sort((a, b) => b.total - a.total)
-  const grandTotal = catList.reduce((s, c) => s + c.total, 0)
+  const grandTotal = useMemo(() =>
+    catList.reduce((s, c) => s + c.total, 0)
+  , [catList])
 
-  const grupoTotales = { necesidades: 0, deseos: 0, futuro: 0 }
-  catList.forEach(c => {
-    if (grupoTotales[c.grupo] !== undefined) grupoTotales[c.grupo] += c.total
-  })
+  const grupoTotales = useMemo(() => {
+    const gt = { necesidades: 0, deseos: 0, futuro: 0 }
+    catList.forEach(c => { if (gt[c.grupo] !== undefined) gt[c.grupo] += c.total })
+    return gt
+  }, [catList])
 
-  const catsConDatos = [...new Set(
+  const catsConDatos = useMemo(() => [...new Set(
     movsAño.filter(m => m.tipo === 'egreso').map(m => normCat(m.categoria))
-  )]
+  )], [movsAño])
 
-  const filtroOpciones = [
-    { v: 'todos',     l: 'Todos',    color: colores.muted  },
-    { v: 'basicos',   l: 'Básicos',  color: colores.blue   },
-    { v: 'deuda',     l: 'Deuda',    color: colores.rose   },
-    { v: 'deseo',     l: 'Deseo',    color: colores.terra  },
-    { v: 'ahorro',    l: 'Ahorro',   color: colores.green  },
-    { v: 'inversion', l: 'Inversión',color: colores.green  },
+  const filtroOpciones = useMemo(() => [
+    { v: 'todos',     l: 'Todos',     color: colores.muted  },
+    { v: 'basicos',   l: 'Básicos',   color: colores.blue   },
+    { v: 'deuda',     l: 'Deuda',     color: colores.rose   },
+    { v: 'deseo',     l: 'Deseo',     color: colores.terra  },
+    { v: 'ahorro',    l: 'Ahorro',    color: colores.green  },
+    { v: 'inversion', l: 'Inversión', color: colores.green  },
     ...catsConDatos
       .filter(cat => !['basicos','deuda','deseo','ahorro','inversion','remesa'].includes(cat))
       .map(cat => ({ v: cat, l: cat, color: colores.muted }))
-  ]
+  ], [catsConDatos, colores])
 
-  const movsFiltrados = movsAño.filter(m => {
-    if (m.tipo !== 'egreso') return false
-    return filtro === 'todos' || normCat(m.categoria) === filtro
-  })
+  const movsFiltrados = useMemo(() =>
+    movsAño.filter(m => {
+      if (m.tipo !== 'egreso') return false
+      return filtro === 'todos' || normCat(m.categoria) === filtro
+    })
+  , [movsAño, filtro])
 
-  const resumenMes = MESES.map((mes, i) => {
-    const mm = movsAño.filter(m => new Date(m.fecha).getMonth() === i)
-    return {
+  // FIX 3: resumenMes excluye ahorro/inversión de Gastos
+  const resumenMes = useMemo(() =>
+    MESES.map((mes, i) => {
+      const mm = movsAño.filter(m => new Date(m.fecha).getMonth() === i)
+      return {
+        mes,
+        mesCorto: MESES_CORTO[i],
+        Ingresos: mm.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
+        Gastos: mm
+          .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(normCat(m.categoria)))
+          .reduce((s, m) => s + m.monto, 0),
+      }
+    })
+  , [movsAño])
+
+  const porMes = useMemo(() =>
+    MESES.map((mes, i) => ({
       mes,
       mesCorto: MESES_CORTO[i],
-      Ingresos: mm.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
-      Gastos:   mm.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0),
-    }
-  })
+      total: movsFiltrados
+        .filter(m => new Date(m.fecha).getMonth() === i)
+        .reduce((s, m) => s + m.monto, 0),
+    }))
+  , [movsFiltrados])
 
-  const porMes = MESES.map((mes, i) => ({
-    mes,
-    mesCorto: MESES_CORTO[i],
-    total: movsFiltrados.filter(m => new Date(m.fecha).getMonth() === i).reduce((s, m) => s + m.monto, 0),
-  }))
-  const maxMes = porMes.reduce((mx, m) => m.total > mx.total ? m : mx, porMes[0])
-  const minMes = porMes.filter(m => m.total > 0).reduce(
-    (mn, m) => m.total < mn.total ? m : mn,
-    porMes.find(m => m.total > 0) || porMes[0]
-  )
+  const maxMes = useMemo(() =>
+    porMes.reduce((mx, m) => m.total > mx.total ? m : mx, porMes[0])
+  , [porMes])
+
+  const minMes = useMemo(() => {
+    const conDatos = porMes.filter(m => m.total > 0)
+    return conDatos.reduce(
+      (mn, m) => m.total < mn.total ? m : mn,
+      conDatos[0] || porMes[0]
+    )
+  }, [porMes])
 
   // Tooltip con colores inyectados
   const TooltipConColores = (props) => <ChartTooltip {...props} colores={colores} />
@@ -264,8 +316,8 @@ export default function ReportesPage() {
           {/* KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6 animate-enter">
             {[
-              { label: 'Ingresos año',   value: formatCurrency(totalIngresos), icon: <TrendingUp size={14} />,  color: colores.green },
-              { label: 'Gastos año',     value: formatCurrency(totalGastos),   icon: <TrendingDown size={14} />, color: colores.rose  },
+              { label: 'Ingresos año',  value: formatCurrency(totalIngresos), icon: <TrendingUp size={14} />,  color: colores.green },
+              { label: 'Gastos año',    value: formatCurrency(totalGastos),   icon: <TrendingDown size={14} />, color: colores.rose  },
               {
                 label: 'Balance año', value: formatCurrency(balance),
                 icon: <Wallet size={14} />,
@@ -276,7 +328,11 @@ export default function ReportesPage() {
                 value: `${tasaAhorro.toFixed(1)}%`,
                 icon: <PiggyBank size={14} />,
                 color: tasaAhorro >= grupoMetas.futuro ? colores.green : tasaAhorro >= grupoMetas.futuro / 2 ? colores.terra : colores.rose,
-                sub: tasaAhorro >= grupoMetas.futuro ? '✓ Meta cumplida' : tasaAhorro >= grupoMetas.futuro / 2 ? 'Casi llegas a la meta' : `Meta: ${grupoMetas.futuro}%`,
+                sub: tasaAhorro >= grupoMetas.futuro
+                  ? '✓ Meta cumplida'
+                  : tasaAhorro >= grupoMetas.futuro / 2
+                    ? 'Casi llegas a la meta'
+                    : `Meta: ${grupoMetas.futuro}%`,
               },
             ].map((s, i) => (
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -308,11 +364,11 @@ export default function ReportesPage() {
               </div>
               <div className="space-y-3">
                 {Object.entries(GRUPOS_BASE).map(([key, g]) => {
-                  const gastado = grupoTotales[key] || 0
-                  const target = grupoMetas[key]
+                  const gastado    = grupoTotales[key] || 0
+                  const target     = grupoMetas[key]
                   const montoBucket = totalIngresos * (target / 100)
-                  const pct = montoBucket > 0 ? Math.min(100, (gastado / montoBucket) * 100) : 0
-                  const cumple = key === 'futuro' ? pct >= 80 : pct <= 100
+                  const pct        = montoBucket > 0 ? Math.min(100, (gastado / montoBucket) * 100) : 0
+                  const cumple     = key === 'futuro' ? pct >= 80 : pct <= 100
                   return (
                     <div key={key}>
                       <div className="flex items-center justify-between mb-1">
@@ -356,8 +412,8 @@ export default function ReportesPage() {
                     className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all"
                     style={{
                       background: filtro === f.v ? `color-mix(in srgb, ${f.color} 12%, var(--bg-secondary))` : 'transparent',
-                      color: filtro === f.v ? f.color : colores.muted,
-                      border: `1px solid ${filtro === f.v ? `color-mix(in srgb, ${f.color} 35%, transparent)` : 'transparent'}`,
+                      color:      filtro === f.v ? f.color : colores.muted,
+                      border:     `1px solid ${filtro === f.v ? `color-mix(in srgb, ${f.color} 35%, transparent)` : 'transparent'}`,
                     }}>
                     {f.l}
                   </button>
@@ -377,7 +433,7 @@ export default function ReportesPage() {
                       className="glass-card cursor-pointer transition-all"
                       style={{
                         padding: '10px 12px',
-                        border: filtro === c.cat ? `1px solid color-mix(in srgb, ${c.color} 35%, transparent)` : '',
+                        border:     filtro === c.cat ? `1px solid color-mix(in srgb, ${c.color} 35%, transparent)` : '',
                         background: filtro === c.cat ? `color-mix(in srgb, ${c.color} 5%, ${colores.card})` : '',
                       }}>
                       <div className="flex items-center justify-between mb-1.5">

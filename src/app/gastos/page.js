@@ -126,219 +126,219 @@ export default function GastosPage() {
   }
 
 
-async function handleAdd(e) {
-  e.preventDefault()
-  const monto = parseFloat(form.monto)
-  if (!monto || monto <= 0) return
-  setSaving(true)
+  async function handleAdd(e) {
+    e.preventDefault()
+    const monto = parseFloat(form.monto)
+    if (!monto || monto <= 0) return
+    setSaving(true)
 
-  // ── Tarjeta de crédito ────────────────────────────────────────────────────
-  if (tarjetaSeleccionada && form.tipo === 'egreso') {
-    const deudaTarjeta = tarjetaDeudasMap[tarjetaSeleccionada]
-    if (!deudaTarjeta) {
-      setError('Esta tarjeta no tiene una deuda activa asociada. Créala primero en el módulo Deudas.')
-      setSaving(false)
-      return
-    }
-    const { error } = await supabase.from('deuda_movimientos').insert([{
-      deuda_id: deudaTarjeta.id,
-      tipo: 'cargo',
-      descripcion: form.descripcion,
-      monto,
-      fecha: form.fecha,
-      mes, año,
-    }])
-    if (error) setError('Error al guardar cargo en tarjeta: ' + error.message)
-    else {
-      await supabase.from('deudas').update({
-        pendiente: parseFloat(deudaTarjeta.pendiente || 0) + monto
-      }).eq('id', deudaTarjeta.id)
-      setTarjetaDeudasMap(prev => ({
-        ...prev,
-        [tarjetaSeleccionada]: { ...deudaTarjeta, pendiente: deudaTarjeta.pendiente + monto }
-      }))
-      resetModal()
-    }
-    setSaving(false)
-    return
-  }
-
-  // ── Movimiento normal ─────────────────────────────────────────────────────
-  const deudaId = form.categoria === 'deuda' && deudaSeleccionada ? deudaSeleccionada : null
-
-  // FIX 2: guardar meta_id e inversion_id en el payload para poder revertir correctamente al eliminar
-  const metaId = form.categoria === 'ahorro' && metaSeleccionada ? metaSeleccionada : null
-  const invId  = form.categoria === 'inversion' && metaSeleccionada?.startsWith('inv_')
-    ? metaSeleccionada.replace('inv_', '')
-    : null
-
-  const payloadMov = {
-    tipo: form.tipo,
-    monto,
-    descripcion: form.descripcion,
-    categoria: form.categoria,
-    fecha: form.fecha,
-    quien: form.quien,
-    ...(deudaId  && { deuda_id: deudaId }),   // FIX 2: persiste deuda_id
-    ...(metaId   && { meta_id: metaId }),       // FIX 2: persiste meta_id
-    ...(invId    && { inversion_id: invId }),   // FIX 2: persiste inversion_id
-  }
-
-  const { data, error } = await supabase.from('movimientos').insert([payloadMov]).select()
-
-  if (error) {
-    setError('Error al guardar: ' + error.message)
-    setSaving(false)
-    return
-  }
-
-  setMovs(prev => [data[0], ...prev])
-
-  // ── Actualizar meta ───────────────────────────────────────────────────────
-  if (metaId) {
-    const meta = metasData.find(m => m.id === metaId)
-    if (meta) {
-      const nuevoActual = (meta.actual || 0) + monto
-      await supabase.from('metas').update({ actual: nuevoActual }).eq('id', metaId)
-      setMetasData(prev => prev.map(m => m.id === metaId ? { ...m, actual: nuevoActual } : m))
-    }
-    setMetaSeleccionada('')
-  }
-
-  // ── Actualizar inversión ──────────────────────────────────────────────────
-  if (invId) {
-    const inv = inversionesData.find(i => i.id === invId)
-    if (inv) {
-      const nuevoCapital = (inv.capital || 0) + monto
-      await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', invId)
-      setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i))
-    }
-    setMetaSeleccionada('')
-  }
-
-  // ── Actualizar deuda ──────────────────────────────────────────────────────
-  if (deudaId) {
-    const deuda = deudasData.find(d => d.id === deudaId)
-    if (deuda) {
-      const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
-      const nuevosPagados  = (deuda.pagadas || 0) + 1
-      const nuevoEstado    = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-
-      await supabase.from('deudas').update({
-        pendiente: nuevoPendiente,
-        pagadas: nuevosPagados,
-        estado: nuevoEstado,
-      }).eq('id', deudaId)
-
-      // FIX 3: guardar el ID del deuda_movimiento para poder borrarlo con precisión
-      const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
-        deuda_id: deudaId,
-        tipo: 'pago',
+    // ── Tarjeta de crédito ────────────────────────────────────────────────────
+    if (tarjetaSeleccionada && form.tipo === 'egreso') {
+      const deudaTarjeta = tarjetaDeudasMap[tarjetaSeleccionada]
+      if (!deudaTarjeta) {
+        setError('Esta tarjeta no tiene una deuda activa asociada. Créala primero en el módulo Deudas.')
+        setSaving(false)
+        return
+      }
+      const { error } = await supabase.from('deuda_movimientos').insert([{
+        deuda_id: deudaTarjeta.id,
+        tipo: 'cargo',
         descripcion: form.descripcion,
         monto,
         fecha: form.fecha,
         mes, año,
-      }]).select()
-
-      // FIX 3: actualizar el movimiento con el deuda_movimiento_id
-      if (dmData?.[0]?.id) {
-        await supabase.from('movimientos')
-          .update({ deuda_movimiento_id: dmData[0].id })
-          .eq('id', data[0].id)
-        setMovs(prev => prev.map(m =>
-          m.id === data[0].id ? { ...m, deuda_movimiento_id: dmData[0].id } : m
-        ))
+      }])
+      if (error) setError('Error al guardar cargo en tarjeta: ' + error.message)
+      else {
+        await supabase.from('deudas').update({
+          pendiente: parseFloat(deudaTarjeta.pendiente || 0) + monto
+        }).eq('id', deudaTarjeta.id)
+        setTarjetaDeudasMap(prev => ({
+          ...prev,
+          [tarjetaSeleccionada]: { ...deudaTarjeta, pendiente: deudaTarjeta.pendiente + monto }
+        }))
+        resetModal()
       }
-
-      setDeudasData(prev => prev.map(d =>
-        d.id === deudaId ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados } : d
-      ))
+      setSaving(false)
+      return
     }
-    setDeudaSeleccionada('')
-  }
 
-  resetModal()
-  setSaving(false)
-}
+    // ── Movimiento normal ─────────────────────────────────────────────────────
+    const deudaId = form.categoria === 'deuda' && deudaSeleccionada ? deudaSeleccionada : null
 
+    // FIX 2: guardar meta_id e inversion_id en el payload para poder revertir correctamente al eliminar
+    const metaId = form.categoria === 'ahorro' && metaSeleccionada ? metaSeleccionada : null
+    const invId = form.categoria === 'inversion' && metaSeleccionada?.startsWith('inv_')
+      ? metaSeleccionada.replace('inv_', '')
+      : null
 
- async function handleDelete(movimiento) {
-  if (!confirm(`¿Eliminar "${movimiento.descripcion}"?`)) return
-  try {
-    // ── Revertir meta (FIX 1: usa meta_id si existe) ─────────────────────
-    if (movimiento.categoria === 'ahorro') {
-      const meta = movimiento.meta_id
-        ? metasData.find(m => m.id === movimiento.meta_id)
-        : metasData.find(m => m.nombre === movimiento.descripcion) // fallback legacy
+    const payloadMov = {
+      tipo: form.tipo,
+      monto,
+      descripcion: form.descripcion,
+      categoria: form.categoria,
+      fecha: form.fecha,
+      quien: form.quien,
+      ...(deudaId && { deuda_id: deudaId }),   // FIX 2: persiste deuda_id
+      ...(metaId && { meta_id: metaId }),       // FIX 2: persiste meta_id
+      ...(invId && { inversion_id: invId }),   // FIX 2: persiste inversion_id
+    }
+
+    const { data, error } = await supabase.from('movimientos').insert([payloadMov]).select()
+
+    if (error) {
+      setError('Error al guardar: ' + error.message)
+      setSaving(false)
+      return
+    }
+
+    setMovs(prev => [data[0], ...prev])
+
+    // ── Actualizar meta ───────────────────────────────────────────────────────
+    if (metaId) {
+      const meta = metasData.find(m => m.id === metaId)
       if (meta) {
-        const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto)
-        await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
-        setMetasData(prev => prev.map(m => m.id === meta.id ? { ...m, actual: nuevoActual } : m))
+        const nuevoActual = (meta.actual || 0) + monto
+        await supabase.from('metas').update({ actual: nuevoActual }).eq('id', metaId)
+        setMetasData(prev => prev.map(m => m.id === metaId ? { ...m, actual: nuevoActual } : m))
       }
+      setMetaSeleccionada('')
     }
 
-    // ── Revertir inversión (FIX 1: usa inversion_id si existe) ───────────
-    if (movimiento.categoria === 'inversion') {
-      const inv = movimiento.inversion_id
-        ? inversionesData.find(i => i.id === movimiento.inversion_id)
-        : inversionesData.find(i => i.nombre === movimiento.descripcion) // fallback legacy
+    // ── Actualizar inversión ──────────────────────────────────────────────────
+    if (invId) {
+      const inv = inversionesData.find(i => i.id === invId)
       if (inv) {
-        const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto)
-        await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id)
-        setInversionesData(prev => prev.map(i => i.id === inv.id ? { ...i, capital: nuevoCapital } : i))
+        const nuevoCapital = (inv.capital || 0) + monto
+        await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', invId)
+        setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i))
       }
+      setMetaSeleccionada('')
     }
 
-    // ── Revertir deuda (FIX 3: borra deuda_movimiento por ID exacto) ─────
-    if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
-      const { data: deudaData } = await supabase
-        .from('deudas').select('id, pendiente, monto, pagadas, estado')
-        .eq('id', movimiento.deuda_id).single()
-
-      if (deudaData) {
-        const nuevoPendiente = Math.min(
-          deudaData.monto || (deudaData.pendiente + movimiento.monto),
-          (deudaData.pendiente || 0) + movimiento.monto
-        )
-        const nuevosPagados = Math.max(0, (deudaData.pagadas || 0) - 1)
-        const nuevoEstado   = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+    // ── Actualizar deuda ──────────────────────────────────────────────────────
+    if (deudaId) {
+      const deuda = deudasData.find(d => d.id === deudaId)
+      if (deuda) {
+        const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
+        const nuevosPagados = (deuda.pagadas || 0) + 1
+        const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
         await supabase.from('deudas').update({
           pendiente: nuevoPendiente,
           pagadas: nuevosPagados,
           estado: nuevoEstado,
-        }).eq('id', movimiento.deuda_id)
+        }).eq('id', deudaId)
 
-        // FIX 3: borrar por ID exacto si está disponible, sino por filtros
-        if (movimiento.deuda_movimiento_id) {
-          await supabase.from('deuda_movimientos')
-            .delete().eq('id', movimiento.deuda_movimiento_id)
-        } else {
-          // fallback para registros legacy sin deuda_movimiento_id
-          await supabase.from('deuda_movimientos')
-            .delete()
-            .eq('deuda_id', movimiento.deuda_id)
-            .eq('tipo', 'pago')
-            .eq('monto', movimiento.monto)
-            .eq('fecha', movimiento.fecha)
-            .limit(1)
+        // FIX 3: guardar el ID del deuda_movimiento para poder borrarlo con precisión
+        const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
+          deuda_id: deudaId,
+          tipo: 'pago',
+          descripcion: form.descripcion,
+          monto,
+          fecha: form.fecha,
+          mes, año,
+        }]).select()
+
+        // FIX 3: actualizar el movimiento con el deuda_movimiento_id
+        if (dmData?.[0]?.id) {
+          await supabase.from('movimientos')
+            .update({ deuda_movimiento_id: dmData[0].id })
+            .eq('id', data[0].id)
+          setMovs(prev => prev.map(m =>
+            m.id === data[0].id ? { ...m, deuda_movimiento_id: dmData[0].id } : m
+          ))
         }
 
         setDeudasData(prev => prev.map(d =>
-          d.id === movimiento.deuda_id
-            ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados }
-            : d
+          d.id === deudaId ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados } : d
         ))
       }
+      setDeudaSeleccionada('')
     }
 
-    const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
-    if (!error) setMovs(prev => prev.filter(m => m.id !== movimiento.id))
-    else alert('Error al borrar: ' + error.message)
-  } catch (err) {
-    console.error('Error en borrado:', err)
+    resetModal()
+    setSaving(false)
   }
-}
+
+
+  async function handleDelete(movimiento) {
+    if (!confirm(`¿Eliminar "${movimiento.descripcion}"?`)) return
+    try {
+      // ── Revertir meta (FIX 1: usa meta_id si existe) ─────────────────────
+      if (movimiento.categoria === 'ahorro') {
+        const meta = movimiento.meta_id
+          ? metasData.find(m => m.id === movimiento.meta_id)
+          : metasData.find(m => m.nombre === movimiento.descripcion) // fallback legacy
+        if (meta) {
+          const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto)
+          await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
+          setMetasData(prev => prev.map(m => m.id === meta.id ? { ...m, actual: nuevoActual } : m))
+        }
+      }
+
+      // ── Revertir inversión (FIX 1: usa inversion_id si existe) ───────────
+      if (movimiento.categoria === 'inversion') {
+        const inv = movimiento.inversion_id
+          ? inversionesData.find(i => i.id === movimiento.inversion_id)
+          : inversionesData.find(i => i.nombre === movimiento.descripcion) // fallback legacy
+        if (inv) {
+          const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto)
+          await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id)
+          setInversionesData(prev => prev.map(i => i.id === inv.id ? { ...i, capital: nuevoCapital } : i))
+        }
+      }
+
+      // ── Revertir deuda (FIX 3: borra deuda_movimiento por ID exacto) ─────
+      if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
+        const { data: deudaData } = await supabase
+          .from('deudas').select('id, pendiente, monto, pagadas, estado')
+          .eq('id', movimiento.deuda_id).single()
+
+        if (deudaData) {
+          const nuevoPendiente = Math.min(
+            deudaData.monto || (deudaData.pendiente + movimiento.monto),
+            (deudaData.pendiente || 0) + movimiento.monto
+          )
+          const nuevosPagados = Math.max(0, (deudaData.pagadas || 0) - 1)
+          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+
+          await supabase.from('deudas').update({
+            pendiente: nuevoPendiente,
+            pagadas: nuevosPagados,
+            estado: nuevoEstado,
+          }).eq('id', movimiento.deuda_id)
+
+          // FIX 3: borrar por ID exacto si está disponible, sino por filtros
+          if (movimiento.deuda_movimiento_id) {
+            await supabase.from('deuda_movimientos')
+              .delete().eq('id', movimiento.deuda_movimiento_id)
+          } else {
+            // fallback para registros legacy sin deuda_movimiento_id
+            await supabase.from('deuda_movimientos')
+              .delete()
+              .eq('deuda_id', movimiento.deuda_id)
+              .eq('tipo', 'pago')
+              .eq('monto', movimiento.monto)
+              .eq('fecha', movimiento.fecha)
+              .limit(1)
+          }
+
+          setDeudasData(prev => prev.map(d =>
+            d.id === movimiento.deuda_id
+              ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados }
+              : d
+          ))
+        }
+      }
+
+      const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
+      if (!error) setMovs(prev => prev.filter(m => m.id !== movimiento.id))
+      else alert('Error al borrar: ' + error.message)
+    } catch (err) {
+      console.error('Error en borrado:', err)
+    }
+  }
 
 
   function aplicarSugerencia(item) {
@@ -380,13 +380,13 @@ async function handleAdd(e) {
     return month - 1 === now.getMonth() && year === now.getFullYear()
   })
   // FIX 4: separar gastos corrientes de ahorro/inversión igual que el dashboard
-const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-const egresos  = movsMes
-  .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(m.categoria))
-  .reduce((s, m) => s + m.monto, 0)
-const ahorro   = movsMes
-  .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria))
-  .reduce((s, m) => s + m.monto, 0)
+  const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
+  const egresos = movsMes
+    .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(m.categoria))
+    .reduce((s, m) => s + m.monto, 0)
+  const ahorro = movsMes
+    .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria))
+    .reduce((s, m) => s + m.monto, 0)
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
@@ -614,12 +614,15 @@ const ahorro   = movsMes
                 <select className="ff-input h-12 text-sm" value={tarjetaSeleccionada}
                   onChange={e => setTarjetaSeleccionada(e.target.value)}>
                   <option value="">— No, pago directo —</option>
-                  {tarjetasData.map(t => (
-                    <option key={t.id} value={t.id}>
-                      {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
-                      {!tarjetaDeudasMap[t.id] ? ' ⚠ sin deuda' : ''}
-                    </option>
-                  ))}
+                  {tarjetasData
+                    .filter(t => t.estado !== 'pausada') // FIX: ocultar tarjetas pausadas
+                    .map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
+                        {!tarjetaDeudasMap[t.id] ? ' ⚠ sin deuda' : ''}
+                      </option>
+                    ))
+                  }
                 </select>
                 {tarjetaSeleccionada && (
                   <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
@@ -723,8 +726,12 @@ const ahorro   = movsMes
             <button
               type="submit"
               disabled={saving}
-              className="w-full h-14 text-sm font-black text-white shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl"
-              style={{ background: colores.green }}
+              className="w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl"
+              style={{
+                background: 'var(--accent-main)',
+                color: 'var(--bg-card)',
+                opacity: saving ? 0.7 : 1,
+              }}
             >
               {saving ? <Loader2 size={20} className="animate-spin" /> : usandoTarjeta ? '💳 Cargar a tarjeta' : 'CONFIRMAR'}
             </button>

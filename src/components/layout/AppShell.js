@@ -2,8 +2,6 @@
 import { useState } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import { Menu } from 'lucide-react'
-import { usePathname } from 'next/navigation'
-// cada vez que cambia pathname → mostrar spinner breve
 
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -11,19 +9,18 @@ export default function AppShell({ children }) {
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Overlay móvil - Solo oscurece un poco para dar contraste */}
+      {/* Overlay móvil */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-[60] lg:hidden"
-          style={{
-            background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(2px)'
-          }}
+          role="button"
+          aria-label="Cerrar menú"
+          style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar - Contenedor Fijo */}
+      {/* Sidebar */}
       <div className={`
         fixed left-0 top-0 h-full z-[70] transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -32,18 +29,18 @@ export default function AppShell({ children }) {
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content - SIN EFECTOS DE ESCALA O TRANSPARENCIA */}
-      <main className="flex-1 min-h-screen lg:ml-20 flex flex-col transition-all duration-300 overflow-x-hidden"
+      {/* Main content */}
+      <main
+        className="flex-1 min-h-screen lg:ml-20 flex flex-col transition-all duration-300 overflow-x-hidden"
         style={{ background: 'var(--bg-primary)' }}
       >
-        {/* Header móvil */}
-        <div className="lg:hidden flex items-center gap-3 px-5 sticky z-50 w-full"
+        {/* Header móvil — FIX 2: safe area correcta */}
+        <div
+          className="lg:hidden flex items-center gap-3 px-5 sticky z-50 w-full"
           style={{
-            top: 'env(safe-area-inset-top)',  // ← empieza DESPUÉS de la safe area
+            top: 0,
             background: 'var(--bg-primary)',
-            boxShadow: 'none',
-            borderBottom: 'none',
-            paddingTop: '1rem',               // ← sin safe-area aquí
+            paddingTop: 'calc(env(safe-area-inset-top) + 1rem)',
             paddingBottom: '1rem',
           }}>
           <button
@@ -71,11 +68,11 @@ export default function AppShell({ children }) {
             position: 'absolute', top: '-5%', right: '-5%',
             width: '600px', height: '600px',
             background: 'radial-gradient(circle, var(--accent-main) 0%, transparent 70%)',
-            opacity: 0.07
+            opacity: 0.07,
           }} />
         </div>
 
-        {/* Contenido Real */}
+        {/* Contenido */}
         <div className="relative z-10 p-4 md:p-10 lg:p-12 max-w-[1600px] mx-auto w-full flex-1">
           {children}
         </div>

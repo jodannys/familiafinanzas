@@ -55,7 +55,7 @@ export default function SobrePage() {
 
     try {
       const [pres, { data: sobre }, { data: movs }, { data: tarjetas }] = await Promise.all([
-        getPresupuestoMes(),
+        getPresupuestoMes(filtroMes, filtroAño),
         supabase.from('sobre_movimientos').select('*').eq('mes', filtroMes).eq('año', filtroAño).order('created_at', { ascending: false }),
         supabase.from('movimientos').select('*').gte('fecha', fechaInicio).lte('fecha', fechaFin),
         supabase.from('deudas').select('id, nombre, emoji, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa'),

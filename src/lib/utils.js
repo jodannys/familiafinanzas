@@ -5,12 +5,15 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
+// FIX 1: manejar null, undefined y NaN
 export function formatCurrency(amount, currency = 'EUR') {
+  const num = parseFloat(amount)
+  if (isNaN(num)) return '0,00 €'
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-  }).format(amount)
+  }).format(num)
 }
 
 export function formatPercent(value) {
@@ -28,81 +31,79 @@ export function getCurrentMonth() {
   return { month: now.getMonth() + 1, year: now.getFullYear() }
 }
 
-// Compound interest formula: A = P(1 + r/n)^(nt)
 export function calculateCompoundInterest({ principal, monthlyContribution, annualRate, years, compound = true }) {
-  const p = parseFloat(principal) || 0;
-  const mc = parseFloat(monthlyContribution) || 0;
-  const r = (parseFloat(annualRate) || 0) / 100;
-  const y = parseInt(years) || 10;
+  const p  = parseFloat(principal) || 0
+  const mc = parseFloat(monthlyContribution) || 0
+  const r  = (parseFloat(annualRate) || 0) / 100
 
-  let currentBalance = p;
-  let totalContributed = p;
-  let totalInterest = 0;
-  
-  // Guardamos el año 0 para la gráfica
-  const history = [{ year: 0, balance: p, contributed: p, interest: 0 }];
+  // FIX 3: garantizar años positivos y al menos 1
+  const y  = Math.max(1, parseInt(years) || 10)
+
+  let currentBalance   = p
+  let totalContributed = p
+  let totalInterest    = 0
+
+  const history = [{ year: 0, balance: p, contributed: p, interest: 0 }]
 
   for (let i = 1; i <= y; i++) {
-    let yearlyContribution = mc * 12;
-    let interestForYear = 0;
+    const yearlyContribution = mc * 12
+    let interestForYear = 0
 
     if (compound) {
-      // Interés Compuesto: Calculamos mes a mes sumando las ganancias al capital
-      let balanceAtStart = currentBalance;
-      for (let m = 0; m < 12; m++) {
-        let interestThisMonth = currentBalance * (r / 12);
-        currentBalance += interestThisMonth + mc;
-        totalInterest += interestThisMonth;
+      // FIX 2: saltarse el loop si tasa es 0
+      if (r === 0) {
+        currentBalance += yearlyContribution
+      } else {
+        const balanceAtStart = currentBalance
+        for (let m = 0; m < 12; m++) {
+          const interestThisMonth = currentBalance * (r / 12)
+          currentBalance  += interestThisMonth + mc
+          totalInterest   += interestThisMonth
+        }
+        interestForYear = currentBalance - balanceAtStart - yearlyContribution
       }
-      interestForYear = currentBalance - balanceAtStart - yearlyContribution;
     } else {
-      // Interés Simple: El interés solo se calcula sobre lo que has aportado de tu bolsillo
-      let interestThisYear = (totalContributed + (yearlyContribution / 2)) * r;
-      totalInterest += interestThisYear;
-      currentBalance += yearlyContribution + interestThisYear;
-      interestForYear = interestThisYear;
+      const interestThisYear = (totalContributed + (yearlyContribution / 2)) * r
+      totalInterest  += interestThisYear
+      currentBalance += yearlyContribution + interestThisYear
+      interestForYear = interestThisYear
     }
 
-    totalContributed += yearlyContribution;
+    totalContributed += yearlyContribution
 
     history.push({
-      year: i,
-      balance: currentBalance,
+      year:        i,
+      balance:     currentBalance,
       contributed: totalContributed,
-      interest: interestForYear
-    });
+      interest:    interestForYear,
+    })
   }
 
   return {
-    finalBalance: currentBalance,
+    finalBalance:     currentBalance,
     totalContributed,
     totalInterest,
-    history
-  };
-}
-export const CATEGORY_CONFIG = {
-  basicos:   { label: 'Gastos Básicos',  color: '#38bdf8', icon: 'Home' },
-  deseo:     { label: 'Gastos Deseo',    color: '#a78bfa', icon: 'Sparkles' },
-  ahorro:    { label: 'Ahorro / Metas',  color: '#34d399', icon: 'PiggyBank' },
-  inversion: { label: 'Inversión',       color: '#fbbf24', icon: 'TrendingUp' },
-  deuda:     { label: 'Deudas',          color: '#fb7185', icon: 'CreditCard' },
+    history,
+  }
 }
 
+// FIX 4: usar CSS vars del tema en vez de hex hardcodeados
+export const CATEGORY_CONFIG = {
+  basicos:   { label: 'Gastos Básicos', color: 'var(--accent-blue)',   icon: 'Home'       },
+  deseo:     { label: 'Gastos Deseo',   color: 'var(--accent-violet)', icon: 'Sparkles'   },
+  ahorro:    { label: 'Ahorro / Metas', color: 'var(--accent-green)',  icon: 'PiggyBank'  },
+  inversion: { label: 'Inversión',      color: 'var(--accent-gold)',   icon: 'TrendingUp' },
+  deuda:     { label: 'Deudas',         color: 'var(--accent-rose)',   icon: 'CreditCard' },
+}
 
 export function getFlagEmoji(input) {
-  // 1. Si no hay valor, devolver vacío
-  if (!input) return '';
-
-  // 2. Si ya es un emoji (cualquier carácter que no sea 2 letras A-Z), devolverlo tal cual
-  //    Esto incluye emojis normales como 🏠, 🎯, o banderas reales 🇻🇪
-  const isLetters = /^[a-zA-Z]{2}$/.test(input);
-  if (!isLetters) return input;
-
-  // 3. Si son dos letras (ej: "VE"), generar la bandera
+  if (!input) return ''
+  const isLetters = /^[a-zA-Z]{2}$/.test(input)
+  if (!isLetters) return input
   try {
-    const codePoints = input.toUpperCase().split('').map(c => 127397 + c.charCodeAt());
-    return String.fromCodePoint(...codePoints);
+    const codePoints = input.toUpperCase().split('').map(c => 127397 + c.charCodeAt())
+    return String.fromCodePoint(...codePoints)
   } catch {
-    return input; // si falla, devolver las letras originales
+    return input
   }
 }

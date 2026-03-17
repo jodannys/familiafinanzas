@@ -201,14 +201,14 @@ export function ThemeProvider({ children }) {
     if (!meta) {
       meta = document.createElement('meta')
       meta.name = 'theme-color'
-      document.getElementsByTagName('head')[0].appendChild(meta)
+      document.head.appendChild(meta)
     }
     meta.setAttribute('content', color)
   }
 
-  // Carga el tema guardado en localStorage al montar
   useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('ff-theme') : null
+    let saved = null
+    try { saved = localStorage.getItem('ff-theme') } catch (e) { }
     if (saved && THEMES[saved]) {
       setThemeState(saved)
       const t = THEMES[saved]
@@ -218,17 +218,17 @@ export function ThemeProvider({ children }) {
     }
   }, [])
 
-  // Aplica el tema cada vez que cambia
   useEffect(() => {
     const t = THEMES[theme]
     if (!t) return
     const root = document.documentElement
     Object.entries(t.vars).forEach(([key, val]) => root.style.setProperty(key, val))
-    localStorage.setItem('ff-theme', theme)
+    try { localStorage.setItem('ff-theme', theme) } catch (e) { }
     updateThemeMeta(t.themeColor)
     window.dispatchEvent(new CustomEvent('theme-change'))
   }, [theme])
 
+  // ← esta función faltaba
   function setTheme(t) {
     if (THEMES[t]) setThemeState(t)
   }
@@ -239,7 +239,6 @@ export function ThemeProvider({ children }) {
     </ThemeContext.Provider>
   )
 }
-
 export function useTheme() {
   return useContext(ThemeContext)
 }

@@ -58,32 +58,40 @@ export default function TarjetasPage() {
   async function cargar() {
     setLoading(true)
 
-    const { data: tarjetasData, error: e1 } = await supabase
-      .from('perfiles_tarjetas').select('*').order('created_at', { ascending: false })
-
-    if (e1) { setLoading(false); return }
-    setTarjetas(tarjetasData || [])
-
-    if (tarjetasData?.length) {
-      const { data: deudasTarjeta } = await supabase
-        .from('deudas')
+    // FIX 1: queries paralelas en vez de secuenciales
+    const [
+      { data: tarjetasData, error: e1 },
+      { data: deudasTarjeta },
+    ] = await Promise.all([
+      supabase.from('perfiles_tarjetas').select('*').order('created_at', { ascending: false }),
+      supabase.from('deudas')
         .select('id, nombre, perfil_tarjeta_id, pendiente, estado')
         .eq('tipo_deuda', 'tarjeta')
-        .neq('estado', 'pagada')
+        .neq('estado', 'pagada'),
+    ])
 
-      setDeudas(deudasTarjeta || [])
+    if (e1) { setLoading(false); return }
 
-      const usado = {}
-      tarjetasData.forEach(t => { usado[t.id] = 0 })
-        ; (deudasTarjeta || []).forEach(d => {
-          if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
+    setTarjetas(tarjetasData || [])
+    setDeudas(deudasTarjeta || [])
+
+    // FIX 4: solo contar deudas de tarjetas activas
+    const usado = {}
+      ; (tarjetasData || []).forEach(t => { usado[t.id] = 0 })
+      ; (deudasTarjeta || []).forEach(d => {
+        if (
+          d.perfil_tarjeta_id &&
+          usado[d.perfil_tarjeta_id] !== undefined
+        ) {
+          // FIX 4: no contar si la tarjeta está pausada
+          const tarjeta = (tarjetasData || []).find(t => t.id === d.perfil_tarjeta_id)
+          if (tarjeta && tarjeta.estado !== 'pausada') {
             usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
           }
-        })
-      Object.keys(usado).forEach(k => { usado[k] = Math.max(0, usado[k]) })
-      setUsadoPorTarjeta(usado)
-    }
+        }
+      })
 
+    setUsadoPorTarjeta(usado)
     setLoading(false)
   }
 
@@ -111,25 +119,47 @@ export default function TarjetasPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
+
+    // FIX 5: validar rango de dia_corte y dia_pago
+    const diaCorte = parseInt(form.dia_corte) || null
+    const diaPago = parseInt(form.dia_pago) || null
+    if (diaCorte !== null && (diaCorte < 1 || diaCorte > 31)) {
+      alert('El día de corte debe estar entre 1 y 31')
+      setSaving(false)
+      return
+    }
+    if (diaPago !== null && (diaPago < 1 || diaPago > 31)) {
+      alert('El día de pago debe estar entre 1 y 31')
+      setSaving(false)
+      return
+    }
+
     const payload = {
       nombre_tarjeta: form.nombre_tarjeta,
       banco: form.banco,
       limite_credito: parseFloat(form.limite_credito) || 0,
-      dia_corte: parseInt(form.dia_corte) || null,
-      dia_pago: parseInt(form.dia_pago) || null,
+      dia_corte: diaCorte,
+      dia_pago: diaPago,
       estado: form.estado,
       color: form.color,
     }
+
     if (editingId) {
       await supabase.from('perfiles_tarjetas').update(payload).eq('id', editingId)
+      // FIX 3: solo actualizar estado local, sin cargar() innecesario
       setTarjetas(prev => prev.map(t => t.id === editingId ? { ...t, ...payload } : t))
     } else {
       const { data } = await supabase.from('perfiles_tarjetas').insert([payload]).select()
-      if (data?.[0]) setTarjetas(prev => [data[0], ...prev])
+      if (data?.[0]) {
+        setTarjetas(prev => [data[0], ...prev])
+        // inicializar su saldo en 0
+        setUsadoPorTarjeta(prev => ({ ...prev, [data[0].id]: 0 }))
+      }
     }
+
     setSaving(false)
     closeModal()
-    cargar()
+    // FIX 3: sin cargar() aquí — estado ya actualizado arriba
   }
 
   async function handleToggleEstado(tarjeta) {
@@ -140,8 +170,18 @@ export default function TarjetasPage() {
 
   async function handleDelete(id) {
     if (!confirm('¿Eliminar esta tarjeta? Las compras a plazos asociadas quedarán sin perfil.')) return
+
+    // FIX 2: desvincular deudas antes de borrar para no dejar IDs rotos
+    await supabase.from('deudas')
+      .update({ perfil_tarjeta_id: null })
+      .eq('perfil_tarjeta_id', id)
+
     await supabase.from('perfiles_tarjetas').delete().eq('id', id)
+
     setTarjetas(prev => prev.filter(t => t.id !== id))
+    setDeudas(prev => prev.map(d =>
+      d.perfil_tarjeta_id === id ? { ...d, perfil_tarjeta_id: null } : d
+    ))
     if (selectedId === id) setSelectedId(null)
   }
 
@@ -314,15 +354,27 @@ export default function TarjetasPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Día de corte</label>
-              <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 25"
+              <input
+                className="ff-input"
+                type="number"
+                min="1"
+                max="31"
+                placeholder="Ej: 15"
                 value={form.dia_corte}
-                onChange={e => setForm(p => ({ ...p, dia_corte: e.target.value }))} />
+                onChange={e => setForm({ ...form, dia_corte: e.target.value })}
+              />
             </div>
             <div>
               <label className="ff-label">Día de pago</label>
-              <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 15"
+              <input
+                className="ff-input"
+                type="number"
+                min="1"
+                max="31"
+                placeholder="Ej: 20"
                 value={form.dia_pago}
-                onChange={e => setForm(p => ({ ...p, dia_pago: e.target.value }))} />
+                onChange={e => setForm({ ...form, dia_pago: e.target.value })}
+              />
             </div>
           </div>
 

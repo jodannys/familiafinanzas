@@ -30,26 +30,26 @@ function diasHastaPago(diaPago) {
 function urgenciaColor(dias) {
   if (dias === null) return null
   if (dias <= 3) return {
-    bg:    'color-mix(in srgb, var(--accent-rose)  10%, transparent)',
-    text:  'var(--accent-rose)',
+    bg: 'color-mix(in srgb, var(--accent-rose)  10%, transparent)',
+    text: 'var(--accent-rose)',
     label: `¡Vence en ${dias}d!`,
   }
   if (dias <= 7) return {
-    bg:    'color-mix(in srgb, var(--accent-terra) 10%, transparent)',
-    text:  'var(--accent-terra)',
+    bg: 'color-mix(in srgb, var(--accent-terra) 10%, transparent)',
+    text: 'var(--accent-terra)',
     label: `Vence en ${dias}d`,
   }
   return {
-    bg:    'color-mix(in srgb, var(--accent-green) 10%, transparent)',
-    text:  'var(--accent-green)',
+    bg: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
+    text: 'var(--accent-green)',
     label: `${dias}d para pago`,
   }
 }
 
 const TIPO_CONFIG = {
-  tarjeta:  { label: 'Tarjeta',  icon: CreditCard, color: 'var(--accent-violet)' },
-  prestamo: { label: 'Préstamo', icon: Landmark,   color: 'var(--accent-rose)'   },
-  cuota:    { label: 'Cuota',    icon: Calendar,   color: 'var(--accent-terra)'   },
+  tarjeta: { label: 'Tarjeta', icon: CreditCard, color: 'var(--accent-violet)' },
+  prestamo: { label: 'Préstamo', icon: Landmark, color: 'var(--accent-rose)' },
+  cuota: { label: 'Cuota', icon: Calendar, color: 'var(--accent-terra)' },
 }
 
 function IconBtn({ onClick, title, bg, color, children }) {
@@ -77,9 +77,9 @@ function ColorPicker({ value, onChange, colors }) {
             className="w-8 h-8 rounded-full transition-all"
             style={{
               backgroundColor: hex,
-              outline:      value === hex ? '3px solid var(--text-secondary)' : 'none',
+              outline: value === hex ? '3px solid var(--text-secondary)' : 'none',
               outlineOffset: 2,
-              opacity:   value === hex ? 1 : 0.5,
+              opacity: value === hex ? 1 : 0.5,
               transform: value === hex ? 'scale(1.15)' : 'scale(1)',
             }} />
         ))}
@@ -97,9 +97,9 @@ export default function DeudasPage() {
   // Color por defecto reactivo al tema
   const defaultColor = () => themeColors[0] || '#818CF8'
 
-  const makeFormTarjeta  = () => ({ tipo_deuda: 'tarjeta',  emoji: '💳', nombre: '', categoria: 'deseo',   tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: new Date().toISOString().slice(0, 10), color: defaultColor() })
+  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: new Date().toISOString().slice(0, 10), color: defaultColor() })
   const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', emoji: '🏦', nombre: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor() })
-  const makeFormCuota    = () => ({ tipo_deuda: 'cuota',    emoji: '📅', nombre: '', categoria: 'deseo',   deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor() })
+  const makeFormCuota = () => ({ tipo_deuda: 'cuota', emoji: '📅', nombre: '', categoria: 'deseo', deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor() })
 
   const [deudas, setDeudas] = useState([])
   const [movimientos, setMovimientos] = useState({})
@@ -113,9 +113,9 @@ export default function DeudasPage() {
   const [modalDeuda, setModalDeuda] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [tipoSeleccionado, setTipoSeleccionado] = useState('tarjeta')
-  const [formTarjeta, setFormTarjeta]   = useState(makeFormTarjeta)
+  const [formTarjeta, setFormTarjeta] = useState(makeFormTarjeta)
   const [formPrestamo, setFormPrestamo] = useState(makeFormPrestamo)
-  const [formCuota, setFormCuota]       = useState(makeFormCuota)
+  const [formCuota, setFormCuota] = useState(makeFormCuota)
 
   const [modalMov, setModalMov] = useState(null)
   const [formMov, setFormMov] = useState({
@@ -131,9 +131,9 @@ export default function DeudasPage() {
   useEffect(() => {
     if (!themeColors.length) return
     const c = themeColors[0]
-    setFormTarjeta(p  => ({ ...p,  color: themeColors.includes(p.color)  ? p.color  : c }))
-    setFormPrestamo(p => ({ ...p,  color: themeColors.includes(p.color)  ? p.color  : c }))
-    setFormCuota(p    => ({ ...p,  color: themeColors.includes(p.color)  ? p.color  : c }))
+    setFormTarjeta(p => ({ ...p, color: themeColors.includes(p.color) ? p.color : c }))
+    setFormPrestamo(p => ({ ...p, color: themeColors.includes(p.color) ? p.color : c }))
+    setFormCuota(p => ({ ...p, color: themeColors.includes(p.color) ? p.color : c }))
   }, [theme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { cargar() }, [])
@@ -161,10 +161,10 @@ export default function DeudasPage() {
           .from('deuda_movimientos').select('*').order('fecha', { ascending: false })
         if (!e3) {
           const grouped = {}
-          ;(movs || []).forEach(m => {
-            if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-            grouped[m.deuda_id].push(m)
-          })
+            ; (movs || []).forEach(m => {
+              if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+              grouped[m.deuda_id].push(m)
+            })
           setMovimientos(grouped)
         }
       }
@@ -230,6 +230,15 @@ export default function DeudasPage() {
 
     if (tipoSeleccionado === 'tarjeta') {
       const f = formTarjeta
+      // FIX: verificar que la tarjeta seleccionada no esté pausada
+      if (f.tarjeta_id) {
+        const tarjetaPerfil = misTarjetas.find(t => t.id === f.tarjeta_id)
+        if (tarjetaPerfil && tarjetaPerfil.estado === 'pausada') {
+          setError('Esta tarjeta está pausada. Actívala primero en el módulo Mis Tarjetas.')
+          setSaving(false)
+          return
+        }
+      }
       const capital = parseFloat(f.monto_compra) || 0
       const meses = parseInt(f.num_cuotas) || 1
       const cuota = parseFloat((capital / meses).toFixed(2))
@@ -304,22 +313,31 @@ export default function DeudasPage() {
     const monto = deuda.cuota || deuda.pendiente || 0
     if (!monto) return
     setSaving(true)
+    const hoy = new Date().toISOString().slice(0, 10)
     const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
     const nuevosPagados = (deuda.pagadas || 0) + 1
     const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-    await supabase.from('deuda_movimientos').insert([{
+
+    // Insertar en deuda_movimientos primero para obtener su ID
+    const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
       deuda_id: deuda.id, tipo: 'pago',
       descripcion: `Cuota mensual: ${deuda.nombre}`,
-      monto, fecha: new Date().toISOString().slice(0, 10), mes, año,
-    }])
+      monto, fecha: hoy, mes, año,
+    }]).select()
+
+    // FIX 1: guardar deuda_id y deuda_movimiento_id en movimientos
     await supabase.from('movimientos').insert([{
       tipo: 'egreso', categoria: 'deuda',
       descripcion: `Pago letra: ${deuda.nombre}`,
-      monto, fecha: new Date().toISOString().slice(0, 10), quien: 'Ambos',
+      monto, fecha: hoy, quien: 'Ambos',
+      deuda_id: deuda.id,
+      deuda_movimiento_id: dmData?.[0]?.id || null,
     }])
+
     await supabase.from('deudas').update({
       pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
     }).eq('id', deuda.id)
+
     setDeudas(prev => prev.map(d => d.id === deuda.id
       ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
     setSaving(false)
@@ -331,35 +349,52 @@ export default function DeudasPage() {
     setSaving(true)
     const monto = parseFloat(formMov.monto)
     const deuda = deudas.find(d => d.id === modalMov)
+
     const { data, error } = await supabase.from('deuda_movimientos').insert([{
       deuda_id: modalMov, tipo: formMov.tipo,
       descripcion: formMov.descripcion, monto,
       fecha: formMov.fecha, mes, año,
     }]).select()
+
     if (!error && deuda) {
       setMovimientos(prev => ({ ...prev, [modalMov]: [data[0], ...(prev[modalMov] || [])] }))
       let nuevoPendiente = deuda.pendiente || 0
-      let nuevoMontoTotal = deuda.monto || 0
       let nuevosPagados = deuda.pagadas || 0
+
       if (formMov.tipo === 'pago') {
         nuevoPendiente = Math.max(0, nuevoPendiente - monto)
         nuevosPagados++
+
+        // FIX 1: guardar deuda_id y deuda_movimiento_id
         await supabase.from('movimientos').insert([{
           tipo: 'egreso', categoria: 'deuda',
           descripcion: `Pago letra: ${deuda.nombre}`,
           monto, fecha: formMov.fecha, quien: 'Ambos',
+          deuda_id: deuda.id,
+          deuda_movimiento_id: data[0]?.id || null,
         }])
+
+        // FIX 4: cargo NO modifica monto total — solo actualizar pendiente y pagadas
+        await supabase.from('deudas').update({
+          pendiente: nuevoPendiente,
+          pagadas: nuevosPagados,
+          estado: nuevoPendiente <= 0 ? 'pagada' : 'activa',
+        }).eq('id', modalMov)
+
       } else {
+        // FIX 4: cargo sube pendiente pero NO toca deuda.monto (capital original)
         nuevoPendiente = nuevoPendiente + monto
-        nuevoMontoTotal = nuevoMontoTotal + monto
+        await supabase.from('deudas').update({
+          pendiente: nuevoPendiente,
+          estado: 'activa',
+        }).eq('id', modalMov)
       }
-      const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-      await supabase.from('deudas').update({
-        pendiente: nuevoPendiente, monto: nuevoMontoTotal,
-        pagadas: nuevosPagados, estado: nuevoEstado
-      }).eq('id', modalMov)
+
       setDeudas(prev => prev.map(d => d.id === modalMov
-        ? { ...d, pendiente: nuevoPendiente, monto: nuevoMontoTotal, pagadas: nuevosPagados, estado: nuevoEstado } : d))
+        ? {
+          ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados,
+          estado: nuevoPendiente <= 0 ? 'pagada' : 'activa'
+        } : d))
       setModalMov(null)
       setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
     }
@@ -370,22 +405,48 @@ export default function DeudasPage() {
     if (!confirm('¿Eliminar este movimiento y revertir el pendiente?')) return
     const deuda = deudas.find(d => d.id === mov.deuda_id)
     if (!deuda) return
+
     const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
     if (error) { setError(error.message); return }
+
     let nuevoPendiente = deuda.pendiente || 0
     let nuevosPagados = deuda.pagadas || 0
+
     if (mov.tipo === 'pago') {
-      nuevoPendiente = Math.min(deuda.monto || nuevoPendiente + mov.monto, nuevoPendiente + mov.monto)
+      nuevoPendiente = Math.min(
+        deuda.monto || (nuevoPendiente + mov.monto),
+        nuevoPendiente + mov.monto
+      )
       nuevosPagados = Math.max(0, nuevosPagados - 1)
-      await supabase.from('movimientos').delete()
-        .eq('categoria', 'deuda').eq('monto', mov.monto).ilike('descripcion', `%${deuda.nombre}%`)
+
+      // FIX 2 y 3: borrar movimiento por ID exacto si existe, NO por ilike
+      const { data: movGeneralData } = await supabase
+        .from('movimientos')
+        .select('id')
+        .eq('deuda_movimiento_id', mov.id)
+        .limit(1)
+
+      if (movGeneralData?.[0]?.id) {
+        await supabase.from('movimientos').delete().eq('id', movGeneralData[0].id)
+      }
+      // fallback legacy (registros sin deuda_movimiento_id)
+      else {
+        await supabase.from('movimientos').delete()
+          .eq('categoria', 'deuda')
+          .eq('monto', mov.monto)
+          .eq('deuda_id', mov.deuda_id)
+          .limit(1)
+      }
     } else {
+      // FIX 4: revertir cargo solo resta del pendiente, no del monto total
       nuevoPendiente = Math.max(0, nuevoPendiente - mov.monto)
     }
+
     const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
     await supabase.from('deudas').update({
       pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
     }).eq('id', mov.deuda_id)
+
     setDeudas(prev => prev.map(d => d.id === mov.deuda_id
       ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
     setMovimientos(prev => ({
@@ -398,22 +459,22 @@ export default function DeudasPage() {
     if (!confirm('¿Estás seguro de eliminar esta deuda y todos sus registros asociados?')) return
     setSaving(true)
     try {
+      // Borrar deuda_movimientos primero
       const { error: err1 } = await supabase.from('deuda_movimientos').delete().eq('deuda_id', id)
       if (err1) throw new Error('Error al borrar movimientos: ' + err1.message)
-      const deuda = deudas.find(d => d.id === id)
-      if (deuda) {
-        await supabase.from('movimientos').delete()
-          .eq('categoria', 'deuda').ilike('descripcion', `%${deuda.nombre}%`)
-      }
+
+      // FIX 3: borrar movimientos generales por deuda_id exacto, NO por ilike
+      await supabase.from('movimientos').delete().eq('deuda_id', id)
+
       const { error: err2 } = await supabase.from('deudas').delete().eq('id', id)
       if (err2) throw new Error('Error al borrar la deuda: ' + err2.message)
+
       setDeudas(prev => prev.filter(d => d.id !== id))
       if (cardActiva === id) setCardActiva(null)
     } catch (err) {
       console.error(err); alert(err.message)
     } finally { setSaving(false) }
   }
-
   const activas = deudas.filter(d => d.estado !== 'pagada')
   const totalDeuda = activas.reduce((s, d) => s + (d.pendiente || 0), 0)
   const cuotasMes = activas.reduce((s, d) => s + (d.cuota || 0), 0)
@@ -441,8 +502,8 @@ export default function DeudasPage() {
         <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2"
           style={{
             background: 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
-            border:     '1px solid color-mix(in srgb, var(--accent-rose) 25%, transparent)',
-            color:      'var(--accent-rose)',
+            border: '1px solid color-mix(in srgb, var(--accent-rose) 25%, transparent)',
+            color: 'var(--accent-rose)',
           }}>
           <AlertCircle size={14} />{error}
         </div>
@@ -451,8 +512,8 @@ export default function DeudasPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 mb-6">
         {[
-          { label: 'Deuda total',     value: formatCurrency(totalDeuda),  color: 'var(--accent-rose)'  },
-          { label: 'Letras este mes', value: formatCurrency(cuotasMes),   color: 'var(--accent-terra)' },
+          { label: 'Deuda total', value: formatCurrency(totalDeuda), color: 'var(--accent-rose)' },
+          { label: 'Letras este mes', value: formatCurrency(cuotasMes), color: 'var(--accent-terra)' },
           {
             label: 'Vencen pronto',
             value: vencenProximo > 0 ? `${vencenProximo} deuda${vencenProximo > 1 ? 's' : ''}` : 'Al día ✓',
@@ -491,9 +552,8 @@ export default function DeudasPage() {
             const isActiva = cardActiva === d.id
             const movsDeuda = movimientos[d.id] || []
             const esCuota = d.tipo_deuda === 'cuota'
-            const pagadaHoy = movsDeuda.some(m =>
-              m.tipo === 'pago' && m.fecha?.slice(0, 7) === new Date().toISOString().slice(0, 7)
-            )
+            const pagadaEsteMes = (movimientos[d.id] || [])
+              .some(m => m.tipo === 'pago' && m.mes === mes && m.año === año)
 
             return (
               <Card key={d.id}
@@ -665,8 +725,8 @@ export default function DeudasPage() {
                               : 'color-mix(in srgb, var(--accent-rose)  10%, transparent)',
                           }}>
                           {m.tipo === 'pago'
-                            ? <ArrowUpRight   size={11} style={{ color: 'var(--accent-green)' }} />
-                            : <ArrowDownRight size={11} style={{ color: 'var(--accent-rose)'  }} />}
+                            ? <ArrowUpRight size={11} style={{ color: 'var(--accent-green)' }} />
+                            : <ArrowDownRight size={11} style={{ color: 'var(--accent-rose)' }} />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
@@ -718,7 +778,7 @@ export default function DeudasPage() {
                 className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
                 style={{
                   background: tipoSeleccionado === key ? `color-mix(in srgb, ${cfg.color} 15%, transparent)` : 'var(--bg-secondary)',
-                  color:  tipoSeleccionado === key ? cfg.color : 'var(--text-muted)',
+                  color: tipoSeleccionado === key ? cfg.color : 'var(--text-muted)',
                   border: `1px solid ${tipoSeleccionado === key ? `color-mix(in srgb, ${cfg.color} 40%, transparent)` : 'var(--border-glass)'}`,
                 }}>
                 {cfg.label}
@@ -736,7 +796,7 @@ export default function DeudasPage() {
                 <div className="p-3 rounded-2xl border border-dashed"
                   style={{
                     borderColor: 'color-mix(in srgb, var(--accent-violet) 30%, transparent)',
-                    background:  'color-mix(in srgb, var(--accent-violet) 4%, transparent)',
+                    background: 'color-mix(in srgb, var(--accent-violet) 4%, transparent)',
                   }}>
                   <label className="text-[10px] font-black uppercase mb-2 block"
                     style={{ color: 'var(--accent-violet)' }}>
@@ -745,16 +805,34 @@ export default function DeudasPage() {
                   <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                     {misTarjetas.map(t => (
                       <button key={t.id} type="button"
-                        onClick={() => handleSeleccionarTarjetaPerfil(t.id)}
+                        onClick={() => {
+                          // FIX: no permitir seleccionar tarjeta pausada
+                          if (t.estado === 'pausada') return
+                          handleSeleccionarTarjetaPerfil(t.id)
+                        }}
+                        disabled={t.estado === 'pausada'}
                         className="flex-shrink-0 px-3 py-2 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2"
                         style={{
-                          borderColor: formTarjeta.tarjeta_id === t.id ? t.color : `${t.color}40`,
-                          color: t.color,
-                          background: formTarjeta.tarjeta_id === t.id ? `${t.color}12` : 'var(--bg-card)',
-                          boxShadow: formTarjeta.tarjeta_id === t.id ? `0 0 0 2px ${t.color}30` : '',
+                          borderColor: t.estado === 'pausada'
+                            ? 'var(--border-glass)'
+                            : formTarjeta.tarjeta_id === t.id ? t.color : `${t.color}40`,
+                          color: t.estado === 'pausada' ? 'var(--text-muted)' : t.color,
+                          background: t.estado === 'pausada'
+                            ? 'var(--bg-secondary)'
+                            : formTarjeta.tarjeta_id === t.id ? `${t.color}12` : 'var(--bg-card)',
+                          opacity: t.estado === 'pausada' ? 0.5 : 1,
+                          cursor: t.estado === 'pausada' ? 'not-allowed' : 'pointer',
                         }}>
-                        <CreditCard size={12} />
-                        {t.nombre_tarjeta}
+                        💳 {t.nombre_tarjeta}
+                        {t.estado === 'pausada' && (
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full ml-1"
+                            style={{
+                              background: 'color-mix(in srgb, var(--accent-terra) 15%, transparent)',
+                              color: 'var(--accent-terra)',
+                            }}>
+                            PAUSADA
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -1008,7 +1086,7 @@ export default function DeudasPage() {
             onClick={handleSaveDeuda}
             disabled={saving}
             className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
-          {saving && <Loader2 size={12} className="animate-spin" />}
+            {saving && <Loader2 size={12} className="animate-spin" />}
             {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear'}
           </button>
         </div>
@@ -1080,7 +1158,7 @@ function CategoriaToggle({ value, onChange }) {
           className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
           style={{
             background: value === c.v ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'var(--bg-secondary)',
-            color:  value === c.v ? 'var(--accent-green)' : 'var(--text-muted)',
+            color: value === c.v ? 'var(--accent-green)' : 'var(--text-muted)',
             border: `1px solid ${value === c.v ? 'color-mix(in srgb, var(--accent-green) 30%, transparent)' : 'var(--border-glass)'}`,
           }}>
           {c.l}

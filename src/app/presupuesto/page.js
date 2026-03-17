@@ -57,86 +57,101 @@ export default function PresupuestoPage() {
   useEffect(() => { cargarTodo() }, [])
 
   async function cargarTodo() {
-    setLoadingItems(true)
-    const [
-      { data: itemsData },
-      { data: movsData },
-      { data: bloquesData },
-      { data: subData },
-      { data: metasData },
-      { data: invData },
-      { data: sobreData },
-    ] = await Promise.all([
-      supabase.from('presupuesto_items').select('*').eq('mes', mes).eq('año', año).order('created_at'),
-      supabase.from('movimientos').select('*')
-        .gte('fecha', `${año}-${String(mes).padStart(2, '0')}-01`)
-        .lte('fecha', `${año}-${String(mes).padStart(2, '0')}-31`),
-      supabase.from('presupuesto_bloques').select('*'),
-      supabase.from('presupuesto_sub').select('*').eq('bloque', 'futuro'),
-      supabase.from('metas').select('*').eq('estado', 'activa'),
-      supabase.from('inversiones').select('*'),
-      supabase.from('sobre_movimientos').select('*').eq('mes', mes).eq('año', año),
-    ])
+  setLoadingItems(true)
 
-    setItems(itemsData || [])
-    setMetasReales(metasData || [])
-    setInversionesReales(invData || [])
-    setSobreMovs(sobreData || [])
+  const fechaInicio = `${año}-${String(mes).padStart(2, '0')}-01`
+  const fechaFin = new Date(año, mes, 0).toISOString().slice(0, 10) // último día real del mes
 
-    const movsArr = movsData || []
-    setMovs(movsArr)
+  const [
+    { data: itemsData },
+    { data: movsData },
+    { data: bloquesData },
+    { data: subData },
+    { data: metasData },
+    { data: invData },
+    { data: sobreData },
+  ] = await Promise.all([
+    supabase.from('presupuesto_items').select('*').eq('mes', mes).eq('año', año).order('created_at'),
+    supabase.from('movimientos').select('*')
+      .gte('fecha', fechaInicio)
+      .lte('fecha', fechaFin), // FIX 2: fecha real
+    supabase.from('presupuesto_bloques').select('*'),
+    supabase.from('presupuesto_sub').select('*').eq('bloque', 'futuro'),
+    supabase.from('metas').select('*').eq('estado', 'activa'),
+    supabase.from('inversiones').select('*'),
+    supabase.from('sobre_movimientos').select('*').eq('mes', mes).eq('año', año),
+  ])
 
-    // Ingreso: suma de todos los ingresos del mes
-    const totalIngresos = movsArr
-      .filter(m => m.tipo === 'ingreso')
-      .reduce((s, m) => s + parseFloat(m.monto), 0)
-    if (totalIngresos > 0) setIngreso(totalIngresos.toString())
+  setItems(itemsData || [])
+  setMetasReales(metasData || [])
+  setInversionesReales(invData || [])
+  setSobreMovs(sobreData || [])
 
-    if (bloquesData?.length > 0) {
-      setBloques(prev => prev.map(b => {
-        const found = bloquesData.find(r => r.bloque === b.id)
-        return found ? { ...b, pct: found.pct } : b
-      }))
-    }
+  const movsArr = movsData || []
+  setMovs(movsArr)
 
-    if (subData?.length > 0) {
-      const newSub = {}
-      subData.forEach(r => { newSub[r.categoria] = r.pct })
-      setSub(prev => ({ ...prev, ...newSub }))
-    }
+  // FIX 5: siempre recalcular ingreso, incluso si es 0
+  const totalIngresos = movsArr
+    .filter(m => m.tipo === 'ingreso')
+    .reduce((s, m) => s + parseFloat(m.monto), 0)
+  setIngreso(totalIngresos > 0 ? totalIngresos.toString() : '')
 
-    setLoadingItems(false)
+  if (bloquesData?.length > 0) {
+    setBloques(prev => prev.map(b => {
+      const found = bloquesData.find(r => r.bloque === b.id)
+      return found ? { ...b, pct: found.pct } : b
+    }))
   }
 
-  // ── SALDO DINÁMICO: gasto real + traspasos del sobre ─────────────────────
-  function gastadoReal(bloqueId) {
-    const deMovimientos = movs
-      .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
-      .reduce((s, m) => s + parseFloat(m.monto), 0)
-
-    const deTraspasos = sobreMovs
-      .filter(m => ORIGEN_BLOQUE[m.origen] === bloqueId && parseFloat(m.monto) > 0)
-      .reduce((s, m) => s + parseFloat(m.monto), 0)
-
-    return deMovimientos + deTraspasos
+  if (subData?.length > 0) {
+    const newSub = {}
+    subData.forEach(r => { newSub[r.categoria] = r.pct })
+    setSub(prev => ({ ...prev, ...newSub }))
   }
 
-  // ── ITEMS ─────────────────────────────────────────────────────────────────
-  async function handleAddItem(bloqueId, customPayload = null) {
-    const payload = customPayload || {
-      bloque: bloqueId,
-      nombre: formItem.nombre,
-      monto: parseFloat(formItem.monto) || 0,
-      mes, año,
-    }
-    if (!payload.nombre || !payload.monto) return
-    const { data, error } = await supabase.from('presupuesto_items').insert([payload]).select()
-    if (!error) {
-      setItems(prev => [...prev, data[0]])
-      setFormItem({ nombre: '', monto: '' })
-      setAddingTo(null)
-    }
+  setLoadingItems(false)
+}
+
+
+function gastadoReal(bloqueId) {
+  const deMovimientos = movs
+    .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
+    .reduce((s, m) => s + parseFloat(m.monto), 0)
+
+  // FIX 1: solo contar traspasos que SALEN de cubetas externas al sobre
+  // Los traspasos desde metas/inversiones al sobre ya están contados
+  // en movimientos (categoria: ahorro/inversion), no sumarlos doble
+  const deTraspasos = sobreMovs
+    .filter(m => {
+      if (ORIGEN_BLOQUE[m.origen] !== bloqueId) return false
+      // Excluir traspasos donde el origen es metas/inversiones
+      // porque esos movimientos ya aparecen en la tabla movimientos
+      if (bloqueId === 'futuro' && ['metas', 'inversiones'].includes(m.origen)) return false
+      return parseFloat(m.monto) > 0
+    })
+    .reduce((s, m) => s + parseFloat(m.monto), 0)
+
+  return deMovimientos + deTraspasos
+}
+
+ async function handleAddItem(bloqueId, customPayload = null) {
+  const payload = customPayload || {
+    bloque: bloqueId,
+    nombre: formItem.nombre,
+    monto: parseFloat(formItem.monto) || 0,
+    mes, año,
   }
+
+  // FIX 3: validar nombre y que el monto sea estrictamente positivo
+  if (!payload.nombre || !payload.monto || payload.monto <= 0) return
+
+  const { data, error } = await supabase.from('presupuesto_items').insert([payload]).select()
+  if (!error) {
+    setItems(prev => [...prev, data[0]])
+    setFormItem({ nombre: '', monto: '' })
+    setAddingTo(null)
+  }
+}
 
   async function handleDeleteItem(id) {
     const { error } = await supabase.from('presupuesto_items').delete().eq('id', id)
@@ -148,32 +163,45 @@ export default function PresupuestoPage() {
   function cancelarEdicion() { setBorradores(null); setEditando(false) }
 
   async function guardarEdicion() {
-    if (!totalOk) return
-    await Promise.all(borradores.map(b =>
-      supabase.from('presupuesto_bloques').update({ pct: b.pct }).eq('bloque', b.id)
-    ))
-    setBloques(borradores)
-    setBorradores(null)
-    setEditando(false)
-  }
+  if (!totalOk) return
+
+  // FIX 4: upsert para cubrir tanto primer uso como actualizaciones
+  await Promise.all(borradores.map(b =>
+    supabase.from('presupuesto_bloques').upsert(
+      { bloque: b.id, pct: b.pct },
+      { onConflict: 'bloque' }
+    )
+  ))
+
+  setBloques(borradores)
+  setBorradores(null)
+  setEditando(false)
+}
 
   function cambiarPct(id, val) {
     setBorradores(prev => prev.map(b =>
       b.id === id ? { ...b, pct: Math.max(0, Math.min(100, parseInt(val) || 0)) } : b
     ))
   }
+async function guardarSub() {
+  if (!subOk) return
 
-  async function guardarSub() {
-    if (!subOk) return
-    await Promise.all([
-      supabase.from('presupuesto_sub').update({ pct: subBorrador.metas }).eq('bloque', 'futuro').eq('categoria', 'metas'),
-      supabase.from('presupuesto_sub').update({ pct: subBorrador.inversiones }).eq('bloque', 'futuro').eq('categoria', 'inversiones'),
-    ])
-    setSub(subBorrador)
-    setSubBorrador(null)
-    setEditandoSub(false)
-  }
+  // FIX 4: upsert también en sub-distribución
+  await Promise.all([
+    supabase.from('presupuesto_sub').upsert(
+      { bloque: 'futuro', categoria: 'metas', pct: subBorrador.metas },
+      { onConflict: 'bloque,categoria' }
+    ),
+    supabase.from('presupuesto_sub').upsert(
+      { bloque: 'futuro', categoria: 'inversiones', pct: subBorrador.inversiones },
+      { onConflict: 'bloque,categoria' }
+    ),
+  ])
 
+  setSub(subBorrador)
+  setSubBorrador(null)
+  setEditandoSub(false)
+}
   // ── DERIVADOS ─────────────────────────────────────────────────────────────
   const ingresoNum = parseFloat(ingreso) || 0
   const lista = editando ? borradores : bloques

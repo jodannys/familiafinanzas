@@ -77,15 +77,19 @@ export function Badge({ children, color = 'green', className }) {
   )
 }
 
+// FIX 1 y 2: ProgressBar robusto
 export function ProgressBar({ value, max, color = 'var(--accent-green)', className }) {
-  const pct = Math.min(100, Math.round((value / max) * 100))
+  // FIX 1: evitar división por cero
+  // FIX 2: evitar porcentaje negativo
+  const pct = max > 0 ? Math.min(100, Math.max(0, Math.round((value / max) * 100))) : 0
+
   return (
-    <div className={cn('w-full h-2 rounded-full overflow-hidden', className)} 
+    <div className={cn('w-full h-2 rounded-full overflow-hidden', className)}
          style={{ background: 'var(--progress-track)' }}>
       <div className="h-full rounded-full transition-all duration-700"
-        style={{ 
-          width: `${pct}%`, 
-          background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color}, white 20%))` 
+        style={{
+          width: `${pct}%`,
+          background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color}, white 20%))`,
         }} />
     </div>
   )

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
@@ -88,12 +88,10 @@ export default function InversionesPage() {
   // ── Paleta del picker reactiva al tema ────────────────────────────────────
   const themeColors = getThemeColors(theme)
 
-  // Si el color actual no pertenece a la nueva paleta, resetear al primero
   useEffect(() => {
     if (themeColors.length && form.color && !themeColors.includes(form.color)) {
       setForm(f => ({ ...f, color: themeColors[0] }))
     }
-    // Inicializar color si está vacío (primera carga)
     if (!form.color && themeColors.length) {
       setForm(f => ({ ...f, color: themeColors[0] }))
     }
@@ -105,12 +103,13 @@ export default function InversionesPage() {
     cargarGastosMes()
   }, [])
 
+  // FIX 1: índice de mes corregido a 1-12 + FIX 3: incluye deuda
   async function cargarGastosMes() {
-    const now  = new Date()
-    const año  = now.getFullYear()
-    const mes  = now.getMonth()
-    const inicioMes       = new Date(año, mes,     1).toISOString().slice(0, 10)
-    const inicioSiguiente = new Date(año, mes + 1, 1).toISOString().slice(0, 10)
+    const now = new Date()
+    const año = now.getFullYear()
+    const mes = now.getMonth() + 1
+    const inicioMes       = new Date(año, mes - 1, 1).toISOString().slice(0, 10)
+    const inicioSiguiente = new Date(año, mes,     1).toISOString().slice(0, 10)
 
     const { data, error } = await supabase
       .from('movimientos')
@@ -122,7 +121,7 @@ export default function InversionesPage() {
     if (error) { console.error(error); return }
 
     const total = (data || [])
-      .filter(m => ['basicos', 'deseo'].includes((m.categoria || '').toLowerCase()))
+      .filter(m => ['basicos', 'deseo', 'deuda'].includes((m.categoria || '').toLowerCase()))
       .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
 
     setGastosMes(total)
@@ -193,41 +192,67 @@ export default function InversionesPage() {
     setModal(true)
   }
 
+  // FIX 4: borrar movimientos huérfanos al eliminar cartera
   async function handleDelete(id) {
     if (!confirm('¿Eliminar esta cartera?')) return
+    await supabase.from('movimientos').delete().eq('inversion_id', id)
     const { error } = await supabase.from('inversiones').delete().eq('id', id)
     if (!error) {
       const resto = inversiones.filter(i => i.id !== id)
       setInversiones(resto)
       setSelected(resto[0] || null)
+    } else {
+      setError(error.message)
     }
   }
 
-  const calc = selected
-    ? calculateCompoundInterest({
-        principal:            selected.capital,
-        monthlyContribution:  selected.aporte,
-        annualRate:           selected.tasa,
-        years:                selected.anos,
-        compound:             selected.bola_nieve !== false,
+  // ── MEMOS — todos al nivel del componente, nunca dentro de loops ──────────
+
+  // FIX 2: memoizar cálculo de cartera seleccionada
+  const calc = useMemo(() =>
+    selected
+      ? calculateCompoundInterest({
+          principal:           selected.capital,
+          monthlyContribution: selected.aporte,
+          annualRate:          selected.tasa,
+          years:               selected.anos,
+          compound:            selected.bola_nieve !== false,
+        })
+      : null
+  , [selected])
+
+  const historyData = useMemo(() =>
+    calc?.history?.filter(d => d?.year != null) || []
+  , [calc])
+
+  // FIX 2: memoizar cálculos de TODAS las carteras (usado en lista compacta y totalProyectado)
+  const calcsPorInversion = useMemo(() =>
+    inversiones.map(inv => ({
+      id: inv.id,
+      calc: calculateCompoundInterest({
+        principal:           inv.capital,
+        monthlyContribution: inv.aporte,
+        annualRate:          inv.tasa,
+        years:               inv.anos,
+        compound:            inv.bola_nieve !== false,
       })
-    : null
+    }))
+  , [inversiones])
 
-  const historyData = calc?.history?.filter(d => d?.year != null) || []
+  // Derivados de calcsPorInversion — también memoizados
+  const totalCapital    = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
+  const totalAportes    = useMemo(() => inversiones.reduce((s, i) => s + (i.aporte  || 0), 0), [inversiones])
+  const totalProyectado = useMemo(() =>
+    calcsPorInversion.reduce((s, { calc: c }) => s + (c?.finalBalance || 0), 0)
+  , [calcsPorInversion])
 
-  const totalCapital    = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
-  const totalAportes    = inversiones.reduce((s, i) => s + (i.aporte  || 0), 0)
-  const totalProyectado = inversiones.reduce((s, i) => {
-    const c = calculateCompoundInterest({
-      principal:           i.capital,
-      monthlyContribution: i.aporte,
-      annualRate:          i.tasa,
-      years:               i.anos,
-      compound:            i.bola_nieve !== false,
-    })
-    return s + (c.finalBalance || 0)
-  }, 0)
-  const baseGastos   = gastosMes > 0 ? gastosMes : (presupuesto?.total ?? 0) * 0.7
+  // FIX 5: fallback sin número mágico — usa presupuesto real
+  const baseGastos = useMemo(() => {
+    if (gastosMes > 0) return gastosMes
+    const fallback = (presupuesto?.montoNecesidades || 0) + (presupuesto?.montoEstilo || 0)
+    return fallback > 0 ? fallback : 0
+  }, [gastosMes, presupuesto])
+
   const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
 
   // Tooltip con colores inyectados
@@ -267,10 +292,10 @@ export default function InversionesPage() {
       {/* Stats globales */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {[
-          { label: 'Capital total',      value: formatCurrency(totalCapital),    color: colores.green  },
-          { label: 'Aportes / mes',      value: formatCurrency(totalAportes),    color: colores.terra  },
-          { label: 'Carteras activas',   value: `${inversiones.length}`,         color: colores.blue   },
-          { label: 'Total proyectado',   value: formatCurrency(totalProyectado), color: colores.violet },
+          { label: 'Capital total',    value: formatCurrency(totalCapital),    color: colores.green  },
+          { label: 'Aportes / mes',    value: formatCurrency(totalAportes),    color: colores.terra  },
+          { label: 'Carteras activas', value: `${inversiones.length}`,         color: colores.blue   },
+          { label: 'Total proyectado', value: formatCurrency(totalProyectado), color: colores.violet },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
@@ -357,8 +382,8 @@ export default function InversionesPage() {
               {/* KPIs */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
-                  { icon: <Wallet size={12} />,    label: 'Capital inicial', value: formatCurrency(selected.capital),   color: colores.blue  },
-                  { icon: <TrendingUp size={12} />, label: 'Balance final',   value: formatCurrency(calc.finalBalance), color: selected.color },
+                  { icon: <Wallet size={12} />,    label: 'Capital inicial', value: formatCurrency(selected.capital),    color: colores.blue   },
+                  { icon: <TrendingUp size={12} />, label: 'Balance final',   value: formatCurrency(calc.finalBalance),  color: selected.color },
                   { icon: <Sparkles size={12} />,   label: 'Ganancias netas', value: formatCurrency(calc.totalInterest), color: colores.terra  },
                 ].map((k, i) => (
                   <div key={i} className="p-2.5 rounded-xl text-center"
@@ -409,12 +434,7 @@ export default function InversionesPage() {
                             <stop offset="95%" stopColor={selected.color} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke={colores.border}
-                          opacity={0.5}
-                        />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colores.border} opacity={0.5} />
                         <XAxis
                           dataKey="year"
                           axisLine={false}
@@ -486,22 +506,22 @@ export default function InversionesPage() {
             </Card>
           )}
 
-          {/* Meta libertad financiera */}
-          {metaLibertad && calc && (
+          {/* Meta libertad financiera — usa totalProyectado consolidado */}
+          {metaLibertad && totalProyectado > 0 && (
             <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Target size={13} style={{ color: colores.terra }} />
                   <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
-                    Meta libertad financiera
+                    Meta libertad financiera · todas las carteras
                   </p>
                 </div>
                 <p className="text-[10px] font-black" style={{ color: colores.green }}>
-                  {Math.min(100, (calc.finalBalance / metaLibertad) * 100).toFixed(1)}%
+                  {Math.min(100, (totalProyectado / metaLibertad) * 100).toFixed(1)}%
                 </p>
               </div>
               <ProgressBar
-                value={Math.min(calc.finalBalance, metaLibertad)}
+                value={Math.min(totalProyectado, metaLibertad)}
                 max={metaLibertad}
                 color={colores.green}
               />
@@ -513,6 +533,16 @@ export default function InversionesPage() {
                   {formatCurrency(metaLibertad)}
                 </p>
               </div>
+              {/* Cuánto falta */}
+              {totalProyectado < metaLibertad && (
+                <div className="mt-2 pt-2 border-t flex items-center justify-between"
+                  style={{ borderColor: 'var(--border-glass)' }}>
+                  <p className="text-[9px]" style={{ color: colores.muted }}>Te faltan</p>
+                  <p className="text-[11px] font-black" style={{ color: colores.rose }}>
+                    {formatCurrency(metaLibertad - totalProyectado)}
+                  </p>
+                </div>
+              )}
             </Card>
           )}
 
@@ -523,13 +553,9 @@ export default function InversionesPage() {
                 Todas las carteras
               </p>
               {inversiones.map((inv, i) => {
-                const c = calculateCompoundInterest({
-                  principal:           inv.capital,
-                  monthlyContribution: inv.aporte,
-                  annualRate:          inv.tasa,
-                  years:               inv.anos,
-                  compound:            inv.bola_nieve !== false,
-                })
+                // FIX 2: usar calcsPorInversion memoizado — sin cálculo inline
+                const c = calcsPorInversion.find(x => x.id === inv.id)?.calc
+                if (!c) return null
                 return (
                   <div key={inv.id}
                     onClick={() => setSelected(inv)}
@@ -646,7 +672,7 @@ export default function InversionesPage() {
             <label className="ff-label">Estrategia de interés</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {[
-                { val: true,  icon: '🔄', title: 'Bola de nieve',    desc: 'Reinvierte las ganancias (interés compuesto)' },
+                { val: true,  icon: '🔄', title: 'Bola de nieve',   desc: 'Reinvierte las ganancias (interés compuesto)' },
                 { val: false, icon: '📤', title: 'Sin reinversión', desc: 'Retiras las ganancias cada año' },
               ].map(opt => (
                 <button key={String(opt.val)} type="button"
