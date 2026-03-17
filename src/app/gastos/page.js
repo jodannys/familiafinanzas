@@ -22,7 +22,10 @@ const CAT_BLOQUE = {
   deseo: 'estilo',
   ahorro: 'futuro', inversion: 'futuro',
 }
-
+function fechaHoy() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 export default function GastosPage() {
   const { theme } = useTheme()
   const themeColors = getThemeColors(theme)
@@ -47,7 +50,7 @@ export default function GastosPage() {
   const [colores, setColores] = useState({})
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
-    categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys'
+    categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys'
   })
 
   const now = new Date()
@@ -122,7 +125,7 @@ export default function GastosPage() {
     setTarjetaSeleccionada('')
     setMetaSeleccionada('')
     setDeudaSeleccionada('')
-    setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: new Date().toISOString().slice(0, 10), quien: 'Jodannys' })
+    setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys' })
   }
 
 

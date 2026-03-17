@@ -20,7 +20,10 @@ function calcularCuota(capital, tasaAnual, meses) {
   const r = tasaAnual / 100 / 12
   return (capital * r) / (1 - Math.pow(1 + r, -meses))
 }
-
+function fechaHoy() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 function diasHastaPago(diaPago) {
   if (!diaPago) return null
   const hoy = new Date().getDate()
@@ -97,7 +100,7 @@ export default function DeudasPage() {
   // Color por defecto reactivo al tema
   const defaultColor = () => themeColors[0] || '#818CF8'
 
-  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: new Date().toISOString().slice(0, 10), color: defaultColor() })
+  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: fechaHoy(), color: defaultColor() })
   const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', emoji: '🏦', nombre: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor() })
   const makeFormCuota = () => ({ tipo_deuda: 'cuota', emoji: '📅', nombre: '', categoria: 'deseo', deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor() })
 
@@ -120,7 +123,7 @@ export default function DeudasPage() {
   const [modalMov, setModalMov] = useState(null)
   const [formMov, setFormMov] = useState({
     tipo: 'cargo', descripcion: '', monto: '',
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: fechaHoy(),
   })
 
   const now = new Date()
@@ -191,7 +194,7 @@ export default function DeudasPage() {
         categoria: d.categoria || 'deseo', tarjeta_id: '',
         limite: d.limite?.toString() || '', monto_compra: d.capital?.toString() || '',
         num_cuotas: d.plazo_meses?.toString() || '',
-        fecha_operacion: new Date().toISOString().slice(0, 10), color: c,
+        fecha_operacion: fechaHoy(), color: c,
       })
     } else if (d.tipo_deuda === 'prestamo') {
       setFormPrestamo({
@@ -274,12 +277,12 @@ export default function DeudasPage() {
           await supabase.from('deuda_movimientos').insert([{
             deuda_id: f.deuda_origen_id, tipo: 'pago',
             descripcion: f.nombre || `Cuota ${deudaOrigen.nombre}`,
-            monto, fecha: new Date().toISOString().slice(0, 10), mes, año,
+            monto, fecha: fechaHoy(), mes, año,
           }])
           await supabase.from('movimientos').insert([{
             tipo: 'egreso', categoria: 'deuda',
             descripcion: f.nombre || `Pago letra: ${deudaOrigen.nombre}`,
-            monto, fecha: new Date().toISOString().slice(0, 10), quien: 'Ambos',
+            monto, fecha: fechaHoy(), quien: 'Ambos',
           }])
           await supabase.from('deudas').update({
             pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
@@ -313,7 +316,7 @@ export default function DeudasPage() {
     const monto = deuda.cuota || deuda.pendiente || 0
     if (!monto) return
     setSaving(true)
-    const hoy = new Date().toISOString().slice(0, 10)
+    const hoy = fechaHoy()
     const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
     const nuevosPagados = (deuda.pagadas || 0) + 1
     const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
@@ -396,7 +399,7 @@ export default function DeudasPage() {
           estado: nuevoPendiente <= 0 ? 'pagada' : 'activa'
         } : d))
       setModalMov(null)
-      setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: new Date().toISOString().slice(0, 10) })
+      setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
     }
     setSaving(false)
   }

@@ -10,11 +10,11 @@ import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { FinanceChart } from '@/components/ui/FinanceChart'
 
 const COLORES_CAT = {
-  basicos:   'var(--accent-blue)',
-  deseo:     'var(--accent-violet)',
-  ahorro:    'var(--accent-green)',
+  basicos: 'var(--accent-blue)',
+  deseo: 'var(--accent-violet)',
+  ahorro: 'var(--accent-green)',
   inversion: 'var(--accent-gold)',
-  deuda:     'var(--accent-rose)',
+  deuda: 'var(--accent-rose)',
 }
 
 function diasHastaPago(diaPago) {
@@ -41,11 +41,11 @@ function urgenciaAlerta(dias) {
 }
 
 export default function Dashboard() {
-  const [movs, setMovs]     = useState([])
-  const [metas, setMetas]   = useState([])
+  const [movs, setMovs] = useState([])
+  const [metas, setMetas] = useState([])
   const [deudas, setDeudas] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [mounted, setMounted]   = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -56,7 +56,7 @@ export default function Dashboard() {
           supabase.from('metas').select('*').order('created_at'),
           supabase.from('deudas').select('*').eq('estado', 'activa'),
         ])
-        setMovs(m  || [])
+        setMovs(m || [])
         setMetas(mt || [])
         setDeudas(d || [])
       } catch (err) {
@@ -68,7 +68,7 @@ export default function Dashboard() {
     cargar()
   }, [])
 
-  const now       = new Date()
+  const now = new Date()
   const mesActual = now.getMonth()
   const añoActual = now.getFullYear()
 
@@ -78,7 +78,7 @@ export default function Dashboard() {
       const [year, month] = m.fecha.split('-').map(Number)
       return month - 1 === mesActual && year === añoActual
     })
-  , [movs, mesActual, añoActual])
+    , [movs, mesActual, añoActual])
 
   // ── Gráfico anual — solo gastos corrientes (sin ahorro/inversión) ─────────
   const dataGraficoReal = useMemo(() => {
@@ -139,19 +139,19 @@ export default function Dashboard() {
       .map(d => ({ ...d, dias: diasHastaPago(d.dia_pago) }))
       .filter(d => d.dias !== null && d.dias <= 7 && !deudasPagadasEsteMes.has(d.id))
       .sort((a, b) => a.dias - b.dias)
-  , [deudas, deudasPagadasEsteMes])
+    , [deudas, deudasPagadasEsteMes])
 
   // ── Barras KPI con porcentajes reales ─────────────────────────────────────
-  const pctIngresos   = ingresosMes > 0 ? 100 : 0
-  const pctGastos     = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes  / ingresosMes) * 100)) : 0
-  const pctAhorro     = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes  / ingresosMes) * 100)) : 0
+  const pctIngresos = ingresosMes > 0 ? 100 : 0
+  const pctGastos = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes / ingresosMes) * 100)) : 0
+  const pctAhorro = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes / ingresosMes) * 100)) : 0
   const pctSaldoLibre = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
 
   const KPI_CONFIG = [
-    { label: 'Ingresos',    val: ingresosMes, col: 'var(--accent-green)',                                                   icon: ArrowUpRight,  signo: '+', pct: pctIngresos   },
-    { label: 'Gastos',      val: gastosMes,   col: 'var(--accent-rose)',                                                    icon: ArrowDownRight, signo: '-', pct: pctGastos    },
-    { label: 'Ahorro mes',  val: ahorroMes,   col: 'var(--accent-terra)',                                                   icon: Target,         signo: '',  pct: pctAhorro    },
-    { label: 'Saldo Libre', val: saldoLibre,  col: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',          icon: Wallet,         signo: '',  pct: pctSaldoLibre },
+    { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', icon: ArrowUpRight, signo: '+', pct: pctIngresos },
+    { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', icon: ArrowDownRight, signo: '-', pct: pctGastos },
+    { label: 'Ahorro mes', val: ahorroMes, col: 'var(--accent-terra)', icon: Target, signo: '', pct: pctAhorro },
+    { label: 'Saldo Libre', val: saldoLibre, col: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: Wallet, signo: '', pct: pctSaldoLibre },
   ]
 
   if (!mounted) return null
@@ -208,11 +208,11 @@ export default function Dashboard() {
           <div key={i}
             className="relative overflow-hidden flex flex-col justify-between animate-enter"
             style={{
-              background:  'var(--bg-card)',
+              background: 'var(--bg-card)',
               borderRadius: 28,
-              padding:     '20px 20px 16px',
-              minHeight:   130,
-              border:      '1px solid var(--border-glass)',
+              padding: '20px 20px 16px',
+              minHeight: 130,
+              border: '1px solid var(--border-glass)',
               animationDelay: `${i * 0.06}s`,
             }}>
 
@@ -327,61 +327,63 @@ export default function Dashboard() {
           gap: 1,
           background: 'var(--border-glass)',
         }}>
-          {metas.map(m => {
-            const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
-            return (
-              <div key={m.id} style={{ background: 'var(--bg-card)', padding: '24px 28px' }}>
+          {metas
+            .filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta)
+            .metas.map(m => {
+              const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
+              return (
+                <div key={m.id} style={{ background: 'var(--bg-card)', padding: '24px 28px' }}>
 
-                {/* Top: emoji + nombre + porcentaje */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 12, flexShrink: 0,
-                      background: `${m.color}18`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-                    }}>
-                      {getFlagEmoji(m.emoji)}
+                  {/* Top: emoji + nombre + porcentaje */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 12, flexShrink: 0,
+                        background: `${m.color}18`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                      }}>
+                        {getFlagEmoji(m.emoji)}
+                      </div>
+                      <span style={{
+                        fontSize: 13, fontWeight: 800, letterSpacing: '-0.02em',
+                        color: 'var(--text-primary)', lineHeight: 1.2,
+                      }}>
+                        {m.nombre}
+                      </span>
                     </div>
                     <span style={{
-                      fontSize: 13, fontWeight: 800, letterSpacing: '-0.02em',
-                      color: 'var(--text-primary)', lineHeight: 1.2,
+                      fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em',
+                      color: m.color, flexShrink: 0, marginLeft: 8,
                     }}>
-                      {m.nombre}
+                      {pct}%
                     </span>
                   </div>
-                  <span style={{
-                    fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em',
-                    color: m.color, flexShrink: 0, marginLeft: 8,
-                  }}>
-                    {pct}%
-                  </span>
-                </div>
 
-                {/* Barra */}
-                <div style={{
-                  height: 5, borderRadius: 999,
-                  background: 'var(--progress-track)',
-                  overflow: 'hidden', marginBottom: 12,
-                }}>
+                  {/* Barra */}
                   <div style={{
-                    height: '100%', width: `${pct}%`,
-                    background: m.color, borderRadius: 999,
-                    transition: 'width 1.2s cubic-bezier(0.2,0,0.2,1)',
-                  }} />
-                </div>
+                    height: 5, borderRadius: 999,
+                    background: 'var(--progress-track)',
+                    overflow: 'hidden', marginBottom: 12,
+                  }}>
+                    <div style={{
+                      height: '100%', width: `${pct}%`,
+                      background: m.color, borderRadius: 999,
+                      transition: 'width 1.2s cubic-bezier(0.2,0,0.2,1)',
+                    }} />
+                  </div>
 
-                {/* Montos */}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '-0.02em', color: m.color }}>
-                    {formatCurrency(m.actual || 0)}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
-                    / {formatCurrency(m.meta)}
-                  </span>
+                  {/* Montos */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '-0.02em', color: m.color }}>
+                      {formatCurrency(m.actual || 0)}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
+                      / {formatCurrency(m.meta)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
         </div>
       </div>
     </AppShell>

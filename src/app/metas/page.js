@@ -112,69 +112,82 @@ export default function MetasPage() {
     setForm({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: '#10b981' })
   }
 
-async function handleDelete(id) {
-  if (!confirm('¿Eliminar esta meta y todos sus registros?')) return
+  async function handleDelete(id) {
+    if (!confirm('¿Eliminar esta meta y todos sus registros?')) return
 
-  // FIX 3: borrar movimientos asociados a esta meta por meta_id
-  await supabase.from('movimientos').delete().eq('meta_id', id)
+    // FIX 3: borrar movimientos asociados a esta meta por meta_id
+    await supabase.from('movimientos').delete().eq('meta_id', id)
 
-  const { error } = await supabase.from('metas').delete().eq('id', id)
-  if (!error) setMetas(prev => prev.filter(m => m.id !== id))
-  else setError(error.message)
-}
-
-async function handleAgregarDinero(id, montoActual, nombreMeta, pctMeta) {
-  if (!presupuesto || !presupuesto.montoMetas) {
-    alert('Primero define un presupuesto para el bloque de metas.')
-    return
+    const { error } = await supabase.from('metas').delete().eq('id', id)
+    if (!error) setMetas(prev => prev.filter(m => m.id !== id))
+    else setError(error.message)
   }
 
-  const montoAuto = (pctMeta / 100) * presupuesto.montoMetas
+  async function handleAgregarDinero(id, montoActual, nombreMeta, pctMeta) {
+    if (!presupuesto || !presupuesto.montoMetas) {
+      alert('Primero define un presupuesto para el bloque de metas.')
+      return
+    }
 
-  // FIX 2: excluir la meta actual del total para no doble-contarla
-  const totalAsignadoOtras = metas
-    .filter(m => m.id !== id && m.estado === 'activa')
-    .reduce((s, m) => s + (m.pct_mensual || 0), 0)
-  const maxDisponible = (100 - totalAsignadoOtras) / 100 * presupuesto.montoMetas
+    const montoAuto = (pctMeta / 100) * presupuesto.montoMetas
 
-  if (montoAuto > maxDisponible) {
-    alert(`No puedes aportar más de lo disponible: ${formatCurrency(maxDisponible)}`)
-    return
+    // FIX 2: excluir la meta actual del total para no doble-contarla
+    const totalAsignadoOtras = metas
+      .filter(m => m.id !== id && m.estado === 'activa')
+      .reduce((s, m) => s + (m.pct_mensual || 0), 0)
+    const maxDisponible = (100 - totalAsignadoOtras) / 100 * presupuesto.montoMetas
+
+    if (montoAuto > maxDisponible) {
+      alert(`No puedes aportar más de lo disponible: ${formatCurrency(maxDisponible)}`)
+      return
+    }
+
+    if (!confirm(`¿Aportar ${formatCurrency(montoAuto)} automáticamente a "${nombreMeta}"?`)) return
+
+    const nuevoMonto = montoActual + montoAuto
+    const { error: metaError } = await supabase.from('metas').update({ actual: nuevoMonto }).eq('id', id)
+    if (metaError) { setError('Error al actualizar la meta'); return }
+
+    // FIX: celebración si llegó al 100%
+    if (nuevoMonto >= meta.meta) {
+      await supabase.from('metas').update({ estado: 'completada' }).eq('id', id)
+      setMetas(prev => prev.map(m => m.id === id
+        ? { ...m, actual: nuevoMonto, estado: 'completada' }
+        : m
+      ))
+      // Confetti o alert simple
+      setTimeout(() => alert(`🎉 ¡Meta "${nombreMeta}" completada!`), 300)
+    } else {
+      setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
+    }
+
+    // FIX 1: guardar meta_id para poder revertir correctamente desde Gastos
+    await supabase.from('movimientos').insert([{
+      tipo: 'egreso',
+      monto: montoAuto,
+      descripcion: nombreMeta,
+      categoria: 'ahorro',
+      fecha: fechaHoy(),
+      quien: 'Ambos',
+      meta_id: id,
+    }])
+
+    setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
   }
-
-  if (!confirm(`¿Aportar ${formatCurrency(montoAuto)} automáticamente a "${nombreMeta}"?`)) return
-
-  const nuevoMonto = montoActual + montoAuto
-  const { error: metaError } = await supabase.from('metas').update({ actual: nuevoMonto }).eq('id', id)
-  if (metaError) { setError('Error al actualizar la meta'); return }
-
-  // FIX 1: guardar meta_id para poder revertir correctamente desde Gastos
-  await supabase.from('movimientos').insert([{
-    tipo: 'egreso',
-    monto: montoAuto,
-    descripcion: nombreMeta,
-    categoria: 'ahorro',
-    fecha: new Date().toISOString().slice(0, 10),
-    quien: 'Ambos',
-    meta_id: id,
-  }])
-
-  setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
-}
 
   async function handleEstado(id, estado) {
-  // FIX 4: si intenta marcar completada, verificar que llegó al 100%
-  if (estado === 'completada') {
-    const meta = metas.find(m => m.id === id)
-    if (meta && (meta.actual || 0) < meta.meta) {
-      const pct = Math.round(((meta.actual || 0) / meta.meta) * 100)
-      if (!confirm(`Esta meta solo tiene ${pct}% completado. ¿Marcarla como completada de todas formas?`)) return
+    // FIX 4: si intenta marcar completada, verificar que llegó al 100%
+    if (estado === 'completada') {
+      const meta = metas.find(m => m.id === id)
+      if (meta && (meta.actual || 0) < meta.meta) {
+        const pct = Math.round(((meta.actual || 0) / meta.meta) * 100)
+        if (!confirm(`Esta meta solo tiene ${pct}% completado. ¿Marcarla como completada de todas formas?`)) return
+      }
     }
-  }
 
-  const { error } = await supabase.from('metas').update({ estado }).eq('id', id)
-  if (!error) setMetas(prev => prev.map(m => m.id === id ? { ...m, estado } : m))
-}
+    const { error } = await supabase.from('metas').update({ estado }).eq('id', id)
+    if (!error) setMetas(prev => prev.map(m => m.id === id ? { ...m, estado } : m))
+  }
 
   const totalAhorrado = metas.reduce((s, m) => s + (m.actual || 0), 0)
   const totalPctAsignado = metas.filter(m => m.estado === 'activa').reduce((s, m) => s + (m.pct_mensual || 0), 0)
