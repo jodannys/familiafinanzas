@@ -46,15 +46,15 @@ export default function InversionesPage() {
   const { theme } = useTheme()
 
   const [inversiones, setInversiones] = useState([])
-  const [selected, setSelected]       = useState(null)
-  const [loading, setLoading]         = useState(true)
-  const [saving, setSaving]           = useState(false)
-  const [error, setError]             = useState(null)
+  const [selected, setSelected] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
-  const [gastosMes, setGastosMes]     = useState(0)
-  const [modal, setModal]             = useState(false)
-  const [editandoId, setEditandoId]   = useState(null)
-  const [colores, setColores]         = useState({
+  const [gastosMes, setGastosMes] = useState(0)
+  const [modal, setModal] = useState(false)
+  const [editandoId, setEditandoId] = useState(null)
+  const [colores, setColores] = useState({
     green: '', rose: '', blue: '', terra: '', violet: '',
     muted: '', border: '', card: '', track: '',
   })
@@ -69,15 +69,15 @@ export default function InversionesPage() {
       const s = getComputedStyle(document.documentElement)
       const v = (n) => s.getPropertyValue(n).trim()
       setColores({
-        green:  v('--accent-green'),
-        rose:   v('--accent-rose'),
-        blue:   v('--accent-blue'),
-        terra:  v('--accent-terra'),
+        green: v('--accent-green'),
+        rose: v('--accent-rose'),
+        blue: v('--accent-blue'),
+        terra: v('--accent-terra'),
         violet: v('--accent-violet'),
-        muted:  v('--text-muted'),
+        muted: v('--text-muted'),
         border: v('--border-glass'),
-        card:   v('--bg-card'),
-        track:  v('--progress-track'),
+        card: v('--bg-card'),
+        track: v('--progress-track'),
       })
     }
     leer()
@@ -108,8 +108,8 @@ export default function InversionesPage() {
     const now = new Date()
     const año = now.getFullYear()
     const mes = now.getMonth() + 1
-    const inicioMes       = new Date(año, mes - 1, 1).toISOString().slice(0, 10)
-    const inicioSiguiente = new Date(año, mes,     1).toISOString().slice(0, 10)
+    const inicioMes = new Date(año, mes - 1, 1).toISOString().slice(0, 10)
+    const inicioSiguiente = new Date(año, mes, 1).toISOString().slice(0, 10)
 
     const { data, error } = await supabase
       .from('movimientos')
@@ -143,13 +143,13 @@ export default function InversionesPage() {
     setSaving(true)
     setError(null)
     const payload = {
-      nombre:     form.nombre,
-      emoji:      form.emoji,
-      capital:    parseFloat(form.capital) || 0,
-      aporte:     parseFloat(form.aporte)  || 0,
-      tasa:       parseFloat(form.tasa)    || 0,
-      anos:       parseInt(form.anos)      || 10,
-      color:      form.color,
+      nombre: form.nombre,
+      emoji: form.emoji,
+      capital: parseFloat(form.capital) || 0,
+      aporte: parseFloat(form.aporte) || 0,
+      tasa: parseFloat(form.tasa) || 0,
+      anos: parseInt(form.anos) || 10,
+      color: form.color,
       bola_nieve: form.bola_nieve,
     }
 
@@ -180,13 +180,13 @@ export default function InversionesPage() {
   function abrirEdicion(inv) {
     setEditandoId(inv.id)
     setForm({
-      nombre:     inv.nombre    || '',
-      emoji:      inv.emoji     || '📈',
-      capital:    inv.capital?.toString() || '',
-      aporte:     inv.aporte?.toString()  || '',
-      tasa:       inv.tasa?.toString()    || '',
-      anos:       inv.anos?.toString()    || '10',
-      color:      inv.color     || themeColors[0] || '',
+      nombre: inv.nombre || '',
+      emoji: inv.emoji || '📈',
+      capital: inv.capital?.toString() || '',
+      aporte: inv.aporte?.toString() || '',
+      tasa: inv.tasa?.toString() || '',
+      anos: inv.anos?.toString() || '10',
+      color: inv.color || themeColors[0] || '',
       bola_nieve: inv.bola_nieve !== false,
     })
     setModal(true)
@@ -212,39 +212,39 @@ export default function InversionesPage() {
   const calc = useMemo(() =>
     selected
       ? calculateCompoundInterest({
-          principal:           selected.capital,
-          monthlyContribution: selected.aporte,
-          annualRate:          selected.tasa,
-          years:               selected.anos,
-          compound:            selected.bola_nieve !== false,
-        })
+        principal: selected.capital,
+        monthlyContribution: selected.aporte,
+        annualRate: selected.tasa,
+        years: selected.anos,
+        compound: selected.bola_nieve !== false,
+      })
       : null
-  , [selected])
+    , [selected])
 
   const historyData = useMemo(() =>
     calc?.history?.filter(d => d?.year != null) || []
-  , [calc])
+    , [calc])
 
   // FIX 2: memoizar cálculos de TODAS las carteras (usado en lista compacta y totalProyectado)
   const calcsPorInversion = useMemo(() =>
     inversiones.map(inv => ({
       id: inv.id,
       calc: calculateCompoundInterest({
-        principal:           inv.capital,
+        principal: inv.capital,
         monthlyContribution: inv.aporte,
-        annualRate:          inv.tasa,
-        years:               inv.anos,
-        compound:            inv.bola_nieve !== false,
+        annualRate: inv.tasa,
+        years: inv.anos,
+        compound: inv.bola_nieve !== false,
       })
     }))
-  , [inversiones])
+    , [inversiones])
 
   // Derivados de calcsPorInversion — también memoizados
-  const totalCapital    = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
-  const totalAportes    = useMemo(() => inversiones.reduce((s, i) => s + (i.aporte  || 0), 0), [inversiones])
+  const totalCapital = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
+  const totalAportes = useMemo(() => inversiones.reduce((s, i) => s + (i.aporte || 0), 0), [inversiones])
   const totalProyectado = useMemo(() =>
     calcsPorInversion.reduce((s, { calc: c }) => s + (c?.finalBalance || 0), 0)
-  , [calcsPorInversion])
+    , [calcsPorInversion])
 
   // FIX 5: fallback sin número mágico — usa presupuesto real
   const baseGastos = useMemo(() => {
@@ -282,8 +282,8 @@ export default function InversionesPage() {
         <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2"
           style={{
             background: `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
-            border:     `1px solid color-mix(in srgb, ${colores.rose} 25%, transparent)`,
-            color:      colores.rose,
+            border: `1px solid color-mix(in srgb, ${colores.rose} 25%, transparent)`,
+            color: colores.rose,
           }}>
           <AlertCircle size={14} />{error}
         </div>
@@ -292,9 +292,9 @@ export default function InversionesPage() {
       {/* Stats globales */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {[
-          { label: 'Capital total',    value: formatCurrency(totalCapital),    color: colores.green  },
-          { label: 'Aportes / mes',    value: formatCurrency(totalAportes),    color: colores.terra  },
-          { label: 'Carteras activas', value: `${inversiones.length}`,         color: colores.blue   },
+          { label: 'Capital total', value: formatCurrency(totalCapital), color: colores.green },
+          { label: 'Aportes / mes', value: formatCurrency(totalAportes), color: colores.terra },
+          { label: 'Carteras activas', value: `${inversiones.length}`, color: colores.blue },
           { label: 'Total proyectado', value: formatCurrency(totalProyectado), color: colores.violet },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -326,8 +326,8 @@ export default function InversionesPage() {
                 className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
                 style={{
                   background: selected?.id === inv.id ? `${inv.color}18` : 'var(--bg-secondary)',
-                  color:      selected?.id === inv.id ? inv.color         : colores.muted,
-                  border:     `1px solid ${selected?.id === inv.id ? `${inv.color}40` : colores.border}`,
+                  color: selected?.id === inv.id ? inv.color : colores.muted,
+                  border: `1px solid ${selected?.id === inv.id ? `${inv.color}40` : colores.border}`,
                 }}>
                 <span>{inv.emoji}</span>
                 <span className="hidden sm:inline">{inv.nombre}</span>
@@ -382,14 +382,14 @@ export default function InversionesPage() {
               {/* KPIs */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
-                  { icon: <Wallet size={12} />,    label: 'Capital inicial', value: formatCurrency(selected.capital),    color: colores.blue   },
-                  { icon: <TrendingUp size={12} />, label: 'Balance final',   value: formatCurrency(calc.finalBalance),  color: selected.color },
-                  { icon: <Sparkles size={12} />,   label: 'Ganancias netas', value: formatCurrency(calc.totalInterest), color: colores.terra  },
+                  { icon: <Wallet size={12} />, label: 'Capital inicial', value: formatCurrency(selected.capital), color: colores.blue },
+                  { icon: <TrendingUp size={12} />, label: 'Balance final', value: formatCurrency(calc.finalBalance), color: selected.color },
+                  { icon: <Sparkles size={12} />, label: 'Ganancias netas', value: formatCurrency(calc.totalInterest), color: colores.terra },
                 ].map((k, i) => (
                   <div key={i} className="p-2.5 rounded-xl text-center"
                     style={{
                       background: `color-mix(in srgb, ${k.color} 8%, transparent)`,
-                      border:     `1px solid color-mix(in srgb, ${k.color} 20%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${k.color} 20%, transparent)`,
                     }}>
                     <div className="flex items-center justify-center gap-1 mb-1" style={{ color: k.color }}>
                       {k.icon}
@@ -404,7 +404,7 @@ export default function InversionesPage() {
               <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
                 style={{
                   background: `color-mix(in srgb, ${selected.color} 8%, transparent)`,
-                  border:     `1px solid color-mix(in srgb, ${selected.color} 20%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${selected.color} 20%, transparent)`,
                 }}>
                 <Target size={13} style={{ color: selected.color, flexShrink: 0 }} />
                 <p className="text-[10px] font-black" style={{ color: selected.color }}>
@@ -430,7 +430,7 @@ export default function InversionesPage() {
                       <AreaChart data={historyData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                         <defs>
                           <linearGradient id={`grad-${selected.id}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%"  stopColor={selected.color} stopOpacity={0.3} />
+                            <stop offset="5%" stopColor={selected.color} stopOpacity={0.3} />
                             <stop offset="95%" stopColor={selected.color} stopOpacity={0} />
                           </linearGradient>
                         </defs>
@@ -490,7 +490,7 @@ export default function InversionesPage() {
               <div className="p-3 rounded-xl"
                 style={{
                   background: `color-mix(in srgb, ${colores.green} 6%, transparent)`,
-                  border:     `1px solid color-mix(in srgb, ${colores.green} 15%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${colores.green} 15%, transparent)`,
                 }}>
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles size={11} style={{ color: colores.green, flexShrink: 0 }} />
@@ -509,85 +509,150 @@ export default function InversionesPage() {
           {/* Meta libertad financiera — usa totalProyectado consolidado */}
           {metaLibertad && totalProyectado > 0 && (
             <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Target size={13} style={{ color: colores.terra }} />
                   <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
-                    Meta libertad financiera · todas las carteras
+                    Libertad financiera · todas las carteras
                   </p>
                 </div>
                 <p className="text-[10px] font-black" style={{ color: colores.green }}>
                   {Math.min(100, (totalProyectado / metaLibertad) * 100).toFixed(1)}%
                 </p>
               </div>
+
               <ProgressBar
                 value={Math.min(totalProyectado, metaLibertad)}
                 max={metaLibertad}
                 color={colores.green}
               />
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-[9px]" style={{ color: colores.muted }}>
-                  Basado en {formatCurrency(baseGastos)} gastos/mes × 12 × 25
-                </p>
-                <p className="text-[9px] font-black" style={{ color: 'var(--text-secondary)' }}>
-                  {formatCurrency(metaLibertad)}
-                </p>
+
+              {/* Desglose claro */}
+              <div className="mt-3 space-y-1.5">
+                {[
+                  { label: 'Capital actual total', val: formatCurrency(totalCapital), color: 'var(--text-primary)' },
+                  { label: `Proyectado (suma de carteras)`, val: formatCurrency(totalProyectado), color: colores.green },
+                  { label: 'Meta (gastos × 12 × 25)', val: formatCurrency(metaLibertad), color: 'var(--text-muted)' },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <p className="text-[9px]" style={{ color: colores.muted }}>{label}</p>
+                    <p className="text-[10px] font-black" style={{ color }}>{val}</p>
+                  </div>
+                ))}
               </div>
-              {/* Cuánto falta */}
+
               {totalProyectado < metaLibertad && (
-                <div className="mt-2 pt-2 border-t flex items-center justify-between"
-                  style={{ borderColor: 'var(--border-glass)' }}>
-                  <p className="text-[9px]" style={{ color: colores.muted }}>Te faltan</p>
-                  <p className="text-[11px] font-black" style={{ color: colores.rose }}>
-                    {formatCurrency(metaLibertad - totalProyectado)}
-                  </p>
-                </div>
+                <>
+                  <div className="my-2 border-t" style={{ borderColor: 'var(--border-glass)' }} />
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px]" style={{ color: colores.muted }}>Te faltan</p>
+                    <p className="text-[11px] font-black" style={{ color: colores.rose }}>
+                      {formatCurrency(metaLibertad - totalProyectado)}
+                    </p>
+                  </div>
+                  {/* Tiempo estimado basado en aportes actuales */}
+                  {totalAportes > 0 && (() => {
+                    const faltante = metaLibertad - totalProyectado
+                    const mesesEstimados = Math.ceil(faltante / totalAportes)
+                    const años = Math.floor(mesesEstimados / 12)
+                    const meses = mesesEstimados % 12
+                    return (
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-[9px]" style={{ color: colores.muted }}>Tiempo estimado</p>
+                        <p className="text-[10px] font-black" style={{ color: 'var(--text-primary)' }}>
+                          ~{años > 0 ? `${años}a` : ''}{meses > 0 ? ` ${meses}m` : ''}
+                        </p>
+                      </div>
+                    )
+                  })()}
+                </>
               )}
             </Card>
           )}
-
+          {/* Progreso real por cartera */}
+          {inversiones.length > 0 && (
+            <Card className="animate-enter" style={{ padding: '14px 16px' }}>
+              <p className="text-[10px] font-black uppercase mb-3" style={{ color: colores.muted }}>
+                Carteras activas — capital real vs proyección
+              </p>
+              <div className="space-y-4">
+                {inversiones.map(inv => {
+                  const c = calcsPorInversion.find(x => x.id === inv.id)?.calc
+                  if (!c) return null
+                  const pctReal = c.finalBalance > 0
+                    ? Math.min(100, Math.round((inv.capital / c.finalBalance) * 100))
+                    : 0
+                  return (
+                    <div key={inv.id} onClick={() => setSelected(inv)} className="cursor-pointer">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: inv.color, flexShrink: 0 }} />
+                          <span className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>
+                            {inv.emoji} {inv.nombre}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-black" style={{ color: inv.color }}>
+                            {formatCurrency(inv.capital)}
+                          </p>
+                          <p className="text-[9px]" style={{ color: colores.muted }}>
+                            → {formatCurrency(c.finalBalance)} en {inv.anos}a
+                          </p>
+                        </div>
+                      </div>
+                      {/* Barra: capital real (relleno) vs proyección (fondo) */}
+                      <div className="w-full h-2 rounded-full overflow-hidden relative"
+                        style={{ background: `${inv.color}20` }}>
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${pctReal}%`, background: inv.color }} />
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-[9px]" style={{ color: colores.muted }}>
+                          Capital: {formatCurrency(inv.capital)}
+                        </span>
+                        <span className="text-[9px]" style={{ color: colores.muted }}>
+                          Proyectado: {formatCurrency(c.finalBalance)}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+                <div className="border-t pt-2 flex items-center justify-between"
+                  style={{ borderColor: 'var(--border-glass)' }}>
+                  <span className="text-[9px]" style={{ color: colores.muted }}>Total proyectado combinado</span>
+                  <span className="text-[11px] font-black" style={{ color: 'var(--text-primary)' }}>
+                    {formatCurrency(totalProyectado)}
+                  </span>
+                </div>
+              </div>
+            </Card>
+          )}
           {/* Lista compacta de todas las carteras */}
           {inversiones.length > 1 && (
             <div className="space-y-2">
               <p className="text-[9px] font-black uppercase ml-1" style={{ color: colores.muted }}>
                 Todas las carteras
               </p>
-              {inversiones.map((inv, i) => {
-                // FIX 2: usar calcsPorInversion memoizado — sin cálculo inline
-                const c = calcsPorInversion.find(x => x.id === inv.id)?.calc
-                if (!c) return null
-                return (
-                  <div key={inv.id}
-                    onClick={() => setSelected(inv)}
-                    className="glass-card cursor-pointer transition-all animate-enter"
-                    style={{
-                      animationDelay: `${i * 0.04}s`,
-                      padding: '10px 14px',
-                      border: selected?.id === inv.id ? `1px solid ${inv.color}40` : '',
-                    }}>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${inv.color}18` }}>
-                        <span className="text-base">{inv.emoji}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-black truncate" style={{ color: 'var(--text-primary)' }}>
-                          {inv.nombre}
-                        </p>
-                        <p className="text-[9px]" style={{ color: colores.muted }}>
-                          {inv.tasa}% · {inv.anos}a · +{formatCurrency(inv.aporte)}/mes
-                        </p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-black" style={{ color: inv.color, letterSpacing: '-0.02em' }}>
-                          {formatCurrency(c.finalBalance)}
-                        </p>
-                        <p className="text-[9px]" style={{ color: colores.muted }}>en {inv.anos} años</p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+              // Reemplaza los chips actuales por esto
+              {inversiones.map(inv => (
+                <button key={inv.id}
+                  onClick={() => setSelected(inv)}
+                  className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
+                  style={{
+                    // FIX: borde más grueso + fondo de color cuando activo
+                    background: selected?.id === inv.id ? `color-mix(in srgb, ${inv.color} 12%, var(--bg-card))` : 'var(--bg-secondary)',
+                    color: selected?.id === inv.id ? inv.color : colores.muted,
+                    border: selected?.id === inv.id ? `2px solid ${inv.color}` : `1px solid ${colores.border}`,
+                    fontWeight: selected?.id === inv.id ? 900 : 600,
+                  }}>
+                  {/* Dot de color solo cuando activo */}
+                  {selected?.id === inv.id && (
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: inv.color, flexShrink: 0 }} />
+                  )}
+                  <span>{inv.emoji}</span>
+                  <span className="hidden sm:inline">{inv.nombre}</span>
+                </button>
+              ))}
             </div>
           )}
 
@@ -646,11 +711,11 @@ export default function InversionesPage() {
           {/* Preview en tiempo real */}
           {form.capital && form.tasa && form.anos && (() => {
             const prev = calculateCompoundInterest({
-              principal:            parseFloat(form.capital) || 0,
-              monthlyContribution:  parseFloat(form.aporte)  || 0,
-              annualRate:           parseFloat(form.tasa)    || 0,
-              years:                parseInt(form.anos)      || 10,
-              compound:             form.bola_nieve,
+              principal: parseFloat(form.capital) || 0,
+              monthlyContribution: parseFloat(form.aporte) || 0,
+              annualRate: parseFloat(form.tasa) || 0,
+              years: parseInt(form.anos) || 10,
+              compound: form.bola_nieve,
             })
             const c = form.color
             return (
@@ -672,7 +737,7 @@ export default function InversionesPage() {
             <label className="ff-label">Estrategia de interés</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {[
-                { val: true,  icon: '🔄', title: 'Bola de nieve',   desc: 'Reinvierte las ganancias (interés compuesto)' },
+                { val: true, icon: '🔄', title: 'Bola de nieve', desc: 'Reinvierte las ganancias (interés compuesto)' },
                 { val: false, icon: '📤', title: 'Sin reinversión', desc: 'Retiras las ganancias cada año' },
               ].map(opt => (
                 <button key={String(opt.val)} type="button"
@@ -680,7 +745,7 @@ export default function InversionesPage() {
                   className="p-3 rounded-xl text-left transition-all border-2"
                   style={{
                     borderColor: form.bola_nieve === opt.val ? colores.green : colores.border,
-                    background:  form.bola_nieve === opt.val
+                    background: form.bola_nieve === opt.val
                       ? `color-mix(in srgb, ${colores.green} 6%, transparent)`
                       : 'var(--bg-secondary)',
                   }}>
@@ -705,9 +770,9 @@ export default function InversionesPage() {
                   className="w-8 h-8 rounded-full transition-all"
                   style={{
                     backgroundColor: hex,
-                    outline:      form.color === hex ? `3px solid var(--text-secondary)` : 'none',
+                    outline: form.color === hex ? `3px solid var(--text-secondary)` : 'none',
                     outlineOffset: 2,
-                    opacity:   form.color === hex ? 1 : 0.5,
+                    opacity: form.color === hex ? 1 : 0.5,
                     transform: form.color === hex ? 'scale(1.15)' : 'scale(1)',
                   }} />
               ))}

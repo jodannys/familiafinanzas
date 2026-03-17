@@ -11,25 +11,25 @@ const MENU_GROUPS = [
   {
     title: 'Análisis',
     items: [
-      { href: '/',          label: 'Dashboard',     icon: LayoutDashboard },
-      { href: '/reportes',  label: 'Reporte Anual', icon: BarChart3       },
+      { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/reportes', label: 'Reporte Anual', icon: BarChart3 },
     ]
   },
   {
     title: 'Gestión',
     items: [
-      { href: '/presupuesto', label: 'Presupuesto', icon: PieChart       },
-      { href: '/gastos',      label: 'Registro',    icon: ArrowLeftRight  },
-      { href: '/sobres',      label: 'Sobres',      icon: Wallet          },
+      { href: '/presupuesto', label: 'Presupuesto', icon: PieChart },
+      { href: '/gastos', label: 'Registro', icon: ArrowLeftRight },
+      { href: '/sobres', label: 'Sobres', icon: Wallet },
     ]
   },
   {
     title: 'Patrimonio',
     items: [
-      { href: '/metas',      label: 'Ahorro',      icon: Target          },
-      { href: '/inversiones', label: 'Inversiones', icon: TrendingUp      },
-      { href: '/deudas',     label: 'Deudas',      icon: CircleDollarSign },
-      { href: '/tarjetas',   label: 'Mis Tarjetas', icon: CreditCard      },
+      { href: '/metas', label: 'Ahorro', icon: Target },
+      { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
+      { href: '/deudas', label: 'Deudas', icon: CircleDollarSign },
+      { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard },
     ]
   }
 ]
@@ -64,7 +64,7 @@ export default function Sidebar({ onClose }) {
                     style={{
                       // FIX 2: estilos declarativos en vez de manipulación DOM directa
                       background: active ? 'var(--text-primary)' : 'transparent',
-                      color:      active ? 'var(--bg-card)'      : 'var(--text-muted)',
+                      color: active ? 'var(--bg-card)' : 'var(--text-muted)',
                     }}
                   >
                     {/* FIX 2: hover con CSS puro via pseudoclase en el grupo */}
@@ -87,8 +87,8 @@ export default function Sidebar({ onClose }) {
                       className="hidden lg:block absolute left-[3.5rem] scale-0 group-hover:scale-100 transition-all z-50 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest pointer-events-none shadow-2xl whitespace-nowrap"
                       style={{
                         background: 'var(--bg-card)',
-                        border:     '1px solid var(--border-glass)',
-                        color:      'var(--text-primary)',
+                        border: '1px solid var(--border-glass)',
+                        color: 'var(--text-primary)',
                       }}
                     >
                       {label}
@@ -105,18 +105,17 @@ export default function Sidebar({ onClose }) {
       <div className="mt-auto pt-6 flex flex-col items-center gap-6 w-full">
         <ThemeSwitcher />
 
-        {/* FIX 1: logout con navegación real — ajusta según tu sistema de auth */}
-        <Link
-          href="/login"
+        <button
+          onClick={() => { }}
           aria-label="Cerrar sesión"
           className="w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200"
           style={{
-            color:      'var(--accent-rose)',
+            color: 'var(--accent-rose)',
             background: 'color-mix(in srgb, var(--accent-rose), transparent 90%)',
           }}
         >
           <LogOut size={18} />
-        </Link>
+        </button>
       </div>
     </aside>
   )
