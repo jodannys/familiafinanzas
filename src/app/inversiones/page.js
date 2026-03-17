@@ -319,15 +319,15 @@ export default function InversionesPage() {
         <div className="space-y-4">
 
           {/* Chips selector de cartera */}
+          {/* 1. Título arriba (Fuera del flex) */}
+          {inversiones.length > 1 && (
+            <p className="text-[9px] font-black uppercase ml-1 mb-2" style={{ color: colores.muted }}>
+              Todas las carteras
+            </p>
+          )}
+
+          {/* 2. Contenedor de botones abajo (Con scroll horizontal) */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {/* Lista compacta de todas las carteras */}
-            {inversiones.length > 1 && (
-              <div className="space-y-2">
-                <p className="text-[9px] font-black uppercase ml-1" style={{ color: colores.muted }}>
-                  Todas las carteras
-                </p>
-              </div>
-            )}
             {inversiones.map(inv => (
               <button key={inv.id}
                 onClick={() => setSelected(inv)}
@@ -338,15 +338,18 @@ export default function InversionesPage() {
                   border: selected?.id === inv.id ? `2px solid ${inv.color}` : `1px solid ${colores.border}`,
                   fontWeight: selected?.id === inv.id ? 900 : 600,
                 }}>
+
                 {/* Dot de color solo cuando activo */}
                 {selected?.id === inv.id && (
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: inv.color, flexShrink: 0 }} />
                 )}
+
                 <span>{inv.emoji}</span>
                 <span className="hidden sm:inline">{inv.nombre}</span>
               </button>
             ))}
           </div>
+
 
           {/* Detalle cartera seleccionada */}
           {selected && calc && (
@@ -423,12 +426,13 @@ export default function InversionesPage() {
                 <p className="text-[10px] font-black" style={{ color: selected.color }}>
                   Tu dinero se multiplica ×{(calc.finalBalance / (selected.capital || 1)).toFixed(1)} en {selected.anos} años
                 </p>
-                <span className="ml-auto text-[9px] font-black px-2 py-0.5 rounded-full"
+                <span className="mx-auto sm:ml-auto sm:mr-0 text-[9px] font-black px-2 py-0.5 rounded-full block sm:inline-block text-center"
                   style={{
                     background: `color-mix(in srgb, ${selected.color} 15%, transparent)`,
                     color: selected.color,
+                    whiteSpace: 'nowrap' // Evita que se rompa la palabra en móviles muy pequeños
                   }}>
-                 Int. Comp.
+                  Int. Comp.
                 </span>
               </div>
 
