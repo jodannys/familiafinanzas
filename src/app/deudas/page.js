@@ -606,7 +606,7 @@ export default function DeudasPage() {
                           {urgencia.label}
                         </span>
                       )}
-                      {pagadaHoy && (
+                      {pagadaEsteMes && (
                         <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
                           style={{
                             background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
@@ -667,16 +667,16 @@ export default function DeudasPage() {
                     {(esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0)) && d.estado !== 'pagada' && (
                       <button
                         onClick={e => { e.stopPropagation(); handleMarcarPagada(d) }}
-                        disabled={saving || pagadaHoy}
+                        disabled={saving || pagadaEsteMes}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 disabled:opacity-40"
                         style={{
-                          background: pagadaHoy
+                          background: pagadaEsteMes
                             ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
                             : 'color-mix(in srgb, var(--accent-green) 12%, transparent)',
                           color: 'var(--accent-green)',
                         }}>
                         <Check size={11} strokeWidth={3} />
-                        {pagadaHoy ? 'Ya pagada' : 'Marcar pagada'}
+                        {pagadaEsteMes ? 'Ya pagada' : 'Marcar pagada'}
                       </button>
                     )}
                     <IconBtn
