@@ -261,36 +261,36 @@ export default function InversionesPage() {
   // ─── RENDER ──────────────────────────────────────────────────────────────────
 
   return (
-  <AppShell>
-    {/* 1. Header: Acción principal siempre visible */}
-    <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
-      <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
-          style={{ color: colores.muted }}>Módulo</p>
-        <h1 className="text-xl font-black tracking-tight truncate"
-          style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
-      </div>
-      <button onClick={abrirNuevo} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
-        <Plus size={16} strokeWidth={3} />
-        <span className="hidden sm:inline text-sm font-bold">Nueva cartera</span>
-      </button>
-    </div>
+    <AppShell>
 
-    {/* Error */}
-    {error && (
-      <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2"
-        style={{
-          background: `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${colores.rose} 25%, transparent)`,
-          color: colores.rose,
-        }}>
-        <AlertCircle size={14} />{error}
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
+            style={{ color: colores.muted }}>Módulo</p>
+          <h1 className="text-xl font-black tracking-tight truncate"
+            style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
+        </div>
+        <button onClick={abrirNuevo} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
+          <Plus size={16} strokeWidth={3} />
+          <span className="hidden sm:inline text-sm font-bold">Nueva cartera</span>
+        </button>
       </div>
-    )}
 
-    {/* 2. Resumen Global: KPIs y Meta de Libertad */}
-    <div className="space-y-4 mb-8">
-      <div className="grid grid-cols-2 gap-2">
+      {/* Error */}
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2"
+          style={{
+            background: `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${colores.rose} 25%, transparent)`,
+            color: colores.rose,
+          }}>
+          <AlertCircle size={14} />{error}
+        </div>
+      )}
+
+      {/* Stats globales */}
+      <div className="grid grid-cols-2 gap-2 mb-6">
         {[
           { label: 'Capital total', value: formatCurrency(totalCapital), color: colores.green },
           { label: 'Aportes / mes', value: formatCurrency(totalAportes), color: colores.terra },
@@ -305,165 +305,343 @@ export default function InversionesPage() {
         ))}
       </div>
 
-      {metaLibertad && totalProyectado > 0 && (
-        <Card className="animate-enter border-none" style={{ padding: '14px 16px', background: 'var(--bg-secondary)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Target size={13} style={{ color: colores.terra }} />
-              <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
-                Progreso Libertad Financiera
-              </p>
-            </div>
-            <p className="text-[10px] font-black" style={{ color: colores.green }}>
-              {Math.min(100, (totalProyectado / metaLibertad) * 100).toFixed(1)}%
-            </p>
-          </div>
-          <ProgressBar
-            value={Math.min(totalProyectado, metaLibertad)}
-            max={metaLibertad}
-            color={colores.green}
-          />
-        </Card>
-      )}
-    </div>
-
-    {/* 3. Selector de Cartera: Navegación entre inversiones */}
-    {inversiones.length > 0 && (
-      <div className="mb-4">
-        <p className="text-[9px] font-black uppercase mb-2 ml-1" style={{ color: colores.muted }}>
-          Seleccionar cartera
-        </p>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {inversiones.map(inv => (
-            <button key={inv.id}
-              onClick={() => setSelected(inv)}
-              className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
-              style={{
-                background: selected?.id === inv.id ? `color-mix(in srgb, ${inv.color} 12%, var(--bg-card))` : 'var(--bg-secondary)',
-                color: selected?.id === inv.id ? inv.color : colores.muted,
-                border: selected?.id === inv.id ? `2px solid ${inv.color}` : `1px solid ${colores.border}`,
-              }}>
-              <span>{inv.emoji}</span>
-              <span className="hidden sm:inline">{inv.nombre}</span>
-            </button>
-          ))}
+      {/* Contenido principal */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={20} className="animate-spin" style={{ color: colores.muted }} />
         </div>
-      </div>
-    )}
+      ) : inversiones.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-sm mb-4" style={{ color: colores.muted }}>No hay carteras registradas</p>
+          <button onClick={abrirNuevo} className="ff-btn-primary">Crear primera cartera</button>
+        </div>
+      ) : (
+        <div className="space-y-4">
 
-    {/* 4. Detalle de la Cartera Seleccionada */}
-    {loading ? (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 size={20} className="animate-spin" style={{ color: colores.muted }} />
-      </div>
-    ) : selected && calc ? (
-      <div className="space-y-6">
-        <Card className="animate-enter" style={{ padding: '16px' }}>
-          {/* Cabecera del detalle */}
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                style={{ background: `${selected.color}18` }}>
-                {selected.emoji}
-              </div>
-              <div>
-                <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>{selected.nombre}</p>
-                <p className="text-[10px]" style={{ color: colores.muted }}>
-                  {selected.tasa}% anual · {selected.anos} años
+          {/* Chips selector de cartera */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {/* Lista compacta de todas las carteras */}
+            {inversiones.length > 1 && (
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase ml-1" style={{ color: colores.muted }}>
+                  Todas las carteras
                 </p>
               </div>
-            </div>
-            <div className="flex gap-1.5">
-              <button onClick={() => abrirEdicion(selected)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-secondary text-blue-500"><Pencil size={13} /></button>
-              <button onClick={() => handleDelete(selected.id)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-secondary text-rose-500"><Trash2 size={13} /></button>
-            </div>
-          </div>
-
-          {/* KPIs de la cartera */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {[
-              { label: 'Inicial', value: formatCurrency(selected.capital), color: colores.blue },
-              { label: 'Final', value: formatCurrency(calc.finalBalance), color: selected.color },
-              { label: 'Ganancia', value: formatCurrency(calc.totalInterest), color: colores.terra },
-            ].map((k, i) => (
-              <div key={i} className="p-2 rounded-xl text-center" style={{ background: 'var(--bg-secondary)' }}>
-                <p className="text-[7px] font-black uppercase mb-0.5" style={{ color: colores.muted }}>{k.label}</p>
-                <p className="text-[11px] font-black" style={{ color: k.color }}>{k.value}</p>
-              </div>
+            )}
+            {inversiones.map(inv => (
+              <button key={inv.id}
+                onClick={() => setSelected(inv)}
+                className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
+                style={{
+                  background: selected?.id === inv.id ? `color-mix(in srgb, ${inv.color} 12%, var(--bg-card))` : 'var(--bg-secondary)',
+                  color: selected?.id === inv.id ? inv.color : colores.muted,
+                  border: selected?.id === inv.id ? `2px solid ${inv.color}` : `1px solid ${colores.border}`,
+                  fontWeight: selected?.id === inv.id ? 900 : 600,
+                }}>
+                {/* Dot de color solo cuando activo */}
+                {selected?.id === inv.id && (
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: inv.color, flexShrink: 0 }} />
+                )}
+                <span>{inv.emoji}</span>
+                <span className="hidden sm:inline">{inv.nombre}</span>
+              </button>
             ))}
           </div>
 
-          {/* Gráfico de Proyección */}
-          {historyData.length > 0 && (
-            <div className="h-[160px] mb-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={historyData}>
-                  <defs>
-                    <linearGradient id={`grad-${selected.id}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={selected.color} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={selected.color} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colores.border} opacity={0.5} />
-                  <XAxis dataKey="year" hide />
-                  <YAxis hide domain={['auto', 'auto']} />
-                  <Tooltip content={<TooltipConColores />} />
-                  <Area type="monotone" dataKey="balance" stroke={selected.color} strokeWidth={2.5} fill={`url(#grad-${selected.id})`} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+          {/* Detalle cartera seleccionada */}
+          {selected && calc && (
+            <Card className="animate-enter" style={{ padding: '16px' }}>
 
-          {/* Regla del 4% */}
-          <div className="p-3 rounded-xl" style={{ background: `color-mix(in srgb, ${colores.green} 6%, transparent)`, border: `1px solid color-mix(in srgb, ${colores.green} 15%, transparent)` }}>
-            <p className="text-[9px] font-black uppercase mb-1" style={{ color: colores.green }}>Retiro mensual estimado</p>
-            <p className="text-base font-black" style={{ color: colores.green }}>
-              {formatCurrency(calc.finalBalance * 0.04 / 12)}
-              <span className="text-[10px] opacity-60 ml-1">/mes</span>
-            </p>
-          </div>
-        </Card>
+              {/* Cabecera */}
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                    style={{ background: `${selected.color}18` }}>
+                    {selected.emoji}
+                  </div>
+                  <div>
+                    <p className="font-black text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {selected.nombre}
+                    </p>
+                    <p className="text-[10px] mt-0.5" style={{ color: colores.muted }}>
+                      {selected.tasa}% anual · {selected.anos} años · +{formatCurrency(selected.aporte)}/mes
+                      {' · '}
+                      <span style={{ color: selected.bola_nieve !== false ? colores.green : colores.terra }}>
+                        {selected.bola_nieve !== false ? '🔄 Bola de nieve' : '📤 Sin reinversión'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button onClick={() => abrirEdicion(selected)}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
+                    style={{
+                      background: `color-mix(in srgb, ${colores.blue} 10%, transparent)`,
+                      color: colores.blue,
+                    }}>
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => handleDelete(selected.id)}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
+                    style={{
+                      background: `color-mix(in srgb, ${colores.rose} 8%, transparent)`,
+                      color: colores.rose,
+                    }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
 
-        {/* 5. Comparativa Final: Todas las carteras de un vistazo */}
-        <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase ml-1" style={{ color: colores.muted }}>
-            Resumen de todas las carteras
-          </p>
-          <Card style={{ padding: '14px 16px' }}>
-            <div className="space-y-4">
-              {inversiones.map(inv => {
-                const c = calcsPorInversion.find(x => x.id === inv.id)?.calc;
-                if (!c) return null;
-                const pctReal = Math.min(100, Math.round((inv.capital / c.finalBalance) * 100));
-                
-                return (
-                  <div key={inv.id} onClick={() => setSelected(inv)} className="cursor-pointer group">
-                    <div className="flex justify-between items-end mb-1.5">
-                      <div>
-                        <p className="text-xs font-black">{inv.emoji} {inv.nombre}</p>
-                        <p className="text-[9px]" style={{ color: colores.muted }}>Actual: {formatCurrency(inv.capital)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black" style={{ color: inv.color }}>{pctReal}% del objetivo</p>
-                        <p className="text-[9px]" style={{ color: colores.muted }}>Meta: {formatCurrency(c.finalBalance)}</p>
-                      </div>
+              {/* KPIs */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { icon: <Wallet size={12} />, label: 'Capital inicial', value: formatCurrency(selected.capital), color: colores.blue },
+                  { icon: <TrendingUp size={12} />, label: 'Balance final', value: formatCurrency(calc.finalBalance), color: selected.color },
+                  { icon: <Sparkles size={12} />, label: 'Ganancias netas', value: formatCurrency(calc.totalInterest), color: colores.terra },
+                ].map((k, i) => (
+                  <div key={i} className="p-2.5 rounded-xl text-center"
+                    style={{
+                      background: `color-mix(in srgb, ${k.color} 8%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${k.color} 20%, transparent)`,
+                    }}>
+                    <div className="flex items-center justify-center gap-1 mb-1" style={{ color: k.color }}>
+                      {k.icon}
+                      <p className="text-[8px] font-black uppercase">{k.label}</p>
                     </div>
-                    <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
-                      <div className="h-full transition-all duration-700" style={{ width: `${pctReal}%`, background: inv.color }} />
+                    <p className="text-sm font-black" style={{ color: k.color, letterSpacing: '-0.02em' }}>{k.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Multiplicador */}
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
+                style={{
+                  background: `color-mix(in srgb, ${selected.color} 8%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${selected.color} 20%, transparent)`,
+                }}>
+                <Target size={13} style={{ color: selected.color, flexShrink: 0 }} />
+                <p className="text-[10px] font-black" style={{ color: selected.color }}>
+                  Tu dinero se multiplica ×{(calc.finalBalance / (selected.capital || 1)).toFixed(1)} en {selected.anos} años
+                </p>
+                <span className="ml-auto text-[9px] font-black px-2 py-0.5 rounded-full"
+                  style={{
+                    background: `color-mix(in srgb, ${selected.color} 15%, transparent)`,
+                    color: selected.color,
+                  }}>
+                 Int. Comp.
+                </span>
+              </div>
+
+              {/* Gráfico */}
+              {historyData.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[9px] font-black uppercase mb-2 ml-1" style={{ color: colores.muted }}>
+                    Proyección de crecimiento
+                  </p>
+                  <div style={{ height: 160 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={historyData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id={`grad-${selected.id}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={selected.color} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={selected.color} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colores.border} opacity={0.5} />
+                        <XAxis
+                          dataKey="year"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: colores.muted, fontSize: 9, fontWeight: 700 }}
+                          tickFormatter={v => `A${v}`}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: colores.muted, fontSize: 9 }}
+                          tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                        />
+                        <Tooltip
+                          content={<TooltipConColores />}
+                          cursor={{ stroke: selected.color, strokeWidth: 1.5, strokeDasharray: '4 4' }}
+                        />
+                        <Area
+                          name="balance"
+                          type="monotone"
+                          dataKey="balance"
+                          stroke={selected.color}
+                          strokeWidth={2.5}
+                          fill={`url(#grad-${selected.id})`}
+                        />
+                        <Area
+                          name="contributed"
+                          type="monotone"
+                          dataKey="contributed"
+                          stroke={colores.muted}
+                          strokeWidth={1.5}
+                          strokeDasharray="5 3"
+                          fill="transparent"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 ml-1">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-0.5 rounded" style={{ background: selected.color }} />
+                      <span className="text-[9px] font-bold" style={{ color: colores.muted }}>Balance proyectado</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 border-t border-dashed" style={{ borderColor: colores.muted }} />
+                      <span className="text-[9px] font-bold" style={{ color: colores.muted }}>Total aportado</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
+                </div>
+              )}
+
+              {/* Regla del 4% */}
+              <div className="p-3 rounded-xl"
+                style={{
+                  background: `color-mix(in srgb, ${colores.green} 6%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${colores.green} 15%, transparent)`,
+                }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles size={11} style={{ color: colores.green, flexShrink: 0 }} />
+                  <p className="text-[9px] font-black uppercase" style={{ color: colores.green }}>
+                    Retiro mensual sostenible (Regla del 4%)
+                  </p>
+                </div>
+                <p className="text-base font-black" style={{ color: colores.green, letterSpacing: '-0.02em' }}>
+                  {formatCurrency(calc.finalBalance * 0.04 / 12)}
+                  <span className="text-[10px] font-bold opacity-60">/mes para siempre</span>
+                </p>
+              </div>
+            </Card>
+          )}
+
+          {/* Meta libertad financiera — usa totalProyectado consolidado */}
+          {metaLibertad && totalProyectado > 0 && (
+            <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Target size={13} style={{ color: colores.terra }} />
+                  <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
+                    Libertad financiera · todas las carteras
+                  </p>
+                </div>
+                <p className="text-[10px] font-black" style={{ color: colores.green }}>
+                  {Math.min(100, (totalProyectado / metaLibertad) * 100).toFixed(1)}%
+                </p>
+              </div>
+
+              <ProgressBar
+                value={Math.min(totalProyectado, metaLibertad)}
+                max={metaLibertad}
+                color={colores.green}
+              />
+
+              {/* Desglose claro */}
+              <div className="mt-3 space-y-1.5">
+                {[
+                  { label: 'Capital actual total', val: formatCurrency(totalCapital), color: 'var(--text-primary)' },
+                  { label: `Proyectado (suma de carteras)`, val: formatCurrency(totalProyectado), color: colores.green },
+                  { label: 'Meta (gastos × 12 × 25)', val: formatCurrency(metaLibertad), color: 'var(--text-muted)' },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <p className="text-[9px]" style={{ color: colores.muted }}>{label}</p>
+                    <p className="text-[10px] font-black" style={{ color }}>{val}</p>
+                  </div>
+                ))}
+              </div>
+
+              {totalProyectado < metaLibertad && (
+                <>
+                  <div className="my-2 border-t" style={{ borderColor: 'var(--border-glass)' }} />
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px]" style={{ color: colores.muted }}>Te faltan</p>
+                    <p className="text-[11px] font-black" style={{ color: colores.rose }}>
+                      {formatCurrency(metaLibertad - totalProyectado)}
+                    </p>
+                  </div>
+                  {/* Tiempo estimado basado en aportes actuales */}
+                  {totalAportes > 0 && (() => {
+                    const faltante = metaLibertad - totalProyectado
+                    const mesesEstimados = Math.ceil(faltante / totalAportes)
+                    const años = Math.floor(mesesEstimados / 12)
+                    const meses = mesesEstimados % 12
+                    return (
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-[9px]" style={{ color: colores.muted }}>Tiempo estimado</p>
+                        <p className="text-[10px] font-black" style={{ color: 'var(--text-primary)' }}>
+                          ~{años > 0 ? `${años}a` : ''}{meses > 0 ? ` ${meses}m` : ''}
+                        </p>
+                      </div>
+                    )
+                  })()}
+                </>
+              )}
+            </Card>
+          )}
+          {/* Progreso real por cartera */}
+          {inversiones.length > 0 && (
+            <Card className="animate-enter" style={{ padding: '14px 16px' }}>
+              <p className="text-[10px] font-black uppercase mb-3" style={{ color: colores.muted }}>
+                Carteras activas — capital real vs proyección
+              </p>
+              <div className="space-y-4">
+                {inversiones.map(inv => {
+                  const c = calcsPorInversion.find(x => x.id === inv.id)?.calc
+                  if (!c) return null
+                  const pctReal = c.finalBalance > 0
+                    ? Math.min(100, Math.round((inv.capital / c.finalBalance) * 100))
+                    : 0
+                  return (
+                    <div key={inv.id} onClick={() => setSelected(inv)} className="cursor-pointer">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: inv.color, flexShrink: 0 }} />
+                          <span className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>
+                            {inv.emoji} {inv.nombre}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-black" style={{ color: inv.color }}>
+                            {formatCurrency(inv.capital)}
+                          </p>
+                          <p className="text-[9px]" style={{ color: colores.muted }}>
+                            → {formatCurrency(c.finalBalance)} en {inv.anos}a
+                          </p>
+                        </div>
+                      </div>
+                      {/* Barra: capital real (relleno) vs proyección (fondo) */}
+                      <div className="w-full h-2 rounded-full overflow-hidden relative"
+                        style={{ background: `${inv.color}20` }}>
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${pctReal}%`, background: inv.color }} />
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-[9px]" style={{ color: colores.muted }}>
+                          Capital: {formatCurrency(inv.capital)}
+                        </span>
+                        <span className="text-[9px]" style={{ color: colores.muted }}>
+                          Proyectado: {formatCurrency(c.finalBalance)}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+                <div className="border-t pt-2 flex items-center justify-between"
+                  style={{ borderColor: 'var(--border-glass)' }}>
+                  <span className="text-[9px]" style={{ color: colores.muted }}>Total proyectado combinado</span>
+                  <span className="text-[11px] font-black" style={{ color: 'var(--text-primary)' }}>
+                    {formatCurrency(totalProyectado)}
+                  </span>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
-      </div>
-    ) : (
-      <div className="text-center py-20">
-        <p className="text-sm mb-4" style={{ color: colores.muted }}>No hay carteras registradas</p>
-        <button onClick={abrirNuevo} className="ff-btn-primary">Crear primera cartera</button>
-      </div>
-    )}
+      )}
 
       {/* MODAL CREAR / EDITAR */}
       <Modal
@@ -543,7 +721,7 @@ export default function InversionesPage() {
             <label className="ff-label">Estrategia de interés</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {[
-                { val: true, icon: '🔄', title: 'Bola de nieve', desc: 'Reinvierte las ganancias (Int. Comp.)' },
+                { val: true, icon: '🔄', title: 'Bola de nieve', desc: 'Reinvierte las ganancias (interés compuesto)' },
                 { val: false, icon: '📤', title: 'Sin reinversión', desc: 'Retiras las ganancias cada año' },
               ].map(opt => (
                 <button key={String(opt.val)} type="button"
