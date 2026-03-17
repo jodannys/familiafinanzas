@@ -329,7 +329,7 @@ export default function Dashboard() {
         }}>
           {metas
             .filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta)
-            .metas.map(m => {
+            .map(m => {
               const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
               return (
                 <div key={m.id} style={{ background: 'var(--bg-card)', padding: '24px 28px' }}>
