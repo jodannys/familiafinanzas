@@ -543,7 +543,7 @@ export default function InversionesPage() {
             <label className="ff-label">Estrategia de interés</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {[
-                { val: true, icon: '🔄', title: 'Bola de nieve', desc: 'Reinvierte las ganancias (interés compuesto)' },
+                { val: true, icon: '🔄', title: 'Bola de nieve', desc: 'Reinvierte las ganancias (Int. Comp.)' },
                 { val: false, icon: '📤', title: 'Sin reinversión', desc: 'Retiras las ganancias cada año' },
               ].map(opt => (
                 <button key={String(opt.val)} type="button"
