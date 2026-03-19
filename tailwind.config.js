@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans:    ['Plus Jakarta Sans', 'sans-serif'],
+        sans:    ['Inter', 'sans-serif'],
         serif:   ['DM Serif Display', 'Georgia', 'serif'],
         script:  ['Sacramento', 'cursive'],
       },
