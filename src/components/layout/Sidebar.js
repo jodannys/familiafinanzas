@@ -1,13 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, Target, TrendingUp, PieChart,
   CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2
 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
-import { supabase } from '@/lib/supabase'
+import { supabase, signOut } from '@/lib/supabase'
 
 const MENU_GROUPS = [
   {
@@ -52,8 +52,14 @@ function diasHastaPago(diaPago) {
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router   = useRouter()
   const [expanded, setExpanded] = useState(false)
   const [deudasAlert, setDeudasAlert] = useState(false)
+
+  async function handleLogout() {
+    await signOut()
+    router.replace('/login')
+  }
 
   useEffect(() => {
     supabase.from('deudas').select('dia_pago').eq('estado', 'activa').then(({ data }) => {
@@ -197,6 +203,7 @@ export default function Sidebar() {
         </div>
 
         <button
+          onClick={handleLogout}
           className="flex items-center gap-3 px-2 py-2 rounded-xl w-full transition-all duration-150"
           style={{ color: 'var(--accent-rose)', background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)', border: 'none', cursor: 'pointer' }}>
           <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center">

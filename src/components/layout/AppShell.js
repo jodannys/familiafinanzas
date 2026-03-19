@@ -1,10 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
 import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, SlidersHorizontal, LogOut, Check } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabase, signOut } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { THEMES, useTheme } from '@/lib/themes'
 
@@ -268,14 +268,39 @@ export default function AppShell({ children }) {
   const [fabOpen,    setFabOpen]    = useState(false)
   const [menuOpen,   setMenuOpen]   = useState(false)
   const [navigating, setNavigating] = useState(false)
+  const [authReady,  setAuthReady]  = useState(false)
   const pathname   = usePathname()
+  const router     = useRouter()
   const { theme, setTheme } = useTheme()
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) router.replace('/login')
+      else setAuthReady(true)
+    })
+  }, [])
 
   useEffect(() => {
     setNavigating(true)
     const t = setTimeout(() => setNavigating(false), 400)
     return () => clearTimeout(t)
   }, [pathname])
+
+  async function handleLogout() {
+    setMenuOpen(false)
+    await signOut()
+    router.replace('/login')
+  }
+
+  if (!authReady) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+      <div className="animate-spin rounded-full" style={{
+        width: 24, height: 24,
+        border: '2px solid var(--border-glass)',
+        borderTopColor: 'var(--accent-main)',
+      }} />
+    </div>
+  )
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
@@ -367,6 +392,7 @@ export default function AppShell({ children }) {
 
                 <div className="mx-2 mb-2 mt-1 pt-2" style={{ borderTop: '1px solid var(--border-glass)' }}>
                   <button
+                    onClick={handleLogout}
                     className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all"
                     style={{
                       color: 'var(--accent-rose)', background: 'transparent',
