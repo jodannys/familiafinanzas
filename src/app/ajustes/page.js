@@ -370,13 +370,7 @@ export default function AjustesPage() {
                   </div>
                 )}
 
-                {/* Lista de categorías */}
-                <div className="space-y-2">
-                  {catBloque.length === 0 && addingCatBloque !== bloque.id && (
-                    <p className="text-xs italic text-center py-4" style={{ color: 'var(--text-muted)' }}>
-                      Sin categorías — pulsa "Categoría" para agregar
-                    </p>
-                  )}
+      
 
                   {catBloque.map(cat => {
                     const subs = subcategorias.filter(s => s.categoria_id === cat.id)
