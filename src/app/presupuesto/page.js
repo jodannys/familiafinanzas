@@ -275,11 +275,11 @@ export default function PresupuestoPage() {
 
                   {/* Sub-distribución metas/inversiones — solo Futuro */}
                   {b.id === 'futuro' && subBorrador && (
-                    <div className="ml-10 mt-3 pl-3 space-y-2"
+                    <div className="mt-3 pl-3 space-y-2"
                       style={{ borderLeft: `2px solid ${b.color}40` }}>
                       <p className="text-[9px] font-black uppercase tracking-wider mb-2"
                         style={{ color: 'var(--text-muted)' }}>
-                        Distribuir dentro de Futuro — deben sumar 100%
+                        Distribución interna — suma 100%
                       </p>
                       {[
                         { key: 'metas',       label: 'Metas de Ahorro', color: 'var(--accent-green)' },

@@ -37,6 +37,7 @@ export default function AjustesPage() {
   // Form nueva subcategoría
   const [addingSubCat, setAddingSubCat] = useState(null)
   const [formSub, setFormSub] = useState('')
+  const [formSubTipo, setFormSubTipo] = useState(null)
 
   // Edición inline
   const [editandoCat, setEditandoCat] = useState(null)
@@ -114,12 +115,14 @@ export default function AjustesPage() {
     const { data, error } = await supabase.from('subcategorias').insert([{
       categoria_id: categoriaId,
       nombre: formSub.trim(),
+      tipo: formSubTipo || null,
       orden: subcategorias.filter(s => s.categoria_id === categoriaId).length,
     }]).select()
     setSaving(false)
     if (error) { alert('Error: ' + error.message); return }
     setSubcategorias(prev => [...prev, data[0]])
     setFormSub('')
+    setFormSubTipo(null)
     setAddingSubCat(null)
   }
 
@@ -127,12 +130,13 @@ export default function AjustesPage() {
     if (!editandoSub?.nombre?.trim() || saving) return
     setSaving(true)
     const { error } = await supabase.from('subcategorias').update({
-      nombre: editandoSub.nombre.trim()
+      nombre: editandoSub.nombre.trim(),
+      tipo: editandoSub.tipo || null,
     }).eq('id', sub.id)
     setSaving(false)
     if (error) { alert('Error: ' + error.message); return }
     setSubcategorias(prev => prev.map(s =>
-      s.id === sub.id ? { ...s, nombre: editandoSub.nombre.trim() } : s
+      s.id === sub.id ? { ...s, nombre: editandoSub.nombre.trim(), tipo: editandoSub.tipo || null } : s
     ))
     setEditandoSub(null)
   }
@@ -359,30 +363,62 @@ export default function AjustesPage() {
                                   style={{ background: cat.color, opacity: 0.5 }} />
 
                                 {editandoSub?.id === sub.id ? (
-                                  <>
-                                    <input
-                                      className="ff-input flex-1 py-0.5 text-xs"
-                                      value={editandoSub.nombre}
-                                      onChange={e => setEditandoSub(p => ({ ...p, nombre: e.target.value }))}
-                                      onKeyDown={e => e.key === 'Enter' && handleSaveSub(sub)}
-                                      autoFocus
-                                    />
-                                    <button onClick={() => handleSaveSub(sub)}
-                                      style={{ color: 'var(--accent-green)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                                      <Save size={12} />
-                                    </button>
-                                    <button onClick={() => setEditandoSub(null)}
-                                      style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                                      <X size={12} />
-                                    </button>
-                                  </>
+                                  <div className="flex-1 space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        className="ff-input flex-1 py-0.5 text-xs"
+                                        value={editandoSub.nombre}
+                                        onChange={e => setEditandoSub(p => ({ ...p, nombre: e.target.value }))}
+                                        onKeyDown={e => e.key === 'Enter' && handleSaveSub(sub)}
+                                        autoFocus
+                                      />
+                                      <button onClick={() => handleSaveSub(sub)}
+                                        style={{ color: 'var(--accent-green)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                        <Save size={12} />
+                                      </button>
+                                      <button onClick={() => setEditandoSub(null)}
+                                        style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                        <X size={12} />
+                                      </button>
+                                    </div>
+                                    {bloque.id === 'futuro' && (
+                                      <div className="flex items-center gap-1.5">
+                                        {[
+                                          { key: 'metas', label: 'Metas', color: 'var(--accent-green)', Icon: Target },
+                                          { key: 'inversiones', label: 'Inversiones', color: 'var(--accent-violet)', Icon: TrendingUp },
+                                        ].map(t => (
+                                          <button key={t.key}
+                                            onClick={() => setEditandoSub(p => ({ ...p, tipo: p.tipo === t.key ? null : t.key }))}
+                                            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                            style={{
+                                              background: editandoSub.tipo === t.key ? `color-mix(in srgb, ${t.color} 15%, transparent)` : 'transparent',
+                                              color: editandoSub.tipo === t.key ? t.color : 'var(--text-muted)',
+                                              border: `1px solid ${editandoSub.tipo === t.key ? t.color : 'var(--border-glass)'}`,
+                                              cursor: 'pointer',
+                                            }}>
+                                            <t.Icon size={9} /> {t.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 ) : (
                                   <>
                                     <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
                                       {sub.nombre}
                                     </span>
+                                    {bloque.id === 'futuro' && sub.tipo && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
+                                        style={{
+                                          background: `color-mix(in srgb, ${sub.tipo === 'metas' ? 'var(--accent-green)' : 'var(--accent-violet)'} 12%, transparent)`,
+                                          color: sub.tipo === 'metas' ? 'var(--accent-green)' : 'var(--accent-violet)',
+                                        }}>
+                                        {sub.tipo === 'metas' ? <Target size={8} /> : <TrendingUp size={8} />}
+                                        {sub.tipo === 'metas' ? 'Metas' : 'Inversiones'}
+                                      </span>
+                                    )}
                                     <button
-                                      onClick={() => setEditandoSub({ id: sub.id, nombre: sub.nombre })}
+                                      onClick={() => setEditandoSub({ id: sub.id, nombre: sub.nombre, tipo: sub.tipo || null })}
                                       style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
                                       <Edit3 size={11} />
                                     </button>
@@ -397,23 +433,46 @@ export default function AjustesPage() {
 
                             {/* Form nueva subcategoría */}
                             {addingSubCat === cat.id ? (
-                              <div className="flex items-center gap-2 pt-1">
-                                <input
-                                  className="ff-input flex-1 py-1 text-xs"
-                                  placeholder="Nueva subcategoría..."
-                                  value={formSub}
-                                  onChange={e => setFormSub(e.target.value)}
-                                  onKeyDown={e => e.key === 'Enter' && handleAddSub(cat.id)}
-                                  autoFocus
-                                />
-                                <button onClick={() => handleAddSub(cat.id)} disabled={saving}
-                                  style={{ color: cat.color, background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                                  {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                                </button>
-                                <button onClick={() => { setAddingSubCat(null); setFormSub('') }}
-                                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                                  <X size={12} />
-                                </button>
+                              <div className="pt-1 space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    className="ff-input flex-1 py-1 text-xs"
+                                    placeholder="Nueva subcategoría..."
+                                    value={formSub}
+                                    onChange={e => setFormSub(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleAddSub(cat.id)}
+                                    autoFocus
+                                  />
+                                  <button onClick={() => handleAddSub(cat.id)} disabled={saving}
+                                    style={{ color: cat.color, background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                    {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                                  </button>
+                                  <button onClick={() => { setAddingSubCat(null); setFormSub(''); setFormSubTipo(null) }}
+                                    style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                                {bloque.id === 'futuro' && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>Tipo:</span>
+                                    {[
+                                      { key: 'metas', label: 'Metas', color: 'var(--accent-green)', Icon: Target },
+                                      { key: 'inversiones', label: 'Inversiones', color: 'var(--accent-violet)', Icon: TrendingUp },
+                                    ].map(t => (
+                                      <button key={t.key}
+                                        onClick={() => setFormSubTipo(formSubTipo === t.key ? null : t.key)}
+                                        className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                        style={{
+                                          background: formSubTipo === t.key ? `color-mix(in srgb, ${t.color} 15%, transparent)` : 'transparent',
+                                          color: formSubTipo === t.key ? t.color : 'var(--text-muted)',
+                                          border: `1px solid ${formSubTipo === t.key ? t.color : 'var(--border-glass)'}`,
+                                          cursor: 'pointer',
+                                        }}>
+                                        <t.Icon size={9} /> {t.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <button
