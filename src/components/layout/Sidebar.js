@@ -99,7 +99,7 @@ export default function Sidebar() {
             {/* Group title */}
             <p className="font-script px-2 mb-1.5 whitespace-nowrap transition-all duration-200 overflow-hidden"
               style={{
-                fontSize: 11, color: 'var(--text-muted)',
+                fontSize: 18, color: 'var(--text-muted)',
                 opacity: expanded ? 0.7 : 0,
                 height: expanded ? 18 : 0,
                 marginBottom: expanded ? 6 : 0,
