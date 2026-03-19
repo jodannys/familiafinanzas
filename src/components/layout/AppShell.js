@@ -232,10 +232,21 @@ export default function AppShell({ children }) {
           }} />
         </div>
 
+        {/* FAB móvil — encima del BottomNav */}
+        <button
+          onClick={() => setFabOpen(true)}
+          className="lg:hidden flex fixed right-5 z-[80] w-14 h-14 rounded-full items-center justify-center shadow-2xl active:scale-95 transition-transform"
+          style={{
+            bottom: 'calc(env(safe-area-inset-bottom) + 76px)',
+            background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer',
+          }}>
+          <Plus size={24} strokeWidth={2.5} />
+        </button>
+
         {/* FAB desktop */}
         <button
           onClick={() => setFabOpen(true)}
-          className="hidden lg:flex fixed bottom-8 right-8 z-[80] w-14 h-14 rounded-full items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95"
+          className="hidden lg:flex fixed bottom-8 right-8 z-[80] w-14 h-14 rounded-full items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-transform"
           style={{ background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer' }}>
           <Plus size={24} strokeWidth={2.5} />
         </button>

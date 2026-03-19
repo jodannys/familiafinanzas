@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, Target,
   MoreHorizontal, TrendingUp, Wallet, CircleDollarSign,
-  CreditCard, Settings2, BarChart3, X, Plus
+  CreditCard, Settings2, BarChart3, X
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -81,18 +81,6 @@ export default function BottomNav({ onFABClick }) {
           height: 'calc(64px + env(safe-area-inset-bottom))',
         }}>
         {MAIN_TABS.map((tab, i) => {
-          // FAB center
-          if (!tab) return (
-            <div key="fab" className="flex-1 flex justify-center items-center">
-              <button
-                onClick={onFABClick}
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform -mt-5"
-                style={{ background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer' }}>
-                <Plus size={24} strokeWidth={2.5} />
-              </button>
-            </div>
-          )
-
           const active = pathname === tab.href
           const Icon   = tab.icon
 
