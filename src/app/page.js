@@ -161,10 +161,10 @@ export default function Dashboard() {
 
       {/* ── Header ── */}
       <div className="mb-7 animate-enter">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] mb-1" style={{ color: 'var(--text-muted)' }}>
+        <p className="font-script mb-1" style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           {saludo()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
-        <h1 className="text-2xl font-black tracking-tighter mb-5" style={{ color: 'var(--text-primary)' }}>
+        <h1 className="text-2xl font-black tracking-tight mb-5" style={{ color: 'var(--text-primary)' }}>
           Resumen General
         </h1>
 
@@ -247,7 +247,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div>
-              <p style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8 }}>
+              <p className="font-serif" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8 }}>
                 {k.signo}{formatCurrency(Math.abs(k.val))}
               </p>
               <div style={{ height: 3, borderRadius: 999, background: `color-mix(in srgb, ${k.col} 12%, transparent)`, overflow: 'hidden' }}>

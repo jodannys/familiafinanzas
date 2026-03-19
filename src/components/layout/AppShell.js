@@ -66,7 +66,7 @@ export default function AppShell({ children }) {
 
           <div className="flex items-center gap-2">
             <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
-            <span className="font-black text-base tracking-tighter" style={{ color: 'var(--text-primary)' }}>
+            <span className="font-script text-base" style={{ color: 'var(--text-primary)' }}>
               Familia Finanzas
             </span>
           </div>

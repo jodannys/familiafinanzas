@@ -8,8 +8,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'sans-serif'],
+        sans:    ['Plus Jakarta Sans', 'sans-serif'],
+        serif:   ['Playfair Display', 'Georgia', 'serif'],
+        script:  ['Satisfy', 'cursive'],
       },
       colors: {
         // Base
