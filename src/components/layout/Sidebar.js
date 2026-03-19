@@ -13,7 +13,7 @@ const MENU_GROUPS = [
   {
     title: 'Análisis',
     items: [
-      { href: '/',         label: 'Dashboard',     icon: LayoutDashboard },
+      { href: '/', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/reportes', label: 'Reporte Anual', icon: BarChart3 },
     ],
   },
@@ -21,17 +21,17 @@ const MENU_GROUPS = [
     title: 'Gestión',
     items: [
       { href: '/presupuesto', label: 'Presupuesto', icon: PieChart },
-      { href: '/gastos',      label: 'Registro',    icon: ArrowLeftRight },
-      { href: '/sobres',      label: 'Sobres',      icon: Wallet },
+      { href: '/gastos', label: 'Registro', icon: ArrowLeftRight },
+      { href: '/sobres', label: 'Sobres', icon: Wallet },
     ],
   },
   {
     title: 'Patrimonio',
     items: [
-      { href: '/metas',      label: 'Ahorro',       icon: Target },
-      { href: '/inversiones',label: 'Inversiones',  icon: TrendingUp },
-      { href: '/deudas',     label: 'Deudas',       icon: CircleDollarSign, deudaBadge: true },
-      { href: '/tarjetas',   label: 'Mis Tarjetas', icon: CreditCard },
+      { href: '/metas', label: 'Ahorro', icon: Target },
+      { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
+      { href: '/deudas', label: 'Deudas', icon: CircleDollarSign, deudaBadge: true },
+      { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard },
     ],
   },
   {
@@ -51,8 +51,8 @@ function diasHastaPago(diaPago) {
 }
 
 export default function Sidebar() {
-  const pathname    = usePathname()
-  const [expanded, setExpanded]       = useState(false)
+  const pathname = usePathname()
+  const [expanded, setExpanded] = useState(false)
   const [deudasAlert, setDeudasAlert] = useState(false)
 
   useEffect(() => {
@@ -99,9 +99,13 @@ export default function Sidebar() {
             {/* Group title */}
             <p className="font-script px-2 mb-1.5 whitespace-nowrap transition-all duration-200 overflow-hidden"
               style={{
-                fontSize: 18, color: 'var(--text-muted)',
+                fontSize: 23,
+                color: 'var(--text-muted)',
                 opacity: expanded ? 0.7 : 0,
-                height: expanded ? 18 : 0,
+                // SUBIMOS EL ALTO: 26px para que la letra de 18px respire y no se corte
+                height: expanded ? 26 : 0,
+                // LINE-HEIGHT: Al ponerlo igual al height, el texto se alinea solo
+                lineHeight: expanded ? '26px' : '0px',
                 marginBottom: expanded ? 6 : 0,
               }}>
               {group.title}
@@ -109,8 +113,8 @@ export default function Sidebar() {
 
             <div className="space-y-0.5">
               {group.items.map(({ href, label, icon: Icon, deudaBadge }) => {
-                const active     = pathname === href
-                const showBadge  = deudaBadge && deudasAlert
+                const active = pathname === href
+                const showBadge = deudaBadge && deudasAlert
 
                 return (
                   <Link
@@ -120,7 +124,7 @@ export default function Sidebar() {
                     aria-current={active ? 'page' : undefined}
                     className="group/item relative flex items-center gap-3 px-2 py-2.5 rounded-xl transition-all duration-150 overflow-hidden"
                     style={{
-                      color:      active ? 'var(--text-primary)' : 'var(--text-muted)',
+                      color: active ? 'var(--text-primary)' : 'var(--text-muted)',
                       background: active
                         ? 'color-mix(in srgb, var(--text-primary) 7%, transparent)'
                         : 'transparent',
@@ -153,8 +157,8 @@ export default function Sidebar() {
                     <span
                       className="relative z-10 text-xs font-bold whitespace-nowrap transition-all duration-200 overflow-hidden"
                       style={{
-                        opacity:   expanded ? 1 : 0,
-                        maxWidth:  expanded ? 140 : 0,
+                        opacity: expanded ? 1 : 0,
+                        maxWidth: expanded ? 140 : 0,
                         transform: expanded ? 'translateX(0)' : 'translateX(-6px)',
                       }}>
                       {label}
