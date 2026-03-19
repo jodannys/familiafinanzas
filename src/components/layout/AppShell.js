@@ -37,6 +37,7 @@ function FABModal({ onClose }) {
     setSaving(false)
     if (error) { alert('Error: ' + error.message); return }
     onClose()
+    window.location.reload()
   }
 
   return (
