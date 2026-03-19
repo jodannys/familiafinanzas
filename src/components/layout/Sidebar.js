@@ -80,7 +80,7 @@ export default function Sidebar() {
         <span
           className="font-script whitespace-nowrap transition-all duration-200"
           style={{
-            fontSize: 16, color: 'var(--text-primary)',
+            fontSize: 20, color: 'var(--text-primary)',
             opacity: expanded ? 1 : 0,
             transform: expanded ? 'translateX(0)' : 'translateX(-8px)',
           }}>
