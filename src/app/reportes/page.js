@@ -270,7 +270,7 @@ export default function ReportesPage() {
         <BarChart3 size={36} style={{ color: colores.muted, opacity: 0.5 }} />
       </div>
       <div className="text-center">
-        <p className="font-black text-base mb-1" style={{ color: 'var(--text-primary)' }}>
+        <p className="font-semibold text-base mb-1" style={{ color: 'var(--text-primary)' }}>
           Sin movimientos en {año}
         </p>
         <p className="text-sm" style={{ color: colores.muted }}>
@@ -288,7 +288,7 @@ export default function ReportesPage() {
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
-          <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Reportes</h1>
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Reportes</h1>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0"
           style={{
@@ -302,7 +302,7 @@ export default function ReportesPage() {
             style={{ color: colores.muted }}>
             <ChevronLeft size={13} strokeWidth={3} />
           </button>
-          <span className="text-sm font-black w-11 text-center" style={{ color: 'var(--text-primary)' }}>
+          <span className="text-sm font-semibold w-11 text-center" style={{ color: 'var(--text-primary)' }}>
             {año}
           </span>
           <button onClick={() => setAño(a => a + 1)}
@@ -360,7 +360,7 @@ export default function ReportesPage() {
           {grandTotal > 0 && (
             <Card className="mb-4 animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-black uppercase" style={{ color: colores.muted }}>
+                <p className="text-[10px] font-semibold uppercase" style={{ color: colores.muted }}>
                   Distribución del presupuesto
                 </p>
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
@@ -383,12 +383,12 @@ export default function ReportesPage() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: g.color }} />
-                          <p className="text-[10px] font-black truncate" style={{ color: 'var(--text-secondary)' }}>
+                          <p className="text-[10px] font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
                             {g.label}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                          <p className="text-[10px] font-black"
+                          <p className="text-[10px] font-semibold"
                             style={{ color: cumple ? colores.green : colores.rose }}>
                             {pct.toFixed(1)}%
                           </p>
@@ -418,7 +418,7 @@ export default function ReportesPage() {
               <div className="flex gap-1.5 mb-3 overflow-x-auto no-scrollbar pb-1">
                 {filtroOpciones.map(f => (
                   <button key={f.v} onClick={() => setFiltro(f.v)}
-                    className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all"
+                    className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase transition-all"
                     style={{
                       background: filtro === f.v ? `color-mix(in srgb, ${f.color} 12%, var(--bg-secondary))` : 'transparent',
                       color:      filtro === f.v ? f.color : colores.muted,
@@ -448,11 +448,11 @@ export default function ReportesPage() {
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
-                          <span className="text-xs font-black capitalize" style={{ color: 'var(--text-primary)' }}>
+                          <span className="text-xs font-semibold capitalize" style={{ color: 'var(--text-primary)' }}>
                             {c.label}
                           </span>
                         </div>
-                        <span className="text-xs font-black" style={{ color: c.color }}>
+                        <span className="text-xs font-semibold" style={{ color: c.color }}>
                           {formatCurrency(c.total)}
                         </span>
                       </div>
@@ -470,7 +470,7 @@ export default function ReportesPage() {
             <div className="col-span-1 lg:col-span-2 space-y-4 animate-enter" style={{ animationDelay: '0.2s' }}>
 
               <Card style={{ padding: '14px 16px' }}>
-                <p className="text-[10px] font-black uppercase mb-1" style={{ color: colores.muted }}>
+                <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: colores.muted }}>
                   Ingresos vs Gastos — {año}
                 </p>
                 <ResponsiveContainer width="100%" height={200}>
@@ -490,7 +490,7 @@ export default function ReportesPage() {
               </Card>
 
               <Card style={{ padding: '14px 16px' }}>
-                <p className="text-[10px] font-black uppercase mb-1" style={{ color: colores.muted }}>
+                <p className="text-[10px] font-semibold uppercase mb-1" style={{ color: colores.muted }}>
                   Gastos por mes
                   {filtro !== 'todos' && (
                     <span className="ml-2 px-2 py-0.5 rounded-full text-[8px]"
@@ -523,7 +523,7 @@ export default function ReportesPage() {
 
               {/* TABLA */}
               <Card style={{ padding: '14px 16px' }}>
-                <p className="text-[10px] font-black uppercase mb-3" style={{ color: colores.muted }}>
+                <p className="text-[10px] font-semibold uppercase mb-3" style={{ color: colores.muted }}>
                   Detalle mensual
                 </p>
                 <div className="overflow-x-auto">
@@ -531,7 +531,7 @@ export default function ReportesPage() {
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${colores.border}` }}>
                         {['Mes', 'Ingresos', 'Gastos', 'Balance'].map((h, i) => (
-                          <th key={h} className="pb-2 font-black uppercase"
+                          <th key={h} className="pb-2 font-semibold uppercase"
                             style={{ color: colores.muted, fontSize: 9, letterSpacing: '0.08em', textAlign: i === 0 ? 'left' : 'right' }}>
                             {h}
                           </th>
@@ -543,20 +543,20 @@ export default function ReportesPage() {
                         const bal = m.Ingresos - m.Gastos
                         return (
                           <tr key={m.mes} style={{ borderBottom: `1px solid ${colores.border}` }}>
-                            <td className="py-2 font-black" style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{m.mes}</td>
+                            <td className="py-2 font-semibold" style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{m.mes}</td>
                             <td className="py-2 text-right font-bold" style={{ color: colores.green, fontSize: 11 }}>{formatCurrency(m.Ingresos)}</td>
                             <td className="py-2 text-right font-bold" style={{ color: colores.rose,  fontSize: 11 }}>{formatCurrency(m.Gastos)}</td>
-                            <td className="py-2 text-right font-black" style={{ fontSize: 11, color: bal >= 0 ? colores.green : colores.rose }}>
+                            <td className="py-2 text-right font-semibold" style={{ fontSize: 11, color: bal >= 0 ? colores.green : colores.rose }}>
                               {bal >= 0 ? '+' : ''}{formatCurrency(bal)}
                             </td>
                           </tr>
                         )
                       })}
                       <tr style={{ borderTop: `2px solid ${colores.border}` }}>
-                        <td className="pt-2.5 font-black text-[10px] uppercase" style={{ color: colores.muted }}>Total</td>
-                        <td className="pt-2.5 text-right font-black" style={{ color: colores.green, fontSize: 12 }}>{formatCurrency(totalIngresos)}</td>
-                        <td className="pt-2.5 text-right font-black" style={{ color: colores.rose,  fontSize: 12 }}>{formatCurrency(totalGastos)}</td>
-                        <td className="pt-2.5 text-right font-black" style={{ fontSize: 12, color: balance >= 0 ? colores.green : colores.rose }}>
+                        <td className="pt-2.5 font-semibold text-[10px] uppercase" style={{ color: colores.muted }}>Total</td>
+                        <td className="pt-2.5 text-right font-semibold" style={{ color: colores.green, fontSize: 12 }}>{formatCurrency(totalIngresos)}</td>
+                        <td className="pt-2.5 text-right font-semibold" style={{ color: colores.rose,  fontSize: 12 }}>{formatCurrency(totalGastos)}</td>
+                        <td className="pt-2.5 text-right font-semibold" style={{ fontSize: 12, color: balance >= 0 ? colores.green : colores.rose }}>
                           {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
                         </td>
                       </tr>

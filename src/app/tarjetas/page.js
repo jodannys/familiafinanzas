@@ -207,7 +207,7 @@ export default function TarjetasPage() {
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
             style={{ color: 'var(--text-muted)' }}>Configuración</p>
-          <h1 className="text-xl font-black tracking-tight"
+          <h1 className="text-xl font-semibold tracking-tight"
             style={{ color: 'var(--text-primary)' }}>Mis Tarjetas</h1>
         </div>
         <button onClick={() => openModal()} className="ff-btn-primary flex items-center gap-2">
@@ -251,14 +251,14 @@ export default function TarjetasPage() {
                       <CreditCard size={20} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase leading-none mb-1"
+                      <p className="text-[10px] font-semibold uppercase leading-none mb-1"
                         style={{ color: 'var(--text-muted)' }}>{t.banco || '—'}</p>
-                      <h3 className="font-black text-sm leading-none"
+                      <h3 className="font-semibold text-sm leading-none"
                         style={{ color: 'var(--text-primary)' }}>{t.nombre_tarjeta}</h3>
                     </div>
                   </div>
                   {t.estado === 'pausada' && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
+                    <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full"
                       style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                       Pausada
                     </span>
@@ -268,9 +268,9 @@ export default function TarjetasPage() {
                 {/* Barra de uso */}
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between items-baseline">
-                    <span className="text-[10px] font-black uppercase"
+                    <span className="text-[10px] font-semibold uppercase"
                       style={{ color: 'var(--text-muted)' }}>Usado</span>
-                    <span className="text-sm font-black"
+                    <span className="text-sm font-semibold"
                       style={{ color: t.color }}>{formatCurrency(usado)}</span>
                   </div>
                   <ProgressBar value={usado} max={limite} color={pctUsado > 80 ? 'var(--accent-rose)' : t.color} />
@@ -326,7 +326,7 @@ export default function TarjetasPage() {
                           className="flex justify-between items-center p-3 rounded-xl"
                           style={{ background: 'var(--bg-secondary)' }}>
                           <span className="text-[11px] font-bold">{deuda.nombre}</span>
-                          <span className="text-[11px] font-black" style={{ color: t.color }}>
+                          <span className="text-[11px] font-semibold" style={{ color: t.color }}>
                             {formatCurrency(deuda.pendiente)}
                           </span>
                         </div>

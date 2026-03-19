@@ -428,7 +428,7 @@ export default function GastosPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
-              <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: 'var(--text-primary)' }}>Registro</h1>
+              <h1 className="text-xl font-semibold tracking-tight leading-tight" style={{ color: 'var(--text-primary)' }}>Registro</h1>
             </div>
             <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2"
               style={{ background: colores.main }}>
@@ -615,7 +615,7 @@ export default function GastosPage() {
                     setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? '' : 'basicos' })
                     setTarjetaSeleccionada('')
                   }}
-                  className="py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                  className="py-2.5 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all"
                   style={{
                     background: form.tipo === t ? colores.card : 'transparent',
                     color: form.tipo === t ? 'var(--text-primary)' : colores.muted,
@@ -711,7 +711,7 @@ export default function GastosPage() {
             {/* Sugerencias */}
             {!usandoTarjeta && sugerenciasRicas.length > 0 && (
               <div className="animate-enter">
-                <p className="text-[10px] font-black uppercase mb-2 ml-1" style={{ color: colores.muted }}>
+                <p className="text-[10px] font-semibold uppercase mb-2 ml-1" style={{ color: colores.muted }}>
                   Sugerencias del presupuesto
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -725,12 +725,12 @@ export default function GastosPage() {
                       }}>
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className="text-base leading-none">{item.emoji}</span>
-                        <p className="text-[10px] font-black truncate leading-tight" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-[10px] font-semibold truncate leading-tight" style={{ color: 'var(--text-secondary)' }}>
                           {item.nombre}
                         </p>
                       </div>
                       {item.monto > 0 && (
-                        <p className="text-sm font-black mb-1" style={{ color: item.color }}>
+                        <p className="text-sm font-semibold mb-1" style={{ color: item.color }}>
                           {formatCurrency(item.monto)}
                         </p>
                       )}
@@ -782,7 +782,7 @@ export default function GastosPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="ff-label">Monto (€)</label>
-                  <input className="ff-input h-12 text-sm font-black" type="number" step="0.01" placeholder="0.00" required
+                  <input className="ff-input h-12 text-sm font-semibold" type="number" step="0.01" placeholder="0.00" required
                     style={{ color: colores.terra }}
                     value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
                 </div>
@@ -797,7 +797,7 @@ export default function GastosPage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full h-14 text-sm font-black shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl"
+              className="w-full h-14 text-sm font-semibold shadow-lg flex items-center justify-center gap-2 transition-all rounded-xl"
               style={{
                 background: 'var(--accent-main)',
                 color: 'var(--bg-card)',

@@ -290,7 +290,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
       <div className="flex items-start justify-between gap-3 mb-6 animate-enter">
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}> Control Diario</p>
-          <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
           <div className="flex items-center gap-2 mt-1.5 text-[10px] font-bold uppercase tracking-widest"
             style={{ color: 'var(--text-muted)' }}>
             <Calendar size={11} />
@@ -324,7 +324,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
         <>
           {/* CARD PRINCIPAL DEL SOBRE */}
           <Card className="mb-4 relative overflow-hidden" style={{ padding: '18px 20px' }}>
-            <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
               Disponible en el sobre
             </p>
             <p className="text-4xl font-semibold mb-4 tracking-tight" style={{ color: 'var(--accent-terra)' }}>
@@ -358,7 +358,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
             {/* Botón enviar sobrante — solo en mes actual con saldo positivo */}
             {saldoSobre > 0 && esMesActual && (
               <button onClick={() => setModalSobrante(true)}
-                className="mt-3 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-dashed transition-all"
+                className="mt-3 w-full py-2.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider border border-dashed transition-all"
                 style={{ borderColor: 'var(--accent-green)', color: 'var(--accent-green)' }}>
                 <Sprout size={12} className="inline mr-1.5" />
                 Enviar sobrante a Metas / Inversión
@@ -374,10 +374,10 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
               { label: 'Inversión', saldo: saldoInversiones, color: 'var(--accent-violet)' },
             ].map((box, i) => (
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.08}s` }}>
-                <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
                   {box.label}
                 </p>
-                <p className="text-sm font-black"
+                <p className="text-sm font-semibold"
                   style={{ color: box.saldo < 0 ? 'var(--accent-rose)' : box.color, letterSpacing: '-0.02em' }}>
                   {formatCurrency(box.saldo)}
                 </p>
@@ -432,7 +432,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
                         {m.descripcion}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded"
+                        <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded"
                           style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                           {m._label}
                         </span>
@@ -446,7 +446,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <p className="text-sm font-black tabular-nums" style={{ color: 'var(--accent-terra)' }}>
+                      <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--accent-terra)' }}>
                         -{formatCurrency(Math.abs(parseFloat(m.monto)))}
                       </p>
                       <button onClick={() => handleEliminar(m)}
@@ -469,7 +469,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
 
           {tarjetasData.length > 0 && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase flex items-center gap-1.5"
+              <label className="text-[10px] font-semibold uppercase flex items-center gap-1.5"
                 style={{ color: 'var(--text-muted)' }}>
                 <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
               </label>
@@ -498,7 +498,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
 
           <div>
             <label className="ff-label">Monto (€)</label>
-            <input className="ff-input text-xl font-black" type="number" step="0.01" min="0.01" placeholder="0.00" required
+            <input className="ff-input text-xl font-semibold" type="number" step="0.01" min="0.01" placeholder="0.00" required
               value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
             {/* Indicador de saldo disponible */}
             {!usandoTarjeta && montoFormParseado > 0 && (
@@ -562,7 +562,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
                   background: origenTraspaso === o.value ? 'color-mix(in srgb, var(--accent-green) 5%, transparent)' : 'transparent',
                 }}>
                 <div>
-                  <p className="text-xs font-black uppercase" style={{ color: o.color }}>{o.label}</p>
+                  <p className="text-xs font-semibold uppercase" style={{ color: o.color }}>{o.label}</p>
                   <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                     Disponible: {formatCurrency(getSaldo(o.value))}
                   </p>
@@ -613,7 +613,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
           <div className="grid grid-cols-2 gap-2">
             {['metas', 'inversiones'].map(dest => (
               <button key={dest} onClick={() => setDestinoSobrante(dest)}
-                className="p-3 rounded-xl border-2 text-[10px] font-black uppercase transition-all"
+                className="p-3 rounded-xl border-2 text-[10px] font-semibold uppercase transition-all"
                 style={{
                   borderColor: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--border-glass)',
                   background: destinoSobrante === dest ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)' : 'transparent',

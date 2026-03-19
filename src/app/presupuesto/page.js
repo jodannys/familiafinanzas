@@ -218,7 +218,7 @@ export default function PresupuestoPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4 animate-enter">
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
-          <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Mi Presupuesto
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -238,7 +238,7 @@ export default function PresupuestoPage() {
 
           <div className="flex items-center gap-2 mb-4">
             <Edit3 size={14} style={{ color: 'var(--accent-blue)' }} />
-            <p className="flex-1 font-black text-sm" style={{ color: 'var(--text-primary)' }}>
+            <p className="flex-1 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
               Distribución del ingreso
             </p>
             <button onClick={cancelarEdicion} style={{
@@ -269,9 +269,9 @@ export default function PresupuestoPage() {
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <input type="number" min="0" max="100" value={b.pct}
                         onChange={e => cambiarPct(b.id, e.target.value)}
-                        className="ff-input text-center font-black w-14"
+                        className="ff-input text-center font-semibold w-14"
                         style={{ color: b.color, fontSize: 18 }} />
-                      <span className="text-base font-black" style={{ color: 'var(--text-muted)' }}>%</span>
+                      <span className="text-base font-semibold" style={{ color: 'var(--text-muted)' }}>%</span>
                     </div>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
@@ -283,7 +283,7 @@ export default function PresupuestoPage() {
                   {b.id === 'futuro' && subBorrador && (
                     <div className="mt-3 pl-3 space-y-2"
                       style={{ borderLeft: `2px solid ${b.color}40` }}>
-                      <p className="text-[9px] font-black uppercase tracking-wider mb-2"
+                      <p className="text-[9px] font-semibold uppercase tracking-wider mb-2"
                         style={{ color: 'var(--text-muted)' }}>
                         Distribución interna — suma 100%
                       </p>
@@ -328,7 +328,7 @@ export default function PresupuestoPage() {
                 ? <CheckCircle size={14} style={{ color: 'var(--accent-green)' }} />
                 : <AlertTriangle size={14} style={{ color: 'var(--accent-rose)' }} />
               }
-              <span className="text-sm font-black"
+              <span className="text-sm font-semibold"
                 style={{ color: panelOk ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                 {!totalOk
                   ? `Bloques: ${totalPct}% — deben ser 100%`
@@ -396,7 +396,7 @@ export default function PresupuestoPage() {
                       <Icon size={18} style={{ color: bloque.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{bloque.descripcion}</p>
                     </div>
                   </div>
@@ -408,7 +408,7 @@ export default function PresupuestoPage() {
                       {bloque.pct}%
                     </span>
                     {ingresoNum > 0 && (
-                      <span className="text-sm font-black" style={{ color: bloque.color }}>
+                      <span className="text-sm font-semibold" style={{ color: bloque.color }}>
                         {formatCurrency(monto)}
                       </span>
                     )}
@@ -442,14 +442,14 @@ export default function PresupuestoPage() {
                       {sobreGiro && (
                         <div className="flex items-center gap-1.5">
                           <AlertTriangle size={10} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
-                          <p className="text-[9px] font-black" style={{ color: 'var(--accent-rose)' }}>
+                          <p className="text-[9px] font-semibold" style={{ color: 'var(--accent-rose)' }}>
                             Sobre-giro: {formatCurrency(gastado - monto)}
                           </p>
                         </div>
                       )}
                       <div className="flex justify-between">
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Disponible</span>
-                        <span className="text-sm font-black"
+                        <span className="text-sm font-semibold"
                           style={{ color: disponible >= 0 ? bloque.color : 'var(--accent-rose)' }}>
                           {formatCurrency(disponible)}
                         </span>
@@ -467,7 +467,7 @@ export default function PresupuestoPage() {
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-1.5">
                               <Target size={11} style={{ color: 'var(--accent-green)' }} />
-                              <span className="text-[9px] font-black uppercase tracking-wider"
+                              <span className="text-[9px] font-semibold uppercase tracking-wider"
                                 style={{ color: 'var(--accent-green)' }}>Metas de Ahorro</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -516,7 +516,7 @@ export default function PresupuestoPage() {
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-1.5">
                               <TrendingUp size={11} style={{ color: 'var(--accent-violet)' }} />
-                              <span className="text-[9px] font-black uppercase tracking-wider"
+                              <span className="text-[9px] font-semibold uppercase tracking-wider"
                                 style={{ color: 'var(--accent-violet)' }}>Inversiones</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -558,7 +558,7 @@ export default function PresupuestoPage() {
                                     <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
                                       Total aportes vs presupuesto
                                     </span>
-                                    <span className="text-[10px] font-black"
+                                    <span className="text-[10px] font-semibold"
                                       style={{ color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                                       {formatCurrency(totalAporte)} / {formatCurrency(montoInversiones)}
                                     </span>
@@ -574,7 +574,7 @@ export default function PresupuestoPage() {
                       {catsBloque.length > 0 && (
                         <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-glass)' }}>
                           <div className="flex items-center justify-between mb-1.5">
-                            <p className="text-[9px] font-black uppercase tracking-wider"
+                            <p className="text-[9px] font-semibold uppercase tracking-wider"
                               style={{ color: 'var(--text-muted)' }}>Otras categorías</p>
                             <button onClick={() => setVista('categorias')}
                               className="text-[9px] font-bold flex items-center gap-0.5"
@@ -614,7 +614,7 @@ export default function PresupuestoPage() {
                       ) : (
                         <>
                           <div className="flex items-center justify-between mb-2">
-                            <p className="text-[9px] font-black uppercase tracking-wider"
+                            <p className="text-[9px] font-semibold uppercase tracking-wider"
                               style={{ color: 'var(--text-muted)' }}>Categorías</p>
                             <button onClick={() => setVista('categorias')}
                               className="text-[9px] font-bold flex items-center gap-0.5"
@@ -671,7 +671,7 @@ export default function PresupuestoPage() {
                   <CircleDollarSign size={18} style={{ color: 'var(--accent-rose)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>Deudas</p>
+                  <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Deudas</p>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Compromisos mensuales fijos</p>
                 </div>
                 <a href="/deudas" className="text-[9px] font-bold flex items-center gap-0.5"
@@ -687,7 +687,7 @@ export default function PresupuestoPage() {
                       <span className="text-sm flex-shrink-0">{d.emoji}</span>
                       <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{d.nombre}</span>
                       {pagadaEsteMes && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
                           style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)', color: 'var(--accent-green)' }}>
                           ✓ pagada
                         </span>
@@ -705,7 +705,7 @@ export default function PresupuestoPage() {
               <div className="mt-3 pt-3 flex items-center justify-between"
                 style={{ borderTop: '1px solid var(--border-glass)' }}>
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total letras este mes</span>
-                <span className="text-sm font-black" style={{ color: 'var(--accent-rose)' }}>
+                <span className="text-sm font-semibold" style={{ color: 'var(--accent-rose)' }}>
                   {formatCurrency(deudas.reduce((s, d) => s + (d.cuota || 0), 0))}
                 </span>
               </div>
@@ -715,7 +715,7 @@ export default function PresupuestoPage() {
           {/* Resumen del mes */}
           {ingresoNum > 0 && (
             <Card className="animate-enter">
-              <h3 className="font-black mb-1" style={{ color: 'var(--text-primary)' }}>Resumen del mes</h3>
+              <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Resumen del mes</h3>
               <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
                 {now.toLocaleString('es-ES', { month: 'long' })} — ingresos registrados
               </p>
@@ -736,7 +736,7 @@ export default function PresupuestoPage() {
                           <Icon size={13} style={{ color: b.color }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{b.nombre}</p>
+                          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{b.nombre}</p>
                           {b.id === 'futuro'
                             ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                 {sub.metas}% metas · {sub.inversiones}% inversiones
@@ -745,7 +745,7 @@ export default function PresupuestoPage() {
                           }
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-black" style={{ color: b.color }}>{formatCurrency(monto)}</p>
+                          <p className="text-sm font-semibold" style={{ color: b.color }}>{formatCurrency(monto)}</p>
                           <p className="text-xs" style={{ color: gastado > monto ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
                             {formatCurrency(gastado)} {b.id === 'futuro' ? 'usado' : 'gastado'}
                           </p>
@@ -758,9 +758,9 @@ export default function PresupuestoPage() {
                   style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
                   <div className="flex items-center gap-2">
                     <CheckCircle size={15} style={{ color: 'var(--accent-green)' }} />
-                    <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>Total ingreso</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Total ingreso</span>
                   </div>
-                  <span className="text-base font-black" style={{ color: 'var(--accent-green)' }}>
+                  <span className="text-base font-semibold" style={{ color: 'var(--accent-green)' }}>
                     {formatCurrency(ingresoNum)}
                   </span>
                 </div>
@@ -774,7 +774,7 @@ export default function PresupuestoPage() {
           <div className="space-y-4">
             {categoriasCfg.length === 0 && metas.length === 0 && inversiones.length === 0 ? (
               <div className="text-center py-16">
-                <p className="font-black text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+                <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
                   Sin elementos configurados
                 </p>
                 <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
@@ -803,7 +803,7 @@ export default function PresupuestoPage() {
                         <Icon size={16} style={{ color: bloque.color }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
+                        <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
                         {ingresoNum > 0 && (
                           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                             {formatCurrency(ingresoNum * (bloque.pct / 100))} del ingreso
@@ -856,7 +856,7 @@ export default function PresupuestoPage() {
                                         </p>
                                       </div>
                                       {ingresoNum > 0 && (
-                                        <span className="text-xs font-black flex-shrink-0"
+                                        <span className="text-xs font-semibold flex-shrink-0"
                                           style={{ color: 'var(--accent-green)' }}>
                                           {formatCurrency(metaMensual)}/mes
                                         </span>
@@ -924,7 +924,7 @@ export default function PresupuestoPage() {
                                         </p>
                                       </div>
                                       {inv.aporte > 0 && (
-                                        <span className="text-xs font-black flex-shrink-0"
+                                        <span className="text-xs font-semibold flex-shrink-0"
                                           style={{ color: 'var(--accent-violet)' }}>
                                           {formatCurrency(inv.aporte)}/mes
                                         </span>
@@ -966,7 +966,7 @@ export default function PresupuestoPage() {
                     {catsBloque.length > 0 && (
                       <div className="space-y-3">
                         {esFuturo && (metas.length > 0 || inversiones.length > 0) && (
-                          <p className="text-[9px] font-black uppercase tracking-wider"
+                          <p className="text-[9px] font-semibold uppercase tracking-wider"
                             style={{ color: 'var(--text-muted)' }}>Otras categorías</p>
                         )}
                         {catsBloque.map(cat => {
@@ -986,7 +986,7 @@ export default function PresupuestoPage() {
                                 <div className="flex items-center gap-2">
                                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                                   <p className="flex-1 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
-                                  <span className="text-xs font-black px-2 py-0.5 rounded-full flex-shrink-0"
+                                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                                     style={{
                                       background: `color-mix(in srgb, ${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 12%, transparent)`,
                                       color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
@@ -1032,7 +1032,7 @@ export default function PresupuestoPage() {
                                             {sub.nombre}
                                           </p>
                                           {(montoPres > 0 || gastadoSub > 0) && (
-                                            <span className="text-xs font-black px-2 py-0.5 rounded-full"
+                                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                                               style={{
                                                 background: `color-mix(in srgb, ${difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 10%, transparent)`,
                                                 color: difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
@@ -1043,7 +1043,7 @@ export default function PresupuestoPage() {
                                         </div>
                                         <div className="flex items-end gap-3">
                                           <div className="flex-1">
-                                            <p className="text-[9px] uppercase tracking-wider font-black mb-1"
+                                            <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
                                               style={{ color: 'var(--text-muted)' }}>Presupuestado</p>
                                             <input
                                               type="number" step="0.01" min="0" placeholder="0.00"
@@ -1056,7 +1056,7 @@ export default function PresupuestoPage() {
                                             />
                                           </div>
                                           <div className="flex-1">
-                                            <p className="text-[9px] uppercase tracking-wider font-black mb-1"
+                                            <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
                                               style={{ color: 'var(--text-muted)' }}>Gastado real</p>
                                             <div className="ff-input flex items-center text-sm font-bold"
                                               style={{

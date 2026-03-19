@@ -291,7 +291,7 @@ export default function InversionesPage() {
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
-          <h1 className="text-xl font-black tracking-tight truncate"
+          <h1 className="text-xl font-semibold tracking-tight truncate"
             style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
         </div>
         <button onClick={abrirNuevo} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
@@ -339,7 +339,7 @@ export default function InversionesPage() {
             style={{ background: `color-mix(in srgb, ${colores.violet} 10%, transparent)` }}>
             <TrendingUp size={24} style={{ color: colores.violet }} />
           </div>
-          <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>Sin carteras registradas</p>
+          <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Sin carteras registradas</p>
           <p className="text-xs" style={{ color: colores.muted }}>Crea tu primera cartera de inversión</p>
           <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
             <button onClick={abrirNuevo} className="ff-btn-primary">Nueva cartera</button>
@@ -355,7 +355,7 @@ export default function InversionesPage() {
           {/* Chips selector de cartera */}
           {/* 1. Título arriba (Fuera del flex) */}
           {inversiones.length > 1 && (
-            <p className="text-[9px] font-black uppercase ml-1 mb-2" style={{ color: colores.muted }}>
+            <p className="text-[9px] font-semibold uppercase ml-1 mb-2" style={{ color: colores.muted }}>
               Todas las carteras
             </p>
           )}
@@ -365,7 +365,7 @@ export default function InversionesPage() {
             {inversiones.map(inv => (
               <button key={inv.id}
                 onClick={() => setSelected(inv)}
-                className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase transition-all"
+                className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold uppercase transition-all"
                 style={{
                   background: selected?.id === inv.id ? `color-mix(in srgb, ${inv.color} 12%, var(--bg-card))` : 'var(--bg-secondary)',
                   color: selected?.id === inv.id ? inv.color : colores.muted,
@@ -397,7 +397,7 @@ export default function InversionesPage() {
                     {selected.emoji}
                   </div>
                   <div>
-                    <p className="font-black text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    <p className="font-semibold text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {selected.nombre}
                     </p>
                     <p className="text-[10px] mt-0.5" style={{ color: colores.muted }}>
@@ -443,9 +443,9 @@ export default function InversionesPage() {
                     }}>
                     <div className="flex items-center justify-center gap-1 mb-1" style={{ color: k.color }}>
                       {k.icon}
-                      <p className="text-[8px] font-black uppercase">{k.label}</p>
+                      <p className="text-[8px] font-semibold uppercase">{k.label}</p>
                     </div>
-                    <p className="text-sm font-black" style={{ color: k.color, letterSpacing: '-0.02em' }}>{k.value}</p>
+                    <p className="text-sm font-semibold" style={{ color: k.color, letterSpacing: '-0.02em' }}>{k.value}</p>
                   </div>
                 ))}
               </div>
@@ -457,10 +457,10 @@ export default function InversionesPage() {
                   border: `1px solid color-mix(in srgb, ${selected.color} 20%, transparent)`,
                 }}>
                 <Target size={13} style={{ color: selected.color, flexShrink: 0 }} />
-                <p className="text-[10px] font-black" style={{ color: selected.color }}>
+                <p className="text-[10px] font-semibold" style={{ color: selected.color }}>
                   Tu dinero se multiplica ×{(calc.finalBalance / (selected.capital || 1)).toFixed(1)} en {selected.anos} años
                 </p>
-                <span className="mx-auto sm:ml-auto sm:mr-0 text-[9px] font-black px-2 py-0.5 rounded-full block sm:inline-block text-center"
+                <span className="mx-auto sm:ml-auto sm:mr-0 text-[9px] font-semibold px-2 py-0.5 rounded-full block sm:inline-block text-center"
                   style={{
                     background: `color-mix(in srgb, ${selected.color} 15%, transparent)`,
                     color: selected.color,
@@ -473,7 +473,7 @@ export default function InversionesPage() {
               {/* Gráfico */}
               {historyData.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-[9px] font-black uppercase mb-2 ml-1" style={{ color: colores.muted }}>
+                  <p className="text-[9px] font-semibold uppercase mb-2 ml-1" style={{ color: colores.muted }}>
                     Proyección de crecimiento
                   </p>
                   <div style={{ height: 160 }}>
@@ -545,11 +545,11 @@ export default function InversionesPage() {
                 }}>
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles size={11} style={{ color: colores.green, flexShrink: 0 }} />
-                  <p className="text-[9px] font-black uppercase" style={{ color: colores.green }}>
+                  <p className="text-[9px] font-semibold uppercase" style={{ color: colores.green }}>
                     Retiro mensual sostenible (Regla del 4%)
                   </p>
                 </div>
-                <p className="text-base font-black" style={{ color: colores.green, letterSpacing: '-0.02em' }}>
+                <p className="text-base font-semibold" style={{ color: colores.green, letterSpacing: '-0.02em' }}>
                   {formatCurrency(calc.finalBalance * 0.04 / 12)}
                   <span className="text-[10px] font-bold opacity-60">/mes para siempre</span>
                 </p>
@@ -563,11 +563,11 @@ export default function InversionesPage() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Target size={13} style={{ color: colores.terra }} />
-                  <p className="text-[10px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>
+                  <p className="text-[10px] font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>
                     Libertad financiera · todas las carteras
                   </p>
                 </div>
-                <p className="text-[10px] font-black" style={{ color: colores.green }}>
+                <p className="text-[10px] font-semibold" style={{ color: colores.green }}>
                   {Math.min(100, (totalProyectado / metaLibertad) * 100).toFixed(1)}%
                 </p>
               </div>
@@ -587,7 +587,7 @@ export default function InversionesPage() {
                 ].map(({ label, val, color }) => (
                   <div key={label} className="flex items-center justify-between">
                     <p className="text-[9px]" style={{ color: colores.muted }}>{label}</p>
-                    <p className="text-[10px] font-black" style={{ color }}>{val}</p>
+                    <p className="text-[10px] font-semibold" style={{ color }}>{val}</p>
                   </div>
                 ))}
               </div>
@@ -597,7 +597,7 @@ export default function InversionesPage() {
                   <div className="my-2 border-t" style={{ borderColor: 'var(--border-glass)' }} />
                   <div className="flex items-center justify-between">
                     <p className="text-[9px]" style={{ color: colores.muted }}>Te faltan</p>
-                    <p className="text-[11px] font-black" style={{ color: colores.rose }}>
+                    <p className="text-[11px] font-semibold" style={{ color: colores.rose }}>
                       {formatCurrency(metaLibertad - totalProyectado)}
                     </p>
                   </div>
@@ -610,7 +610,7 @@ export default function InversionesPage() {
                     return (
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-[9px]" style={{ color: colores.muted }}>Tiempo estimado</p>
-                        <p className="text-[10px] font-black" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-[10px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                           ~{años > 0 ? `${años}a` : ''}{meses > 0 ? ` ${meses}m` : ''}
                         </p>
                       </div>
@@ -623,7 +623,7 @@ export default function InversionesPage() {
           {/* Progreso real por cartera */}
           {inversiones.length > 0 && (
             <Card className="animate-enter" style={{ padding: '14px 16px' }}>
-              <p className="text-[10px] font-black uppercase mb-3" style={{ color: colores.muted }}>
+              <p className="text-[10px] font-semibold uppercase mb-3" style={{ color: colores.muted }}>
                 Carteras activas — capital real vs proyección
               </p>
               <div className="space-y-4">
@@ -638,12 +638,12 @@ export default function InversionesPage() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div style={{ width: 8, height: 8, borderRadius: '50%', background: inv.color, flexShrink: 0 }} />
-                          <span className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>
+                          <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
                             {inv.emoji} {inv.nombre}
                           </span>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-black" style={{ color: inv.color }}>
+                          <p className="text-xs font-semibold" style={{ color: inv.color }}>
                             {formatCurrency(inv.capital)}
                           </p>
                           <p className="text-[9px]" style={{ color: colores.muted }}>
@@ -671,7 +671,7 @@ export default function InversionesPage() {
                 <div className="border-t pt-2 flex items-center justify-between"
                   style={{ borderColor: 'var(--border-glass)' }}>
                   <span className="text-[9px]" style={{ color: colores.muted }}>Total proyectado combinado</span>
-                  <span className="text-[11px] font-black" style={{ color: 'var(--text-primary)' }}>
+                  <span className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {formatCurrency(totalProyectado)}
                   </span>
                 </div>
@@ -739,7 +739,7 @@ export default function InversionesPage() {
                 border: `1px solid color-mix(in srgb, ${form.color} 20%, transparent)`,
               }}>
               Balance proyectado:{' '}
-              <span className="font-black text-sm">{formatCurrency(calcPreview.finalBalance)}</span>
+              <span className="font-semibold text-sm">{formatCurrency(calcPreview.finalBalance)}</span>
               <span className="opacity-60 ml-1">en {form.anos} años</span>
               {calcPreview.totalInterest > 0 && (
                 <span className="opacity-60 ml-2">
@@ -767,7 +767,7 @@ export default function InversionesPage() {
                       : 'var(--bg-secondary)',
                   }}>
                   <p className="text-base mb-0.5">{opt.icon}</p>
-                  <p className="text-[10px] font-black"
+                  <p className="text-[10px] font-semibold"
                     style={{ color: form.bola_nieve === opt.val ? colores.green : 'var(--text-primary)' }}>
                     {opt.title}
                   </p>

@@ -202,7 +202,7 @@ export default function AjustesPage() {
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
-          <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Configuración
           </h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -231,7 +231,7 @@ export default function AjustesPage() {
                     <Icon size={16} style={{ color: bloque.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
+                    <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       {bloque.id === 'futuro'
                         ? `${metas.length} meta${metas.length !== 1 ? 's' : ''} · ${inversiones.length} inversión${inversiones.length !== 1 ? 'es' : ''}`
@@ -313,7 +313,7 @@ export default function AjustesPage() {
                     style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
                     {addingFuturoTipo === 'selecting' ? (
                       <>
-                        <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>¿Qué quieres agregar?</p>
+                        <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>¿Qué quieres agregar?</p>
                         <div className="flex gap-2">
                           {[
                             { key: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)', Icon: Target },
@@ -341,8 +341,8 @@ export default function AjustesPage() {
                       <>
                         <div className="flex items-center gap-2">
                           {addingFuturoTipo === 'metas'
-                            ? <><Target size={13} style={{ color: 'var(--accent-green)' }} /><span className="text-xs font-black" style={{ color: 'var(--accent-green)' }}>Meta de Ahorro</span></>
-                            : <><TrendingUp size={13} style={{ color: 'var(--accent-violet)' }} /><span className="text-xs font-black" style={{ color: 'var(--accent-violet)' }}>Cartera de Inversión</span></>
+                            ? <><Target size={13} style={{ color: 'var(--accent-green)' }} /><span className="text-xs font-semibold" style={{ color: 'var(--accent-green)' }}>Meta de Ahorro</span></>
+                            : <><TrendingUp size={13} style={{ color: 'var(--accent-violet)' }} /><span className="text-xs font-semibold" style={{ color: 'var(--accent-violet)' }}>Cartera de Inversión</span></>
                           }
                         </div>
                         <input

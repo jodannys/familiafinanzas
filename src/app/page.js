@@ -151,7 +151,7 @@ export default function Dashboard() {
     <AppShell>
       <div className="flex h-[70vh] items-center justify-center flex-col gap-6">
         <Loader2 className="animate-spin" size={40} style={{ color: 'var(--accent-green)' }} />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Cargando patrimonio...</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] opacity-40">Cargando patrimonio...</p>
       </div>
     </AppShell>
   )
@@ -164,7 +164,7 @@ export default function Dashboard() {
         <p className="text-[5px] uppercase tracking-widest font-bold mb-0.5"  style={{ fontSize: 8, color: 'var(--text-muted)' }}>
           {saludo()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
-        <h1 className="text-2xl font-black tracking-tight mb-5" style={{ color: 'var(--text-primary)' }}>
+        <h1 className="text-2xl font-semibold tracking-tight mb-5" style={{ color: 'var(--text-primary)' }}>
           Resumen General
         </h1>
 
@@ -186,7 +186,7 @@ export default function Dashboard() {
                 <Icon size={9} style={{ color }} />
                 <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color }}>{label}</span>
               </div>
-              <p className="font-black tracking-tight" style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+              <p className="font-semibold tracking-tight" style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                 {formatCurrency(val)}
               </p>
             </Link>
@@ -212,7 +212,7 @@ export default function Dashboard() {
                     {d.dias === 0 ? '¡Vence hoy!' : `Vence en ${d.dias} día${d.dias !== 1 ? 's' : ''}`}
                   </p>
                 </div>
-                <span className="text-sm font-black flex-shrink-0" style={{ color }}>{formatCurrency(d.cuota)}</span>
+                <span className="text-sm font-semibold flex-shrink-0" style={{ color }}>{formatCurrency(d.cuota)}</span>
               </div>
             )
           })}

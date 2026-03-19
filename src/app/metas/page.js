@@ -294,7 +294,7 @@ export default function MetasPage() {
                         {meta.nombre}
                       </p>
                       {isPausada && (
-                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
                           style={{ background: 'color-mix(in srgb, var(--accent-terra) 12%, transparent)', color: 'var(--accent-terra)' }}>
                           PAUSADA
                         </span>
@@ -403,7 +403,7 @@ export default function MetasPage() {
           {/* Completadas */}
           {completadas.length > 0 && (
             <div className="mt-4">
-              <p className="text-[9px] font-black uppercase tracking-widest mb-2 px-1"
+              <p className="text-[9px] font-semibold uppercase tracking-widest mb-2 px-1"
                 style={{ color: 'var(--text-muted)' }}>
                 Completadas · {completadas.length}
               </p>
@@ -489,7 +489,7 @@ export default function MetasPage() {
                   border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
                 }}>
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase" style={{ color }}>
+                  <span className="text-[9px] font-semibold uppercase" style={{ color }}>
                     {excede ? `⚠ Máximo disponible: ${pctLibre}%` : `${pctLibre - pctActual}% libre tras esta meta`}
                   </span>
                   {!excede && montoActual > 0 && (

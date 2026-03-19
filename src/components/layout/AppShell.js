@@ -142,7 +142,7 @@ function FABModal({ onClose }) {
 
           {/* Monto */}
           <div>
-            <p className="text-[10px] font-black uppercase tracking-wider mb-1.5"
+            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
               style={{ color: 'var(--text-muted)' }}>Monto</p>
             <input
               type="number"
@@ -159,7 +159,7 @@ function FABModal({ onClose }) {
           {/* Categoría (solo egreso) */}
           {tipo === 'egreso' && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-wider mb-1.5"
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: 'var(--text-muted)' }}>Categoría</p>
               <div className="flex flex-wrap gap-2">
                 {CATS_EGRESO.map(c => (
@@ -184,7 +184,7 @@ function FABModal({ onClose }) {
           {/* Picker de item vinculado */}
           {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-wider mb-1.5"
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: 'var(--text-muted)' }}>
                 {cat === 'ahorro' ? 'Meta de ahorro' : cat === 'inversion' ? 'Cartera de inversión' : 'Deuda a pagar'}
               </p>
@@ -230,7 +230,7 @@ function FABModal({ onClose }) {
 
           {/* Descripción */}
           <div>
-            <p className="text-[10px] font-black uppercase tracking-wider mb-1.5"
+            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
               style={{ color: 'var(--text-muted)' }}>Descripción <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 9 }}>(opcional)</span></p>
             <input
               type="text"
@@ -246,7 +246,7 @@ function FABModal({ onClose }) {
           <button
             onClick={guardar}
             disabled={!monto || parseFloat(monto) <= 0 || saving || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)}
-            className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all"
+            className="w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all"
             style={{
               background: (!monto || parseFloat(monto) <= 0 || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)) ? 'var(--bg-secondary)' : 'var(--text-primary)',
               color:      (!monto || parseFloat(monto) <= 0 || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)) ? 'var(--text-muted)' : 'var(--bg-card)',
@@ -358,7 +358,7 @@ export default function AppShell({ children }) {
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border-glass)',
                 }}>
-                <p className="px-4 pt-3 pb-2 text-[9px] font-black uppercase tracking-widest"
+                <p className="px-4 pt-3 pb-2 text-[9px] font-semibold uppercase tracking-widest"
                   style={{ color: 'var(--text-muted)' }}>Tema</p>
                 <div className="px-2 pb-2 space-y-0.5">
                   {Object.entries(THEMES).map(([key, t]) => {

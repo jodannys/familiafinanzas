@@ -63,7 +63,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
           style={{ borderBottom: '1px solid var(--border-glass)' }} // FIX 1: CSS var
         >
           <h3
-            className="text-base font-black"
+            className="text-base font-semibold"
             style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
           >
             {title}

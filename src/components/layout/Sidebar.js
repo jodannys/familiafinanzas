@@ -173,7 +173,7 @@ export default function Sidebar() {
                     {/* Tooltip (solo cuando colapsado) */}
                     {!expanded && (
                       <span
-                        className="hidden lg:block absolute left-[3.8rem] scale-0 group-hover/item:scale-100 transition-all z-50 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest pointer-events-none shadow-2xl whitespace-nowrap"
+                        className="hidden lg:block absolute left-[3.8rem] scale-0 group-hover/item:scale-100 transition-all z-50 px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-widest pointer-events-none shadow-2xl whitespace-nowrap"
                         style={{
                           background: 'var(--bg-card)',
                           border: '1px solid var(--border-glass)',

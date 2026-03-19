@@ -148,7 +148,7 @@ function TipoDeudorToggle({ value, onChange }) {
           { v: 'medeben', l: '🤝 Me deben', desc: 'Alguien me debe a mí' },
         ].map(c => (
           <button type="button" key={c.v} onClick={() => onChange(c.v)}
-            className="py-2.5 px-3 rounded-xl text-[10px] font-black uppercase transition-all text-left"
+            className="py-2.5 px-3 rounded-xl text-[10px] font-semibold uppercase transition-all text-left"
             style={{
               background: value === c.v
                 ? (c.v === 'debo'
@@ -661,7 +661,7 @@ export default function DeudasPage() {
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
-          <h1 className="text-xl font-black tracking-tight truncate"
+          <h1 className="text-xl font-semibold tracking-tight truncate"
             style={{ color: 'var(--text-primary)' }}>Mis Deudas</h1>
         </div>
         <button onClick={abrirNueva} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
@@ -755,7 +755,7 @@ export default function DeudasPage() {
 
                 {diasFaltantes !== null && (
                   <div className="absolute top-2 right-2">
-                    <div className="text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-tighter"
+                    <div className="text-[9px] font-semibold px-2 py-0.5 rounded-lg uppercase tracking-tighter"
                       style={{
                         background: diasFaltantes <= 3
                           ? 'color-mix(in srgb, var(--accent-rose)  15%, transparent)'
@@ -773,15 +773,15 @@ export default function DeudasPage() {
                     <span>{d.emoji}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-black truncate text-sm leading-tight"
+                    <p className="font-semibold truncate text-sm leading-tight"
                       style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
+                      <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full"
                         style={{ background: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, color: cfg.color }}>
                         {cfg.label}
                       </span>
                       {/* Badge debo/medeben */}
-                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                      <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                         style={{
                           background: esMeDeben
                             ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
@@ -800,13 +800,13 @@ export default function DeudasPage() {
                         {d.categoria}
                       </span>
                       {urgencia && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                           style={{ background: urgencia.bg, color: urgencia.text }}>
                           {urgencia.label}
                         </span>
                       )}
                       {pagadaEsteMes && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                           style={{
                             background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
                             color: 'var(--accent-green)',
@@ -817,7 +817,7 @@ export default function DeudasPage() {
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-base font-black tabular-nums"
+                    <p className="text-base font-semibold tabular-nums"
                       style={{ color: d.color || cfg.color, letterSpacing: '-0.02em' }}>
                       {formatCurrency(d.pendiente || 0)}
                     </p>
@@ -854,7 +854,7 @@ export default function DeudasPage() {
                     </span>
                   )}
                   {d.estado === 'pagada' && (
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                    <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                       style={{
                         background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
                         color: 'var(--accent-green)',
@@ -872,7 +872,7 @@ export default function DeudasPage() {
                       <button
                         onClick={e => { e.stopPropagation(); handleMarcarPagada(d) }}
                         disabled={saving || pagadaEsteMes}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 disabled:opacity-40"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase transition-all active:scale-95 disabled:opacity-40"
                         style={{
                           background: pagadaEsteMes
                             ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
@@ -948,7 +948,7 @@ export default function DeudasPage() {
                 {/* Historial de movimientos */}
                 {isExp && (
                   <div className="mt-3 pt-3 border-t space-y-1" style={{ borderColor: 'var(--border-glass)' }}>
-                    <p className="text-[9px] uppercase font-black mb-2" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
                       Historial de movimientos
                     </p>
                     {movsDeuda.length === 0 ? (
@@ -979,7 +979,7 @@ export default function DeudasPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <p className="text-xs font-black tabular-nums"
+                          <p className="text-xs font-semibold tabular-nums"
                             style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                             {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
                           </p>
@@ -1015,24 +1015,24 @@ export default function DeudasPage() {
                 {/* Tabla de amortización */}
                 {isTabla && tablaAmort.length > 0 && (
                   <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}>
-                    <p className="text-[9px] uppercase font-black mb-2" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
                       Tabla de amortización · {d.nombre}
                     </p>
                     <div className="overflow-x-auto -mx-2">
                       <table className="w-full text-[9px] min-w-[460px]">
                         <thead>
                           <tr style={{ color: 'var(--text-muted)' }}>
-                            <th className="px-2 py-1 text-left font-black uppercase">#</th>
-                            <th className="px-2 py-1 text-left font-black uppercase">Mes</th>
-                            <th className="px-2 py-1 text-right font-black uppercase">Cuota</th>
+                            <th className="px-2 py-1 text-left font-semibold uppercase">#</th>
+                            <th className="px-2 py-1 text-left font-semibold uppercase">Mes</th>
+                            <th className="px-2 py-1 text-right font-semibold uppercase">Cuota</th>
                             {(d.tasa_interes > 0 || d.tasa > 0) && (
                               <>
-                                <th className="px-2 py-1 text-right font-black uppercase">Capital</th>
-                                <th className="px-2 py-1 text-right font-black uppercase">Interés</th>
+                                <th className="px-2 py-1 text-right font-semibold uppercase">Capital</th>
+                                <th className="px-2 py-1 text-right font-semibold uppercase">Interés</th>
                               </>
                             )}
-                            <th className="px-2 py-1 text-right font-black uppercase">Saldo</th>
-                            <th className="px-2 py-1 text-center font-black uppercase">Estado</th>
+                            <th className="px-2 py-1 text-right font-semibold uppercase">Saldo</th>
+                            <th className="px-2 py-1 text-center font-semibold uppercase">Estado</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1055,7 +1055,7 @@ export default function DeudasPage() {
                                   {row.fechaLabel}
                                   {esActual && <span className="ml-1 text-[8px] px-1 rounded" style={{ background: 'color-mix(in srgb, var(--accent-violet) 20%, transparent)', color: 'var(--accent-violet)' }}>hoy</span>}
                                 </td>
-                                <td className="px-2 py-1.5 text-right font-black tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                                   {formatCurrency(row.cuota)}
                                 </td>
                                 {(d.tasa_interes > 0 || d.tasa > 0) && (
@@ -1073,9 +1073,9 @@ export default function DeudasPage() {
                                 </td>
                                 <td className="px-2 py-1.5 text-center">
                                   {row.pagada ? (
-                                    <span className="font-black" style={{ color: 'var(--accent-green)' }}>✓</span>
+                                    <span className="font-semibold" style={{ color: 'var(--accent-green)' }}>✓</span>
                                   ) : esPasada ? (
-                                    <span className="font-black" style={{ color: 'var(--accent-rose)' }}>!</span>
+                                    <span className="font-semibold" style={{ color: 'var(--accent-rose)' }}>!</span>
                                   ) : (
                                     <span style={{ color: 'var(--text-muted)' }}>—</span>
                                   )}
@@ -1086,18 +1086,18 @@ export default function DeudasPage() {
                         </tbody>
                         <tfoot>
                           <tr style={{ borderTop: '1px solid var(--border-glass)' }}>
-                            <td colSpan={2} className="px-2 py-1.5 font-black text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>
+                            <td colSpan={2} className="px-2 py-1.5 font-semibold text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>
                               Total
                             </td>
-                            <td className="px-2 py-1.5 text-right font-black tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                            <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                               {formatCurrency(tablaAmort.reduce((s, r) => s + r.cuota, 0))}
                             </td>
                             {(d.tasa_interes > 0 || d.tasa > 0) && (
                               <>
-                                <td className="px-2 py-1.5 text-right font-black tabular-nums" style={{ color: 'var(--accent-blue)' }}>
+                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-blue)' }}>
                                   {formatCurrency(tablaAmort.reduce((s, r) => s + r.capital, 0))}
                                 </td>
-                                <td className="px-2 py-1.5 text-right font-black tabular-nums" style={{ color: 'var(--accent-rose)' }}>
+                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-rose)' }}>
                                   {formatCurrency(tablaAmort.reduce((s, r) => s + r.interes, 0))}
                                 </td>
                               </>
@@ -1129,7 +1129,7 @@ export default function DeudasPage() {
             {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
               <button type="button" key={key}
                 onClick={() => setTipoSeleccionado(key)}
-                className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                className="py-2.5 rounded-xl text-[10px] font-semibold uppercase transition-all"
                 style={{
                   background: tipoSeleccionado === key ? `color-mix(in srgb, ${cfg.color} 15%, transparent)` : 'var(--bg-secondary)',
                   color: tipoSeleccionado === key ? cfg.color : 'var(--text-muted)',
@@ -1153,7 +1153,7 @@ export default function DeudasPage() {
                     borderColor: 'color-mix(in srgb, var(--accent-violet) 30%, transparent)',
                     background: 'color-mix(in srgb, var(--accent-violet) 4%, transparent)',
                   }}>
-                  <label className="text-[10px] font-black uppercase mb-2 block"
+                  <label className="text-[10px] font-semibold uppercase mb-2 block"
                     style={{ color: 'var(--accent-violet)' }}>
                     Selecciona la tarjeta usada
                   </label>
@@ -1165,7 +1165,7 @@ export default function DeudasPage() {
                           handleSeleccionarTarjetaPerfil(t.id)
                         }}
                         disabled={t.estado === 'pausada'}
-                        className="flex-shrink-0 px-3 py-2 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2"
+                        className="flex-shrink-0 px-3 py-2 rounded-xl border text-[10px] font-semibold uppercase transition-all flex items-center gap-2"
                         style={{
                           borderColor: t.estado === 'pausada'
                             ? 'var(--border-glass)'
@@ -1179,7 +1179,7 @@ export default function DeudasPage() {
                         }}>
                         💳 {t.nombre_tarjeta}
                         {t.estado === 'pausada' && (
-                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full ml-1"
+                          <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full ml-1"
                             style={{
                               background: 'color-mix(in srgb, var(--accent-terra) 15%, transparent)',
                               color: 'var(--accent-terra)',
@@ -1228,7 +1228,7 @@ export default function DeudasPage() {
                     color: 'var(--accent-violet)',
                   }}>
                   Cuota mensual estimada:{' '}
-                  <span className="font-black">
+                  <span className="font-semibold">
                     {formatCurrency(parseFloat(formTarjeta.monto_compra) / parseInt(formTarjeta.num_cuotas) || 0)}
                   </span>
                 </div>
@@ -1284,7 +1284,7 @@ export default function DeudasPage() {
                   {[{ v: false, l: '0% — Sin interés' }, { v: true, l: 'Con interés' }].map(c => (
                     <button type="button" key={String(c.v)}
                       onClick={() => setFormPrestamo(p => ({ ...p, tiene_interes: c.v, tasa_interes: '' }))}
-                      className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                      className="py-2.5 rounded-xl text-[10px] font-semibold uppercase transition-all"
                       style={{
                         background: formPrestamo.tiene_interes === c.v ? 'color-mix(in srgb, var(--accent-rose) 10%, transparent)' : 'var(--bg-secondary)',
                         color: formPrestamo.tiene_interes === c.v ? 'var(--accent-rose)' : 'var(--text-muted)',
@@ -1309,7 +1309,7 @@ export default function DeudasPage() {
                   {[{ v: false, l: 'Plazo fijo' }, { v: true, l: 'Pago libre' }].map(c => (
                     <button type="button" key={String(c.v)}
                       onClick={() => setFormPrestamo(p => ({ ...p, plazo_libre: c.v, plazo_meses: '' }))}
-                      className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+                      className="py-2.5 rounded-xl text-[10px] font-semibold uppercase transition-all"
                       style={{
                         background: formPrestamo.plazo_libre === c.v ? 'color-mix(in srgb, var(--accent-blue) 10%, transparent)' : 'var(--bg-secondary)',
                         color: formPrestamo.plazo_libre === c.v ? 'var(--accent-blue)' : 'var(--text-muted)',
@@ -1335,7 +1335,7 @@ export default function DeudasPage() {
                     color: 'var(--accent-rose)',
                   }}>
                   Cuota mensual estimada:{' '}
-                  <span className="font-black">
+                  <span className="font-semibold">
                     {formatCurrency(calcularCuota(
                       parseFloat(formPrestamo.capital),
                       formPrestamo.tiene_interes ? parseFloat(formPrestamo.tasa_interes) || 0 : 0,
@@ -1504,7 +1504,7 @@ export default function DeudasPage() {
               {[{ v: 'cargo', l: '↓ Cargo' }, { v: 'pago', l: '↑ Pago' }].map(t => (
                 <button type="button" key={t.v}
                   onClick={() => setFormMov(p => ({ ...p, tipo: t.v }))}
-                  className="py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                  className="py-2.5 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all"
                   style={{
                     background: formMov.tipo === t.v ? 'var(--bg-card)' : 'transparent',
                     color: formMov.tipo === t.v ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -1536,7 +1536,7 @@ export default function DeudasPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Monto (€)</label>
-              <input className="ff-input text-lg font-black" type="number" step="0.01" placeholder="0.00" required
+              <input className="ff-input text-lg font-semibold" type="number" step="0.01" placeholder="0.00" required
                 value={formMov.monto}
                 onChange={e => setFormMov(p => ({ ...p, monto: e.target.value }))} />
             </div>
@@ -1579,7 +1579,7 @@ function CategoriaToggle({ value, onChange }) {
     <div className="grid grid-cols-2 gap-2">
       {[{ v: 'deseo', l: 'Gasto Deseo' }, { v: 'basicos', l: 'Gasto Básico' }].map(c => (
         <button type="button" key={c.v} onClick={() => onChange(c.v)}
-          className="py-2.5 rounded-xl text-[10px] font-black uppercase transition-all"
+          className="py-2.5 rounded-xl text-[10px] font-semibold uppercase transition-all"
           style={{
             background: value === c.v ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)' : 'var(--bg-secondary)',
             color: value === c.v ? 'var(--accent-green)' : 'var(--text-muted)',
