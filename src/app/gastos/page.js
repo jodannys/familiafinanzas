@@ -482,8 +482,8 @@ export default function GastosPage() {
                   fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
                   letterSpacing: '0.12em', color: colores.muted, marginBottom: 4,
                 }}>{s.label}</p>
-                <p className="font-serif" style={{
-                  fontSize: 16, fontWeight: 400,
+                <p style={{
+                  fontSize: 15, fontWeight: 600,
                   color: s.color, lineHeight: 1,
                 }}>{s.value}</p>
               </div>
@@ -543,7 +543,7 @@ export default function GastosPage() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    <p className="text-sm font-medium truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {m.descripcion}
                     </p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -566,7 +566,7 @@ export default function GastosPage() {
                   </div>
 
                   <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
-                    <p className="text-sm font-black tabular-nums"
+                    <p className="text-sm font-semibold tabular-nums"
                       style={{ color: m.tipo === 'ingreso' ? colores.green : colores.rose }}>
                       {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
                     </p>

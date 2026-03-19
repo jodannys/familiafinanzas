@@ -216,7 +216,7 @@ h1, h2 {
   animation: enter 0.4s cubic-bezier(0.2, 0, 0.2, 1) forwards;
 }
 
-h1, h2, h3 { letter-spacing: -0.02em; font-weight: 400 !important; }
+h1, h2, h3 { letter-spacing: -0.02em; font-weight: 400; }
 
 
 body {

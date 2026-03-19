@@ -403,8 +403,8 @@ export default function PresupuestoPage() {
 
                   {/* % + monto */}
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="font-serif text-3xl font-bold flex-1"
-                      style={{ color: bloque.color, letterSpacing: '-0.03em' }}>
+                    <span className="text-3xl font-semibold flex-1"
+                      style={{ color: bloque.color, letterSpacing: '-0.02em' }}>
                       {bloque.pct}%
                     </span>
                     {ingresoNum > 0 && (

@@ -327,9 +327,9 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
             <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
               Disponible en el sobre
             </p>
-            <h2 className="text-4xl font-serif mb-4 tracking-tight" style={{ color: 'var(--accent-terra)' }}>
+            <p className="text-4xl font-semibold mb-4 tracking-tight" style={{ color: 'var(--accent-terra)' }}>
               {formatCurrency(Math.max(0, saldoSobre))}
-            </h2>
+            </p>
 
             {/* Barra de progreso */}
             <div className="w-full h-2.5 rounded-full mb-2" style={{ background: 'var(--progress-track)' }}>

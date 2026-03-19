@@ -211,7 +211,7 @@ export default function MetasPage() {
       <div className="grid grid-cols-3 gap-2 mb-5 animate-enter">
         <div className="glass-card p-3">
           <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Ahorrado</p>
-          <p className="font-serif text-lg leading-tight" style={{ color: 'var(--accent-green)' }}>
+          <p className="text-base font-semibold leading-tight" style={{ color: 'var(--accent-green)' }}>
             {formatCurrency(totalAhorrado)}
           </p>
           {totalObjetivo > 0 && (
@@ -222,7 +222,7 @@ export default function MetasPage() {
         </div>
         <div className="glass-card p-3">
           <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Activas</p>
-          <p className="font-serif text-lg leading-tight" style={{ color: 'var(--accent-terra)' }}>
+          <p className="text-base font-semibold leading-tight" style={{ color: 'var(--accent-terra)' }}>
             {activas.length}
           </p>
           {completadas.length > 0 && (
@@ -233,7 +233,7 @@ export default function MetasPage() {
         </div>
         <div className="glass-card p-3">
           <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Mensual</p>
-          <p className="font-serif text-lg leading-tight" style={{ color: 'var(--accent-violet)' }}>
+          <p className="text-base font-semibold leading-tight" style={{ color: 'var(--accent-violet)' }}>
             {presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}
           </p>
           {pctDisponible > 0 && activas.length > 0 && (
@@ -315,7 +315,7 @@ export default function MetasPage() {
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-serif text-2xl leading-none" style={{ color: meta.color }}>
+                    <p className="text-2xl font-semibold leading-none" style={{ color: meta.color }}>
                       {pct}%
                     </p>
                   </div>

@@ -84,7 +84,7 @@ export default function Sidebar() {
             opacity: expanded ? 1 : 0,
             transform: expanded ? 'translateX(0)' : 'translateX(-8px)',
           }}>
-          Familia Finanzas
+          Familia Quintero
         </span>
       </div>
 
