@@ -9,6 +9,11 @@ import { getPresupuestoMes } from '@/lib/presupuesto'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { useTheme, getThemeColors } from '@/lib/themes'
 
+function fechaHoy() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function mesesRestantes(actual, meta, pctMensual, montoDisponible = 0) {
   // FIX 5: si ya llegó o superó la meta, mostrar completada
   if (actual >= meta) return 'Completada'
@@ -129,9 +134,12 @@ export default function MetasPage() {
       return
     }
 
+    // BUG FIX: obtener el objeto meta del estado para acceder a meta.meta
+    const metaObj = metas.find(m => m.id === id)
+    if (!metaObj) return
+
     const montoAuto = (pctMeta / 100) * presupuesto.montoMetas
 
-    // FIX 2: excluir la meta actual del total para no doble-contarla
     const totalAsignadoOtras = metas
       .filter(m => m.id !== id && m.estado === 'activa')
       .reduce((s, m) => s + (m.pct_mensual || 0), 0)
@@ -144,21 +152,22 @@ export default function MetasPage() {
 
     if (!confirm(`¿Aportar ${formatCurrency(montoAuto)} automáticamente a "${nombreMeta}"?`)) return
 
-    const nuevoMonto = montoActual + montoAuto
-    const { error: metaError } = await supabase.from('metas').update({ actual: nuevoMonto }).eq('id', id)
-    if (metaError) { setError('Error al actualizar la meta'); return }
+    // BUG FIX: deshabilitar botón durante la operación
+    setSaving(true)
 
-    // FIX: celebración si llegó al 100%
-    if (nuevoMonto >= meta.meta) {
-      await supabase.from('metas').update({ estado: 'completada' }).eq('id', id)
-      setMetas(prev => prev.map(m => m.id === id
-        ? { ...m, actual: nuevoMonto, estado: 'completada' }
-        : m
-      ))
-      // Confetti o alert simple
-      setTimeout(() => alert(`🎉 ¡Meta "${nombreMeta}" completada!`), 300)
-    } else {
-      setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
+    const nuevoMonto = montoActual + montoAuto
+    const completada = nuevoMonto >= metaObj.meta
+
+    // BUG FIX: actualizar meta y movimiento antes de tocar estado
+    const { error: metaError } = await supabase.from('metas').update({
+      actual: nuevoMonto,
+      ...(completada && { estado: 'completada' }),
+    }).eq('id', id)
+
+    if (metaError) {
+      setError('Error al actualizar la meta')
+      setSaving(false)
+      return
     }
 
     // FIX 1: guardar meta_id para poder revertir correctamente desde Gastos
@@ -172,7 +181,17 @@ export default function MetasPage() {
       meta_id: id,
     }])
 
-    setMetas(prev => prev.map(m => m.id === id ? { ...m, actual: nuevoMonto } : m))
+    // BUG FIX: una sola actualización de estado (eliminada la duplicada)
+    setMetas(prev => prev.map(m => m.id === id
+      ? { ...m, actual: nuevoMonto, ...(completada && { estado: 'completada' }) }
+      : m
+    ))
+
+    setSaving(false)
+
+    if (completada) {
+      setTimeout(() => alert(`🎉 ¡Meta "${nombreMeta}" completada!`), 300)
+    }
   }
 
   async function handleEstado(id, estado) {

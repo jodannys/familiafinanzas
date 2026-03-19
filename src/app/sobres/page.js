@@ -190,16 +190,38 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
     }
     setSaving(true)
     const hoy = fechaHoy()
-    await supabase.from('movimientos').insert([{
+
+    // BUG FIX: operación en dos pasos con rollback manual
+    // Paso 1: insertar movimiento de gasto
+    const { data: movData, error: movError } = await supabase.from('movimientos').insert([{
       tipo: 'egreso', categoria: 'deseo',
       descripcion: gastoTemp.descripcion, monto: gastoTemp.monto,
       fecha: hoy, quien: gastoTemp.quien || 'Ambos',
-    }])
-    await supabase.from('sobre_movimientos').insert([{
+    }]).select()
+
+    if (movError) {
+      setSaving(false)
+      alert('Error al registrar el gasto: ' + movError.message)
+      return
+    }
+
+    // Paso 2: insertar traspaso en sobre_movimientos
+    const { error: sobreError } = await supabase.from('sobre_movimientos').insert([{
       descripcion: `Traspaso desde ${origenTraspaso} → Sobre`,
       monto: gastoTemp.monto, origen: origenTraspaso,
       mes: filtroMes, año: filtroAño, fecha: hoy,
     }])
+
+    if (sobreError) {
+      // BUG FIX: rollback — borrar el movimiento si el traspaso falló
+      if (movData?.[0]?.id) {
+        await supabase.from('movimientos').delete().eq('id', movData[0].id)
+      }
+      setSaving(false)
+      alert('Error al registrar el traspaso. La operación fue revertida.')
+      return
+    }
+
     setSaving(false)
     setModalTraspaso(false)
     setGastoTemp(null)
@@ -208,23 +230,27 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
     cargarTodo()
   }
 
- async function confirmarSobrante() {
-  const monto = parseFloat(montoSobrante) || 0
-  if (!monto || monto > saldoSobre) return
-  setSaving(true)
-  const hoy = fechaHoy()
+  async function confirmarSobrante() {
+    const monto = parseFloat(montoSobrante) || 0
+    if (!monto || monto > saldoSobre) return
+    setSaving(true)
+    const hoy = fechaHoy()
 
-  await supabase.from('sobre_movimientos').insert([{
-    descripcion: `Sobrante → ${destinoSobrante}`,
-    monto, origen: 'sobre', destino: destinoSobrante,
-    mes: filtroMes, año: filtroAño, fecha: hoy,
-  }])
+    const { error } = await supabase.from('sobre_movimientos').insert([{
+      descripcion: `Sobrante → ${destinoSobrante}`,
+      monto, origen: 'sobre', destino: destinoSobrante,
+      mes: filtroMes, año: filtroAño, fecha: hoy,
+    }])
 
-  setSaving(false)
-  setModalSobrante(false)
-  setMontoSobrante('')
-  cargarTodo()
-}
+    setSaving(false)
+    if (error) {
+      alert('Error al registrar el sobrante: ' + error.message)
+      return
+    }
+    setModalSobrante(false)
+    setMontoSobrante('')
+    cargarTodo()
+  }
 
   async function handleEliminar(mov) {
     if (!confirm('¿Eliminar este movimiento?')) return

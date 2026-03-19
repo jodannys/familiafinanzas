@@ -48,10 +48,15 @@ export default function GastosPage() {
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [presupuesto, setPresupuesto] = useState(null)
   const [colores, setColores] = useState({})
+  const [subcategorias, setSubcategorias] = useState([])
+  const [categoriasCfg, setCategoriasCfg] = useState([])
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
-    categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys'
+    categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys',
+    subcategoria_id: '',
   })
+  const [hayMas, setHayMas] = useState(false)
+  const LIMITE_INICIAL = 100
 
   const now = new Date()
   const mes = now.getMonth() + 1
@@ -92,6 +97,8 @@ export default function GastosPage() {
     getPresupuestoMes().then(setPresupuesto)
     cargarMovimientos()
     cargarPresupuesto()
+    supabase.from('categorias').select('*').order('bloque').order('nombre').then(({ data }) => setCategoriasCfg(data || []))
+    supabase.from('subcategorias').select('*').order('orden').order('nombre').then(({ data }) => setSubcategorias(data || []))
     supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
     supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
@@ -105,12 +112,23 @@ export default function GastosPage() {
       })
   }, [])
 
-  async function cargarMovimientos() {
+  async function cargarMovimientos(cargarTodos = false) {
     setLoading(true)
     setError(null)
-    const { data, error } = await supabase.from('movimientos').select('*').order('fecha', { ascending: false })
-    if (error) setError('Error al cargar movimientos: ' + error.message)
-    else setMovs(data || [])
+    // BUG FIX: paginación — carga los últimos LIMITE_INICIAL registros por defecto
+    const query = supabase.from('movimientos').select('*').order('fecha', { ascending: false })
+    const { data, error } = cargarTodos ? await query : await query.limit(LIMITE_INICIAL + 1)
+    if (error) {
+      setError('Error al cargar movimientos: ' + error.message)
+    } else {
+      if (!cargarTodos && data && data.length > LIMITE_INICIAL) {
+        setMovs(data.slice(0, LIMITE_INICIAL))
+        setHayMas(true)
+      } else {
+        setMovs(data || [])
+        setHayMas(false)
+      }
+    }
     setLoading(false)
   }
 
@@ -125,7 +143,7 @@ export default function GastosPage() {
     setTarjetaSeleccionada('')
     setMetaSeleccionada('')
     setDeudaSeleccionada('')
-    setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys' })
+    setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys', subcategoria_id: '' })
   }
 
 
@@ -182,9 +200,10 @@ export default function GastosPage() {
       categoria: form.categoria,
       fecha: form.fecha,
       quien: form.quien,
-      ...(deudaId && { deuda_id: deudaId }),   // FIX 2: persiste deuda_id
-      ...(metaId && { meta_id: metaId }),       // FIX 2: persiste meta_id
-      ...(invId && { inversion_id: invId }),   // FIX 2: persiste inversion_id
+      ...(deudaId && { deuda_id: deudaId }),
+      ...(metaId && { meta_id: metaId }),
+      ...(invId && { inversion_id: invId }),
+      ...(form.subcategoria_id && { subcategoria_id: form.subcategoria_id }),
     }
 
     const { data, error } = await supabase.from('movimientos').insert([payloadMov]).select()
@@ -268,11 +287,11 @@ export default function GastosPage() {
   async function handleDelete(movimiento) {
     if (!confirm(`¿Eliminar "${movimiento.descripcion}"?`)) return
     try {
-      // ── Revertir meta (FIX 1: usa meta_id si existe) ─────────────────────
+      // ── Revertir meta ─────────────────────────────────────────────────────
       if (movimiento.categoria === 'ahorro') {
         const meta = movimiento.meta_id
           ? metasData.find(m => m.id === movimiento.meta_id)
-          : metasData.find(m => m.nombre === movimiento.descripcion) // fallback legacy
+          : metasData.find(m => m.nombre === movimiento.descripcion)
         if (meta) {
           const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto)
           await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
@@ -280,11 +299,11 @@ export default function GastosPage() {
         }
       }
 
-      // ── Revertir inversión (FIX 1: usa inversion_id si existe) ───────────
+      // ── Revertir inversión ────────────────────────────────────────────────
       if (movimiento.categoria === 'inversion') {
         const inv = movimiento.inversion_id
           ? inversionesData.find(i => i.id === movimiento.inversion_id)
-          : inversionesData.find(i => i.nombre === movimiento.descripcion) // fallback legacy
+          : inversionesData.find(i => i.nombre === movimiento.descripcion)
         if (inv) {
           const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto)
           await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id)
@@ -292,7 +311,9 @@ export default function GastosPage() {
         }
       }
 
-      // ── Revertir deuda (FIX 3: borra deuda_movimiento por ID exacto) ─────
+      // ── Revertir deuda ────────────────────────────────────────────────────
+      let deudaMovimientoId = movimiento.deuda_movimiento_id || null
+
       if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
         const { data: deudaData } = await supabase
           .from('deudas').select('id, pendiente, monto, pagadas, estado')
@@ -312,21 +333,6 @@ export default function GastosPage() {
             estado: nuevoEstado,
           }).eq('id', movimiento.deuda_id)
 
-          // FIX 3: borrar por ID exacto si está disponible, sino por filtros
-          if (movimiento.deuda_movimiento_id) {
-            await supabase.from('deuda_movimientos')
-              .delete().eq('id', movimiento.deuda_movimiento_id)
-          } else {
-            // fallback para registros legacy sin deuda_movimiento_id
-            await supabase.from('deuda_movimientos')
-              .delete()
-              .eq('deuda_id', movimiento.deuda_id)
-              .eq('tipo', 'pago')
-              .eq('monto', movimiento.monto)
-              .eq('fecha', movimiento.fecha)
-              .limit(1)
-          }
-
           setDeudasData(prev => prev.map(d =>
             d.id === movimiento.deuda_id
               ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados }
@@ -335,9 +341,25 @@ export default function GastosPage() {
         }
       }
 
+      // BUG FIX: borrar movimientos PRIMERO (tiene FK a deuda_movimientos)
+      // Si se borra deuda_movimientos antes, la FK violation impide la operación
       const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
-      if (!error) setMovs(prev => prev.filter(m => m.id !== movimiento.id))
-      else alert('Error al borrar: ' + error.message)
+      if (error) { alert('Error al borrar: ' + error.message); return }
+      setMovs(prev => prev.filter(m => m.id !== movimiento.id))
+
+      // Ahora sí borrar deuda_movimientos (ya sin referencias en movimientos)
+      if (movimiento.categoria === 'deuda' && deudaMovimientoId) {
+        await supabase.from('deuda_movimientos').delete().eq('id', deudaMovimientoId)
+      } else if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
+        // fallback legacy sin deuda_movimiento_id
+        await supabase.from('deuda_movimientos')
+          .delete()
+          .eq('deuda_id', movimiento.deuda_id)
+          .eq('tipo', 'pago')
+          .eq('monto', movimiento.monto)
+          .eq('fecha', movimiento.fecha)
+          .limit(1)
+      }
     } catch (err) {
       console.error('Error en borrado:', err)
     }
@@ -563,6 +585,24 @@ export default function GastosPage() {
           )}
         </Card>
 
+        {/* Cargar más movimientos */}
+        {hayMas && (
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => cargarMovimientos(true)}
+              disabled={loading}
+              className="px-6 py-2.5 rounded-xl text-xs font-bold border transition-all"
+              style={{
+                borderColor: 'var(--border-glass)',
+                color: 'var(--text-muted)',
+                background: 'var(--bg-secondary)',
+              }}>
+              {loading ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
+              Cargar historial completo
+            </button>
+          </div>
+        )}
+
         {/* MODAL NUEVO MOVIMIENTO */}
         <Modal open={modal} onClose={resetModal} title="Nuevo Movimiento">
           <form onSubmit={handleAdd} className="space-y-4">
@@ -607,6 +647,34 @@ export default function GastosPage() {
                 </select>
               </div>
             </div>
+
+            {/* Subcategoría (si hay configuradas) */}
+            {form.tipo === 'egreso' && (() => {
+              const bloqueActual = CAT_BLOQUE[form.categoria]
+              const catsDisp = categoriasCfg.filter(c => c.bloque === bloqueActual)
+              const subsDisp = subcategorias.filter(s => catsDisp.some(c => c.id === s.categoria_id))
+              if (subsDisp.length === 0) return null
+              return (
+                <div className="space-y-1 animate-enter">
+                  <label className="ff-label">Subcategoría (opcional)</label>
+                  <select className="ff-input h-12 text-sm" value={form.subcategoria_id}
+                    onChange={e => setForm({ ...form, subcategoria_id: e.target.value })}>
+                    <option value="">— Sin subcategoría —</option>
+                    {catsDisp.map(cat => {
+                      const subsGrupo = subcategorias.filter(s => s.categoria_id === cat.id)
+                      if (subsGrupo.length === 0) return null
+                      return (
+                        <optgroup key={cat.id} label={cat.nombre}>
+                          {subsGrupo.map(sub => (
+                            <option key={sub.id} value={sub.id}>{sub.nombre}</option>
+                          ))}
+                        </optgroup>
+                      )
+                    })}
+                  </select>
+                </div>
+              )
+            })()}
 
             {/* Tarjeta de crédito */}
             {form.tipo === 'egreso' && form.categoria !== 'deuda' && tarjetasData.length > 0 && (

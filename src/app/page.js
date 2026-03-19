@@ -52,7 +52,9 @@ export default function Dashboard() {
     async function cargar() {
       try {
         const [{ data: m }, { data: mt }, { data: d }] = await Promise.all([
-          supabase.from('movimientos').select('*').order('fecha', { ascending: false }),
+          supabase.from('movimientos').select('*')
+            .gte('fecha', `${new Date().getFullYear()}-01-01`)
+            .order('fecha', { ascending: false }),
           supabase.from('metas').select('*').order('created_at'),
           supabase.from('deudas').select('*').eq('estado', 'activa'),
         ])
@@ -99,17 +101,17 @@ export default function Dashboard() {
   }, [movs, añoActual])
 
   // ── KPIs del mes ──────────────────────────────────────────────────────────
-  const ingresosMes = movsMes
-    .filter(m => m.tipo === 'ingreso')
-    .reduce((s, m) => s + (m.monto || 0), 0)
+  const ingresosMes = useMemo(() =>
+    movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
+  , [movsMes])
 
-  const gastosMes = movsMes
-    .filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria))
-    .reduce((s, m) => s + (m.monto || 0), 0)
+  const gastosMes = useMemo(() =>
+    movsMes.filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
+  , [movsMes])
 
-  const ahorroMes = movsMes
-    .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria))
-    .reduce((s, m) => s + (m.monto || 0), 0)
+  const ahorroMes = useMemo(() =>
+    movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
+  , [movsMes])
 
   const egresosMes = gastosMes + ahorroMes
   const saldoLibre = ingresosMes - egresosMes

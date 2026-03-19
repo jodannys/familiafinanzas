@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, Target, TrendingUp, PieChart,
-  CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign
+  CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2
 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
 
@@ -30,6 +30,12 @@ const MENU_GROUPS = [
       { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
       { href: '/deudas', label: 'Deudas', icon: CircleDollarSign },
       { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard },
+    ]
+  },
+  {
+    title: 'Sistema',
+    items: [
+      { href: '/ajustes', label: 'Configuración', icon: Settings2 },
     ]
   }
 ]

@@ -107,16 +107,26 @@ export default function ReportesPage() {
   // FIX 1: presupuesto_bloques no tiene mes/año — quitar esos filtros
   useEffect(() => {
     async function cargar() {
-      const [{ data: movData }, { data: blqData }] = await Promise.all([
-        supabase.from('movimientos').select('*').order('fecha'),
-        supabase.from('presupuesto_bloques').select('*'),
-      ])
-      setMovs(movData || [])
-      setBloques(blqData || [])
-      setLoading(false)
+      setLoading(true)
+      try {
+        const [{ data: movData, error: movErr }, { data: blqData }] = await Promise.all([
+          supabase.from('movimientos').select('*')
+            .gte('fecha', `${año}-01-01`)
+            .lte('fecha', `${año}-12-31`)
+            .order('fecha'),
+          supabase.from('presupuesto_bloques').select('*'),
+        ])
+        if (movErr) throw movErr
+        setMovs(movData || [])
+        setBloques(blqData || [])
+      } catch (err) {
+        console.error('Error cargando reportes:', err)
+      } finally {
+        setLoading(false)
+      }
     }
     cargar()
-  }, [])
+  }, [año])
 
   // FIX 4: todos los cálculos derivados memoizados
   const movsAño = useMemo(() =>

@@ -164,19 +164,34 @@ export default function TarjetasPage() {
 
   async function handleToggleEstado(tarjeta) {
     const nuevoEstado = tarjeta.estado === 'activa' ? 'pausada' : 'activa'
-    await supabase.from('perfiles_tarjetas').update({ estado: nuevoEstado }).eq('id', tarjeta.id)
+    // BUG FIX: sólo actualizar estado local si la BD confirma el cambio
+    const { error } = await supabase.from('perfiles_tarjetas').update({ estado: nuevoEstado }).eq('id', tarjeta.id)
+    if (error) {
+      alert('Error al cambiar estado: ' + error.message)
+      return
+    }
     setTarjetas(prev => prev.map(t => t.id === tarjeta.id ? { ...t, estado: nuevoEstado } : t))
   }
 
   async function handleDelete(id) {
     if (!confirm('¿Eliminar esta tarjeta? Las compras a plazos asociadas quedarán sin perfil.')) return
 
-    // FIX 2: desvincular deudas antes de borrar para no dejar IDs rotos
-    await supabase.from('deudas')
+    // Desvincular deudas primero
+    const { error: errDesvincular } = await supabase.from('deudas')
       .update({ perfil_tarjeta_id: null })
       .eq('perfil_tarjeta_id', id)
 
-    await supabase.from('perfiles_tarjetas').delete().eq('id', id)
+    if (errDesvincular) {
+      alert('Error al desvincular deudas: ' + errDesvincular.message)
+      return
+    }
+
+    // BUG FIX: sólo borrar localmente si la BD confirma el borrado
+    const { error } = await supabase.from('perfiles_tarjetas').delete().eq('id', id)
+    if (error) {
+      alert('Error al eliminar la tarjeta: ' + error.message)
+      return
+    }
 
     setTarjetas(prev => prev.filter(t => t.id !== id))
     setDeudas(prev => prev.map(d =>

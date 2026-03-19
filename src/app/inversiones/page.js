@@ -195,7 +195,18 @@ export default function InversionesPage() {
   // FIX 4: borrar movimientos huérfanos al eliminar cartera
   async function handleDelete(id) {
     if (!confirm('¿Eliminar esta cartera?')) return
-    await supabase.from('movimientos').delete().eq('inversion_id', id)
+    // BUG FIX: deshabilitar durante la operación para evitar doble click
+    setSaving(true)
+    setError(null)
+
+    // BUG FIX: verificar error en borrado de movimientos antes de continuar
+    const { error: errMovs } = await supabase.from('movimientos').delete().eq('inversion_id', id)
+    if (errMovs) {
+      setError('Error al borrar movimientos asociados: ' + errMovs.message)
+      setSaving(false)
+      return
+    }
+
     const { error } = await supabase.from('inversiones').delete().eq('id', id)
     if (!error) {
       const resto = inversiones.filter(i => i.id !== id)
@@ -204,6 +215,7 @@ export default function InversionesPage() {
     } else {
       setError(error.message)
     }
+    setSaving(false)
   }
 
   // ── MEMOS — todos al nivel del componente, nunca dentro de loops ──────────
@@ -254,6 +266,18 @@ export default function InversionesPage() {
   }, [gastosMes, presupuesto])
 
   const metaLibertad = baseGastos > 0 ? baseGastos * 12 * 25 : null
+
+  // BUG FIX: memoizar el preview del formulario para no recalcular en cada keystroke
+  const calcPreview = useMemo(() => {
+    if (!form.capital || !form.tasa || !form.anos) return null
+    return calculateCompoundInterest({
+      principal: parseFloat(form.capital) || 0,
+      monthlyContribution: parseFloat(form.aporte) || 0,
+      annualRate: parseFloat(form.tasa) || 0,
+      years: parseInt(form.anos) || 10,
+      compound: form.bola_nieve,
+    })
+  }, [form.capital, form.aporte, form.tasa, form.anos, form.bola_nieve])
 
   // Tooltip con colores inyectados
   const TooltipConColores = (props) => <CustomTooltip {...props} colores={colores} />
@@ -696,29 +720,24 @@ export default function InversionesPage() {
             </div>
           </div>
 
-          {/* Preview en tiempo real */}
-          {form.capital && form.tasa && form.anos && (() => {
-            const prev = calculateCompoundInterest({
-              principal: parseFloat(form.capital) || 0,
-              monthlyContribution: parseFloat(form.aporte) || 0,
-              annualRate: parseFloat(form.tasa) || 0,
-              years: parseInt(form.anos) || 10,
-              compound: form.bola_nieve,
-            })
-            const c = form.color
-            return (
-              <div className="px-3 py-2.5 rounded-xl text-[10px] font-bold"
-                style={{
-                  background: `color-mix(in srgb, ${c} 8%, transparent)`,
-                  color: c,
-                  border: `1px solid color-mix(in srgb, ${c} 20%, transparent)`,
-                }}>
-                Balance proyectado:{' '}
-                <span className="font-black text-sm">{formatCurrency(prev.finalBalance)}</span>
-                <span className="opacity-60 ml-1">en {form.anos} años</span>
-              </div>
-            )
-          })()}
+          {/* Preview en tiempo real — usa memo para no recalcular en cada tecla */}
+          {calcPreview && (
+            <div className="px-3 py-2.5 rounded-xl text-[10px] font-bold"
+              style={{
+                background: `color-mix(in srgb, ${form.color} 8%, transparent)`,
+                color: form.color,
+                border: `1px solid color-mix(in srgb, ${form.color} 20%, transparent)`,
+              }}>
+              Balance proyectado:{' '}
+              <span className="font-black text-sm">{formatCurrency(calcPreview.finalBalance)}</span>
+              <span className="opacity-60 ml-1">en {form.anos} años</span>
+              {calcPreview.totalInterest > 0 && (
+                <span className="opacity-60 ml-2">
+                  · Ganancias: {formatCurrency(calcPreview.totalInterest)}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Toggle Bola de Nieve */}
           <div>
