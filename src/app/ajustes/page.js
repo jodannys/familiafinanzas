@@ -201,9 +201,7 @@ export default function AjustesPage() {
           <Settings2 size={18} style={{ color: 'var(--accent-violet)' }} />
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>
-            Módulo
-          </p>
+          <p className="font-script mb-0.5" style={{ fontSize: 13, color: 'var(--text-muted)' }}>Módulo</p>
           <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Configuración
           </h1>

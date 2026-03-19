@@ -218,8 +218,7 @@ export default function MetasPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6 animate-enter">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
-            style={{ color: 'var(--text-muted)' }}>Módulo</p>
+          <p className="font-script mb-0.5" style={{ fontSize: 13, color: "var(--text-muted)" }}>Módulo</p>
           <h1 className="text-xl font-black tracking-tight"
             style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</h1>
         </div>
@@ -248,9 +247,8 @@ export default function MetasPage() {
           { label: 'Destinado', value: presupuesto ? formatCurrency(presupuesto.montoMetas) : '—', color: 'var(--accent-terra)', badge: presupuesto ? `${presupuesto.pctMetas}%` : null },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter relative" style={{ animationDelay: `${i * 0.05}s` }}>
-            <p className="text-[9px] uppercase tracking-wider font-bold mb-1 truncate"
-              style={{ color: 'var(--text-muted)' }}>{s.label}</p>
-            <p className="text-sm font-extrabold leading-tight" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+            <p className="font-script mb-1 truncate" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.label}</p>
+            <p className="font-serif text-sm font-bold leading-tight" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
             {s.badge && (
               <span className="absolute top-2 right-2 text-[8px] font-black px-1 py-0.5 rounded-full"
                 style={{
@@ -331,7 +329,7 @@ export default function MetasPage() {
                       )}
                     </div>
                   </div>
-                  <span className="text-xl font-black tabular-nums"
+                  <span className="font-serif text-xl font-bold tabular-nums"
                     style={{ color: meta.color, letterSpacing: '-0.03em', minWidth: 44, textAlign: 'right', flexShrink: 0 }}>
                     {pct}%
                   </span>

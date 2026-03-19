@@ -287,8 +287,7 @@ export default function ReportesPage() {
       {/* HEADER */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
-            style={{ color: colores.muted }}>Módulo</p>
+          <p className="font-script mb-0.5" style={{ fontSize: 13, color: colores.muted }}>Módulo</p>
           <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Reportes</h1>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0"

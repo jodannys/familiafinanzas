@@ -209,9 +209,7 @@ export default function PresupuestoPage() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4 animate-enter">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>
-            Módulo
-          </p>
+          <p className="font-script mb-0.5" style={{ fontSize: 13, color: 'var(--text-muted)' }}>Módulo</p>
           <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Mi Presupuesto
           </h1>
@@ -397,7 +395,7 @@ export default function PresupuestoPage() {
 
                   {/* % + monto */}
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-3xl font-black flex-1"
+                    <span className="font-serif text-3xl font-bold flex-1"
                       style={{ color: bloque.color, letterSpacing: '-0.03em' }}>
                       {bloque.pct}%
                     </span>
