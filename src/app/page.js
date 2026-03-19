@@ -1,13 +1,14 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import { ProgressBar } from '@/components/ui/Card'
 import {
-  Wallet, Target, Loader2, ArrowUpRight, ArrowDownRight
+  Wallet, Target, Loader2, ArrowUpRight, ArrowDownRight,
+  TrendingUp, CircleDollarSign, ChevronRight
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { FinanceChart } from '@/components/ui/FinanceChart'
+import Link from 'next/link'
 
 const COLORES_CAT = {
   basicos: 'var(--accent-blue)',
@@ -15,6 +16,21 @@ const COLORES_CAT = {
   ahorro: 'var(--accent-green)',
   inversion: 'var(--accent-gold)',
   deuda: 'var(--accent-rose)',
+}
+
+const NOMBRES_CAT = {
+  basicos: 'Necesidades',
+  deseo: 'Estilo de vida',
+  deuda: 'Deudas',
+  ahorro: 'Ahorro',
+  inversion: 'Inversión',
+}
+
+function saludo() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Buenos días'
+  if (h < 19) return 'Buenas tardes'
+  return 'Buenas noches'
 }
 
 function diasHastaPago(diaPago) {
@@ -25,42 +41,30 @@ function diasHastaPago(diaPago) {
   return (ultimoDiaMes - hoy) + diaPago
 }
 
-function urgenciaAlerta(dias) {
-  if (dias <= 3) return {
-    bg: 'rgba(239, 68, 68, 0.1)',
-    border: 'var(--accent-rose)',
-    text: 'var(--accent-rose)',
-    label: dias === 0 ? '¡Hoy!' : `${dias}d`,
-  }
-  return {
-    bg: 'rgba(193, 122, 58, 0.1)',
-    border: 'var(--accent-terra)',
-    text: 'var(--accent-terra)',
-    label: `${dias}d`,
-  }
-}
-
 export default function Dashboard() {
-  const [movs, setMovs] = useState([])
-  const [metas, setMetas] = useState([])
-  const [deudas, setDeudas] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
+  const [movs, setMovs]           = useState([])
+  const [metas, setMetas]         = useState([])
+  const [deudas, setDeudas]       = useState([])
+  const [inversiones, setInversiones] = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [mounted, setMounted]     = useState(false)
 
   useEffect(() => {
     setMounted(true)
     async function cargar() {
       try {
-        const [{ data: m }, { data: mt }, { data: d }] = await Promise.all([
+        const [{ data: m }, { data: mt }, { data: d }, { data: inv }] = await Promise.all([
           supabase.from('movimientos').select('*')
             .gte('fecha', `${new Date().getFullYear()}-01-01`)
             .order('fecha', { ascending: false }),
           supabase.from('metas').select('*').order('created_at'),
           supabase.from('deudas').select('*').eq('estado', 'activa'),
+          supabase.from('inversiones').select('*').order('created_at'),
         ])
         setMovs(m || [])
         setMetas(mt || [])
         setDeudas(d || [])
+        setInversiones(inv || [])
       } catch (err) {
         console.error(err)
       } finally {
@@ -70,324 +74,322 @@ export default function Dashboard() {
     cargar()
   }, [])
 
-  const now = new Date()
-  const mesActual = now.getMonth()
-  const añoActual = now.getFullYear()
+  const now        = new Date()
+  const mesActual  = now.getMonth()
+  const añoActual  = now.getFullYear()
 
-  // ── Movimientos del mes actual ────────────────────────────────────────────
   const movsMes = useMemo(() =>
     movs.filter(m => {
       const [year, month] = m.fecha.split('-').map(Number)
       return month - 1 === mesActual && year === añoActual
-    })
-    , [movs, mesActual, añoActual])
+    }), [movs, mesActual, añoActual])
 
-  // ── Gráfico anual — solo gastos corrientes (sin ahorro/inversión) ─────────
-  const dataGraficoReal = useMemo(() => {
-    if (!movs || movs.length === 0) return []
-    const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  const ultimosMovs = useMemo(() => movsMes.slice(0, 6), [movsMes])
+
+  const dataGrafico = useMemo(() => {
+    if (!movs.length) return []
+    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
     const porMes = Array.from({ length: 12 }, (_, i) => ({ name: MESES[i], gastos: 0, ingresos: 0 }))
     movs.forEach(mov => {
       const mes = parseInt(mov.fecha.split('-')[1], 10) - 1
       const año = parseInt(mov.fecha.split('-')[0], 10)
       if (año !== añoActual || mes < 0 || mes > 11) return
-      if (mov.tipo === 'ingreso') {
-        porMes[mes].ingresos += (mov.monto || 0)
-      } else if (mov.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(mov.categoria)) {
-        porMes[mes].gastos += (mov.monto || 0)
-      }
+      if (mov.tipo === 'ingreso') porMes[mes].ingresos += (mov.monto || 0)
+      else if (['basicos','deseo','deuda'].includes(mov.categoria)) porMes[mes].gastos += (mov.monto || 0)
     })
     return porMes
   }, [movs, añoActual])
 
-  // ── KPIs del mes ──────────────────────────────────────────────────────────
   const ingresosMes = useMemo(() =>
-    movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0)
-  , [movsMes])
+    movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0), [movsMes])
 
   const gastosMes = useMemo(() =>
-    movsMes.filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
-  , [movsMes])
+    movsMes.filter(m => m.tipo === 'egreso' && ['deseo','basicos','deuda'].includes(m.categoria))
+      .reduce((s, m) => s + (m.monto || 0), 0), [movsMes])
 
   const ahorroMes = useMemo(() =>
-    movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria)).reduce((s, m) => s + (m.monto || 0), 0)
-  , [movsMes])
+    movsMes.filter(m => m.tipo === 'egreso' && ['ahorro','inversion'].includes(m.categoria))
+      .reduce((s, m) => s + (m.monto || 0), 0), [movsMes])
 
-  const egresosMes = gastosMes + ahorroMes
-  const saldoLibre = ingresosMes - egresosMes
+  const saldoLibre = ingresosMes - gastosMes - ahorroMes
 
-  // ── Distribución — solo sobre gastos corrientes ───────────────────────────
   const distribucionReal = useMemo(() => {
-    const catTotales = {}
-    movsMes
-      .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(m.categoria))
-      .forEach(m => { catTotales[m.categoria] = (catTotales[m.categoria] || 0) + m.monto })
-    return Object.entries(catTotales).map(([name, value]) => ({
-      name,
-      value: Math.round((value / (gastosMes || 1)) * 100),
-      color: COLORES_CAT[name] || 'var(--text-muted)',
-    }))
+    const totales = {}
+    movsMes.filter(m => m.tipo === 'egreso' && ['basicos','deseo','deuda'].includes(m.categoria))
+      .forEach(m => { totales[m.categoria] = (totales[m.categoria] || 0) + m.monto })
+    return Object.entries(totales)
+      .map(([name, monto]) => ({
+        name, monto,
+        pct: Math.round((monto / (gastosMes || 1)) * 100),
+        color: COLORES_CAT[name] || 'var(--text-muted)',
+      }))
+      .sort((a, b) => b.monto - a.monto)
   }, [movsMes, gastosMes])
 
-  // ── Alertas de deuda — excluir las ya pagadas este mes ───────────────────
-  const deudasPagadasEsteMes = useMemo(() => new Set(
-    movsMes
-      .filter(m => m.tipo === 'egreso' && m.categoria === 'deuda' && m.deuda_id)
-      .map(m => m.deuda_id)
+  const deudasPagadas = useMemo(() => new Set(
+    movsMes.filter(m => m.tipo === 'egreso' && m.categoria === 'deuda' && m.deuda_id).map(m => m.deuda_id)
   ), [movsMes])
 
-  const alertasDeuda = useMemo(() =>
+  const alertas = useMemo(() =>
     deudas
       .map(d => ({ ...d, dias: diasHastaPago(d.dia_pago) }))
-      .filter(d => d.dias !== null && d.dias <= 7 && !deudasPagadasEsteMes.has(d.id))
+      .filter(d => d.dias !== null && d.dias <= 7 && !deudasPagadas.has(d.id))
       .sort((a, b) => a.dias - b.dias)
-    , [deudas, deudasPagadasEsteMes])
+  , [deudas, deudasPagadas])
 
-  // ── Barras KPI con porcentajes reales ─────────────────────────────────────
-  const pctIngresos = ingresosMes > 0 ? 100 : 0
-  const pctGastos = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes / ingresosMes) * 100)) : 0
-  const pctAhorro = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes / ingresosMes) * 100)) : 0
-  const pctSaldoLibre = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
+  // Patrimonio
+  const totalAhorro      = useMemo(() => metas.reduce((s, m) => s + (m.actual || 0), 0), [metas])
+  const totalInversiones = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
+  const totalDeudas      = useMemo(() => deudas.reduce((s, d) => s + (d.cuota || 0), 0), [deudas])
 
-  const KPI_CONFIG = [
-    { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', icon: ArrowUpRight, signo: '+', pct: pctIngresos },
-    { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', icon: ArrowDownRight, signo: '-', pct: pctGastos },
-    { label: 'Ahorro mes', val: ahorroMes, col: 'var(--accent-terra)', icon: Target, signo: '', pct: pctAhorro },
-    { label: 'Saldo Libre', val: saldoLibre, col: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', icon: Wallet, signo: '', pct: pctSaldoLibre },
-  ]
+  const pctGastos   = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes  / ingresosMes) * 100)) : 0
+  const pctAhorro   = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes  / ingresosMes) * 100)) : 0
+  const pctDisp     = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
 
   if (!mounted) return null
-
   if (loading) return (
     <AppShell>
       <div className="flex h-[70vh] items-center justify-center flex-col gap-6">
-        <Loader2 className="animate-spin" size={48} style={{ color: 'var(--accent-green)' }} />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Actualizando Patrimonio...</p>
+        <Loader2 className="animate-spin" size={40} style={{ color: 'var(--accent-green)' }} />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Cargando patrimonio...</p>
       </div>
     </AppShell>
   )
 
   return (
     <AppShell>
-      <div className="mb-10 animate-enter">
-        <h1 className="text-[20px] font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
+
+      {/* ── Header ── */}
+      <div className="mb-7 animate-enter">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] mb-1" style={{ color: 'var(--text-muted)' }}>
+          {saludo()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
+        <h1 className="text-2xl font-black tracking-tighter mb-5" style={{ color: 'var(--text-primary)' }}>
           Resumen General
         </h1>
-        <p className="text-[11px] font-bold opacity-50 uppercase tracking-[0.2em] mt-1" style={{ color: 'var(--text-secondary)' }}>
-          {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
-        </p>
+
+        {/* Strip patrimonio */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: 'En metas',  val: totalAhorro,      color: 'var(--accent-green)',  Icon: Target,          href: '/metas'      },
+            { label: 'Invertido', val: totalInversiones,  color: 'var(--accent-violet)', Icon: TrendingUp,      href: '/inversiones' },
+            { label: 'Deudas',    val: totalDeudas,       color: 'var(--accent-rose)',   Icon: CircleDollarSign, href: '/deudas'     },
+          ].map(({ label, val, color, Icon, href }) => (
+            <Link key={label} href={href}
+              className="flex flex-col gap-1.5 p-3 rounded-2xl transition-all hover:scale-[1.02]"
+              style={{
+                background: `color-mix(in srgb, ${color} 7%, var(--bg-card))`,
+                border: `1px solid color-mix(in srgb, ${color} 18%, transparent)`,
+                textDecoration: 'none',
+              }}>
+              <div className="flex items-center gap-1">
+                <Icon size={9} style={{ color }} />
+                <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color }}>{label}</span>
+              </div>
+              <p className="font-black tracking-tight" style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                {formatCurrency(val)}
+              </p>
+            </Link>
+          ))}
+        </div>
       </div>
 
-      {/* ── Alertas de deuda ── */}
-      {alertasDeuda.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-          {alertasDeuda.map(d => {
-            const urg = urgenciaAlerta(d.dias)
+      {/* ── Alertas deuda ── */}
+      {alertas.length > 0 && (
+        <div className="space-y-2 mb-7">
+          {alertas.map(d => {
+            const color = d.dias <= 3 ? 'var(--accent-rose)' : 'var(--accent-terra)'
             return (
-              <div key={d.id}
-                className="relative flex items-center gap-4 p-5 rounded-[30px] border shadow-sm transition-transform hover:scale-[1.01]"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-[30px]" style={{ background: urg.text }} />
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{ background: urg.bg }}>
-                  {d.emoji}
-                </div>
+              <div key={d.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                style={{
+                  background: `color-mix(in srgb, ${color} 7%, var(--bg-card))`,
+                  border: `1px solid color-mix(in srgb, ${color} 18%, transparent)`,
+                }}>
+                <span className="text-base flex-shrink-0">{d.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-[10px] font-black uppercase opacity-40">Vence en {urg.label}</p>
-                    <span className="text-sm font-black tabular-nums" style={{ color: urg.text }}>{formatCurrency(d.cuota)}</span>
-                  </div>
-                  <p className="text-base font-bold truncate tracking-tight" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
+                  <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
+                  <p style={{ fontSize: 10, color }}>
+                    {d.dias === 0 ? '¡Vence hoy!' : `Vence en ${d.dias} día${d.dias !== 1 ? 's' : ''}`}
+                  </p>
                 </div>
+                <span className="text-sm font-black flex-shrink-0" style={{ color }}>{formatCurrency(d.cuota)}</span>
               </div>
             )
           })}
         </div>
       )}
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
-        {KPI_CONFIG.map((kpi, i) => (
-          <div key={i}
-            className="relative overflow-hidden flex flex-col justify-between animate-enter"
+      {/* ── KPIs ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
+        {[
+          { label: 'Ingresos',   val: ingresosMes, col: 'var(--accent-green)',                                         Icon: ArrowUpRight,   signo: '+', pct: 100   },
+          { label: 'Gastos',     val: gastosMes,   col: 'var(--accent-rose)',                                          Icon: ArrowDownRight, signo: '-', pct: pctGastos },
+          { label: 'Futuro',     val: ahorroMes,   col: 'var(--accent-terra)',                                         Icon: Target,         signo: '',  pct: pctAhorro },
+          { label: 'Disponible', val: saldoLibre,  col: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', Icon: Wallet,         signo: '',  pct: pctDisp   },
+        ].map((k, i) => (
+          <div key={i} className="animate-enter"
             style={{
-              background: 'var(--bg-card)',
-              borderRadius: 28,
-              padding: '20px 20px 16px',
-              minHeight: 130,
-              border: '1px solid var(--border-glass)',
+              background: 'var(--bg-card)', borderRadius: 24, padding: '18px 18px 14px',
+              minHeight: 118, border: '1px solid var(--border-glass)',
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
               animationDelay: `${i * 0.06}s`,
             }}>
-
-            {/* Label + icono */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{
-                fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
-                letterSpacing: '0.18em', color: 'var(--text-muted)',
-              }}>
-                {kpi.label}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-muted)' }}>
+                {k.label}
               </span>
               <div style={{
-                width: 28, height: 28, borderRadius: 10,
-                background: `color-mix(in srgb, ${kpi.col} 12%, transparent)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                width: 26, height: 26, borderRadius: 9, flexShrink: 0,
+                background: `color-mix(in srgb, ${k.col} 12%, transparent)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <kpi.icon size={13} style={{ color: kpi.col }} strokeWidth={2.5} />
+                <k.Icon size={12} style={{ color: k.col }} strokeWidth={2.5} />
               </div>
             </div>
-
-            {/* Valor + barra */}
             <div>
-              <p style={{
-                fontSize: 20, fontWeight: 900, letterSpacing: '-0.04em',
-                color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 10,
-              }}>
-                {kpi.signo}{formatCurrency(Math.abs(kpi.val))}
+              <p style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8 }}>
+                {k.signo}{formatCurrency(Math.abs(k.val))}
               </p>
-              <div style={{
-                height: 3, borderRadius: 999,
-                background: `color-mix(in srgb, ${kpi.col} 15%, transparent)`,
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  height: '100%', width: `${kpi.pct}%`,
-                  background: kpi.col, borderRadius: 999,
-                }} />
+              <div style={{ height: 3, borderRadius: 999, background: `color-mix(in srgb, ${k.col} 12%, transparent)`, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${k.pct}%`, background: k.col, borderRadius: 999 }} />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ── Gráfico + Distribución ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+      {/* ── Gráfico + Últimos movimientos ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-7">
+
         <div className="lg:col-span-2">
-          <FinanceChart data={dataGraficoReal} />
+          <FinanceChart data={dataGrafico} />
         </div>
 
-        {/* Distribución */}
-        <div className="flex flex-col rounded-[40px] overflow-hidden"
+        {/* Últimos movimientos */}
+        <div className="flex flex-col rounded-[28px] overflow-hidden"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
-
-          <div style={{ padding: '24px 28px 20px', borderBottom: '1px solid var(--border-glass)' }}>
-            <p style={{
-              fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
-              letterSpacing: '0.2em', color: 'var(--text-muted)',
-            }}>
-              Distribución
+          <div className="flex items-center justify-between px-5 py-3.5"
+            style={{ borderBottom: '1px solid var(--border-glass)' }}>
+            <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-muted)' }}>
+              Últimos movimientos
             </p>
+            <Link href="/gastos" style={{ color: 'var(--text-muted)', display: 'flex' }}>
+              <ChevronRight size={14} />
+            </Link>
           </div>
-
-          <div style={{ padding: '20px 28px 28px', flex: 1, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {distribucionReal.length > 0 ? distribucionReal.map(d => (
-              <div key={d.name}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'capitalize', color: 'var(--text-secondary)' }}>
-                      {d.name}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-                    {d.value}%
-                  </span>
+          <div className="flex-1">
+            {ultimosMovs.length === 0 ? (
+              <p className="text-center text-xs italic py-8" style={{ color: 'var(--text-muted)' }}>Sin movimientos este mes</p>
+            ) : ultimosMovs.map((m, idx) => (
+              <div key={m.id} className="flex items-center gap-3 px-5 py-2.5"
+                style={{ borderBottom: idx < ultimosMovs.length - 1 ? '1px solid var(--border-glass)' : 'none' }}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: `color-mix(in srgb, ${m.tipo === 'ingreso' ? 'var(--accent-green)' : COLORES_CAT[m.categoria] || 'var(--text-muted)'} 12%, transparent)` }}>
+                  {m.tipo === 'ingreso'
+                    ? <ArrowUpRight size={12} style={{ color: 'var(--accent-green)' }} />
+                    : <ArrowDownRight size={12} style={{ color: COLORES_CAT[m.categoria] || 'var(--text-muted)' }} />
+                  }
                 </div>
-                <div style={{ height: 4, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', width: `${d.value}%`,
-                    background: d.color, borderRadius: 999,
-                    transition: 'width 1s cubic-bezier(0.2,0,0.2,1)',
-                  }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                    {m.descripcion || NOMBRES_CAT[m.categoria] || m.categoria}
+                  </p>
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    {new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                  </p>
                 </div>
+                <span style={{ fontSize: 11, fontWeight: 900, flexShrink: 0, color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-primary)' }}>
+                  {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
+                </span>
               </div>
-            )) : (
-              <p style={{
-                textAlign: 'center', fontSize: 10, fontWeight: 700,
-                textTransform: 'uppercase', opacity: 0.3, fontStyle: 'italic',
-                color: 'var(--text-muted)', marginTop: 'auto', marginBottom: 'auto',
-              }}>Sin egresos este mes</p>
-            )}
+            ))}
           </div>
         </div>
       </div>
 
-      {/* ── Metas ── */}
-      <div className="rounded-[40px] overflow-hidden mb-4"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
+      {/* ── Distribución + Metas ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        <div style={{ padding: '24px 32px 20px', borderBottom: '1px solid var(--border-glass)' }}>
-          <p style={{
-            fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
-            letterSpacing: '0.2em', color: 'var(--text-muted)',
-          }}>
-            Objetivos de Ahorro
-          </p>
+        {/* Distribución */}
+        <div className="rounded-[28px] overflow-hidden"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
+          <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-glass)' }}>
+            <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-muted)' }}>
+              Distribución del mes
+            </p>
+          </div>
+          <div className="px-5 py-4 space-y-4">
+            {distribucionReal.length > 0 ? distribucionReal.map(d => (
+              <div key={d.name}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      {NOMBRES_CAT[d.name] || d.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatCurrency(d.monto)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-primary)' }}>{d.pct}%</span>
+                  </div>
+                </div>
+                <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${d.pct}%`, background: d.color, borderRadius: 999, transition: 'width 1s cubic-bezier(0.2,0,0.2,1)' }} />
+                </div>
+              </div>
+            )) : (
+              <p className="text-center text-xs italic py-6" style={{ color: 'var(--text-muted)' }}>Sin egresos este mes</p>
+            )}
+          </div>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: 1,
-          background: 'var(--border-glass)',
-        }}>
-          {metas
-            .filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta)
-            .map(m => {
+        {/* Metas */}
+        <div className="lg:col-span-2 rounded-[28px] overflow-hidden"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
+          <div className="flex items-center justify-between px-5 py-3.5"
+            style={{ borderBottom: '1px solid var(--border-glass)' }}>
+            <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-muted)' }}>
+              Metas de Ahorro
+            </p>
+            <Link href="/metas" style={{ color: 'var(--text-muted)', display: 'flex' }}>
+              <ChevronRight size={14} />
+            </Link>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 1, background: 'var(--border-glass)' }}>
+            {metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).length === 0 ? (
+              <div style={{ background: 'var(--bg-card)', padding: '28px 20px', textAlign: 'center' }}>
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin metas activas</p>
+              </div>
+            ) : metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).map(m => {
               const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
               return (
-                <div key={m.id} style={{ background: 'var(--bg-card)', padding: '24px 28px' }}>
-
-                  {/* Top: emoji + nombre + porcentaje */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 12, flexShrink: 0,
-                        background: `${m.color}18`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-                      }}>
-                        {getFlagEmoji(m.emoji)}
-                      </div>
-                      <span style={{
-                        fontSize: 13, fontWeight: 800, letterSpacing: '-0.02em',
-                        color: 'var(--text-primary)', lineHeight: 1.2,
-                      }}>
-                        {m.nombre}
-                      </span>
-                    </div>
-                    <span style={{
-                      fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em',
-                      color: m.color, flexShrink: 0, marginLeft: 8,
-                    }}>
-                      {pct}%
-                    </span>
-                  </div>
-
-                  {/* Barra */}
-                  <div style={{
-                    height: 5, borderRadius: 999,
-                    background: 'var(--progress-track)',
-                    overflow: 'hidden', marginBottom: 12,
-                  }}>
+                <div key={m.id} style={{ background: 'var(--bg-card)', padding: '18px 20px' }}>
+                  <div className="flex items-center gap-2.5 mb-3">
                     <div style={{
-                      height: '100%', width: `${pct}%`,
-                      background: m.color, borderRadius: 999,
-                      transition: 'width 1.2s cubic-bezier(0.2,0,0.2,1)',
-                    }} />
+                      width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                      background: `${m.color}18`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                    }}>
+                      {getFlagEmoji(m.emoji)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{m.nombre}</p>
+                      <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        {formatCurrency(m.actual || 0)} / {formatCurrency(m.meta)}
+                      </p>
+                    </div>
+                    <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: '-0.04em', color: m.color, flexShrink: 0 }}>{pct}%</span>
                   </div>
-
-                  {/* Montos */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '-0.02em', color: m.color }}>
-                      {formatCurrency(m.actual || 0)}
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
-                      / {formatCurrency(m.meta)}
-                    </span>
+                  <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: m.color, borderRadius: 999, transition: 'width 1.2s cubic-bezier(0.2,0,0.2,1)' }} />
                   </div>
                 </div>
               )
             })}
+          </div>
         </div>
       </div>
+
     </AppShell>
   )
 }
