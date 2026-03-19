@@ -5,7 +5,7 @@ import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import {
   Plus, Loader2, Trash2, CreditCard, Landmark,
-  ChevronDown, ChevronUp, Pencil,
+  ChevronDown, ChevronUp, Pencil, MessageCircle,
   ArrowDownRight, ArrowUpRight, Calendar, Check, AlertCircle, Table2, X
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -181,9 +181,9 @@ export default function DeudasPage() {
 
   const defaultColor = () => themeColors[0] || '#818CF8'
 
-  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: fechaHoy(), color: defaultColor() })
-  const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', tipo: 'debo', emoji: '🏦', nombre: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor() })
-  const makeFormCuota = () => ({ tipo_deuda: 'cuota', tipo: 'debo', emoji: '📅', nombre: '', categoria: 'deseo', deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor() })
+  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: fechaHoy(), color: defaultColor(), telefono: '' })
+  const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', tipo: 'debo', emoji: '🏦', nombre: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor(), telefono: '' })
+  const makeFormCuota = () => ({ tipo_deuda: 'cuota', tipo: 'debo', emoji: '📅', nombre: '', categoria: 'deseo', deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor(), telefono: '' })
 
   const [deudas, setDeudas] = useState([])
   const [movimientos, setMovimientos] = useState({})
@@ -243,7 +243,7 @@ export default function DeudasPage() {
 
       if (deudasOrdenadas.length) {
         const { data: movs, error: e3 } = await supabase
-          .from('deuda_movimientos').select('*').order('fecha', { ascending: false })
+          .from('deuda_movimientos').select('*').order('fecha', { ascending: true })
         if (!e3) {
           const grouped = {}
             ; (movs || []).forEach(m => {
@@ -277,7 +277,7 @@ export default function DeudasPage() {
         categoria: d.categoria || 'deseo', tarjeta_id: '',
         limite: d.limite?.toString() || '', monto_compra: d.capital?.toString() || '',
         num_cuotas: d.plazo_meses?.toString() || '',
-        fecha_operacion: fechaHoy(), color: c,
+        fecha_operacion: fechaHoy(), color: c, telefono: d.telefono || '',
       })
     } else if (d.tipo_deuda === 'prestamo') {
       setFormPrestamo({
@@ -287,13 +287,13 @@ export default function DeudasPage() {
         tiene_interes: (d.tasa_interes || d.tasa || 0) > 0,
         plazo_meses: d.plazo_meses?.toString() || '', plazo_libre: !d.plazo_meses,
         fecha_primer_pago: d.fecha_primer_pago || '', dia_pago: d.dia_pago?.toString() || '',
-        color: c,
+        color: c, telefono: d.telefono || '',
       })
     } else {
       setFormCuota({
         tipo_deuda: 'cuota', tipo: tipoDeudor, emoji: d.emoji || '📅', nombre: d.nombre || '',
         categoria: d.categoria || 'deseo', monto: d.cuota?.toString() || '',
-        dia_pago: d.dia_pago?.toString() || '', color: c,
+        dia_pago: d.dia_pago?.toString() || '', color: c, telefono: d.telefono || '',
       })
     }
     setModalDeuda(true)
@@ -333,6 +333,7 @@ export default function DeudasPage() {
         capital, monto: capital, pendiente: capital, cuota, plazo_meses: meses,
         perfil_tarjeta_id: f.tarjeta_id || null, tasa: 0, tasa_interes: 0,
         dia_pago: null, color: f.color, estado: 'activa', pagadas: 0,
+        telefono: f.telefono || null,
       }
     } else if (tipoSeleccionado === 'prestamo') {
       const f = formPrestamo
@@ -346,6 +347,7 @@ export default function DeudasPage() {
         tasa, tasa_interes: tasa, plazo_meses: meses, cuota,
         fecha_primer_pago: f.fecha_primer_pago || null, dia_pago: parseInt(f.dia_pago) || null,
         color: f.color, estado: 'activa', pagadas: 0,
+        telefono: f.telefono || null,
       }
     } else {
       const f = formCuota
@@ -382,6 +384,7 @@ export default function DeudasPage() {
         categoria: f.categoria, cuota: monto, monto, capital: monto, pendiente: monto,
         dia_pago: parseInt(f.dia_pago) || null, color: f.color,
         estado: 'activa', pagadas: 0, tasa: 0, tasa_interes: 0,
+        telefono: f.telefono || null,
       }
     }
 
@@ -915,6 +918,20 @@ export default function DeudasPage() {
                         <Table2 size={12} />
                       </IconBtn>
                     )}
+                    {d.telefono && (
+                      <IconBtn
+                        onClick={() => {
+                          const phone = d.telefono.replace(/\D/g, '')
+                          const monto = formatCurrency(d.cuota || d.pendiente || 0)
+                          const msg = `Hola! 👋 Te confirmo el pago de *${d.nombre}* por *${monto}*. ✅`
+                          window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+                        }}
+                        title="Notificar por WhatsApp"
+                        bg="color-mix(in srgb, #25D366 12%, transparent)"
+                        color="#25D366">
+                        <MessageCircle size={12} />
+                      </IconBtn>
+                    )}
                     <IconBtn onClick={() => abrirEdicion(d)} title="Editar"
                       bg="color-mix(in srgb, var(--accent-blue) 10%, transparent)"
                       color="var(--accent-blue)">
@@ -1222,6 +1239,15 @@ export default function DeudasPage() {
                   value={formTarjeta.fecha_operacion}
                   onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
               </div>
+              <div>
+                <label className="ff-label">WhatsApp (opcional)</label>
+                <input className="ff-input" type="tel" placeholder="Ej: 573001234567"
+                  value={formTarjeta.telefono}
+                  onChange={e => setFormTarjeta(p => ({ ...p, telefono: e.target.value }))} />
+                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>
+                  Número internacional sin + (ej: 57 para Colombia)
+                </p>
+              </div>
               <ColorPicker value={formTarjeta.color} colors={themeColors}
                 onChange={c => setFormTarjeta(p => ({ ...p, color: c }))} />
             </div>
@@ -1344,6 +1370,15 @@ export default function DeudasPage() {
                     onChange={e => setFormPrestamo(p => ({ ...p, dia_pago: e.target.value }))} />
                 </div>
               </div>
+              <div>
+                <label className="ff-label">WhatsApp (opcional)</label>
+                <input className="ff-input" type="tel" placeholder="Ej: 573001234567"
+                  value={formPrestamo.telefono}
+                  onChange={e => setFormPrestamo(p => ({ ...p, telefono: e.target.value }))} />
+                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>
+                  Número internacional sin + (ej: 57 para Colombia)
+                </p>
+              </div>
               <ColorPicker value={formPrestamo.color} colors={themeColors}
                 onChange={c => setFormPrestamo(p => ({ ...p, color: c }))} />
             </div>
@@ -1419,6 +1454,15 @@ export default function DeudasPage() {
                     value={formCuota.dia_pago}
                     onChange={e => setFormCuota(p => ({ ...p, dia_pago: e.target.value }))} />
                 </div>
+              </div>
+              <div>
+                <label className="ff-label">WhatsApp (opcional)</label>
+                <input className="ff-input" type="tel" placeholder="Ej: 573001234567"
+                  value={formCuota.telefono}
+                  onChange={e => setFormCuota(p => ({ ...p, telefono: e.target.value }))} />
+                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>
+                  Número internacional sin + (ej: 57 para Colombia)
+                </p>
               </div>
               <ColorPicker value={formCuota.color} colors={themeColors}
                 onChange={c => setFormCuota(p => ({ ...p, color: c }))} />
