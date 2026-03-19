@@ -156,7 +156,7 @@ export default function PresupuestoPage() {
     if (!totalOk || saving) return
     setSaving(true)
     const results = await Promise.all(borradores.map(b =>
-      supabase.from('presupuesto_bloques').upsert({ bloque: b.id, pct: b.pct }, { onConflict: 'bloque' })
+      supabase.from('presupuesto_bloques').upsert({ bloque: b.id, pct: parseInt(b.pct) || 0 }, { onConflict: 'bloque' })
     ))
     setSaving(false)
     if (results.some(r => r.error)) { alert('Error al guardar porcentajes'); return }
@@ -166,15 +166,15 @@ export default function PresupuestoPage() {
   }
 
   function cambiarPct(id, val) {
-    setBorradores(prev => prev.map(b =>
-      b.id === id ? { ...b, pct: Math.max(0, Math.min(100, parseInt(val) || 0)) } : b
-    ))
+    // Permite campo vacío mientras el usuario escribe; clampea solo si hay valor
+    const limpio = val === '' ? '' : Math.max(0, Math.min(100, parseInt(val) || 0))
+    setBorradores(prev => prev.map(b => b.id === id ? { ...b, pct: limpio } : b))
   }
 
   // ── Derivados ─────────────────────────────────────────────────────────────
   const ingresoNum = parseFloat(ingreso) || 0
   const lista      = editando ? borradores : bloques
-  const totalPct   = lista.reduce((s, b) => s + b.pct, 0)
+  const totalPct   = lista.reduce((s, b) => s + (parseInt(b.pct) || 0), 0)
   const totalOk    = totalPct === 100
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -236,7 +236,7 @@ export default function PresupuestoPage() {
                       </p>
                       {ingresoNum > 0 && (
                         <p className="text-xs mt-0.5" style={{ color: b.color }}>
-                          {formatCurrency(ingresoNum * b.pct / 100)}
+                          {formatCurrency(ingresoNum * ((parseInt(b.pct) || 0) / 100))}
                         </p>
                       )}
                     </div>
@@ -253,7 +253,7 @@ export default function PresupuestoPage() {
                   </div>
                   <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
                     <div className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${b.pct}%`, background: b.color }} />
+                      style={{ width: `${parseInt(b.pct) || 0}%`, background: b.color }} />
                   </div>
                 </div>
               )
