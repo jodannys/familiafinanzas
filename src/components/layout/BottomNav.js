@@ -43,7 +43,7 @@ export default function BottomNav({ onFABClick }) {
             style={{ background: 'var(--bg-card)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
             <div className="flex items-center justify-between px-5 pt-4 pb-3"
               style={{ borderBottom: '1px solid var(--border-glass)' }}>
-              <p className="font-script" style={{ fontSize: 22, color: 'var(--text-primary)' }}>Más módulos</p>
+              <p className="font-script" style={{ fontSize: 25, color: 'var(--text-primary)' }}>Más módulos</p>
               <button onClick={() => setShowMore(false)}
                 style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={18} />
