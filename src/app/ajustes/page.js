@@ -39,6 +39,10 @@ export default function AjustesPage() {
   const [formSub, setFormSub] = useState('')
   const [formSubTipo, setFormSubTipo] = useState(null)
 
+  // Form agregar al bloque Futuro (metas/inversiones)
+  const [addingFuturoTipo, setAddingFuturoTipo] = useState(null) // null | 'selecting' | 'metas' | 'inversiones'
+  const [formFuturo, setFormFuturo] = useState('')
+
   // Edición inline
   const [editandoCat, setEditandoCat] = useState(null)
   const [editandoSub, setEditandoSub] = useState(null)
@@ -147,6 +151,44 @@ export default function AjustesPage() {
     setSubcategorias(prev => prev.filter(s => s.id !== id))
   }
 
+  // ── FUTURO: agregar meta o inversión directamente ─────────────────────────
+
+  async function handleAddFuturo() {
+    if (!formFuturo.trim() || saving) return
+    setSaving(true)
+    if (addingFuturoTipo === 'metas') {
+      const { data, error } = await supabase.from('metas').insert([{
+        nombre: formFuturo.trim(), emoji: '🎯', pct_mensual: 0, meta: 0, actual: 0, estado: 'activa',
+      }]).select()
+      setSaving(false)
+      if (error) { alert('Error: ' + error.message); return }
+      setMetas(prev => [...prev, data[0]])
+    } else {
+      const { data, error } = await supabase.from('inversiones').insert([{
+        nombre: formFuturo.trim(), emoji: '📈', aporte: 0,
+      }]).select()
+      setSaving(false)
+      if (error) { alert('Error: ' + error.message); return }
+      setInversiones(prev => [...prev, data[0]])
+    }
+    setFormFuturo('')
+    setAddingFuturoTipo(null)
+  }
+
+  async function handleDeleteMeta(id) {
+    if (!confirm('¿Eliminar esta meta?')) return
+    const { error } = await supabase.from('metas').delete().eq('id', id)
+    if (error) { alert('Error: ' + error.message); return }
+    setMetas(prev => prev.filter(m => m.id !== id))
+  }
+
+  async function handleDeleteInversion(id) {
+    if (!confirm('¿Eliminar esta inversión?')) return
+    const { error } = await supabase.from('inversiones').delete().eq('id', id)
+    if (error) { alert('Error: ' + error.message); return }
+    setInversiones(prev => prev.filter(i => i.id !== id))
+  }
+
   // ── RENDER ────────────────────────────────────────────────────────────────
 
   return (
@@ -193,23 +235,35 @@ export default function AjustesPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {catBloque.length} categoría{catBloque.length !== 1 ? 's' : ''}
+                      {bloque.id === 'futuro'
+                        ? `${metas.length} meta${metas.length !== 1 ? 's' : ''} · ${inversiones.length} inversión${inversiones.length !== 1 ? 'es' : ''}`
+                        : `${catBloque.length} categoría${catBloque.length !== 1 ? 's' : ''}`}
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      setAddingCatBloque(bloque.id)
-                      setFormCat({ nombre: '', color: themeColors[0] || '' })
-                    }}
-                    className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg"
-                    style={{
-                      background: `color-mix(in srgb, ${bloque.color} 10%, transparent)`,
-                      color: bloque.color,
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}>
-                    <Plus size={12} /> Categoría
-                  </button>
+                  {bloque.id === 'futuro' ? (
+                    <button
+                      onClick={() => { setAddingFuturoTipo('selecting'); setFormFuturo('') }}
+                      className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg"
+                      style={{
+                        background: `color-mix(in srgb, ${bloque.color} 10%, transparent)`,
+                        color: bloque.color, border: 'none', cursor: 'pointer',
+                      }}>
+                      <Plus size={12} /> Agregar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setAddingCatBloque(bloque.id)
+                        setFormCat({ nombre: '', color: themeColors[0] || '' })
+                      }}
+                      className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg"
+                      style={{
+                        background: `color-mix(in srgb, ${bloque.color} 10%, transparent)`,
+                        color: bloque.color, border: 'none', cursor: 'pointer',
+                      }}>
+                      <Plus size={12} /> Categoría
+                    </button>
+                  )}
                 </div>
 
                 {/* Formulario nueva categoría */}
@@ -252,6 +306,67 @@ export default function AjustesPage() {
                         Cancelar
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* Formulario Futuro: selector tipo → nombre */}
+                {bloque.id === 'futuro' && addingFuturoTipo && (
+                  <div className="mb-4 p-3 rounded-xl space-y-3"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+                    {addingFuturoTipo === 'selecting' ? (
+                      <>
+                        <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>¿Qué quieres agregar?</p>
+                        <div className="flex gap-2">
+                          {[
+                            { key: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)', Icon: Target },
+                            { key: 'inversiones', label: 'Carteras de Inversión', color: 'var(--accent-violet)', Icon: TrendingUp },
+                          ].map(t => (
+                            <button key={t.key} onClick={() => setAddingFuturoTipo(t.key)}
+                              className="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-bold"
+                              style={{
+                                background: `color-mix(in srgb, ${t.color} 10%, transparent)`,
+                                color: t.color,
+                                border: `1px solid color-mix(in srgb, ${t.color} 25%, transparent)`,
+                                cursor: 'pointer',
+                              }}>
+                              <t.Icon size={18} />
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                        <button onClick={() => setAddingFuturoTipo(null)}
+                          className="ff-btn-ghost w-full text-sm py-1.5">
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          {addingFuturoTipo === 'metas'
+                            ? <><Target size={13} style={{ color: 'var(--accent-green)' }} /><span className="text-xs font-black" style={{ color: 'var(--accent-green)' }}>Meta de Ahorro</span></>
+                            : <><TrendingUp size={13} style={{ color: 'var(--accent-violet)' }} /><span className="text-xs font-black" style={{ color: 'var(--accent-violet)' }}>Cartera de Inversión</span></>
+                          }
+                        </div>
+                        <input
+                          className="ff-input w-full"
+                          placeholder={addingFuturoTipo === 'metas' ? 'Ej: Fondo de emergencia, Vacaciones...' : 'Ej: S&P 500, Bitcoin...'}
+                          value={formFuturo}
+                          onChange={e => setFormFuturo(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleAddFuturo()}
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button onClick={handleAddFuturo} disabled={saving || !formFuturo.trim()}
+                            className="ff-btn-primary flex-1 text-sm py-2 flex items-center justify-center gap-1">
+                            {saving ? <Loader2 size={13} className="animate-spin" /> : <><Plus size={13} /> Agregar</>}
+                          </button>
+                          <button onClick={() => setAddingFuturoTipo('selecting')}
+                            className="ff-btn-ghost flex-1 text-sm py-2">
+                            ← Cambiar tipo
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -489,70 +604,89 @@ export default function AjustesPage() {
                   })}
                 </div>
 
-                {/* Metas e Inversiones — solo bloque Futuro, solo lectura */}
-                {bloque.id === 'futuro' && (metas.length > 0 || inversiones.length > 0) && (
-                  <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid var(--border-glass)' }}>
-                    <p className="text-[9px] font-black uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                      Desde tus módulos — solo lectura
-                    </p>
+                {/* Metas e Inversiones — solo bloque Futuro */}
+                {bloque.id === 'futuro' && (
+                  <div className="mt-3 space-y-3">
 
-                    {metas.length > 0 && (
-                      <div className="rounded-xl overflow-hidden"
-                        style={{ border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)' }}>
-                        <div className="flex items-center justify-between px-3 py-2"
-                          style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, var(--bg-secondary))' }}>
-                          <div className="flex items-center gap-2">
-                            <Target size={12} style={{ color: 'var(--accent-green)' }} />
-                            <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
-                          </div>
-                          <a href="/metas"
-                            className="text-[10px] font-bold flex items-center gap-0.5"
-                            style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
-                            Gestionar <ArrowRight size={9} />
-                          </a>
+                    {/* Metas de Ahorro */}
+                    <div className="rounded-xl overflow-hidden"
+                      style={{ border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)' }}>
+                      <div className="flex items-center justify-between px-3 py-2"
+                        style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, var(--bg-secondary))' }}>
+                        <div className="flex items-center gap-2">
+                          <Target size={12} style={{ color: 'var(--accent-green)' }} />
+                          <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                            style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', color: 'var(--accent-green)' }}>
+                            {metas.length}
+                          </span>
                         </div>
-                        {metas.map(m => (
-                          <div key={m.id} className="flex items-center gap-2 px-3 py-2 border-t"
-                            style={{ borderColor: 'var(--border-glass)' }}>
-                            <span className="text-sm">{m.emoji}</span>
-                            <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{m.nombre}</span>
-                            <span className="text-[10px] font-bold" style={{ color: 'var(--accent-green)' }}>
-                              {m.pct_mensual}% del futuro
+                        <a href="/metas" className="text-[10px] font-bold flex items-center gap-0.5"
+                          style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
+                          Editar <ArrowRight size={9} />
+                        </a>
+                      </div>
+                      {metas.length === 0 && (
+                        <p className="text-xs italic px-3 py-2" style={{ color: 'var(--text-muted)' }}>
+                          Sin metas — pulsa "+ Agregar" para crear una
+                        </p>
+                      )}
+                      {metas.map(m => (
+                        <div key={m.id} className="flex items-center gap-2 px-3 py-2 border-t"
+                          style={{ borderColor: 'var(--border-glass)' }}>
+                          <span className="text-sm">{m.emoji}</span>
+                          <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{m.nombre}</span>
+                          <span className="text-[10px] font-bold" style={{ color: 'var(--accent-green)' }}>
+                            {m.pct_mensual}%
+                          </span>
+                          <button onClick={() => handleDeleteMeta(m.id)}
+                            style={{ color: 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Carteras de Inversión */}
+                    <div className="rounded-xl overflow-hidden"
+                      style={{ border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
+                      <div className="flex items-center justify-between px-3 py-2"
+                        style={{ background: 'color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))' }}>
+                        <div className="flex items-center gap-2">
+                          <TrendingUp size={12} style={{ color: 'var(--accent-violet)' }} />
+                          <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                            style={{ background: 'color-mix(in srgb, var(--accent-violet) 12%, transparent)', color: 'var(--accent-violet)' }}>
+                            {inversiones.length}
+                          </span>
+                        </div>
+                        <a href="/inversiones" className="text-[10px] font-bold flex items-center gap-0.5"
+                          style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
+                          Editar <ArrowRight size={9} />
+                        </a>
+                      </div>
+                      {inversiones.length === 0 && (
+                        <p className="text-xs italic px-3 py-2" style={{ color: 'var(--text-muted)' }}>
+                          Sin carteras — pulsa "+ Agregar" para crear una
+                        </p>
+                      )}
+                      {inversiones.map(inv => (
+                        <div key={inv.id} className="flex items-center gap-2 px-3 py-2 border-t"
+                          style={{ borderColor: 'var(--border-glass)' }}>
+                          <span className="text-sm">{inv.emoji}</span>
+                          <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
+                          {inv.aporte > 0 && (
+                            <span className="text-[10px] font-bold" style={{ color: 'var(--accent-violet)' }}>
+                              +{inv.aporte}/mes
                             </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {inversiones.length > 0 && (
-                      <div className="rounded-xl overflow-hidden"
-                        style={{ border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
-                        <div className="flex items-center justify-between px-3 py-2"
-                          style={{ background: 'color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))' }}>
-                          <div className="flex items-center gap-2">
-                            <TrendingUp size={12} style={{ color: 'var(--accent-violet)' }} />
-                            <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
-                          </div>
-                          <a href="/inversiones"
-                            className="text-[10px] font-bold flex items-center gap-0.5"
-                            style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
-                            Gestionar <ArrowRight size={9} />
-                          </a>
+                          )}
+                          <button onClick={() => handleDeleteInversion(inv.id)}
+                            style={{ color: 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                            <Trash2 size={11} />
+                          </button>
                         </div>
-                        {inversiones.map(inv => (
-                          <div key={inv.id} className="flex items-center gap-2 px-3 py-2 border-t"
-                            style={{ borderColor: 'var(--border-glass)' }}>
-                            <span className="text-sm">{inv.emoji}</span>
-                            <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
-                            {inv.aporte > 0 && (
-                              <span className="text-[10px] font-bold" style={{ color: 'var(--accent-violet)' }}>
-                                +{inv.aporte}/mes
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 )}
               </Card>
