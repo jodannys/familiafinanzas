@@ -108,7 +108,7 @@ function FABModal({ onClose }) {
         </div>
 
         <div className="px-5 pb-2 flex items-center justify-between">
-          <p className="font-script" style={{ fontSize: 18, color: 'var(--text-primary)' }}>Registrar</p>
+          <p className="font-script" style={{ fontSize: 22, color: 'var(--text-primary)' }}>Registrar</p>
           <button onClick={onClose}
             style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             <X size={18} />
