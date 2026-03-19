@@ -4,7 +4,8 @@ import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import {
   Settings2, Plus, Trash2, Edit3, Save, X,
-  ChevronDown, ChevronUp, Loader2, Home, Sparkles, Sprout
+  ChevronDown, ChevronUp, Loader2, Home, Sparkles, Sprout,
+  Target, TrendingUp, ArrowRight
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme, getThemeColors } from '@/lib/themes'
@@ -21,6 +22,8 @@ export default function AjustesPage() {
 
   const [categorias, setCategorias] = useState([])
   const [subcategorias, setSubcategorias] = useState([])
+  const [metas, setMetas] = useState([])
+  const [inversiones, setInversiones] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -44,12 +47,16 @@ export default function AjustesPage() {
   async function cargar() {
     setLoading(true)
     try {
-      const [{ data: cats }, { data: subs }] = await Promise.all([
+      const [{ data: cats }, { data: subs }, { data: metasData }, { data: invData }] = await Promise.all([
         supabase.from('categorias').select('*').order('bloque').order('orden').order('nombre'),
         supabase.from('subcategorias').select('*').order('orden').order('nombre'),
+        supabase.from('metas').select('id, nombre, emoji, pct_mensual').order('created_at'),
+        supabase.from('inversiones').select('id, nombre, emoji, aporte').order('created_at'),
       ])
       setCategorias(cats || [])
       setSubcategorias(subs || [])
+      setMetas(metasData || [])
+      setInversiones(invData || [])
     } catch (err) {
       console.error('Error cargando ajustes:', err)
     } finally {
@@ -422,6 +429,73 @@ export default function AjustesPage() {
                     )
                   })}
                 </div>
+
+                {/* Metas e Inversiones — solo bloque Futuro, solo lectura */}
+                {bloque.id === 'futuro' && (metas.length > 0 || inversiones.length > 0) && (
+                  <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid var(--border-glass)' }}>
+                    <p className="text-[9px] font-black uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      Desde tus módulos — solo lectura
+                    </p>
+
+                    {metas.length > 0 && (
+                      <div className="rounded-xl overflow-hidden"
+                        style={{ border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)' }}>
+                        <div className="flex items-center justify-between px-3 py-2"
+                          style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, var(--bg-secondary))' }}>
+                          <div className="flex items-center gap-2">
+                            <Target size={12} style={{ color: 'var(--accent-green)' }} />
+                            <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
+                          </div>
+                          <a href="/metas"
+                            className="text-[10px] font-bold flex items-center gap-0.5"
+                            style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
+                            Gestionar <ArrowRight size={9} />
+                          </a>
+                        </div>
+                        {metas.map(m => (
+                          <div key={m.id} className="flex items-center gap-2 px-3 py-2 border-t"
+                            style={{ borderColor: 'var(--border-glass)' }}>
+                            <span className="text-sm">{m.emoji}</span>
+                            <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{m.nombre}</span>
+                            <span className="text-[10px] font-bold" style={{ color: 'var(--accent-green)' }}>
+                              {m.pct_mensual}% del futuro
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {inversiones.length > 0 && (
+                      <div className="rounded-xl overflow-hidden"
+                        style={{ border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
+                        <div className="flex items-center justify-between px-3 py-2"
+                          style={{ background: 'color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))' }}>
+                          <div className="flex items-center gap-2">
+                            <TrendingUp size={12} style={{ color: 'var(--accent-violet)' }} />
+                            <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
+                          </div>
+                          <a href="/inversiones"
+                            className="text-[10px] font-bold flex items-center gap-0.5"
+                            style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
+                            Gestionar <ArrowRight size={9} />
+                          </a>
+                        </div>
+                        {inversiones.map(inv => (
+                          <div key={inv.id} className="flex items-center gap-2 px-3 py-2 border-t"
+                            style={{ borderColor: 'var(--border-glass)' }}>
+                            <span className="text-sm">{inv.emoji}</span>
+                            <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
+                            {inv.aporte > 0 && (
+                              <span className="text-[10px] font-bold" style={{ color: 'var(--accent-violet)' }}>
+                                +{inv.aporte}/mes
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
             )
           })}

@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import {
-  Home, Sparkles, Sprout, CheckCircle, Edit3, Save,
-  Loader2, AlertTriangle, List, LayoutGrid, ArrowRight
+  Home, Sparkles, Sprout, CheckCircle, Edit3, Save, X,
+  Loader2, AlertTriangle, List, LayoutGrid, ArrowRight, Target, TrendingUp
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -28,22 +28,20 @@ const ORIGEN_BLOQUE = {
 }
 
 export default function PresupuestoPage() {
-  const [bloques, setBloques]   = useState(BLOQUES_META)
-  const [ingreso, setIngreso]   = useState('')
-  const [editando, setEditando] = useState(false)
+  const [bloques, setBloques]       = useState(BLOQUES_META)
+  const [ingreso, setIngreso]       = useState('')
+  const [editando, setEditando]     = useState(false)
   const [borradores, setBorradores] = useState(null)
-  const [movs, setMovs]         = useState([])
-  const [sobreMovs, setSobreMovs] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState(false)
-  const [sub, setSub]           = useState({ metas: 60, inversiones: 40 })
-  const [editandoSub, setEditandoSub] = useState(false)
-  const [subBorrador, setSubBorrador] = useState(null)
-  const [vista, setVista]       = useState('general')
-  const [categoriasCfg, setCategoriasCfg]     = useState([])
+  const [movs, setMovs]             = useState([])
+  const [sobreMovs, setSobreMovs]   = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [saving, setSaving]         = useState(false)
+  const [vista, setVista]           = useState('general')
+  const [categoriasCfg, setCategoriasCfg]       = useState([])
   const [subcategoriasCfg, setSubcategoriasCfg] = useState([])
-  const [presupuestoCats, setPresupuestoCats]   = useState([])
   const [montosCats, setMontosCats]             = useState({})
+  const [metas, setMetas]           = useState([])
+  const [inversiones, setInversiones] = useState([])
 
   const now = new Date()
   const mes = now.getMonth() + 1
@@ -60,19 +58,21 @@ export default function PresupuestoPage() {
       const [
         { data: movsData },
         { data: bloquesData },
-        { data: subData },
         { data: sobreData },
         { data: catsData },
         { data: subsData },
         { data: presCatsData },
+        { data: metasData },
+        { data: invData },
       ] = await Promise.all([
         supabase.from('movimientos').select('*').gte('fecha', fechaInicio).lte('fecha', fechaFin),
         supabase.from('presupuesto_bloques').select('*'),
-        supabase.from('presupuesto_sub').select('*').eq('bloque', 'futuro'),
         supabase.from('sobre_movimientos').select('*').eq('mes', mes).eq('año', año),
         supabase.from('categorias').select('*').order('bloque').order('orden').order('nombre'),
         supabase.from('subcategorias').select('*').order('orden').order('nombre'),
         supabase.from('presupuesto_cats').select('*').eq('mes', mes).eq('año', año),
+        supabase.from('metas').select('id, nombre, emoji, pct_mensual, meta, actual').order('created_at'),
+        supabase.from('inversiones').select('id, nombre, emoji, aporte, color').order('created_at'),
       ])
 
       const movsArr = movsData || []
@@ -80,7 +80,8 @@ export default function PresupuestoPage() {
       setSobreMovs(sobreData || [])
       setCategoriasCfg(catsData || [])
       setSubcategoriasCfg(subsData || [])
-      setPresupuestoCats(presCatsData || [])
+      setMetas(metasData || [])
+      setInversiones(invData || [])
 
       const initMontos = {}
       ;(presCatsData || []).forEach(p => { initMontos[p.subcategoria_id] = p.monto })
@@ -97,12 +98,6 @@ export default function PresupuestoPage() {
           return found ? { ...b, pct: found.pct } : b
         }))
       }
-
-      if (subData?.length > 0) {
-        const newSub = {}
-        subData.forEach(r => { newSub[r.categoria] = r.pct })
-        setSub(prev => ({ ...prev, ...newSub }))
-      }
     } catch (err) {
       console.error('Error cargando presupuesto:', err)
     } finally {
@@ -117,40 +112,40 @@ export default function PresupuestoPage() {
       subcategoria_id: subcategoriaId, mes, año, monto: valor,
     }, { onConflict: 'subcategoria_id,mes,año' }).select()
     if (!error && data?.[0]) {
-      setPresupuestoCats(prev => {
-        const idx = prev.findIndex(p => p.subcategoria_id === subcategoriaId)
-        if (idx >= 0) return prev.map((p, i) => i === idx ? data[0] : p)
-        return [...prev, data[0]]
-      })
-      // Actualizar montosCats para reflejar el valor guardado
       setMontosCats(prev => ({ ...prev, [subcategoriaId]: valor }))
     }
   }
 
-  // ── Gasto real por bloque (desde movimientos + sobres) ────────────────────
+  // ── Gasto real por bloque ─────────────────────────────────────────────────
   function gastadoReal(bloqueId) {
     const deMovimientos = movs
       .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
+    // Para futuro: incluye transferencias a metas e inversiones
     const deTraspasos = sobreMovs
-      .filter(m => {
-        if (ORIGEN_BLOQUE[m.origen] !== bloqueId) return false
-        if (bloqueId === 'futuro' && ['metas', 'inversiones'].includes(m.origen)) return false
-        return parseFloat(m.monto) > 0
-      })
+      .filter(m => ORIGEN_BLOQUE[m.origen] === bloqueId && parseFloat(m.monto) > 0)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
     return deMovimientos + deTraspasos
   }
 
-  // ── Presupuestado por bloque (desde presupuesto_cats) ─────────────────────
+  // ── Presupuestado por bloque ───────────────────────────────────────────────
   function presupuestadoBloque(bloqueId) {
-    const cats = categoriasCfg.filter(c => c.bloque === bloqueId)
-    return cats.reduce((s, cat) => {
-      const subs = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
-      return s + subs.reduce((ss, sub) => ss + (parseFloat(montosCats[sub.id]) || 0), 0)
-    }, 0)
+    // Categorías custom de ajustes
+    const catsPres = categoriasCfg
+      .filter(c => c.bloque === bloqueId)
+      .reduce((s, cat) => {
+        const subs = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
+        return s + subs.reduce((ss, sub) => ss + (parseFloat(montosCats[sub.id]) || 0), 0)
+      }, 0)
+
+    // Para futuro: suma aportes de inversiones
+    if (bloqueId === 'futuro') {
+      const invPres = inversiones.reduce((s, inv) => s + (parseFloat(inv.aporte) || 0), 0)
+      return catsPres + invPres
+    }
+    return catsPres
   }
 
   // ── Edición de porcentajes ────────────────────────────────────────────────
@@ -176,29 +171,11 @@ export default function PresupuestoPage() {
     ))
   }
 
-  async function guardarSub() {
-    if (!subOk || saving) return
-    setSaving(true)
-    const results = await Promise.all([
-      supabase.from('presupuesto_sub').upsert({ bloque: 'futuro', categoria: 'metas',       pct: subBorrador.metas       }, { onConflict: 'bloque,categoria' }),
-      supabase.from('presupuesto_sub').upsert({ bloque: 'futuro', categoria: 'inversiones', pct: subBorrador.inversiones }, { onConflict: 'bloque,categoria' }),
-    ])
-    setSaving(false)
-    if (results.some(r => r.error)) { alert('Error al guardar distribución'); return }
-    setSub(subBorrador)
-    setSubBorrador(null)
-    setEditandoSub(false)
-  }
-
   // ── Derivados ─────────────────────────────────────────────────────────────
   const ingresoNum = parseFloat(ingreso) || 0
   const lista      = editando ? borradores : bloques
   const totalPct   = lista.reduce((s, b) => s + b.pct, 0)
   const totalOk    = totalPct === 100
-  const subActual  = editandoSub ? subBorrador : sub
-  const subOk      = (subBorrador
-    ? subBorrador.metas + subBorrador.inversiones
-    : sub.metas + sub.inversiones) === 100
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -226,73 +203,55 @@ export default function PresupuestoPage() {
 
       {/* ── Panel de edición de distribución ─────────────────────────────────── */}
       {editando && (
-        <Card className="mb-5 animate-enter" style={{ border: '2px solid var(--accent-blue)' }}>
-          <div className="flex items-start justify-between gap-3 mb-5">
-            <div>
-              <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>
-                Distribución de ingresos
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                Ajusta qué % del ingreso va a cada bloque — deben sumar 100%
-              </p>
-            </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <button onClick={cancelarEdicion} className="ff-btn-ghost text-sm py-1.5 px-3">
-                Cancelar
-              </button>
-              <button onClick={guardarEdicion} disabled={!totalOk || saving}
-                className="ff-btn-primary text-sm py-1.5 px-3 flex items-center gap-1.5"
-                style={{ opacity: totalOk ? 1 : 0.5 }}>
-                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                Guardar
-              </button>
-            </div>
+        <Card className="mb-5 animate-enter" style={{ border: '1px solid var(--accent-blue)' }}>
+
+          {/* Cabecera compacta */}
+          <div className="flex items-center gap-2 mb-4">
+            <Edit3 size={14} style={{ color: 'var(--accent-blue)' }} />
+            <p className="flex-1 font-black text-sm" style={{ color: 'var(--text-primary)' }}>
+              Distribución de ingresos
+            </p>
+            <button onClick={cancelarEdicion} style={{
+              color: 'var(--text-muted)', background: 'none', border: 'none',
+              cursor: 'pointer', padding: 4, lineHeight: 0,
+            }}>
+              <X size={16} />
+            </button>
           </div>
 
-          {!totalOk && (
-            <div className="mb-4 px-3 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold"
-              style={{
-                background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
-                color: 'var(--accent-rose)',
-              }}>
-              <AlertTriangle size={14} />
-              Los porcentajes suman {totalPct}% — deben ser exactamente 100%
-            </div>
-          )}
-
+          {/* Sliders por bloque */}
           <div className="space-y-5">
             {borradores.map(b => {
               const BIcon = b.icon
               return (
                 <div key={b.id}>
-                  <div className="flex items-center gap-3 mb-2.5">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: `color-mix(in srgb, ${b.color} 12%, transparent)` }}>
-                      <BIcon size={16} style={{ color: b.color }} />
+                      <BIcon size={14} style={{ color: b.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-black text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      <p className="font-bold text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
                         {b.nombre}
                       </p>
                       {ingresoNum > 0 && (
-                        <p className="text-xs font-bold mt-0.5" style={{ color: b.color }}>
-                          {formatCurrency(ingresoNum * b.pct / 100)} del ingreso
+                        <p className="text-xs mt-0.5" style={{ color: b.color }}>
+                          {formatCurrency(ingresoNum * b.pct / 100)}
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <input
                         type="number" min="0" max="100"
                         value={b.pct}
                         onChange={e => cambiarPct(b.id, e.target.value)}
-                        className="ff-input text-center font-black w-16"
-                        style={{ color: b.color, fontSize: 20 }}
+                        className="ff-input text-center font-black w-14"
+                        style={{ color: b.color, fontSize: 18 }}
                       />
-                      <span className="text-xl font-black" style={{ color: 'var(--text-muted)' }}>%</span>
+                      <span className="text-base font-black" style={{ color: 'var(--text-muted)' }}>%</span>
                     </div>
                   </div>
-                  <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
                     <div className="h-full rounded-full transition-all duration-300"
                       style={{ width: `${b.pct}%`, background: b.color }} />
                   </div>
@@ -301,16 +260,25 @@ export default function PresupuestoPage() {
             })}
           </div>
 
+          {/* Footer: total + guardar */}
           <div className="mt-5 pt-4 flex items-center justify-between"
             style={{ borderTop: '1px solid var(--border-glass)' }}>
-            <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>Total acumulado</span>
             <div className="flex items-center gap-2">
-              {totalOk && <CheckCircle size={16} style={{ color: 'var(--accent-green)' }} />}
-              <span className="text-xl font-black"
+              {totalOk
+                ? <CheckCircle size={14} style={{ color: 'var(--accent-green)' }} />
+                : <AlertTriangle size={14} style={{ color: 'var(--accent-rose)' }} />
+              }
+              <span className="text-sm font-black"
                 style={{ color: totalOk ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                {totalPct}%
+                {totalPct}%{!totalOk && ` — ${100 - totalPct > 0 ? 'faltan' : 'sobran'} ${Math.abs(100 - totalPct)}%`}
               </span>
             </div>
+            <button onClick={guardarEdicion} disabled={!totalOk || saving}
+              className="ff-btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5"
+              style={{ opacity: totalOk ? 1 : 0.5 }}>
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              Guardar
+            </button>
           </div>
         </Card>
       )}
@@ -343,18 +311,18 @@ export default function PresupuestoPage() {
         {/* ══════════ VISTA GENERAL ══════════ */}
         {vista === 'general' && <>
 
-
           {/* Bloques */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {lista.map(bloque => {
-              const Icon         = bloque.icon
-              const monto        = ingresoNum * (bloque.pct / 100)
-              const gastado      = gastadoReal(bloque.id)
+              const Icon          = bloque.icon
+              const monto         = ingresoNum * (bloque.pct / 100)
+              const gastado       = gastadoReal(bloque.id)
               const presupuestado = presupuestadoBloque(bloque.id)
-              const disponible   = monto - gastado
-              const pctGastado   = monto > 0 ? Math.min(100, (gastado / monto) * 100) : 0
-              const sobreGiro    = gastado > monto
-              const catsBloque   = categoriasCfg.filter(c => c.bloque === bloque.id)
+              const disponible    = monto - gastado
+              const pctGastado    = monto > 0 ? Math.min(100, (gastado / monto) * 100) : 0
+              const sobreGiro     = gastado > monto
+              const catsBloque    = categoriasCfg.filter(c => c.bloque === bloque.id)
+              const esFuturo      = bloque.id === 'futuro'
 
               return (
                 <Card key={bloque.id} className="animate-enter">
@@ -390,7 +358,7 @@ export default function PresupuestoPage() {
                       style={{ width: `${bloque.pct}%`, background: bloque.color }} />
                   </div>
 
-                  {/* Gasto real vs límite del bloque */}
+                  {/* Gasto real vs límite */}
                   {ingresoNum > 0 && (
                     <div className="rounded-xl p-3 mb-4 space-y-2"
                       style={{
@@ -398,7 +366,9 @@ export default function PresupuestoPage() {
                         border: `1px solid color-mix(in srgb, ${bloque.color} 15%, transparent)`,
                       }}>
                       <div className="flex justify-between text-xs">
-                        <span style={{ color: 'var(--text-muted)' }}>Gastado real</span>
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          {esFuturo ? 'Ahorrado / invertido' : 'Gastado real'}
+                        </span>
                         <span className="font-bold"
                           style={{ color: sobreGiro ? 'var(--accent-rose)' : bloque.color }}>
                           {formatCurrency(gastado)}
@@ -426,91 +396,88 @@ export default function PresupuestoPage() {
                     </div>
                   )}
 
-                  {/* Distribución interna — solo bloque Futuro */}
-                  {bloque.id === 'futuro' && (
-                    <div className="rounded-xl p-3 mb-4"
-                      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>Distribución interna</p>
-                        {!editandoSub ? (
-                          <button onClick={() => { setSubBorrador({ ...sub }); setEditandoSub(true) }}
-                            className="text-xs font-semibold flex items-center gap-1"
-                            style={{ color: bloque.color, background: 'none', border: 'none', cursor: 'pointer' }}>
-                            <Edit3 size={11} /> Editar
-                          </button>
-                        ) : (
-                          <div className="flex gap-2">
-                            <button onClick={() => { setSubBorrador(null); setEditandoSub(false) }}
-                              className="text-xs" style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                              Cancelar
-                            </button>
-                            <button onClick={guardarSub}
-                              className="text-xs font-bold flex items-center gap-1"
-                              style={{ color: subOk ? bloque.color : 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                              <Save size={11} /> Guardar
-                            </button>
+                  {/* Sección inferior: categorías + (para futuro) metas e inversiones */}
+                  <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: 12 }}>
+
+                    {/* Metas e Inversiones — solo bloque futuro */}
+                    {esFuturo && (metas.length > 0 || inversiones.length > 0) && (
+                      <div className="mb-3 space-y-2">
+                        {metas.length > 0 && (
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1"
+                                style={{ color: 'var(--accent-green)' }}>
+                                <Target size={9} /> Metas
+                              </p>
+                              <a href="/metas"
+                                className="text-[9px] font-bold flex items-center gap-0.5"
+                                style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
+                                Ver <ArrowRight size={9} />
+                              </a>
+                            </div>
+                            {metas.map(m => (
+                              <div key={m.id} className="flex items-center gap-1.5 py-0.5">
+                                <span className="text-xs flex-shrink-0">{m.emoji}</span>
+                                <span className="flex-1 text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{m.nombre}</span>
+                                <span className="text-[10px] font-bold" style={{ color: 'var(--accent-green)' }}>
+                                  {m.pct_mensual}%
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         )}
-                      </div>
-                      {!subOk && editandoSub && (
-                        <p className="text-xs mb-2 font-bold" style={{ color: 'var(--accent-rose)' }}>
-                          Deben sumar 100% (ahora {subBorrador.metas + subBorrador.inversiones}%)
-                        </p>
-                      )}
-                      {[
-                        { key: 'metas',       label: 'Metas de Ahorro', color: 'var(--accent-green)'  },
-                        { key: 'inversiones', label: 'Inversiones',     color: 'var(--accent-violet)' },
-                      ].map(cat => {
-                        const pct      = subActual[cat.key] || 0
-                        const montoSub = monto * (pct / 100)
-                        return (
-                          <div key={cat.key} className="mb-2">
+                        {inversiones.length > 0 && (
+                          <div>
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{cat.label}</span>
-                              <div className="flex items-center gap-2">
-                                {editandoSub ? (
-                                  <div className="flex items-center gap-1">
-                                    <input type="number" min="0" max="100"
-                                      value={subBorrador[cat.key]}
-                                      onChange={e => setSubBorrador(prev => ({ ...prev, [cat.key]: parseInt(e.target.value) || 0 }))}
-                                      className="ff-input text-center font-bold w-16 py-1"
-                                      style={{ color: cat.color, fontSize: 13 }} />
-                                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>%</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs font-bold" style={{ color: cat.color }}>{pct}%</span>
-                                )}
-                                {ingresoNum > 0 && (
-                                  <span className="text-xs font-black" style={{ color: cat.color }}>
-                                    {formatCurrency(montoSub)}
+                              <p className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1"
+                                style={{ color: 'var(--accent-violet)' }}>
+                                <TrendingUp size={9} /> Inversiones
+                              </p>
+                              <a href="/inversiones"
+                                className="text-[9px] font-bold flex items-center gap-0.5"
+                                style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
+                                Ver <ArrowRight size={9} />
+                              </a>
+                            </div>
+                            {inversiones.map(inv => (
+                              <div key={inv.id} className="flex items-center gap-1.5 py-0.5">
+                                <span className="text-xs flex-shrink-0">{inv.emoji}</span>
+                                <span className="flex-1 text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
+                                {inv.aporte > 0 && (
+                                  <span className="text-[10px] font-bold" style={{ color: 'var(--accent-violet)' }}>
+                                    {formatCurrency(inv.aporte)}/mes
                                   </span>
                                 )}
                               </div>
-                            </div>
-                            <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--progress-track)' }}>
-                              <div className="h-full rounded-full transition-all"
-                                style={{ width: `${pct}%`, background: cat.color }} />
-                            </div>
+                            ))}
                           </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                        )}
+                        {catsBloque.length > 0 && (
+                          <div className="mt-1" style={{ borderTop: '1px solid var(--border-glass)', paddingTop: 8 }} />
+                        )}
+                      </div>
+                    )}
 
-                  {/* Resumen de categorías configuradas */}
-                  <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: 12 }}>
-                    {catsBloque.length === 0 ? (
+                    {/* Categorías custom del bloque */}
+                    {catsBloque.length === 0 && !esFuturo ? (
                       <div className="flex items-center justify-between">
-                        <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                          Sin categorías aún
-                        </p>
+                        <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Sin categorías aún</p>
                         <a href="/ajustes"
                           className="text-xs font-bold flex items-center gap-1"
-                          style={{ color: bloque.color }}>
+                          style={{ color: bloque.color, textDecoration: 'none' }}>
                           Configurar <ArrowRight size={11} />
                         </a>
                       </div>
-                    ) : (
+                    ) : catsBloque.length === 0 && esFuturo && metas.length === 0 && inversiones.length === 0 ? (
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Sin elementos aún</p>
+                        <a href="/metas"
+                          className="text-xs font-bold flex items-center gap-1"
+                          style={{ color: bloque.color, textDecoration: 'none' }}>
+                          Añadir meta <ArrowRight size={11} />
+                        </a>
+                      </div>
+                    ) : catsBloque.length > 0 ? (
                       <>
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-[9px] font-black uppercase tracking-wider"
@@ -520,17 +487,16 @@ export default function PresupuestoPage() {
                           <button onClick={() => setVista('categorias')}
                             className="text-[10px] font-bold flex items-center gap-1"
                             style={{ color: bloque.color, background: 'none', border: 'none', cursor: 'pointer' }}>
-                            Editar montos <ArrowRight size={10} />
+                            Editar <ArrowRight size={10} />
                           </button>
                         </div>
                         <div className="space-y-1">
                           {catsBloque.map(cat => {
-                            const subs     = subcategoriasCfg.filter(s => s.categoria_id === cat.id)
-                            const catPres  = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
-                            const catGast  = subs.reduce((s, sub) => {
-                              return s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0)
-                            }, 0)
-                            const catPctUsado = catPres > 0 ? Math.min(100, (catGast / catPres) * 100) : 0
+                            const subs    = subcategoriasCfg.filter(s => s.categoria_id === cat.id)
+                            const catPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
+                            const catGast = subs.reduce((s, sub) =>
+                              s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0), 0)
+                            const catPct  = catPres > 0 ? Math.min(100, (catGast / catPres) * 100) : 0
                             return (
                               <div key={cat.id}>
                                 <div className="flex items-center gap-2 py-0.5">
@@ -547,12 +513,8 @@ export default function PresupuestoPage() {
                                 </div>
                                 {catPres > 0 && (
                                   <div className="h-0.5 rounded-full ml-3.5" style={{ background: 'var(--progress-track)' }}>
-                                    <div className="h-full rounded-full"
-                                      style={{
-                                        width: `${catPctUsado}%`,
-                                        background: catPctUsado >= 100 ? 'var(--accent-rose)' : cat.color,
-                                        transition: 'width 0.5s',
-                                      }} />
+                                    <div className="h-full rounded-full transition-all duration-500"
+                                      style={{ width: `${catPct}%`, background: catPct >= 100 ? 'var(--accent-rose)' : cat.color }} />
                                   </div>
                                 )}
                               </div>
@@ -560,7 +522,7 @@ export default function PresupuestoPage() {
                           })}
                         </div>
                       </>
-                    )}
+                    ) : null}
                   </div>
                 </Card>
               )
@@ -585,39 +547,22 @@ export default function PresupuestoPage() {
                         background: `color-mix(in srgb, ${b.color} 6%, transparent)`,
                         border:     `1px solid color-mix(in srgb, ${b.color} 14%, transparent)`,
                       }}>
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                           style={{ background: `color-mix(in srgb, ${b.color} 12%, transparent)` }}>
                           <Icon size={13} style={{ color: b.color }} />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{b.nombre}</p>
                           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{b.pct}%</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex-shrink-0">
                           <p className="text-sm font-black" style={{ color: b.color }}>{formatCurrency(monto)}</p>
                           <p className="text-xs" style={{ color: gastado > monto ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
-                            -{formatCurrency(gastado)} gastado
+                            {b.id === 'futuro' ? '-' : '-'}{formatCurrency(gastado)} {b.id === 'futuro' ? 'usado' : 'gastado'}
                           </p>
                         </div>
                       </div>
-                      {b.id === 'futuro' && (
-                        <div className="flex gap-2 mt-2">
-                          {[
-                            { k: 'metas',       l: 'Metas',      c: 'var(--accent-green)'  },
-                            { k: 'inversiones', l: 'Inversiones', c: 'var(--accent-violet)' },
-                          ].map(s => (
-                            <div key={s.k} className="flex-1 px-2 py-1.5 rounded-lg text-center"
-                              style={{ background: `color-mix(in srgb, ${s.c} 10%, transparent)` }}>
-                              <p className="text-xs font-bold"  style={{ color: s.c }}>{s.l}</p>
-                              <p className="text-xs font-black" style={{ color: s.c }}>
-                                {formatCurrency(monto * (sub[s.k] / 100))}
-                              </p>
-                              <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{sub[s.k]}%</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   )
                 })}
@@ -639,32 +584,42 @@ export default function PresupuestoPage() {
         {/* ══════════ VISTA POR CATEGORÍAS ══════════ */}
         {vista === 'categorias' && (
           <div className="space-y-4">
-            {categoriasCfg.length === 0 ? (
+            {categoriasCfg.length === 0 && metas.length === 0 && inversiones.length === 0 ? (
               <div className="text-center py-16">
                 <p className="font-black text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
                   Sin categorías configuradas
                 </p>
                 <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                  Ve a Configuración para crear tus categorías y subcategorías
+                  Ve a Configuración para crear tus categorías, o crea una Meta o Inversión
                 </p>
-                <a href="/ajustes" className="ff-btn-primary">Ir a Configuración</a>
+                <div className="flex gap-2 justify-center flex-wrap">
+                  <a href="/ajustes" className="ff-btn-primary" style={{ textDecoration: 'none' }}>Ir a Configuración</a>
+                  <a href="/metas" className="ff-btn-ghost" style={{ textDecoration: 'none' }}>Nueva Meta</a>
+                </div>
               </div>
             ) : (
               BLOQUES_META.map(bloque => {
                 const Icon       = bloque.icon
                 const catsBloque = categoriasCfg.filter(c => c.bloque === bloque.id)
-                if (catsBloque.length === 0) return null
+                const esFuturo   = bloque.id === 'futuro'
 
-                const totalPresBloque = catsBloque.reduce((s, cat) => {
+                // Para futuro: incluye metas e inversiones aunque no haya cats custom
+                if (catsBloque.length === 0 && !esFuturo) return null
+                if (catsBloque.length === 0 && esFuturo && metas.length === 0 && inversiones.length === 0) return null
+
+                // Totales del bloque
+                const catsPres = catsBloque.reduce((s, cat) => {
                   const subs = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
                   return s + subs.reduce((ss, sub) => ss + (parseFloat(montosCats[sub.id]) || 0), 0)
                 }, 0)
-                const totalGastBloque = catsBloque.reduce((s, cat) => {
+                const catsGast = catsBloque.reduce((s, cat) => {
                   const subs = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
-                  return s + subs.reduce((ss, sub) => {
-                    return ss + movs.filter(m => m.subcategoria_id === sub.id).reduce((sss, m) => sss + parseFloat(m.monto), 0)
-                  }, 0)
+                  return s + subs.reduce((ss, sub) =>
+                    ss + movs.filter(m => m.subcategoria_id === sub.id).reduce((sss, m) => sss + parseFloat(m.monto), 0), 0)
                 }, 0)
+                const invPres       = esFuturo ? inversiones.reduce((s, inv) => s + (parseFloat(inv.aporte) || 0), 0) : 0
+                const totalPresBloque = catsPres + invPres
+                const totalGastBloque = catsGast + (esFuturo ? gastadoReal('futuro') - movs.filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === 'futuro').reduce((s, m) => s + parseFloat(m.monto), 0) : 0)
 
                 return (
                   <Card key={bloque.id} className="animate-enter">
@@ -677,152 +632,209 @@ export default function PresupuestoPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                          {formatCurrency(totalPresBloque)} presupuestado · {formatCurrency(totalGastBloque)} gastado
+                          {formatCurrency(totalPresBloque)} presupuestado
                         </p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-black"
-                          style={{ color: totalPresBloque - totalGastBloque >= 0 ? bloque.color : 'var(--accent-rose)' }}>
-                          {formatCurrency(totalPresBloque - totalGastBloque)}
-                        </p>
-                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>disponible</p>
                       </div>
                     </div>
 
-                    {/* Categorías */}
-                    <div className="space-y-3">
-                      {catsBloque.map(cat => {
-                        const subs      = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
-                        const totalPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
-                        const totalGast = subs.reduce((s, sub) => {
-                          return s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0)
-                        }, 0)
-                        const diff     = totalPres - totalGast
-                        const pctUsado = totalPres > 0 ? Math.min(100, (totalGast / totalPres) * 100) : 0
-
-                        return (
-                          <div key={cat.id} className="rounded-xl overflow-hidden"
-                            style={{ border: `1px solid color-mix(in srgb, ${cat.color} 20%, transparent)` }}>
-
-                            {/* Cabecera de categoría */}
-                            <div className="px-3 py-2.5"
-                              style={{ background: `color-mix(in srgb, ${cat.color} 8%, var(--bg-secondary))` }}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                                <p className="flex-1 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
-                                <span className="text-xs font-black px-2 py-0.5 rounded-full flex-shrink-0"
-                                  style={{
-                                    background: `color-mix(in srgb, ${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 12%, transparent)`,
-                                    color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
-                                  }}>
-                                  {diff >= 0 ? 'Disp. ' : 'Excede '}
-                                  {formatCurrency(Math.abs(diff))}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3 mt-1 ml-4">
-                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                                  Presupuestado: <span className="font-bold" style={{ color: cat.color }}>{formatCurrency(totalPres)}</span>
-                                </span>
-                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                                  Gastado: <span className="font-bold">{formatCurrency(totalGast)}</span>
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Barra de progreso */}
-                            {totalPres > 0 && (
-                              <div className="h-1.5" style={{ background: 'var(--progress-track)' }}>
-                                <div className="h-full transition-all duration-500"
-                                  style={{ width: `${pctUsado}%`, background: pctUsado >= 100 ? 'var(--accent-rose)' : cat.color }} />
-                              </div>
-                            )}
-
-                            {/* Subcategorías */}
-                            {subs.length === 0 ? (
-                              <p className="text-xs italic px-3 py-3" style={{ color: 'var(--text-muted)' }}>
-                                Sin subcategorías — añade en Configuración
+                    {/* Metas e Inversiones — solo en futuro (solo lectura) */}
+                    {esFuturo && (metas.length > 0 || inversiones.length > 0) && (
+                      <div className="space-y-3 mb-3">
+                        {metas.length > 0 && (
+                          <div className="rounded-xl overflow-hidden"
+                            style={{ border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)' }}>
+                            <div className="flex items-center gap-2 px-3 py-2.5"
+                              style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, var(--bg-secondary))' }}>
+                              <Target size={13} style={{ color: 'var(--accent-green)' }} />
+                              <p className="flex-1 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                                Metas de Ahorro
                               </p>
-                            ) : (
-                              <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
-                                {subs.map(sub => {
-                                  const gastadoSub = movs
-                                    .filter(m => m.subcategoria_id === sub.id)
-                                    .reduce((s, m) => s + parseFloat(m.monto), 0)
-                                  const montoPres = parseFloat(montosCats[sub.id]) || 0
-                                  const difSub    = montoPres - gastadoSub
-                                  const pctSub    = montoPres > 0 ? Math.min(100, (gastadoSub / montoPres) * 100) : 0
+                              <a href="/metas"
+                                className="text-[10px] font-bold flex items-center gap-0.5"
+                                style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
+                                Editar <ArrowRight size={9} />
+                              </a>
+                            </div>
+                            <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+                              {metas.map(m => (
+                                <div key={m.id} className="flex items-center gap-3 px-3 py-2.5">
+                                  <span className="text-base flex-shrink-0">{m.emoji}</span>
+                                  <p className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--text-secondary)' }}>
+                                    {m.nombre}
+                                  </p>
+                                  <span className="text-xs font-bold flex-shrink-0"
+                                    style={{ color: 'var(--accent-green)' }}>
+                                    {m.pct_mensual}% del futuro
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
-                                  return (
-                                    <div key={sub.id} className="px-3 py-3">
-                                      {/* Nombre + badge disponible */}
-                                      <div className="flex items-center justify-between mb-2.5">
-                                        <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>
-                                          {sub.nombre}
-                                        </p>
-                                        {(montoPres > 0 || gastadoSub > 0) && (
-                                          <span className="text-xs font-black px-2 py-0.5 rounded-full"
-                                            style={{
-                                              background: `color-mix(in srgb, ${difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 10%, transparent)`,
-                                              color: difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
-                                            }}>
-                                            {difSub >= 0 ? '+' : ''}{formatCurrency(difSub)}
-                                          </span>
-                                        )}
-                                      </div>
+                        {inversiones.length > 0 && (
+                          <div className="rounded-xl overflow-hidden"
+                            style={{ border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
+                            <div className="flex items-center gap-2 px-3 py-2.5"
+                              style={{ background: 'color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))' }}>
+                              <TrendingUp size={13} style={{ color: 'var(--accent-violet)' }} />
+                              <p className="flex-1 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                                Carteras de Inversión
+                              </p>
+                              <a href="/inversiones"
+                                className="text-[10px] font-bold flex items-center gap-0.5"
+                                style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
+                                Editar <ArrowRight size={9} />
+                              </a>
+                            </div>
+                            <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+                              {inversiones.map(inv => (
+                                <div key={inv.id} className="flex items-center gap-3 px-3 py-2.5">
+                                  <span className="text-base flex-shrink-0">{inv.emoji}</span>
+                                  <p className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--text-secondary)' }}>
+                                    {inv.nombre}
+                                  </p>
+                                  {inv.aporte > 0 && (
+                                    <span className="text-xs font-bold flex-shrink-0"
+                                      style={{ color: 'var(--accent-violet)' }}>
+                                      {formatCurrency(inv.aporte)}/mes
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                                      {/* Input presupuestado + gastado real */}
-                                      <div className="flex items-end gap-3">
-                                        <div className="flex-1">
-                                          <p className="text-[9px] uppercase tracking-wider font-black mb-1"
-                                            style={{ color: 'var(--text-muted)' }}>
-                                            Presupuestado
+                    {/* Categorías custom con inputs editables */}
+                    {catsBloque.length > 0 && (
+                      <div className="space-y-3">
+                        {esFuturo && (metas.length > 0 || inversiones.length > 0) && (
+                          <p className="text-[9px] font-black uppercase tracking-wider"
+                            style={{ color: 'var(--text-muted)' }}>
+                            Otras categorías
+                          </p>
+                        )}
+                        {catsBloque.map(cat => {
+                          const subs      = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
+                          const totalPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
+                          const totalGast = subs.reduce((s, sub) =>
+                            s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0), 0)
+                          const diff     = totalPres - totalGast
+                          const pctUsado = totalPres > 0 ? Math.min(100, (totalGast / totalPres) * 100) : 0
+
+                          return (
+                            <div key={cat.id} className="rounded-xl overflow-hidden"
+                              style={{ border: `1px solid color-mix(in srgb, ${cat.color} 20%, transparent)` }}>
+
+                              {/* Cabecera de categoría */}
+                              <div className="px-3 py-2.5"
+                                style={{ background: `color-mix(in srgb, ${cat.color} 8%, var(--bg-secondary))` }}>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                                  <p className="flex-1 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
+                                  <span className="text-xs font-black px-2 py-0.5 rounded-full flex-shrink-0"
+                                    style={{
+                                      background: `color-mix(in srgb, ${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 12%, transparent)`,
+                                      color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                    }}>
+                                    {diff >= 0 ? 'Disp. ' : 'Excede '}{formatCurrency(Math.abs(diff))}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 mt-1 ml-4">
+                                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                    Pres: <span className="font-bold" style={{ color: cat.color }}>{formatCurrency(totalPres)}</span>
+                                  </span>
+                                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                    Gastado: <span className="font-bold">{formatCurrency(totalGast)}</span>
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Barra */}
+                              {totalPres > 0 && (
+                                <div className="h-1.5" style={{ background: 'var(--progress-track)' }}>
+                                  <div className="h-full transition-all duration-500"
+                                    style={{ width: `${pctUsado}%`, background: pctUsado >= 100 ? 'var(--accent-rose)' : cat.color }} />
+                                </div>
+                              )}
+
+                              {/* Subcategorías */}
+                              {subs.length === 0 ? (
+                                <p className="text-xs italic px-3 py-3" style={{ color: 'var(--text-muted)' }}>
+                                  Sin subcategorías — añade en Configuración
+                                </p>
+                              ) : (
+                                <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+                                  {subs.map(sub => {
+                                    const gastadoSub = movs
+                                      .filter(m => m.subcategoria_id === sub.id)
+                                      .reduce((s, m) => s + parseFloat(m.monto), 0)
+                                    const montoPres = parseFloat(montosCats[sub.id]) || 0
+                                    const difSub    = montoPres - gastadoSub
+                                    const pctSub    = montoPres > 0 ? Math.min(100, (gastadoSub / montoPres) * 100) : 0
+
+                                    return (
+                                      <div key={sub.id} className="px-3 py-3">
+                                        <div className="flex items-center justify-between mb-2.5">
+                                          <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>
+                                            {sub.nombre}
                                           </p>
-                                          <input
-                                            type="number" step="0.01" min="0" placeholder="0.00"
-                                            value={montosCats[sub.id] ?? ''}
-                                            onChange={e => setMontosCats(prev => ({ ...prev, [sub.id]: e.target.value }))}
-                                            onBlur={e => guardarPresupuestoCat(sub.id, e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-                                            className="ff-input w-full text-sm"
-                                            style={{ color: cat.color, fontWeight: 700 }}
-                                          />
+                                          {(montoPres > 0 || gastadoSub > 0) && (
+                                            <span className="text-xs font-black px-2 py-0.5 rounded-full"
+                                              style={{
+                                                background: `color-mix(in srgb, ${difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 10%, transparent)`,
+                                                color: difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                              }}>
+                                              {difSub >= 0 ? '+' : ''}{formatCurrency(difSub)}
+                                            </span>
+                                          )}
                                         </div>
-                                        <div className="flex-1">
-                                          <p className="text-[9px] uppercase tracking-wider font-black mb-1"
-                                            style={{ color: 'var(--text-muted)' }}>
-                                            Gastado real
-                                          </p>
-                                          <div className="ff-input flex items-center text-sm font-bold"
-                                            style={{
-                                              color: gastadoSub > 0 ? 'var(--accent-rose)' : 'var(--text-muted)',
-                                              background: 'var(--bg-secondary)',
-                                              cursor: 'default',
-                                            }}>
-                                            {gastadoSub > 0 ? formatCurrency(gastadoSub) : '—'}
+                                        <div className="flex items-end gap-3">
+                                          <div className="flex-1">
+                                            <p className="text-[9px] uppercase tracking-wider font-black mb-1"
+                                              style={{ color: 'var(--text-muted)' }}>Presupuestado</p>
+                                            <input
+                                              type="number" step="0.01" min="0" placeholder="0.00"
+                                              value={montosCats[sub.id] ?? ''}
+                                              onChange={e => setMontosCats(prev => ({ ...prev, [sub.id]: e.target.value }))}
+                                              onBlur={e => guardarPresupuestoCat(sub.id, e.target.value)}
+                                              onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+                                              className="ff-input w-full text-sm"
+                                              style={{ color: cat.color, fontWeight: 700 }}
+                                            />
+                                          </div>
+                                          <div className="flex-1">
+                                            <p className="text-[9px] uppercase tracking-wider font-black mb-1"
+                                              style={{ color: 'var(--text-muted)' }}>Gastado real</p>
+                                            <div className="ff-input flex items-center text-sm font-bold"
+                                              style={{
+                                                color: gastadoSub > 0 ? 'var(--accent-rose)' : 'var(--text-muted)',
+                                                background: 'var(--bg-secondary)', cursor: 'default',
+                                              }}>
+                                              {gastadoSub > 0 ? formatCurrency(gastadoSub) : '—'}
+                                            </div>
                                           </div>
                                         </div>
+                                        {montoPres > 0 && (
+                                          <div className="mt-2 h-1.5 rounded-full overflow-hidden"
+                                            style={{ background: 'var(--progress-track)' }}>
+                                            <div className="h-full rounded-full transition-all duration-500"
+                                              style={{ width: `${pctSub}%`, background: pctSub >= 100 ? 'var(--accent-rose)' : cat.color }} />
+                                          </div>
+                                        )}
                                       </div>
-
-                                      {/* Barra de progreso individual */}
-                                      {montoPres > 0 && (
-                                        <div className="mt-2 h-1.5 rounded-full overflow-hidden"
-                                          style={{ background: 'var(--progress-track)' }}>
-                                          <div className="h-full rounded-full transition-all duration-500"
-                                            style={{
-                                              width: `${pctSub}%`,
-                                              background: pctSub >= 100 ? 'var(--accent-rose)' : cat.color,
-                                            }} />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </Card>
                 )
               })
