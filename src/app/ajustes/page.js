@@ -165,7 +165,7 @@ export default function AjustesPage() {
       setMetas(prev => [...prev, data[0]])
     } else {
       const { data, error } = await supabase.from('inversiones').insert([{
-        nombre: formFuturo.trim(), emoji: '📈', aporte: 0,
+        nombre: formFuturo.trim(), emoji: '📈', aporte: 0, capital: 0,
       }]).select()
       setSaving(false)
       if (error) { alert('Error: ' + error.message); return }
