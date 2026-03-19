@@ -234,6 +234,7 @@ export default function DeudasPage() {
       if (e2) console.error('Error tarjetas:', e2.message)
 
       const deudasOrdenadas = (deudasData || []).sort((a, b) => {
+        if (!a.fecha_vencimiento && !b.fecha_vencimiento) return 0
         if (!a.fecha_vencimiento) return 1
         if (!b.fecha_vencimiento) return -1
         return new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento)
@@ -390,14 +391,13 @@ export default function DeudasPage() {
 
     if (editandoId) {
       const { error } = await supabase.from('deudas').update(payload).eq('id', editandoId)
-      if (error) setError(error.message)
-      else setDeudas(prev => prev.map(d => d.id === editandoId ? { ...d, ...payload } : d))
+      if (error) { setError(error.message); setSaving(false); return }
     } else {
-      const { data, error } = await supabase.from('deudas').insert([payload]).select()
-      if (error) setError(error.message)
-      else setDeudas(prev => [...prev, data[0]])
+      const { error } = await supabase.from('deudas').insert([payload])
+      if (error) { setError(error.message); setSaving(false); return }
     }
     setSaving(false); setModalDeuda(false); setEditandoId(null)
+    await cargar()
   }
 
   async function handleMarcarPagada(deuda) {
@@ -635,8 +635,8 @@ export default function DeudasPage() {
       const { error: err2 } = await supabase.from('deudas').delete().eq('id', id)
       if (err2) throw new Error('Error al borrar la deuda: ' + err2.message)
 
-      setDeudas(prev => prev.filter(d => d.id !== id))
       if (cardActiva === id) setCardActiva(null)
+      await cargar()
     } catch (err) {
       console.error(err); alert(err.message)
     } finally { setSaving(false) }
