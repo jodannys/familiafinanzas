@@ -657,7 +657,7 @@ export default function DeudasPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
-          <p className="font-script mb-0.5" style={{ fontSize: 13, color: "var(--text-muted)" }}>Módulo</p>
+          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
           <h1 className="text-xl font-black tracking-tight truncate"
             style={{ color: 'var(--text-primary)' }}>Mis Deudas</h1>
         </div>
