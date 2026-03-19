@@ -11,7 +11,6 @@ import { useState } from 'react'
 const MAIN_TABS = [
   { href: '/',            label: 'Inicio',      icon: LayoutDashboard },
   { href: '/gastos',      label: 'Registro',    icon: ArrowLeftRight },
-  null, // FAB center
   { href: '/presupuesto', label: 'Presupuesto', icon: PieChart },
   { href: '/metas',       label: 'Metas',       icon: Target },
 ]
