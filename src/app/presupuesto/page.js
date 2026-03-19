@@ -217,22 +217,103 @@ export default function PresupuestoPage() {
             {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
           </p>
         </div>
-        {vista === 'general' && (!editando ? (
+        {vista === 'general' && !editando && (
           <button onClick={iniciarEdicion} className="ff-btn-ghost flex items-center gap-2">
-            <Edit3 size={14} /> Editar %
+            <Edit3 size={14} /> Distribución
           </button>
-        ) : (
-          <div className="flex gap-2 flex-shrink-0">
-            <button onClick={cancelarEdicion} className="ff-btn-ghost">Cancelar</button>
-            <button onClick={guardarEdicion} disabled={!totalOk || saving}
-              className="ff-btn-primary flex items-center gap-2"
-              style={{ opacity: totalOk ? 1 : 0.5 }}>
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={14} />}
-              Guardar
-            </button>
-          </div>
-        ))}
+        )}
       </div>
+
+      {/* ── Panel de edición de distribución ─────────────────────────────────── */}
+      {editando && (
+        <Card className="mb-5 animate-enter" style={{ border: '2px solid var(--accent-blue)' }}>
+          <div className="flex items-start justify-between gap-3 mb-5">
+            <div>
+              <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>
+                Distribución de ingresos
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Ajusta qué % del ingreso va a cada bloque — deben sumar 100%
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={cancelarEdicion} className="ff-btn-ghost text-sm py-1.5 px-3">
+                Cancelar
+              </button>
+              <button onClick={guardarEdicion} disabled={!totalOk || saving}
+                className="ff-btn-primary text-sm py-1.5 px-3 flex items-center gap-1.5"
+                style={{ opacity: totalOk ? 1 : 0.5 }}>
+                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                Guardar
+              </button>
+            </div>
+          </div>
+
+          {!totalOk && (
+            <div className="mb-4 px-3 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold"
+              style={{
+                background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
+                color: 'var(--accent-rose)',
+              }}>
+              <AlertTriangle size={14} />
+              Los porcentajes suman {totalPct}% — deben ser exactamente 100%
+            </div>
+          )}
+
+          <div className="space-y-5">
+            {borradores.map(b => {
+              const BIcon = b.icon
+              return (
+                <div key={b.id}>
+                  <div className="flex items-center gap-3 mb-2.5">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: `color-mix(in srgb, ${b.color} 12%, transparent)` }}>
+                      <BIcon size={16} style={{ color: b.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                        {b.nombre}
+                      </p>
+                      {ingresoNum > 0 && (
+                        <p className="text-xs font-bold mt-0.5" style={{ color: b.color }}>
+                          {formatCurrency(ingresoNum * b.pct / 100)} del ingreso
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <input
+                        type="number" min="0" max="100"
+                        value={b.pct}
+                        onChange={e => cambiarPct(b.id, e.target.value)}
+                        className="ff-input text-center font-black w-16"
+                        style={{ color: b.color, fontSize: 20 }}
+                      />
+                      <span className="text-xl font-black" style={{ color: 'var(--text-muted)' }}>%</span>
+                    </div>
+                  </div>
+                  <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                    <div className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${b.pct}%`, background: b.color }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-5 pt-4 flex items-center justify-between"
+            style={{ borderTop: '1px solid var(--border-glass)' }}>
+            <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>Total acumulado</span>
+            <div className="flex items-center gap-2">
+              {totalOk && <CheckCircle size={16} style={{ color: 'var(--accent-green)' }} />}
+              <span className="text-xl font-black"
+                style={{ color: totalOk ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                {totalPct}%
+              </span>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Selector de vista */}
       <div className="flex mb-5 p-1 rounded-xl gap-1"
@@ -262,17 +343,6 @@ export default function PresupuestoPage() {
         {/* ══════════ VISTA GENERAL ══════════ */}
         {vista === 'general' && <>
 
-          {editando && !totalOk && (
-            <div className="mb-4 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2"
-              style={{
-                background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
-                color: 'var(--accent-rose)',
-              }}>
-              <AlertTriangle size={14} />
-              Los porcentajes suman {totalPct}% — deben sumar exactamente 100%
-            </div>
-          )}
 
           {/* Bloques */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -301,22 +371,12 @@ export default function PresupuestoPage() {
                     </div>
                   </div>
 
-                  {/* Porcentaje editable */}
+                  {/* Porcentaje */}
                   <div className="flex items-center gap-3 mb-3">
-                    {editando ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <input type="number" min="0" max="100" value={bloque.pct}
-                          onChange={e => cambiarPct(bloque.id, e.target.value)}
-                          className="ff-input text-center font-black text-lg w-20"
-                          style={{ color: bloque.color }} />
-                        <span className="text-lg font-bold" style={{ color: 'var(--text-muted)' }}>%</span>
-                      </div>
-                    ) : (
-                      <span className="text-3xl font-black flex-1"
-                        style={{ color: bloque.color, letterSpacing: '-0.03em' }}>
-                        {bloque.pct}%
-                      </span>
-                    )}
+                    <span className="text-3xl font-black flex-1"
+                      style={{ color: bloque.color, letterSpacing: '-0.03em' }}>
+                      {bloque.pct}%
+                    </span>
                     {ingresoNum > 0 && (
                       <span className="text-sm font-black" style={{ color: bloque.color }}>
                         {formatCurrency(monto)}
@@ -632,7 +692,7 @@ export default function PresupuestoPage() {
                     {/* Categorías */}
                     <div className="space-y-3">
                       {catsBloque.map(cat => {
-                        const subs     = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
+                        const subs      = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
                         const totalPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
                         const totalGast = subs.reduce((s, sub) => {
                           return s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0)
@@ -645,22 +705,33 @@ export default function PresupuestoPage() {
                             style={{ border: `1px solid color-mix(in srgb, ${cat.color} 20%, transparent)` }}>
 
                             {/* Cabecera de categoría */}
-                            <div className="flex items-center gap-2 px-3 py-2"
+                            <div className="px-3 py-2.5"
                               style={{ background: `color-mix(in srgb, ${cat.color} 8%, var(--bg-secondary))` }}>
-                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                              <p className="flex-1 font-bold text-xs" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
-                              <span className="text-xs font-bold" style={{ color: cat.color }}>{formatCurrency(totalPres)}</span>
-                              <span className="text-xs mx-1" style={{ color: 'var(--text-muted)' }}>·</span>
-                              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCurrency(totalGast)} gastado</span>
-                              <span className="text-xs font-bold ml-1"
-                                style={{ color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                                ({diff >= 0 ? '+' : ''}{formatCurrency(diff)})
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                                <p className="flex-1 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
+                                <span className="text-xs font-black px-2 py-0.5 rounded-full flex-shrink-0"
+                                  style={{
+                                    background: `color-mix(in srgb, ${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 12%, transparent)`,
+                                    color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                  }}>
+                                  {diff >= 0 ? 'Disp. ' : 'Excede '}
+                                  {formatCurrency(Math.abs(diff))}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 ml-4">
+                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                  Presupuestado: <span className="font-bold" style={{ color: cat.color }}>{formatCurrency(totalPres)}</span>
+                                </span>
+                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                  Gastado: <span className="font-bold">{formatCurrency(totalGast)}</span>
+                                </span>
+                              </div>
                             </div>
 
                             {/* Barra de progreso */}
                             {totalPres > 0 && (
-                              <div className="h-1" style={{ background: 'var(--progress-track)' }}>
+                              <div className="h-1.5" style={{ background: 'var(--progress-track)' }}>
                                 <div className="h-full transition-all duration-500"
                                   style={{ width: `${pctUsado}%`, background: pctUsado >= 100 ? 'var(--accent-rose)' : cat.color }} />
                               </div>
@@ -668,52 +739,81 @@ export default function PresupuestoPage() {
 
                             {/* Subcategorías */}
                             {subs.length === 0 ? (
-                              <p className="text-xs italic px-3 py-2" style={{ color: 'var(--text-muted)' }}>
+                              <p className="text-xs italic px-3 py-3" style={{ color: 'var(--text-muted)' }}>
                                 Sin subcategorías — añade en Configuración
                               </p>
                             ) : (
                               <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
-                                <div className="grid grid-cols-4 px-3 py-1.5" style={{ background: 'var(--bg-secondary)' }}>
-                                  {['Subcategoría', 'Presupuestado', 'Gastado real', 'Diferencia'].map((h, i) => (
-                                    <p key={h} className="text-[9px] font-black uppercase tracking-wider"
-                                      style={{ color: 'var(--text-muted)', textAlign: i === 0 ? 'left' : 'right' }}>
-                                      {h}
-                                    </p>
-                                  ))}
-                                </div>
                                 {subs.map(sub => {
                                   const gastadoSub = movs
                                     .filter(m => m.subcategoria_id === sub.id)
                                     .reduce((s, m) => s + parseFloat(m.monto), 0)
                                   const montoPres = parseFloat(montosCats[sub.id]) || 0
                                   const difSub    = montoPres - gastadoSub
+                                  const pctSub    = montoPres > 0 ? Math.min(100, (gastadoSub / montoPres) * 100) : 0
 
                                   return (
-                                    <div key={sub.id} className="grid grid-cols-4 items-center px-3 py-2">
-                                      <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                                        {sub.nombre}
-                                      </p>
-                                      <div className="flex justify-end">
-                                        <input
-                                          type="number" step="0.01" min="0" placeholder="0.00"
-                                          value={montosCats[sub.id] ?? ''}
-                                          onChange={e => setMontosCats(prev => ({ ...prev, [sub.id]: e.target.value }))}
-                                          onBlur={e => guardarPresupuestoCat(sub.id, e.target.value)}
-                                          onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-                                          className="ff-input text-right text-xs py-0.5 w-24"
-                                          style={{ color: cat.color, fontWeight: 700 }}
-                                        />
+                                    <div key={sub.id} className="px-3 py-3">
+                                      {/* Nombre + badge disponible */}
+                                      <div className="flex items-center justify-between mb-2.5">
+                                        <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>
+                                          {sub.nombre}
+                                        </p>
+                                        {(montoPres > 0 || gastadoSub > 0) && (
+                                          <span className="text-xs font-black px-2 py-0.5 rounded-full"
+                                            style={{
+                                              background: `color-mix(in srgb, ${difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 10%, transparent)`,
+                                              color: difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                            }}>
+                                            {difSub >= 0 ? '+' : ''}{formatCurrency(difSub)}
+                                          </span>
+                                        )}
                                       </div>
-                                      <p className="text-xs text-right font-bold"
-                                        style={{ color: gastadoSub > 0 ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
-                                        {gastadoSub > 0 ? formatCurrency(gastadoSub) : '—'}
-                                      </p>
-                                      <p className="text-xs text-right font-black"
-                                        style={{ color: difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                                        {montoPres > 0 || gastadoSub > 0
-                                          ? `${difSub >= 0 ? '+' : ''}${formatCurrency(difSub)}`
-                                          : '—'}
-                                      </p>
+
+                                      {/* Input presupuestado + gastado real */}
+                                      <div className="flex items-end gap-3">
+                                        <div className="flex-1">
+                                          <p className="text-[9px] uppercase tracking-wider font-black mb-1"
+                                            style={{ color: 'var(--text-muted)' }}>
+                                            Presupuestado
+                                          </p>
+                                          <input
+                                            type="number" step="0.01" min="0" placeholder="0.00"
+                                            value={montosCats[sub.id] ?? ''}
+                                            onChange={e => setMontosCats(prev => ({ ...prev, [sub.id]: e.target.value }))}
+                                            onBlur={e => guardarPresupuestoCat(sub.id, e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+                                            className="ff-input w-full text-sm"
+                                            style={{ color: cat.color, fontWeight: 700 }}
+                                          />
+                                        </div>
+                                        <div className="flex-1">
+                                          <p className="text-[9px] uppercase tracking-wider font-black mb-1"
+                                            style={{ color: 'var(--text-muted)' }}>
+                                            Gastado real
+                                          </p>
+                                          <div className="ff-input flex items-center text-sm font-bold"
+                                            style={{
+                                              color: gastadoSub > 0 ? 'var(--accent-rose)' : 'var(--text-muted)',
+                                              background: 'var(--bg-secondary)',
+                                              cursor: 'default',
+                                            }}>
+                                            {gastadoSub > 0 ? formatCurrency(gastadoSub) : '—'}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Barra de progreso individual */}
+                                      {montoPres > 0 && (
+                                        <div className="mt-2 h-1.5 rounded-full overflow-hidden"
+                                          style={{ background: 'var(--progress-track)' }}>
+                                          <div className="h-full rounded-full transition-all duration-500"
+                                            style={{
+                                              width: `${pctSub}%`,
+                                              background: pctSub >= 100 ? 'var(--accent-rose)' : cat.color,
+                                            }} />
+                                        </div>
+                                      )}
                                     </div>
                                   )
                                 })}

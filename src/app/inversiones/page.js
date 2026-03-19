@@ -335,9 +335,20 @@ export default function InversionesPage() {
           <Loader2 size={20} className="animate-spin" style={{ color: colores.muted }} />
         </div>
       ) : inversiones.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-sm mb-4" style={{ color: colores.muted }}>No hay carteras registradas</p>
-          <button onClick={abrirNuevo} className="ff-btn-primary">Crear primera cartera</button>
+        <div className="text-center py-20 space-y-3">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: `color-mix(in srgb, ${colores.violet} 10%, transparent)` }}>
+            <TrendingUp size={24} style={{ color: colores.violet }} />
+          </div>
+          <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>Sin carteras registradas</p>
+          <p className="text-xs" style={{ color: colores.muted }}>Crea tu primera cartera de inversión</p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+            <button onClick={abrirNuevo} className="ff-btn-primary">Nueva cartera</button>
+            <a href="/ajustes" className="ff-btn-ghost flex items-center justify-center gap-1"
+              style={{ textDecoration: 'none' }}>
+              Configurar categorías
+            </a>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">

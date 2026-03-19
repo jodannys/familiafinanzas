@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, Loader2, Home, Sparkles, Sprout
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useTheme, getThemeColors } from '@/lib/themes'
 
 const BLOQUES = [
   { id: 'necesidades', nombre: 'Necesidades', color: 'var(--accent-blue)', Icon: Home },
@@ -14,13 +15,10 @@ const BLOQUES = [
   { id: 'futuro', nombre: 'Futuro', color: 'var(--accent-green)', Icon: Sprout },
 ]
 
-const COLORES_PRESET = [
-  '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7',
-  '#ec4899', '#ef4444', '#f97316', '#eab308',
-  '#22c55e', '#14b8a6', '#06b6d4', '#c17a3a',
-]
-
 export default function AjustesPage() {
+  const { theme } = useTheme()
+  const themeColors = getThemeColors(theme)
+
   const [categorias, setCategorias] = useState([])
   const [subcategorias, setSubcategorias] = useState([])
   const [loading, setLoading] = useState(true)
@@ -31,7 +29,7 @@ export default function AjustesPage() {
 
   // Form nueva categoría
   const [addingCatBloque, setAddingCatBloque] = useState(null)
-  const [formCat, setFormCat] = useState({ nombre: '', color: '#6366f1' })
+  const [formCat, setFormCat] = useState({ nombre: '', color: '' })
 
   // Form nueva subcategoría
   const [addingSubCat, setAddingSubCat] = useState(null)
@@ -73,7 +71,7 @@ export default function AjustesPage() {
     setSaving(false)
     if (error) { alert('Error: ' + error.message); return }
     setCategorias(prev => [...prev, data[0]])
-    setFormCat({ nombre: '', color: '#6366f1' })
+    setFormCat({ nombre: '', color: themeColors[0] || '' })
     setAddingCatBloque(null)
     setExpandido(data[0].id)
   }
@@ -190,7 +188,7 @@ export default function AjustesPage() {
                   <button
                     onClick={() => {
                       setAddingCatBloque(bloque.id)
-                      setFormCat({ nombre: '', color: bloque.color?.replace('var(--accent-', '').replace(')', '') === 'blue' ? '#3b82f6' : bloque.color?.replace('var(--accent-', '').replace(')', '') === 'green' ? '#22c55e' : '#f97316' })
+                      setFormCat({ nombre: '', color: themeColors[0] || '' })
                     }}
                     className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg"
                     style={{
@@ -217,7 +215,7 @@ export default function AjustesPage() {
                     />
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Color:</span>
-                      {COLORES_PRESET.map(c => (
+                      {themeColors.map(c => (
                         <button key={c}
                           onClick={() => setFormCat(p => ({ ...p, color: c }))}
                           className="w-5 h-5 rounded-full transition-all"
@@ -278,7 +276,7 @@ export default function AjustesPage() {
                                 autoFocus
                               />
                               <div className="flex gap-1">
-                                {COLORES_PRESET.slice(0, 8).map(c => (
+                                {themeColors.slice(0, 8).map(c => (
                                   <button key={c}
                                     onClick={() => setEditandoCat(p => ({ ...p, color: c }))}
                                     className="w-4 h-4 rounded-full"
