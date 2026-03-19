@@ -5,6 +5,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
 import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, SlidersHorizontal, LogOut, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
 import { THEMES, useTheme } from '@/lib/themes'
 
 const CATS_EGRESO = [
@@ -15,27 +16,71 @@ const CATS_EGRESO = [
   { id: 'deuda',     label: 'Deuda',         color: 'var(--accent-rose)'   },
 ]
 
+const SPECIAL_CATS = ['ahorro', 'inversion', 'deuda']
+
 function FABModal({ onClose }) {
-  const [tipo,    setTipo]    = useState('egreso')
-  const [monto,   setMonto]   = useState('')
-  const [cat,     setCat]     = useState('basicos')
-  const [desc,    setDesc]    = useState('')
-  const [saving,  setSaving]  = useState(false)
+  const [tipo,         setTipo]         = useState('egreso')
+  const [monto,        setMonto]        = useState('')
+  const [cat,          setCat]          = useState('basicos')
+  const [desc,         setDesc]         = useState('')
+  const [saving,       setSaving]       = useState(false)
+  const [items,        setItems]        = useState([])
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [loadingItems, setLoadingItems] = useState(false)
+
+  useEffect(() => {
+    if (!SPECIAL_CATS.includes(cat) || tipo !== 'egreso') {
+      setItems([]); setSelectedItem(null); return
+    }
+    setLoadingItems(true); setSelectedItem(null)
+    const fetch =
+      cat === 'ahorro'    ? supabase.from('metas').select('id,nombre,emoji,meta,actual').eq('estado', 'activa')
+      : cat === 'inversion' ? supabase.from('inversiones').select('id,nombre,emoji,capital,aporte')
+      :                       supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas').eq('estado', 'activa').neq('tipo', 'medeben')
+    fetch.then(({ data }) => { setItems(data || []); setLoadingItems(false) })
+  }, [cat, tipo])
 
   async function guardar() {
     const valor = parseFloat(monto)
     if (!valor || valor <= 0) return
+    if (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem) return
     setSaving(true)
-    const hoy = new Date().toISOString().slice(0, 10)
+    const now = new Date()
+    const hoy = now.toISOString().slice(0, 10)
+    const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : null)
     const { error } = await supabase.from('movimientos').insert([{
       tipo,
       monto: valor,
-      descripcion: desc.trim() || null,
+      descripcion: descFinal,
       categoria: tipo === 'ingreso' ? 'ingreso' : cat,
       fecha: hoy,
     }])
+    if (error) { alert('Error: ' + error.message); setSaving(false); return }
+
+    // Actualizar el item vinculado
+    if (tipo === 'egreso' && selectedItem) {
+      if (cat === 'ahorro') {
+        await supabase.from('metas').update({ actual: (selectedItem.actual || 0) + valor }).eq('id', selectedItem.id)
+      } else if (cat === 'inversion') {
+        await supabase.from('inversiones').update({ capital: (selectedItem.capital || 0) + valor }).eq('id', selectedItem.id)
+      } else if (cat === 'deuda') {
+        const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
+          deuda_id: selectedItem.id, tipo: 'pago',
+          descripcion: descFinal || `Pago ${selectedItem.nombre}`,
+          monto: valor, fecha: hoy,
+          mes: now.getMonth() + 1, año: now.getFullYear(),
+        }]).select()
+        const nuevoPendiente = Math.max(0, (selectedItem.pendiente || 0) - valor)
+        await supabase.from('deudas').update({
+          pendiente: nuevoPendiente,
+          pagadas: (selectedItem.pagadas || 0) + 1,
+          estado: nuevoPendiente <= 0 ? 'pagada' : 'activa',
+          deuda_movimiento_id: dmData?.[0]?.id || null,
+        }).eq('id', selectedItem.id)
+      }
+    }
+
     setSaving(false)
-    if (error) { alert('Error: ' + error.message); return }
     onClose()
     window.location.reload()
   }
@@ -136,6 +181,53 @@ function FABModal({ onClose }) {
             </div>
           )}
 
+          {/* Picker de item vinculado */}
+          {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && (
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider mb-1.5"
+                style={{ color: 'var(--text-muted)' }}>
+                {cat === 'ahorro' ? 'Meta de ahorro' : cat === 'inversion' ? 'Cartera de inversión' : 'Deuda a pagar'}
+              </p>
+              {loadingItems ? (
+                <div className="flex justify-center py-3">
+                  <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+                </div>
+              ) : items.length === 0 ? (
+                <p className="text-xs italic py-2" style={{ color: 'var(--text-muted)' }}>
+                  No hay {cat === 'ahorro' ? 'metas activas' : cat === 'inversion' ? 'inversiones' : 'deudas activas'}
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {items.map(item => {
+                    const isSelected = selectedItem?.id === item.id
+                    const color = cat === 'ahorro' ? 'var(--accent-green)' : cat === 'inversion' ? 'var(--accent-violet)' : 'var(--accent-rose)'
+                    return (
+                      <button key={item.id}
+                        onClick={() => setSelectedItem(isSelected ? null : item)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
+                        style={{
+                          background: isSelected ? `color-mix(in srgb, ${color} 10%, transparent)` : 'var(--bg-secondary)',
+                          border: `1px solid ${isSelected ? color : 'transparent'}`,
+                          cursor: 'pointer',
+                        }}>
+                        <span className="text-sm">{item.emoji}</span>
+                        <span className="flex-1 text-xs font-bold" style={{ color: isSelected ? color : 'var(--text-primary)' }}>
+                          {item.nombre}
+                        </span>
+                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                          {cat === 'deuda'    ? (item.cuota > 0 ? `${formatCurrency(item.cuota)}/mes` : formatCurrency(item.pendiente))
+                           : cat === 'ahorro'  ? `${formatCurrency(item.actual || 0)} / ${formatCurrency(item.meta || 0)}`
+                           : item.aporte > 0  ? `${formatCurrency(item.aporte)}/mes` : ''}
+                        </span>
+                        {isSelected && <Check size={13} style={{ color, flexShrink: 0 }} />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Descripción */}
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider mb-1.5"
@@ -153,12 +245,12 @@ function FABModal({ onClose }) {
           {/* Guardar */}
           <button
             onClick={guardar}
-            disabled={!monto || parseFloat(monto) <= 0 || saving}
+            disabled={!monto || parseFloat(monto) <= 0 || saving || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)}
             className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all"
             style={{
-              background: !monto || parseFloat(monto) <= 0 ? 'var(--bg-secondary)' : 'var(--text-primary)',
-              color:      !monto || parseFloat(monto) <= 0 ? 'var(--text-muted)'    : 'var(--bg-card)',
-              border: 'none', cursor: monto && parseFloat(monto) > 0 ? 'pointer' : 'not-allowed',
+              background: (!monto || parseFloat(monto) <= 0 || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)) ? 'var(--bg-secondary)' : 'var(--text-primary)',
+              color:      (!monto || parseFloat(monto) <= 0 || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)) ? 'var(--text-muted)' : 'var(--bg-card)',
+              border: 'none', cursor: 'pointer',
             }}>
             {saving
               ? <Loader2 size={16} className="animate-spin" />

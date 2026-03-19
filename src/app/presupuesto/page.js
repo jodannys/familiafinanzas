@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import {
   Home, Sparkles, Sprout, CheckCircle, Edit3, Save, X,
-  Loader2, AlertTriangle, List, LayoutGrid, ArrowRight, Target, TrendingUp
+  Loader2, AlertTriangle, List, LayoutGrid, ArrowRight, Target, TrendingUp, CircleDollarSign
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -45,6 +45,8 @@ export default function PresupuestoPage() {
   const [montosCats, setMontosCats]             = useState({})
   const [metas, setMetas]           = useState([])
   const [inversiones, setInversiones] = useState([])
+  const [deudas, setDeudas]         = useState([])
+  const [deudaMovs, setDeudaMovs]   = useState([])
 
   const now = new Date()
   const mes = now.getMonth() + 1
@@ -68,6 +70,8 @@ export default function PresupuestoPage() {
         { data: presCatsData },
         { data: metasData },
         { data: invData },
+        { data: deudasData },
+        { data: deudaMovsData },
       ] = await Promise.all([
         supabase.from('movimientos').select('*').gte('fecha', fechaInicio).lte('fecha', fechaFin),
         supabase.from('presupuesto_bloques').select('*'),
@@ -78,6 +82,8 @@ export default function PresupuestoPage() {
         supabase.from('presupuesto_cats').select('*').eq('mes', mes).eq('año', año),
         supabase.from('metas').select('id, nombre, emoji, pct_mensual, meta, actual, estado, color').order('created_at'),
         supabase.from('inversiones').select('id, nombre, emoji, aporte, color').order('created_at'),
+        supabase.from('deudas').select('id, nombre, emoji, cuota, pendiente, estado, tipo, dia_pago').eq('estado', 'activa').neq('tipo', 'medeben'),
+        supabase.from('deuda_movimientos').select('deuda_id, tipo, mes, año').eq('mes', mes).eq('año', año),
       ])
 
       setMovs(movsData || [])
@@ -86,6 +92,8 @@ export default function PresupuestoPage() {
       setSubcategoriasCfg(subsData || [])
       setMetas(metasData || [])
       setInversiones(invData || [])
+      setDeudas(deudasData || [])
+      setDeudaMovs(deudaMovsData || [])
 
       const initMontos = {}
       ;(presCatsData || []).forEach(p => { initMontos[p.subcategoria_id] = p.monto })
@@ -653,6 +661,56 @@ export default function PresupuestoPage() {
               )
             })}
           </div>
+
+          {/* ─── BLOQUE DEUDAS ─── */}
+          {deudas.length > 0 && (
+            <Card className="animate-enter mb-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'color-mix(in srgb, var(--accent-rose) 12%, transparent)' }}>
+                  <CircleDollarSign size={18} style={{ color: 'var(--accent-rose)' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>Deudas</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Compromisos mensuales fijos</p>
+                </div>
+                <a href="/deudas" className="text-[9px] font-bold flex items-center gap-0.5"
+                  style={{ color: 'var(--accent-rose)', textDecoration: 'none' }}>
+                  Ver <ArrowRight size={9} />
+                </a>
+              </div>
+              <div className="space-y-2">
+                {deudas.map(d => {
+                  const pagadaEsteMes = deudaMovs.some(m => m.deuda_id === d.id && m.tipo === 'pago')
+                  return (
+                    <div key={d.id} className="flex items-center gap-2 py-1">
+                      <span className="text-sm flex-shrink-0">{d.emoji}</span>
+                      <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{d.nombre}</span>
+                      {pagadaEsteMes && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                          style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)', color: 'var(--accent-green)' }}>
+                          ✓ pagada
+                        </span>
+                      )}
+                      {d.cuota > 0 && (
+                        <span className="text-[10px] font-bold"
+                          style={{ color: pagadaEsteMes ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                          {formatCurrency(d.cuota)}/mes
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-3 pt-3 flex items-center justify-between"
+                style={{ borderTop: '1px solid var(--border-glass)' }}>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total letras este mes</span>
+                <span className="text-sm font-black" style={{ color: 'var(--accent-rose)' }}>
+                  {formatCurrency(deudas.reduce((s, d) => s + (d.cuota || 0), 0))}
+                </span>
+              </div>
+            </Card>
+          )}
 
           {/* Resumen del mes */}
           {ingresoNum > 0 && (

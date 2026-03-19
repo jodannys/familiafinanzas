@@ -248,7 +248,9 @@ export default function MetasPage() {
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter relative" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="font-script mb-1 truncate" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.label}</p>
-            <p className="font-serif text-sm font-bold leading-tight" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+            <p className="font-serif text-xl font-bold leading-tight" style={{ color: s.color, letterSpacing: '-0.02em', fontSize: 20 }}>
+              {s.value}
+            </p>
             {s.badge && (
               <span className="absolute top-2 right-2 text-[8px] font-black px-1 py-0.5 rounded-full"
                 style={{
