@@ -482,8 +482,8 @@ export default function GastosPage() {
                   fontSize: 8, fontWeight: 900, textTransform: 'uppercase',
                   letterSpacing: '0.12em', color: colores.muted, marginBottom: 4,
                 }}>{s.label}</p>
-                <p style={{
-                  fontSize: 14, fontWeight: 900, letterSpacing: '-0.03em',
+                <p className="font-serif" style={{
+                  fontSize: 16, fontWeight: 400,
                   color: s.color, lineHeight: 1,
                 }}>{s.value}</p>
               </div>

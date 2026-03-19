@@ -349,7 +349,7 @@ export default function ReportesPage() {
                   <span style={{ color: s.color }}>{s.icon}</span>
                   <p className="text-[9px] uppercase tracking-wider font-bold" style={{ color: colores.muted }}>{s.label}</p>
                 </div>
-                <p className="text-sm font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+                <p className="text-base font-serif" style={{ color: s.color }}>{s.value}</p>
                 {s.sub  && <p className="text-[9px] font-bold mt-0.5" style={{ color: s.color, opacity: 0.7 }}>{s.sub}</p>}
                 {s.hint && <p className="text-[8px] mt-0.5" style={{ color: colores.muted, opacity: 0.6 }}>{s.hint}</p>}
               </div>

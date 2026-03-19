@@ -323,7 +323,7 @@ export default function InversionesPage() {
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
               style={{ color: colores.muted }}>{s.label}</p>
-            <p className="text-sm font-black" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
+            <p className="text-base font-serif" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>

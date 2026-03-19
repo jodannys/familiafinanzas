@@ -683,14 +683,14 @@ export default function DeudasPage() {
         <div className="glass-card p-3 animate-enter">
           <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
             style={{ color: 'var(--text-muted)' }}>💸 Lo que debo</p>
-          <p className="text-sm font-black" style={{ color: 'var(--accent-rose)', letterSpacing: '-0.02em' }}>
+          <p className="text-base font-serif" style={{ color: 'var(--accent-rose)' }}>
             {formatCurrency(totalDebo)}
           </p>
         </div>
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.05s' }}>
           <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
             style={{ color: 'var(--text-muted)' }}>🤝 Me deben</p>
-          <p className="text-sm font-black" style={{ color: 'var(--accent-green)', letterSpacing: '-0.02em' }}>
+          <p className="text-base font-serif" style={{ color: 'var(--accent-green)' }}>
             {formatCurrency(totalMeDeben)}
           </p>
         </div>
@@ -699,15 +699,15 @@ export default function DeudasPage() {
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.1s' }}>
           <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
             style={{ color: 'var(--text-muted)' }}>Letras este mes</p>
-          <p className="text-sm font-black" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.02em' }}>
+          <p className="text-base font-serif" style={{ color: 'var(--accent-terra)' }}>
             {formatCurrency(cuotasMes)}
           </p>
         </div>
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.15s' }}>
           <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
             style={{ color: 'var(--text-muted)' }}>Vencen pronto</p>
-          <p className="text-sm font-black"
-            style={{ color: vencenProximo > 0 ? 'var(--accent-rose)' : 'var(--accent-green)', letterSpacing: '-0.02em' }}>
+          <p className="text-base font-serif"
+            style={{ color: vencenProximo > 0 ? 'var(--accent-rose)' : 'var(--accent-green)' }}>
             {vencenProximo > 0 ? `${vencenProximo} deuda${vencenProximo > 1 ? 's' : ''}` : 'Al día ✓'}
           </p>
         </div>
