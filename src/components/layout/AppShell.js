@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
-import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, SlidersHorizontal, LogOut, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { THEMES, useTheme } from '@/lib/themes'
 
 const CATS_EGRESO = [
   { id: 'basicos',   label: 'Necesidades',   color: 'var(--accent-blue)'   },
@@ -172,8 +173,10 @@ function FABModal({ onClose }) {
 
 export default function AppShell({ children }) {
   const [fabOpen,    setFabOpen]    = useState(false)
+  const [menuOpen,   setMenuOpen]   = useState(false)
   const [navigating, setNavigating] = useState(false)
-  const pathname = usePathname()
+  const pathname   = usePathname()
+  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     setNavigating(true)
@@ -194,22 +197,95 @@ export default function AppShell({ children }) {
         className="flex-1 min-h-screen lg:ml-20 flex flex-col overflow-x-hidden"
         style={{ background: 'var(--bg-primary)' }}>
 
-        {/* Header móvil simplificado */}
-        <div
-          className="lg:hidden flex items-center justify-between px-5 sticky z-50 w-full"
-          style={{
-            top: 0,
-            background: 'var(--bg-primary)',
-            paddingTop:    'calc(env(safe-area-inset-top) + 0.75rem)',
-            paddingBottom: '0.75rem',
-          }}>
-          <div className="flex items-center gap-2">
-            <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
-            <span className="font-script text-base" style={{ color: 'var(--text-primary)' }}>
-              Familia Finanzas
-            </span>
+        {/* Header móvil */}
+        <div className="lg:hidden sticky top-0 z-50 w-full" style={{ background: 'var(--bg-primary)' }}>
+          <div
+            className="flex items-center justify-between px-5"
+            style={{
+              paddingTop:    'calc(env(safe-area-inset-top) + 0.75rem)',
+              paddingBottom: '0.75rem',
+            }}>
+            <div className="flex items-center gap-2">
+              <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
+              <span className="font-script text-base" style={{ color: 'var(--text-primary)' }}>
+                Familia Finanzas
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {navigating && <Loader2 size={15} className="animate-spin" style={{ color: 'var(--accent-main)' }} />}
+              <button
+                onClick={() => setMenuOpen(o => !o)}
+                className="w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90"
+                style={{
+                  background: menuOpen ? 'var(--bg-card)' : 'transparent',
+                  border: '1px solid var(--border-glass)',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                }}>
+                <SlidersHorizontal size={16} />
+              </button>
+            </div>
           </div>
-          {navigating && <Loader2 size={15} className="animate-spin" style={{ color: 'var(--accent-main)' }} />}
+
+          {/* Dropdown */}
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-[59]" onClick={() => setMenuOpen(false)} />
+              <div
+                className="absolute right-4 z-[60] rounded-2xl overflow-hidden shadow-2xl"
+                style={{
+                  top: 'calc(100% + 4px)',
+                  width: 200,
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-glass)',
+                }}>
+                <p className="px-4 pt-3 pb-2 text-[9px] font-black uppercase tracking-widest"
+                  style={{ color: 'var(--text-muted)' }}>Tema</p>
+                <div className="px-2 pb-2 space-y-0.5">
+                  {Object.entries(THEMES).map(([key, t]) => {
+                    const active = theme === key
+                    return (
+                      <button key={key}
+                        onClick={() => { setTheme(key); setMenuOpen(false) }}
+                        className="flex items-center gap-3 w-full px-3 py-2 rounded-xl transition-all"
+                        style={{
+                          background: active ? 'var(--bg-secondary)' : 'transparent',
+                          border: 'none', cursor: 'pointer',
+                        }}>
+                        <div style={{
+                          width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+                          background: t.preview[0], border: '2px solid var(--border-glass)',
+                        }} />
+                        <span className="flex-1 text-left text-xs font-bold"
+                          style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                          {t.name}
+                        </span>
+                        {active && (
+                          <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: 'var(--accent-green)' }}>
+                            <Check size={9} color="white" strokeWidth={4} />
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="mx-2 mb-2 mt-1 pt-2" style={{ borderTop: '1px solid var(--border-glass)' }}>
+                  <button
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all"
+                    style={{
+                      color: 'var(--accent-rose)', background: 'transparent',
+                      border: 'none', cursor: 'pointer',
+                    }}>
+                    <LogOut size={14} />
+                    <span className="text-xs font-bold">Cerrar sesión</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Barra de progreso desktop */}
