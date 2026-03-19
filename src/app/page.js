@@ -161,7 +161,7 @@ export default function Dashboard() {
  
       {/* ── Header ── */}
       <div className="mb-7 animate-enter">
-        <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"  style={{ fontSize: 15, color: 'var(--text-muted)' }}>
+        <p className="text-[5px] uppercase tracking-widest font-bold mb-0.5"  style={{ fontSize: 8, color: 'var(--text-muted)' }}>
           {saludo()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
         <h1 className="text-2xl font-black tracking-tight mb-5" style={{ color: 'var(--text-primary)' }}>

@@ -9,8 +9,8 @@ module.exports = {
     extend: {
       fontFamily: {
         sans:    ['Plus Jakarta Sans', 'sans-serif'],
-        serif:   ['Playfair Display', 'Georgia', 'serif'],
-        script:  ['Satisfy', 'cursive'],
+        serif:   ['DM Serif Display', 'Georgia', 'serif'],
+        script:  ['Sacramento', 'cursive'],
       },
       colors: {
         // Base
