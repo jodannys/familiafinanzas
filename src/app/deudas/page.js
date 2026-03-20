@@ -5,7 +5,7 @@ import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import {
   Plus, Loader2, Trash2, CreditCard, Landmark,
-  ChevronDown, ChevronUp, Pencil, MessageCircle,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Pencil, MessageCircle,
   ArrowDownRight, ArrowUpRight, Calendar, Check, AlertCircle, Table2, X
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -201,6 +201,9 @@ export default function DeudasPage() {
   const [formTarjeta, setFormTarjeta] = useState(makeFormTarjeta)
   const [formPrestamo, setFormPrestamo] = useState(makeFormPrestamo)
   const [formCuota, setFormCuota] = useState(makeFormCuota)
+
+  const [calView, setCalView]     = useState({ month: now.getMonth(), year: now.getFullYear() })
+  const [selectedDay, setSelectedDay] = useState(null)
 
   const [modalMov, setModalMov] = useState(null) // id de deuda para nuevo movimiento
   const [editandoMov, setEditandoMov] = useState(null) // objeto movimiento siendo editado
@@ -653,6 +656,39 @@ export default function DeudasPage() {
   const cuotasMes = deboActivas.reduce((s, d) => s + (d.cuota || 0), 0)
   const vencenProximo = activas.filter(d => { const dias = diasHastaPago(d.dia_pago); return dias !== null && dias <= 7 }).length
 
+  // ─── CALENDARIO ──────────────────────────────────────────────────────────
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+  const DIAS_SEMANA = ['L','M','X','J','V','S','D']
+
+  function prevMes() {
+    setCalView(p => p.month === 0 ? { month: 11, year: p.year - 1 } : { month: p.month - 1, year: p.year })
+    setSelectedDay(null)
+  }
+  function nextMes() {
+    setCalView(p => p.month === 11 ? { month: 0, year: p.year + 1 } : { month: p.month + 1, year: p.year })
+    setSelectedDay(null)
+  }
+
+  const firstDayOfMonth = new Date(calView.year, calView.month, 1).getDay()
+  const startPad = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1
+  const daysInMonth = new Date(calView.year, calView.month + 1, 0).getDate()
+  const calCells = [...Array(startPad).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+
+  // Deudas por día en el mes del calendario
+  const deudaByDay = {}
+  activas.forEach(d => {
+    if (!d.dia_pago) return
+    if (!deudaByDay[d.dia_pago]) deudaByDay[d.dia_pago] = []
+    const pagada = (movimientos[d.id] || []).some(
+      m => m.tipo === 'pago' && m.mes === calView.month + 1 && m.año === calView.year
+    )
+    deudaByDay[d.dia_pago].push({ ...d, pagada })
+  })
+
+  const hoyDia = now.getDate()
+  const esHoy = (day) => day === hoyDia && calView.month === now.getMonth() && calView.year === now.getFullYear()
+
   // ─── RENDER ───────────────────────────────────────────────────────────────
 
   return (
@@ -715,6 +751,137 @@ export default function DeudasPage() {
           </p>
         </div>
       </div>
+
+      {/* ── CALENDARIO ── */}
+      {!loading && activas.length > 0 && (
+        <div className="glass-card mb-6 animate-enter" style={{ padding: '16px' }}>
+
+          {/* Cabecera mes */}
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={prevMes}
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+              style={{ background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <ChevronLeft size={14} />
+            </button>
+            <div className="text-center">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {MESES[calView.month]} {calView.year}
+              </p>
+              <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                {Object.keys(deudaByDay).length} pago{Object.keys(deudaByDay).length !== 1 ? 's' : ''} este mes
+              </p>
+            </div>
+            <button onClick={nextMes}
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+              style={{ background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          {/* Días de la semana */}
+          <div className="grid grid-cols-7 mb-1">
+            {DIAS_SEMANA.map(d => (
+              <p key={d} className="text-center text-[9px] font-semibold py-0.5"
+                style={{ color: 'var(--text-muted)' }}>{d}</p>
+            ))}
+          </div>
+
+          {/* Grid de días */}
+          <div className="grid grid-cols-7 gap-0.5">
+            {calCells.map((day, i) => {
+              if (!day) return <div key={`pad-${i}`} />
+              const deudas_dia = deudaByDay[day] || []
+              const todasPagadas = deudas_dia.length > 0 && deudas_dia.every(d => d.pagada)
+              const algunaSinPagar = deudas_dia.some(d => !d.pagada)
+              const isSelected = selectedDay === day
+              const isToday = esHoy(day)
+
+              return (
+                <button key={day}
+                  onClick={() => setSelectedDay(isSelected ? null : day)}
+                  className="flex flex-col items-center py-1.5 rounded-xl transition-all"
+                  style={{
+                    background: isSelected
+                      ? 'color-mix(in srgb, var(--accent-main) 15%, transparent)'
+                      : isToday
+                        ? 'color-mix(in srgb, var(--accent-blue) 10%, transparent)'
+                        : 'transparent',
+                    border: 'none',
+                    cursor: deudas_dia.length > 0 ? 'pointer' : 'default',
+                    minHeight: 44,
+                  }}>
+                  <span className="text-[11px] font-semibold tabular-nums"
+                    style={{
+                      color: isToday ? 'var(--accent-blue)'
+                        : isSelected ? 'var(--accent-main)'
+                        : 'var(--text-secondary)',
+                    }}>
+                    {day}
+                  </span>
+                  {/* Dots */}
+                  {deudas_dia.length > 0 && (
+                    <div className="flex gap-0.5 mt-1 flex-wrap justify-center" style={{ maxWidth: 28 }}>
+                      {deudas_dia.slice(0, 3).map((d, idx) => (
+                        <div key={idx} className="w-1.5 h-1.5 rounded-full"
+                          style={{ background: d.pagada ? 'var(--accent-green)' : (d.color || 'var(--accent-rose)') }} />
+                      ))}
+                      {deudas_dia.length > 3 && (
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--text-muted)' }} />
+                      )}
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Detalle del día seleccionado */}
+          {selectedDay && deudaByDay[selectedDay] && (
+            <div className="mt-4 pt-3 border-t space-y-2" style={{ borderColor: 'var(--border-glass)' }}>
+              <p className="text-[9px] uppercase font-semibold tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                Pagos del día {selectedDay}
+              </p>
+              {deudaByDay[selectedDay].map(d => (
+                <div key={d.id} className="flex items-center gap-2.5 px-2 py-2 rounded-xl"
+                  style={{ background: 'var(--bg-secondary)' }}>
+                  <span className="text-base">{d.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
+                    <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                      {d.tipo === 'medeben' ? 'Me deben cobrar' : 'Debo pagar'}
+                    </p>
+                  </div>
+                  <p className="text-xs font-semibold tabular-nums"
+                    style={{ color: d.color || 'var(--accent-rose)' }}>
+                    {formatCurrency(d.cuota || d.pendiente || 0)}
+                  </p>
+                  {d.pagada
+                    ? <Check size={13} strokeWidth={2.5} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
+                    : <div className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ background: 'color-mix(in srgb, var(--accent-rose) 20%, transparent)', border: '1.5px solid var(--accent-rose)' }} />
+                  }
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Leyenda */}
+          <div className="flex items-center gap-3 mt-3 pt-2 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} />
+              <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Pagado</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-rose)' }} />
+              <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Pendiente</span>
+            </div>
+            <div className="flex items-center gap-1 ml-auto">
+              <div className="w-4 h-4 rounded-md" style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)' }} />
+              <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Hoy</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lista */}
       {loading ? (
