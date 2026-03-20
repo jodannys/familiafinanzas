@@ -687,7 +687,20 @@ export default function DeudasPage() {
         })
         if (!tieneCargos) return
       }
-      // Si no tiene cargos → compra a plazos → mostrar cada mes (no filtrar)
+      // Si no tiene cargos → compra a plazos → limitar por plazo_meses y pagadas
+      if (d.plazo_meses) {
+        // Determinar mes del primer pago desde created_at y dia_pago
+        const creado = new Date(d.created_at)
+        const creadoDia = creado.getDate()
+        let primerMes = creado.getMonth()
+        let primerAño = creado.getFullYear()
+        if (creadoDia > dia) {
+          if (primerMes === 11) { primerMes = 0; primerAño++ } else { primerMes++ }
+        }
+        const offset = (calView.year - primerAño) * 12 + (calView.month - primerMes)
+        const restantes = d.plazo_meses - (d.pagadas || 0)
+        if (offset < 0 || offset >= restantes) return
+      }
     }
 
     if (!deudaByDay[dia]) deudaByDay[dia] = []
