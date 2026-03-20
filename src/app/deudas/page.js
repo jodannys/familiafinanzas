@@ -698,18 +698,34 @@ export default function DeudasPage() {
           if (primerMes === 11) { primerMes = 0; primerAño++ } else { primerMes++ }
         }
         const offset = (calView.year - primerAño) * 12 + (calView.month - primerMes)
-        const restantes = d.plazo_meses - (d.pagadas || 0)
-        if (offset < 0 || offset >= restantes) return
+        if (offset < 0 || offset >= d.plazo_meses) return
       }
     }
 
     if (!deudaByDay[dia]) deudaByDay[dia] = []
-    const pagada = (movimientos[d.id] || []).some(m => {
-      if (m.tipo !== 'pago') return false
-      if (m.mes && m.año) return m.mes === calView.month + 1 && m.año === calView.year
-      if (m.fecha) { const f = new Date(m.fecha); return f.getMonth() === calView.month && f.getFullYear() === calView.year }
-      return false
-    })
+
+    // Lógica de pagada según tipo de deuda
+    let pagada = false
+    if (d.tipo_deuda === 'tarjeta' && !((movimientos[d.id] || []).filter(m => m.tipo === 'cargo').length > 0)) {
+      // Compra a plazos: pagada por número de cuota (offset vs pagadas)
+      const creado = new Date(d.created_at)
+      const creadoDia = creado.getDate()
+      let primerMes = creado.getMonth()
+      let primerAño = creado.getFullYear()
+      if (creadoDia > dia) {
+        if (primerMes === 11) { primerMes = 0; primerAño++ } else { primerMes++ }
+      }
+      const offset = (calView.year - primerAño) * 12 + (calView.month - primerMes)
+      pagada = offset < (d.pagadas || 0)
+    } else {
+      // Resto de deudas: pagada si hay un pago registrado este mes
+      pagada = (movimientos[d.id] || []).some(m => {
+        if (m.tipo !== 'pago') return false
+        if (m.mes && m.año) return m.mes === calView.month + 1 && m.año === calView.year
+        if (m.fecha) { const f = new Date(m.fecha); return f.getMonth() === calView.month && f.getFullYear() === calView.year }
+        return false
+      })
+    }
     deudaByDay[dia].push({ ...d, pagada })
   })
 
