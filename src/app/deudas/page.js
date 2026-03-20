@@ -669,21 +669,25 @@ export default function DeudasPage() {
     const dia = parseInt(d.dia_pago)
     if (!dia || dia < 1 || dia > 31) return
 
-    // Para tarjetas: solo mostrar si hay cargos dentro del ciclo de facturación de este mes
-    // Ciclo: desde (dia+1) del mes anterior hasta (dia) de este mes
+    // Para tarjetas con cargos acumulados: usar ciclo de facturación
+    // Para tarjetas a plazos (sin cargos): mostrar cada mes igual que un préstamo
     if (d.tipo_deuda === 'tarjeta') {
       const cargos = (movimientos[d.id] || []).filter(m => m.tipo === 'cargo')
-      const periodoFin   = new Date(calView.year, calView.month, dia)
-      const prevM = calView.month === 0 ? 11 : calView.month - 1
-      const prevY = calView.month === 0 ? calView.year - 1 : calView.year
-      const periodoInicio = new Date(prevY, prevM, dia + 1)
-      const tieneCargos = cargos.some(m => {
-        if (!m.fecha) return false
-        const [fy, fm, fd] = m.fecha.slice(0, 10).split('-').map(Number)
-        const f = new Date(fy, fm - 1, fd) // hora local, sin desfase UTC
-        return f >= periodoInicio && f <= periodoFin
-      })
-      if (!tieneCargos) return
+      if (cargos.length > 0) {
+        // Tarjeta revolving: solo mostrar si hay cargos en este ciclo
+        const periodoFin    = new Date(calView.year, calView.month, dia)
+        const prevM = calView.month === 0 ? 11 : calView.month - 1
+        const prevY = calView.month === 0 ? calView.year - 1 : calView.year
+        const periodoInicio = new Date(prevY, prevM, dia + 1)
+        const tieneCargos = cargos.some(m => {
+          if (!m.fecha) return false
+          const [fy, fm, fd] = m.fecha.slice(0, 10).split('-').map(Number)
+          const f = new Date(fy, fm - 1, fd)
+          return f >= periodoInicio && f <= periodoFin
+        })
+        if (!tieneCargos) return
+      }
+      // Si no tiene cargos → compra a plazos → mostrar cada mes (no filtrar)
     }
 
     if (!deudaByDay[dia]) deudaByDay[dia] = []
