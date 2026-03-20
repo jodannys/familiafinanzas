@@ -678,7 +678,9 @@ export default function DeudasPage() {
       const prevY = calView.month === 0 ? calView.year - 1 : calView.year
       const periodoInicio = new Date(prevY, prevM, dia + 1)
       const tieneCargos = cargos.some(m => {
-        const f = new Date(m.fecha)
+        if (!m.fecha) return false
+        const [fy, fm, fd] = m.fecha.slice(0, 10).split('-').map(Number)
+        const f = new Date(fy, fm - 1, fd) // hora local, sin desfase UTC
         return f >= periodoInicio && f <= periodoFin
       })
       if (!tieneCargos) return
