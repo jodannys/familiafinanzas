@@ -202,7 +202,7 @@ export default function AjustesPage() {
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
-          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+         <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Configuración
           </h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>

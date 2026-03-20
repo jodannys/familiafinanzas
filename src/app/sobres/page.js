@@ -290,7 +290,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
       <div className="flex items-start justify-between gap-3 mb-6 animate-enter">
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}> Control Diario</p>
-          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
+          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
           <div className="flex items-center gap-2 mt-1.5 text-[10px] font-bold uppercase tracking-widest"
             style={{ color: 'var(--text-muted)' }}>
             <Calendar size={11} />

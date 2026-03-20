@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
-import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, SlidersHorizontal, LogOut, Check } from 'lucide-react'
+import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, SlidersHorizontal, LogOut, Check, CreditCard } from 'lucide-react'
 import { supabase, signOut } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { THEMES, useTheme } from '@/lib/themes'
@@ -24,9 +24,21 @@ function FABModal({ onClose }) {
   const [cat,          setCat]          = useState('basicos')
   const [desc,         setDesc]         = useState('')
   const [saving,       setSaving]       = useState(false)
-  const [items,        setItems]        = useState([])
-  const [selectedItem, setSelectedItem] = useState(null)
-  const [loadingItems, setLoadingItems] = useState(false)
+  const [items,           setItems]           = useState([])
+  const [selectedItem,    setSelectedItem]    = useState(null)
+  const [loadingItems,    setLoadingItems]    = useState(false)
+  const [usaTarjeta,      setUsaTarjeta]      = useState(false)
+  const [tarjetas,        setTarjetas]        = useState([])
+  const [selectedTarjeta, setSelectedTarjeta] = useState(null)
+  const [loadingTarjetas, setLoadingTarjetas] = useState(false)
+
+  useEffect(() => {
+    if (!usaTarjeta || tipo !== 'egreso') { setTarjetas([]); setSelectedTarjeta(null); return }
+    setLoadingTarjetas(true)
+    supabase.from('deudas').select('id,nombre,emoji,pendiente,cuota,dia_pago,color')
+      .eq('tipo_deuda', 'tarjeta').eq('estado', 'activa').neq('tipo', 'medeben')
+      .then(({ data }) => { setTarjetas(data || []); setLoadingTarjetas(false) })
+  }, [usaTarjeta, tipo])
 
   useEffect(() => {
     if (!SPECIAL_CATS.includes(cat) || tipo !== 'egreso') {
@@ -43,11 +55,11 @@ function FABModal({ onClose }) {
   async function guardar() {
     const valor = parseFloat(monto)
     if (!valor || valor <= 0) return
-    if (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem) return
     setSaving(true)
     const now = new Date()
     const hoy = now.toISOString().slice(0, 10)
-    const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : null)
+    const catLabel = CATS_EGRESO.find(c => c.id === cat)?.label || cat
+    const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : catLabel)
     const { error } = await supabase.from('movimientos').insert([{
       tipo,
       monto: valor,
@@ -78,6 +90,23 @@ function FABModal({ onClose }) {
           deuda_movimiento_id: dmData?.[0]?.id || null,
         }).eq('id', selectedItem.id)
       }
+    }
+
+    // Cargo a tarjeta de crédito si aplica
+    if (tipo === 'egreso' && usaTarjeta && selectedTarjeta) {
+      await supabase.from('deuda_movimientos').insert([{
+        deuda_id: selectedTarjeta.id,
+        tipo: 'cargo',
+        descripcion: descFinal,
+        monto: valor,
+        fecha: hoy,
+        mes: now.getMonth() + 1,
+        año: now.getFullYear(),
+      }])
+      await supabase.from('deudas').update({
+        pendiente: (selectedTarjeta.pendiente || 0) + valor,
+        estado: 'activa',
+      }).eq('id', selectedTarjeta.id)
     }
 
     setSaving(false)
@@ -181,6 +210,77 @@ function FABModal({ onClose }) {
             </div>
           )}
 
+          {/* Toggle tarjeta de crédito */}
+          {tipo === 'egreso' && cat !== 'deuda' && (
+            <div>
+              <button
+                onClick={() => { setUsaTarjeta(p => !p); setSelectedTarjeta(null) }}
+                className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl transition-all"
+                style={{
+                  background: usaTarjeta
+                    ? 'color-mix(in srgb, var(--accent-blue) 12%, transparent)'
+                    : 'var(--bg-secondary)',
+                  border: `1.5px solid ${usaTarjeta ? 'var(--accent-blue)' : 'transparent'}`,
+                  cursor: 'pointer',
+                }}>
+                <CreditCard size={14} style={{ color: usaTarjeta ? 'var(--accent-blue)' : 'var(--text-muted)', flexShrink: 0 }} />
+                <span className="flex-1 text-xs font-semibold text-left"
+                  style={{ color: usaTarjeta ? 'var(--accent-blue)' : 'var(--text-muted)' }}>
+                  Pagado con tarjeta de crédito
+                </span>
+                <div className="w-8 h-4 rounded-full flex-shrink-0 transition-all"
+                  style={{ background: usaTarjeta ? 'var(--accent-blue)' : 'var(--border-glass)', position: 'relative' }}>
+                  <div className="w-3 h-3 rounded-full absolute top-0.5 transition-all"
+                    style={{ background: 'white', left: usaTarjeta ? 20 : 2 }} />
+                </div>
+              </button>
+
+              {/* Picker de tarjeta */}
+              {usaTarjeta && (
+                <div className="mt-2">
+                  {loadingTarjetas ? (
+                    <div className="flex justify-center py-2">
+                      <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                  ) : tarjetas.length === 0 ? (
+                    <div className="px-3 py-2.5 rounded-xl"
+                      style={{ background: 'color-mix(in srgb, var(--accent-gold) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-gold) 25%, transparent)' }}>
+                      <p className="text-xs" style={{ color: 'var(--accent-gold)' }}>
+                        No tienes tarjetas activas. Créala en el módulo de Deudas.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {tarjetas.map(t => {
+                        const isSel = selectedTarjeta?.id === t.id
+                        return (
+                          <button key={t.id}
+                            onClick={() => setSelectedTarjeta(isSel ? null : t)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
+                            style={{
+                              background: isSel ? 'color-mix(in srgb, var(--accent-blue) 10%, transparent)' : 'var(--bg-secondary)',
+                              border: `1px solid ${isSel ? 'var(--accent-blue)' : 'transparent'}`,
+                              cursor: 'pointer',
+                            }}>
+                            <span className="text-sm">{t.emoji}</span>
+                            <span className="flex-1 text-xs font-semibold"
+                              style={{ color: isSel ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
+                              {t.nombre}
+                            </span>
+                            <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                              {formatCurrency(t.pendiente || 0)} pendiente
+                            </span>
+                            {isSel && <Check size={13} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Picker de item vinculado */}
           {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && (
             <div>
@@ -193,9 +293,12 @@ function FABModal({ onClose }) {
                   <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
                 </div>
               ) : items.length === 0 ? (
-                <p className="text-xs italic py-2" style={{ color: 'var(--text-muted)' }}>
-                  No hay {cat === 'ahorro' ? 'metas activas' : cat === 'inversion' ? 'inversiones' : 'deudas activas'}
-                </p>
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                  style={{ background: 'color-mix(in srgb, var(--accent-gold) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-gold) 25%, transparent)' }}>
+                  <span className="text-xs" style={{ color: 'var(--accent-gold)' }}>
+                    Sin {cat === 'ahorro' ? 'metas activas' : cat === 'inversion' ? 'inversiones' : 'deudas activas'} — se guardará sin vincular
+                  </span>
+                </div>
               ) : (
                 <div className="space-y-1.5">
                   {items.map(item => {
@@ -242,14 +345,21 @@ function FABModal({ onClose }) {
             />
           </div>
 
+          {/* Aviso cuando hay items pero ninguno seleccionado */}
+          {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && items.length > 0 && !selectedItem && (
+            <p className="text-[10px] text-center" style={{ color: 'var(--text-muted)', marginTop: -8 }}>
+              Sin selección — se guardará sin vincular a ningún item
+            </p>
+          )}
+
           {/* Guardar */}
           <button
             onClick={guardar}
-            disabled={!monto || parseFloat(monto) <= 0 || saving || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)}
+            disabled={!monto || parseFloat(monto) <= 0 || saving}
             className="w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all"
             style={{
-              background: (!monto || parseFloat(monto) <= 0 || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)) ? 'var(--bg-secondary)' : 'var(--text-primary)',
-              color:      (!monto || parseFloat(monto) <= 0 || (tipo === 'egreso' && SPECIAL_CATS.includes(cat) && !selectedItem)) ? 'var(--text-muted)' : 'var(--bg-card)',
+              background: (!monto || parseFloat(monto) <= 0) ? 'var(--bg-secondary)' : 'var(--text-primary)',
+              color:      (!monto || parseFloat(monto) <= 0) ? 'var(--text-muted)' : 'var(--bg-card)',
               border: 'none', cursor: 'pointer',
             }}>
             {saving
