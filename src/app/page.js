@@ -247,8 +247,8 @@ export default function Dashboard() {
               </div>
             </div>
             <div>
-              <p className="font-serif" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8 }}>
-                {k.signo}{formatCurrency(Math.abs(k.val))}
+              <p className="font-serif" style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8 }}>
+               <span style={{ marginRight: '6px' }}>{k.signo}</span>{formatCurrency(Math.abs(k.val))}
               </p>
               <div style={{ height: 3, borderRadius: 999, background: `color-mix(in srgb, ${k.col} 12%, transparent)`, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${k.pct}%`, background: k.col, borderRadius: 999 }} />
