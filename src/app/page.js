@@ -166,7 +166,7 @@ export default function Dashboard() {
       {/* ── Header ── */}
       <div className="mb-7 animate-enter">
         <p className="text-[5px] uppercase tracking-widest font-semibold mb-0.5" style={{ fontSize: 8, color: 'var(--text-muted)' }}>
-          {saludoBase()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+          {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
         <h1
           className="font-script text-2xl tracking-tight"
@@ -175,7 +175,7 @@ export default function Dashboard() {
             fontWeight: 400
           }}
         >
-          {nombre ? `Hola ${nombre} 👋` : 'Resumen General'}
+          {nombre ? `Hola ${nombre}` : saludoBase()}
         </h1>
 
         {/* Strip patrimonio */}
