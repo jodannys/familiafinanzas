@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card'
 import {
   Settings2, Plus, Trash2, Edit3, Save, X,
   ChevronDown, ChevronUp, Loader2, Home, Sparkles, Sprout,
-  Target, TrendingUp, ArrowRight
+  Target, TrendingUp, ArrowRight, User
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme, getThemeColors } from '@/lib/themes'
@@ -26,6 +26,9 @@ export default function AjustesPage() {
   const [inversiones, setInversiones] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [nombrePerfil, setNombrePerfil]   = useState('')
+  const [editNombre,   setEditNombre]     = useState(false)
+  const [savingNombre, setSavingNombre]   = useState(false)
 
   // Expansión de categorías para ver subcategorías
   const [expandido, setExpandido] = useState(null)
@@ -47,7 +50,20 @@ export default function AjustesPage() {
   const [editandoCat, setEditandoCat] = useState(null)
   const [editandoSub, setEditandoSub] = useState(null)
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    cargar()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setNombrePerfil(session?.user?.user_metadata?.nombre || '')
+    })
+  }, [])
+
+  async function handleGuardarNombre() {
+    if (!nombrePerfil.trim()) return
+    setSavingNombre(true)
+    await supabase.auth.updateUser({ data: { nombre: nombrePerfil.trim() } })
+    setSavingNombre(false)
+    setEditNombre(false)
+  }
 
   async function cargar() {
     setLoading(true)
@@ -217,6 +233,55 @@ export default function AjustesPage() {
         </div>
       ) : (
         <div className="space-y-5">
+
+          {/* ── Perfil ── */}
+          <div className="glass-card p-4 animate-enter">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)' }}>
+                <User size={15} style={{ color: 'var(--accent-green)' }} />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Tu perfil</p>
+            </div>
+            {editNombre ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={nombrePerfil}
+                  onChange={e => setNombrePerfil(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleGuardarNombre()}
+                  autoFocus
+                  placeholder="Tu nombre"
+                  className="ff-input flex-1 text-sm"
+                />
+                <button onClick={handleGuardarNombre} disabled={savingNombre}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold"
+                  style={{ background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer' }}>
+                  {savingNombre ? <Loader2 size={12} className="animate-spin" /> : <Save size={13} />}
+                </button>
+                <button onClick={() => setEditNombre(false)}
+                  className="px-3 py-2 rounded-xl text-xs"
+                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Nombre</p>
+                  <p className="text-sm font-semibold" style={{ color: nombrePerfil ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    {nombrePerfil || 'Sin nombre'}
+                  </p>
+                </div>
+                <button onClick={() => setEditNombre(true)}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+                  <Edit3 size={11} /> Editar
+                </button>
+              </div>
+            )}
+          </div>
+
           {BLOQUES.map(bloque => {
             const catBloque = categorias.filter(c => c.bloque === bloque.id)
             const { Icon } = bloque

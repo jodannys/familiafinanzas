@@ -26,7 +26,7 @@ const NOMBRES_CAT = {
   inversion: 'Inversión',
 }
 
-function saludo() {
+function saludoBase() {
   const h = new Date().getHours()
   if (h < 12) return 'Buenos días'
   if (h < 19) return 'Buenas tardes'
@@ -42,15 +42,19 @@ function diasHastaPago(diaPago) {
 }
 
 export default function Dashboard() {
-  const [movs, setMovs]           = useState([])
-  const [metas, setMetas]         = useState([])
-  const [deudas, setDeudas]       = useState([])
+  const [movs, setMovs] = useState([])
+  const [metas, setMetas] = useState([])
+  const [deudas, setDeudas] = useState([])
   const [inversiones, setInversiones] = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [mounted, setMounted]     = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+  const [nombre, setNombre] = useState('')
 
   useEffect(() => {
     setMounted(true)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setNombre(session?.user?.user_metadata?.nombre || '')
+    })
     async function cargar() {
       try {
         const [{ data: m }, { data: mt }, { data: d }, { data: inv }] = await Promise.all([
@@ -74,9 +78,9 @@ export default function Dashboard() {
     cargar()
   }, [])
 
-  const now        = new Date()
-  const mesActual  = now.getMonth()
-  const añoActual  = now.getFullYear()
+  const now = new Date()
+  const mesActual = now.getMonth()
+  const añoActual = now.getFullYear()
 
   const movsMes = useMemo(() =>
     movs.filter(m => {
@@ -88,14 +92,14 @@ export default function Dashboard() {
 
   const dataGrafico = useMemo(() => {
     if (!movs.length) return []
-    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+    const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     const porMes = Array.from({ length: 12 }, (_, i) => ({ name: MESES[i], gastos: 0, ingresos: 0 }))
     movs.forEach(mov => {
       const mes = parseInt(mov.fecha.split('-')[1], 10) - 1
       const año = parseInt(mov.fecha.split('-')[0], 10)
       if (año !== añoActual || mes < 0 || mes > 11) return
       if (mov.tipo === 'ingreso') porMes[mes].ingresos += (mov.monto || 0)
-      else if (['basicos','deseo','deuda'].includes(mov.categoria)) porMes[mes].gastos += (mov.monto || 0)
+      else if (['basicos', 'deseo', 'deuda'].includes(mov.categoria)) porMes[mes].gastos += (mov.monto || 0)
     })
     return porMes
   }, [movs, añoActual])
@@ -104,18 +108,18 @@ export default function Dashboard() {
     movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + (m.monto || 0), 0), [movsMes])
 
   const gastosMes = useMemo(() =>
-    movsMes.filter(m => m.tipo === 'egreso' && ['deseo','basicos','deuda'].includes(m.categoria))
+    movsMes.filter(m => m.tipo === 'egreso' && ['deseo', 'basicos', 'deuda'].includes(m.categoria))
       .reduce((s, m) => s + (m.monto || 0), 0), [movsMes])
 
   const ahorroMes = useMemo(() =>
-    movsMes.filter(m => m.tipo === 'egreso' && ['ahorro','inversion'].includes(m.categoria))
+    movsMes.filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(m.categoria))
       .reduce((s, m) => s + (m.monto || 0), 0), [movsMes])
 
   const saldoLibre = ingresosMes - gastosMes - ahorroMes
 
   const distribucionReal = useMemo(() => {
     const totales = {}
-    movsMes.filter(m => m.tipo === 'egreso' && ['basicos','deseo','deuda'].includes(m.categoria))
+    movsMes.filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(m.categoria))
       .forEach(m => { totales[m.categoria] = (totales[m.categoria] || 0) + m.monto })
     return Object.entries(totales)
       .map(([name, monto]) => ({
@@ -135,16 +139,16 @@ export default function Dashboard() {
       .map(d => ({ ...d, dias: diasHastaPago(d.dia_pago) }))
       .filter(d => d.dias !== null && d.dias <= 7 && !deudasPagadas.has(d.id))
       .sort((a, b) => a.dias - b.dias)
-  , [deudas, deudasPagadas])
+    , [deudas, deudasPagadas])
 
   // Patrimonio
-  const totalAhorro      = useMemo(() => metas.reduce((s, m) => s + (m.actual || 0), 0), [metas])
+  const totalAhorro = useMemo(() => metas.reduce((s, m) => s + (m.actual || 0), 0), [metas])
   const totalInversiones = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
-  const totalDeudas      = useMemo(() => deudas.reduce((s, d) => s + (d.cuota || 0), 0), [deudas])
+  const totalDeudas = useMemo(() => deudas.reduce((s, d) => s + (d.cuota || 0), 0), [deudas])
 
-  const pctGastos   = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes  / ingresosMes) * 100)) : 0
-  const pctAhorro   = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes  / ingresosMes) * 100)) : 0
-  const pctDisp     = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
+  const pctGastos = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes / ingresosMes) * 100)) : 0
+  const pctAhorro = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes / ingresosMes) * 100)) : 0
+  const pctDisp = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
 
   if (!mounted) return null
   if (loading) return (
@@ -158,22 +162,28 @@ export default function Dashboard() {
 
   return (
     <AppShell>
- 
+
       {/* ── Header ── */}
       <div className="mb-7 animate-enter">
-        <p className="text-[5px] uppercase tracking-widest font-semibold mb-0.5"  style={{ fontSize: 8, color: 'var(--text-muted)' }}>
-          {saludo()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+        <p className="text-[5px] uppercase tracking-widest font-semibold mb-0.5" style={{ fontSize: 8, color: 'var(--text-muted)' }}>
+          {saludoBase()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
-        <h1 className="text-2xl tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          Resumen General
+        <h1
+          className="font-script text-2xl tracking-tight"
+          style={{
+            color: 'var(--text-primary)',
+            fontWeight: 400
+          }}
+        >
+          {nombre ? `Hola ${nombre} 👋` : 'Resumen General'}
         </h1>
 
         {/* Strip patrimonio */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: 'En metas',  val: totalAhorro,      color: 'var(--accent-green)',  Icon: Target,          href: '/metas'      },
-            { label: 'Invertido', val: totalInversiones,  color: 'var(--accent-violet)', Icon: TrendingUp,      href: '/inversiones' },
-            { label: 'Deudas',    val: totalDeudas,       color: 'var(--accent-rose)',   Icon: CircleDollarSign, href: '/deudas'     },
+            { label: 'En metas', val: totalAhorro, color: 'var(--accent-green)', Icon: Target, href: '/metas' },
+            { label: 'Invertido', val: totalInversiones, color: 'var(--accent-violet)', Icon: TrendingUp, href: '/inversiones' },
+            { label: 'Deudas', val: totalDeudas, color: 'var(--accent-rose)', Icon: CircleDollarSign, href: '/deudas' },
           ].map(({ label, val, color, Icon, href }) => (
             <Link key={label} href={href}
               className="flex flex-col gap-1.5 p-3 rounded-2xl transition-all hover:scale-[1.02]"
@@ -222,10 +232,10 @@ export default function Dashboard() {
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
         {[
-          { label: 'Ingresos',   val: ingresosMes, col: 'var(--accent-green)',                                         Icon: ArrowUpRight,   signo: '+', pct: 100   },
-          { label: 'Gastos',     val: gastosMes,   col: 'var(--accent-rose)',                                          Icon: ArrowDownRight, signo: '-', pct: pctGastos },
-          { label: 'Futuro',     val: ahorroMes,   col: 'var(--accent-terra)',                                         Icon: Target,         signo: '',  pct: pctAhorro },
-          { label: 'Disponible', val: saldoLibre,  col: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', Icon: Wallet,         signo: '',  pct: pctDisp   },
+          { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', Icon: ArrowUpRight, signo: '+', pct: 100 },
+          { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', Icon: ArrowDownRight, signo: '-', pct: pctGastos },
+          { label: 'Futuro', val: ahorroMes, col: 'var(--accent-terra)', Icon: Target, signo: '', pct: pctAhorro },
+          { label: 'Disponible', val: saldoLibre, col: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', Icon: Wallet, signo: '', pct: pctDisp },
         ].map((k, i) => (
           <div key={i} className="animate-enter"
             style={{
@@ -248,7 +258,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="font-serif" style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8 }}>
-               <span style={{ marginRight: '6px' }}>{k.signo}</span>{formatCurrency(Math.abs(k.val))}
+                <span style={{ marginRight: '6px' }}>{k.signo}</span>{formatCurrency(Math.abs(k.val))}
               </p>
               <div style={{ height: 3, borderRadius: 999, background: `color-mix(in srgb, ${k.col} 12%, transparent)`, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${k.pct}%`, background: k.col, borderRadius: 999 }} />

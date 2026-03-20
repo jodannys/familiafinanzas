@@ -666,12 +666,13 @@ export default function DeudasPage() {
   // Deudas por día en el mes del calendario
   const deudaByDay = {}
   activas.forEach(d => {
-    if (!d.dia_pago) return
-    if (!deudaByDay[d.dia_pago]) deudaByDay[d.dia_pago] = []
+    const dia = parseInt(d.dia_pago)
+    if (!dia || dia < 1 || dia > 31) return
+    if (!deudaByDay[dia]) deudaByDay[dia] = []
     const pagada = (movimientos[d.id] || []).some(
       m => m.tipo === 'pago' && m.mes === calView.month + 1 && m.año === calView.year
     )
-    deudaByDay[d.dia_pago].push({ ...d, pagada })
+    deudaByDay[dia].push({ ...d, pagada })
   })
 
   const hoyDia = now.getDate()

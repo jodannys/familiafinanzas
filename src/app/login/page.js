@@ -8,7 +8,7 @@ function LoginContent() {
   const router       = useRouter()
   const searchParams = useSearchParams()
 
-  const [mode,     setMode]     = useState('login')   // 'login' | 'recover' | 'reset'
+  const [mode,     setMode]     = useState('login')   // 'login' | 'recover' | 'reset' | 'nombre'
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [newPwd,   setNewPwd]   = useState('')
@@ -17,6 +17,7 @@ function LoginContent() {
   const [checking, setChecking] = useState(true)
   const [error,    setError]    = useState('')
   const [sent,     setSent]     = useState(false)
+  const [nombre,   setNombre]   = useState('')
 
   useEffect(() => {
     // Si Supabase redirige con type=recovery (enlace del email)
@@ -43,9 +44,13 @@ function LoginContent() {
     e.preventDefault()
     if (!email || !password) return
     setLoading(true); setError('')
-    const { error } = await signIn(email.trim(), password)
+    const { data, error } = await signIn(email.trim(), password)
     if (error) { setError('Correo o contraseña incorrectos'); setLoading(false) }
-    else router.replace('/')
+    else {
+      const nombreGuardado = data?.user?.user_metadata?.nombre
+      if (!nombreGuardado) { setLoading(false); setMode('nombre') }
+      else router.replace('/')
+    }
   }
 
   async function handleRecover(e) {
@@ -69,6 +74,51 @@ function LoginContent() {
     if (error) setError('No se pudo cambiar la contraseña')
     else router.replace('/')
   }
+
+  async function handleGuardarNombre(e) {
+    e.preventDefault()
+    if (!nombre.trim()) return
+    setLoading(true); setError('')
+    const { error } = await supabase.auth.updateUser({ data: { nombre: nombre.trim() } })
+    setLoading(false)
+    if (error) setError('No se pudo guardar el nombre')
+    else router.replace('/')
+  }
+
+  if (mode === 'nombre') return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6"
+      style={{ background: 'var(--bg-primary)' }}>
+      <div className="w-full max-w-sm">
+        <p className="font-script text-center mb-1" style={{ fontSize: 32, color: 'var(--text-primary)' }}>
+          Familia Quintero
+        </p>
+        <p className="text-center text-sm mb-8" style={{ color: 'var(--text-muted)' }}>
+          ¿Cómo te llamas?
+        </p>
+        <form onSubmit={handleGuardarNombre} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Tu nombre"
+            value={nombre}
+            onChange={e => setNombre(e.target.value)}
+            autoFocus
+            className="ff-input w-full text-center text-lg font-semibold"
+            style={{ color: 'var(--text-primary)' }}
+          />
+          {error && <p className="text-xs text-center" style={{ color: 'var(--accent-rose)' }}>{error}</p>}
+          <button type="submit" disabled={!nombre.trim() || loading}
+            className="w-full py-4 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2"
+            style={{
+              background: nombre.trim() ? 'var(--text-primary)' : 'var(--bg-secondary)',
+              color: nombre.trim() ? 'var(--bg-card)' : 'var(--text-muted)',
+              border: 'none', cursor: 'pointer',
+            }}>
+            {loading ? <Loader2 size={16} className="animate-spin" /> : 'Continuar →'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
 
   if (checking) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
