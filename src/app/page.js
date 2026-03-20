@@ -161,7 +161,7 @@ export default function Dashboard() {
  
       {/* ── Header ── */}
       <div className="mb-7 animate-enter">
-        <p className="text-[5px] uppercase tracking-widest font-bold mb-0.5"  style={{ fontSize: 8, color: 'var(--text-muted)' }}>
+        <p className="text-[5px] uppercase tracking-widest font-semibold mb-0.5"  style={{ fontSize: 8, color: 'var(--text-muted)' }}>
           {saludo()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
         <h1 className="text-2xl tracking-tight" style={{ color: 'var(--text-primary)' }}>
@@ -207,7 +207,7 @@ export default function Dashboard() {
                 }}>
                 <span className="text-base flex-shrink-0">{d.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
+                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
                   <p style={{ fontSize: 10, color }}>
                     {d.dias === 0 ? '¡Vence hoy!' : `Vence en ${d.dias} día${d.dias !== 1 ? 's' : ''}`}
                   </p>
@@ -291,7 +291,7 @@ export default function Dashboard() {
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                     {m.descripcion || NOMBRES_CAT[m.categoria] || m.categoria}
                   </p>
                   <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>

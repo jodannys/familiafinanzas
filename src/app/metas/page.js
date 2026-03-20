@@ -187,7 +187,7 @@ export default function MetasPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5 animate-enter">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
           <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</h1>
         </div>
         <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center gap-2">
@@ -290,7 +290,7 @@ export default function MetasPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                      <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
                         {meta.nombre}
                       </p>
                       {isPausada && (
@@ -307,7 +307,7 @@ export default function MetasPage() {
                         </span>
                       )}
                       {aporteMensual > 0 && meta.estado === 'activa' && (
-                        <span className="text-[10px] font-bold"
+                        <span className="text-[10px] font-semibold"
                           style={{ color: meta.color }}>
                           {formatCurrency(aporteMensual)}/mes
                         </span>
@@ -327,7 +327,7 @@ export default function MetasPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xs font-bold tabular-nums" style={{ color: meta.color }}>
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: meta.color }}>
                       {formatCurrency(meta.actual || 0)}
                     </span>
                     <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
@@ -349,7 +349,7 @@ export default function MetasPage() {
                       <button
                         onClick={e => { e.stopPropagation(); handleAgregarDinero(meta.id, meta.actual || 0, meta.nombre, meta.pct_mensual) }}
                         disabled={saving}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all"
                         style={{
                           background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
                           color: 'var(--accent-green)', border: 'none', cursor: 'pointer',
@@ -420,7 +420,7 @@ export default function MetasPage() {
                       {getFlagEmoji(meta.emoji)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>{meta.nombre}</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{meta.nombre}</p>
                       <p className="text-[10px]" style={{ color: 'var(--accent-green)' }}>
                         {formatCurrency(meta.actual || 0)} ahorrado
                       </p>
@@ -493,7 +493,7 @@ export default function MetasPage() {
                     {excede ? `⚠ Máximo disponible: ${pctLibre}%` : `${pctLibre - pctActual}% libre tras esta meta`}
                   </span>
                   {!excede && montoActual > 0 && (
-                    <span className="text-xs font-bold" style={{ color }}>
+                    <span className="text-xs font-semibold" style={{ color }}>
                       {formatCurrency(montoActual)}/mes
                     </span>
                   )}

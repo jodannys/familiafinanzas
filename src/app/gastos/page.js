@@ -427,7 +427,7 @@ export default function GastosPage() {
         <div className="mb-6 animate-enter px-1">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
+              <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
               <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Registro</h1>
             </div>
             <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2"
@@ -501,7 +501,7 @@ export default function GastosPage() {
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }].map(f => (
               <button key={f.v} onClick={() => setFiltro(f.v)}
-                className="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border"
+                className="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border"
                 style={{
                   background: filtro === f.v ? `color-mix(in srgb, ${colores.green} 10%, transparent)` : 'transparent',
                   color: filtro === f.v ? colores.green : colores.muted,
@@ -591,7 +591,7 @@ export default function GastosPage() {
             <button
               onClick={() => cargarMovimientos(true)}
               disabled={loading}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold border transition-all"
+              className="px-6 py-2.5 rounded-xl text-xs font-semibold border transition-all"
               style={{
                 borderColor: 'var(--border-glass)',
                 color: 'var(--text-muted)',
@@ -696,7 +696,7 @@ export default function GastosPage() {
                   }
                 </select>
                 {tarjetaSeleccionada && (
-                  <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                  <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
                     style={{
                       background: `color-mix(in srgb, ${colores.violet} 8%, transparent)`,
                       color: colores.violet,

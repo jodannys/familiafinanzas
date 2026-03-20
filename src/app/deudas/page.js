@@ -684,12 +684,12 @@ export default function DeudasPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
           <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Mis Deudas</h1>
         </div>
         <button onClick={abrirNueva} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />
-          <span className="hidden sm:inline text-sm font-bold">Nueva deuda</span>
+          <span className="hidden sm:inline text-sm font-semibold">Nueva deuda</span>
         </button>
       </div>
 
@@ -707,14 +707,14 @@ export default function DeudasPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="glass-card p-3 animate-enter">
-          <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
+          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
             style={{ color: 'var(--text-muted)' }}>💸 Lo que debo</p>
           <p className="text-sm font-semibold" style={{ color: 'var(--accent-rose)' }}>
             {formatCurrency(totalDebo)}
           </p>
         </div>
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.05s' }}>
-          <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
+          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
             style={{ color: 'var(--text-muted)' }}>🤝 Me deben</p>
           <p className="text-sm font-semibold" style={{ color: 'var(--accent-green)' }}>
             {formatCurrency(totalMeDeben)}
@@ -723,14 +723,14 @@ export default function DeudasPage() {
       </div>
       <div className="grid grid-cols-2 gap-2 mb-6">
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.1s' }}>
-          <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
+          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
             style={{ color: 'var(--text-muted)' }}>Letras este mes</p>
           <p className="text-sm font-semibold" style={{ color: 'var(--accent-terra)' }}>
             {formatCurrency(cuotasMes)}
           </p>
         </div>
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.15s' }}>
-          <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
+          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
             style={{ color: 'var(--text-muted)' }}>Vencen pronto</p>
           <p className="text-sm font-semibold"
             style={{ color: vencenProximo > 0 ? 'var(--accent-rose)' : 'var(--accent-green)' }}>
@@ -944,7 +944,7 @@ export default function DeudasPage() {
                         }}>
                         {esMeDeben ? '🤝 Me deben' : '💸 Debo'}
                       </span>
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                         style={{
                           background: d.categoria === 'basicos'
                             ? 'color-mix(in srgb, var(--accent-blue)  10%, transparent)'
@@ -989,7 +989,7 @@ export default function DeudasPage() {
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {d.cuota > 0 && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
                       style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                       {formatCurrency(d.cuota)}/mes
                     </span>
@@ -1125,7 +1125,7 @@ export default function DeudasPage() {
                             : <ArrowDownRight size={11} style={{ color: 'var(--accent-rose)' }} />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                             {m.descripcion}
                           </p>
                           <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
@@ -1202,10 +1202,10 @@ export default function DeudasPage() {
                                       ? 'color-mix(in srgb, var(--accent-violet) 6%, transparent)'
                                       : 'transparent',
                                 }}>
-                                <td className="px-2 py-1.5 font-bold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                <td className="px-2 py-1.5 font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
                                   {row.periodo}
                                 </td>
-                                <td className="px-2 py-1.5 font-bold" style={{ color: esActual ? 'var(--accent-violet)' : 'var(--text-secondary)' }}>
+                                <td className="px-2 py-1.5 font-semibold" style={{ color: esActual ? 'var(--accent-violet)' : 'var(--text-secondary)' }}>
                                   {row.fechaLabel}
                                   {esActual && <span className="ml-1 text-[8px] px-1 rounded" style={{ background: 'color-mix(in srgb, var(--accent-violet) 20%, transparent)', color: 'var(--accent-violet)' }}>hoy</span>}
                                 </td>
@@ -1222,7 +1222,7 @@ export default function DeudasPage() {
                                     </td>
                                   </>
                                 )}
-                                <td className="px-2 py-1.5 text-right font-bold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
                                   {formatCurrency(row.saldo)}
                                 </td>
                                 <td className="px-2 py-1.5 text-center">
@@ -1376,7 +1376,7 @@ export default function DeudasPage() {
                 </div>
               </div>
               {formTarjeta.monto_compra && formTarjeta.num_cuotas && (
-                <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
                   style={{
                     background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)',
                     color: 'var(--accent-violet)',
@@ -1483,7 +1483,7 @@ export default function DeudasPage() {
                 )}
               </div>
               {formPrestamo.capital && !formPrestamo.plazo_libre && formPrestamo.plazo_meses && (
-                <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
                   style={{
                     background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
                     color: 'var(--accent-rose)',
@@ -1670,7 +1670,7 @@ export default function DeudasPage() {
             </div>
           )}
           {editandoMov && (
-            <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+            <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
               style={{
                 background: editandoMov.tipo === 'pago'
                   ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'

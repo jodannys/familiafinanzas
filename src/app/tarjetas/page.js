@@ -205,7 +205,7 @@ export default function TarjetasPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5"
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5"
             style={{ color: 'var(--text-muted)' }}>Configuración</p>
           <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Mis Tarjetas</h1>
         </div>
@@ -273,7 +273,7 @@ export default function TarjetasPage() {
                       style={{ color: t.color }}>{formatCurrency(usado)}</span>
                   </div>
                   <ProgressBar value={usado} max={limite} color={pctUsado > 80 ? 'var(--accent-rose)' : t.color} />
-                  <div className="flex justify-between text-[10px] font-bold"
+                  <div className="flex justify-between text-[10px] font-semibold"
                     style={{ color: 'var(--text-muted)' }}>
                     <span>{pctUsado}% usado</span>
                     <span style={{ color: 'var(--accent-green)' }}>Disp: {formatCurrency(disponible)}</span>
@@ -282,7 +282,7 @@ export default function TarjetasPage() {
 
                 {/* Días de corte y pago */}
                 <div className="flex items-center justify-between">
-                  <div className="flex gap-3 text-[11px] font-bold"
+                  <div className="flex gap-3 text-[11px] font-semibold"
                     style={{ color: 'var(--text-secondary)' }}>
                     {t.dia_corte && <span>Corte: día {t.dia_corte}</span>}
                     {t.dia_pago && <span>Pago: día {t.dia_pago}</span>}
@@ -324,7 +324,7 @@ export default function TarjetasPage() {
                         <div key={deuda.id}
                           className="flex justify-between items-center p-3 rounded-xl"
                           style={{ background: 'var(--bg-secondary)' }}>
-                          <span className="text-[11px] font-bold">{deuda.nombre}</span>
+                          <span className="text-[11px] font-semibold">{deuda.nombre}</span>
                           <span className="text-[11px] font-semibold" style={{ color: t.color }}>
                             {formatCurrency(deuda.pendiente)}
                           </span>

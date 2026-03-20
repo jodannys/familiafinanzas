@@ -91,7 +91,7 @@ export default function ThemeSwitcher() {
                       flexShrink: 0
                     }} />
 
-                    <span className="flex-1 text-left text-[12px] font-bold"
+                    <span className="flex-1 text-left text-[12px] font-semibold"
                       style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                       {t.name}
                     </span>

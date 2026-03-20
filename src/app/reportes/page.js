@@ -287,7 +287,7 @@ export default function ReportesPage() {
       {/* HEADER */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
           <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Reportes</h1>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0"
@@ -347,10 +347,10 @@ export default function ReportesPage() {
               <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
                 <div className="flex items-center gap-1.5 mb-1">
                   <span style={{ color: s.color }}>{s.icon}</span>
-                  <p className="text-[9px] uppercase tracking-wider font-bold" style={{ color: colores.muted }}>{s.label}</p>
+                  <p className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: colores.muted }}>{s.label}</p>
                 </div>
                 <p className="text-sm font-semibold" style={{ color: s.color }}>{s.value}</p>
-                {s.sub  && <p className="text-[9px] font-bold mt-0.5" style={{ color: s.color, opacity: 0.7 }}>{s.sub}</p>}
+                {s.sub  && <p className="text-[9px] font-semibold mt-0.5" style={{ color: s.color, opacity: 0.7 }}>{s.sub}</p>}
                 {s.hint && <p className="text-[8px] mt-0.5" style={{ color: colores.muted, opacity: 0.6 }}>{s.hint}</p>}
               </div>
             ))}
@@ -363,7 +363,7 @@ export default function ReportesPage() {
                 <p className="text-[10px] font-semibold uppercase" style={{ color: colores.muted }}>
                   Distribución del presupuesto
                 </p>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                   style={{
                     background: `color-mix(in srgb, ${colores.green} 10%, transparent)`,
                     color: colores.green,
@@ -544,8 +544,8 @@ export default function ReportesPage() {
                         return (
                           <tr key={m.mes} style={{ borderBottom: `1px solid ${colores.border}` }}>
                             <td className="py-2 font-semibold" style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{m.mes}</td>
-                            <td className="py-2 text-right font-bold" style={{ color: colores.green, fontSize: 11 }}>{formatCurrency(m.Ingresos)}</td>
-                            <td className="py-2 text-right font-bold" style={{ color: colores.rose,  fontSize: 11 }}>{formatCurrency(m.Gastos)}</td>
+                            <td className="py-2 text-right font-semibold" style={{ color: colores.green, fontSize: 11 }}>{formatCurrency(m.Ingresos)}</td>
+                            <td className="py-2 text-right font-semibold" style={{ color: colores.rose,  fontSize: 11 }}>{formatCurrency(m.Gastos)}</td>
                             <td className="py-2 text-right font-semibold" style={{ fontSize: 11, color: bal >= 0 ? colores.green : colores.rose }}>
                               {bal >= 0 ? '+' : ''}{formatCurrency(bal)}
                             </td>

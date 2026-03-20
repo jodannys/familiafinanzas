@@ -45,7 +45,7 @@ export function StatCard({ label, value, sub, icon: Icon, color = 'var(--accent-
         </div>
         
         {delta !== undefined && (
-          <span className="text-xs font-bold px-2.5 py-1 rounded-lg border"
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-lg border"
             style={{
               color: statusColor,
               background: `color-mix(in srgb, ${statusColor}, transparent 92%)`,

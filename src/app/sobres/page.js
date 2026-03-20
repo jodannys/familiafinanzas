@@ -289,9 +289,9 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
       {/* HEADER */}
       <div className="flex items-start justify-between gap-3 mb-6 animate-enter">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}> Control Diario</p>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}> Control Diario</p>
           <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
-          <div className="flex items-center gap-2 mt-1.5 text-[10px] font-bold uppercase tracking-widest"
+          <div className="flex items-center gap-2 mt-1.5 text-[10px] font-semibold uppercase tracking-widest"
             style={{ color: 'var(--text-muted)' }}>
             <Calendar size={11} />
             <select value={filtroMes} onChange={e => setFiltroMes(Number(e.target.value))}
@@ -312,7 +312,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
         <button onClick={() => setModal(true)}
           className="ff-btn-primary flex items-center justify-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />
-          <span className="text-sm font-bold hidden sm:inline">Registrar Gasto</span>
+          <span className="text-sm font-semibold hidden sm:inline">Registrar Gasto</span>
         </button>
       </div>
 
@@ -336,7 +336,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
               <div className="h-full rounded-full transition-all duration-700"
                 style={{ width: `${pctUsado}%`, background: sobreColor }} />
             </div>
-            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-3">
+            <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider mb-3">
               <span style={{ color: 'var(--text-muted)' }}>Gastado: {formatCurrency(gastadoSobre)}</span>
               <span style={{ color: 'var(--text-muted)' }}>Límite: {formatCurrency(montoEstilo)}</span>
             </div>
@@ -349,7 +349,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
                   border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
                 }}>
                 <AlertTriangle size={14} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
-                <p className="text-[10px] font-bold" style={{ color: 'var(--accent-rose)' }}>
+                <p className="text-[10px] font-semibold" style={{ color: 'var(--accent-rose)' }}>
                   ¡Sobre vacío! Usando dinero de otras categorías.
                 </p>
               </div>
@@ -404,7 +404,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
             {movsFiltrados.length === 0 ? (
               <div className="py-12 text-center">
                 <Wallet size={28} className="mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
-                <p className="text-xs font-bold italic" style={{ color: 'var(--text-muted)' }}>Sin registros este mes</p>
+                <p className="text-xs font-semibold italic" style={{ color: 'var(--text-muted)' }}>Sin registros este mes</p>
               </div>
             ) : (
               <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
@@ -428,7 +428,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      <p className="text-sm font-semibold truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
                         {m.descripcion}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -482,7 +482,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
                 ))}
               </select>
               {usandoTarjeta && (
-                <div className="px-3 py-2 rounded-xl text-[10px] font-bold"
+                <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
                   style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
                   💳 Este gasto NO restará del sobre. Se acumula en la tarjeta.
                 </div>
@@ -502,7 +502,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
               value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />
             {/* Indicador de saldo disponible */}
             {!usandoTarjeta && montoFormParseado > 0 && (
-              <p className="text-[10px] mt-1 font-bold"
+              <p className="text-[10px] mt-1 font-semibold"
                 style={{ color: montoFormParseado > saldoSobre ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
                 {montoFormParseado > saldoSobre
                   ? `⚠ Faltan ${formatCurrency(montoFormParseado - saldoSobre)} → se pedirá traspaso`
@@ -548,7 +548,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
               border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
             }}>
             <AlertTriangle size={14} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
-            <p className="text-xs font-bold" style={{ color: 'var(--accent-rose)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--accent-rose)' }}>
               No hay saldo. Para pagar <b>{formatCurrency(gastoTemp?.monto)}</b>, elige de dónde tomar:
             </p>
           </div>
@@ -567,7 +567,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
                     Disponible: {formatCurrency(getSaldo(o.value))}
                   </p>
                   {getSaldo(o.value) < (gastoTemp?.monto || 0) && (
-                    <p className="text-[9px] font-bold mt-0.5" style={{ color: 'var(--accent-rose)' }}>
+                    <p className="text-[9px] font-semibold mt-0.5" style={{ color: 'var(--accent-rose)' }}>
                       ✗ Saldo insuficiente
                     </p>
                   )}
@@ -598,14 +598,14 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
               background: 'color-mix(in srgb, var(--accent-green) 8%, transparent)',
               border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)',
             }}>
-            <p className="text-xs font-bold" style={{ color: 'var(--accent-green)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--accent-green)' }}>
               Tienes {formatCurrency(saldoSobre)} sin gastar. ¡Ponlo a trabajar!
             </p>
           </div>
 
           <div>
             <label className="ff-label">Monto a mover</label>
-            <input className="ff-input text-xl font-bold" type="number" step="0.01"
+            <input className="ff-input text-xl font-semibold" type="number" step="0.01"
               max={saldoSobre} placeholder="0.00"
               value={montoSobrante} onChange={e => setMontoSobrante(e.target.value)} />
           </div>

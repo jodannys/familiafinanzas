@@ -154,7 +154,7 @@ function FABModal({ onClose }) {
             ].map(t => (
               <button key={t.id}
                 onClick={() => setTipo(t.id)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all"
                 style={{
                   background: tipo === t.id
                     ? `color-mix(in srgb, ${t.color} 12%, transparent)`
@@ -180,7 +180,7 @@ function FABModal({ onClose }) {
               value={monto}
               onChange={e => setMonto(e.target.value)}
               autoFocus
-              className="ff-input w-full font-serif text-2xl font-bold text-center"
+              className="ff-input w-full font-serif text-2xl font-semibold text-center"
               style={{ color: tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-primary)' }}
             />
           </div>
@@ -194,7 +194,7 @@ function FABModal({ onClose }) {
                 {CATS_EGRESO.map(c => (
                   <button key={c.id}
                     onClick={() => setCat(c.id)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
                     style={{
                       background: cat === c.id
                         ? `color-mix(in srgb, ${c.color} 15%, transparent)`
@@ -314,7 +314,7 @@ function FABModal({ onClose }) {
                           cursor: 'pointer',
                         }}>
                         <span className="text-sm">{item.emoji}</span>
-                        <span className="flex-1 text-xs font-bold" style={{ color: isSelected ? color : 'var(--text-primary)' }}>
+                        <span className="flex-1 text-xs font-semibold" style={{ color: isSelected ? color : 'var(--text-primary)' }}>
                           {item.nombre}
                         </span>
                         <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
@@ -485,7 +485,7 @@ export default function AppShell({ children }) {
                           width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
                           background: t.preview[0], border: '2px solid var(--border-glass)',
                         }} />
-                        <span className="flex-1 text-left text-xs font-bold"
+                        <span className="flex-1 text-left text-xs font-semibold"
                           style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                           {t.name}
                         </span>
@@ -509,7 +509,7 @@ export default function AppShell({ children }) {
                       border: 'none', cursor: 'pointer',
                     }}>
                     <LogOut size={14} />
-                    <span className="text-xs font-bold">Cerrar sesión</span>
+                    <span className="text-xs font-semibold">Cerrar sesión</span>
                   </button>
                 </div>
               </div>

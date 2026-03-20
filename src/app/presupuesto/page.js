@@ -217,7 +217,7 @@ export default function PresupuestoPage() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4 animate-enter">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
           <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Mi Presupuesto
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -260,7 +260,7 @@ export default function PresupuestoPage() {
                       <BIcon size={14} style={{ color: b.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{b.nombre}</p>
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{b.nombre}</p>
                       {ingresoNum > 0 && (
                         <p className="text-xs" style={{ color: b.color }}>{formatCurrency(bMonto)}</p>
                       )}
@@ -295,20 +295,20 @@ export default function PresupuestoPage() {
                           <div key={s.key} className="flex items-center gap-2">
                             <span className="flex-1 text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
                             {ingresoNum > 0 && (
-                              <span className="text-xs font-bold" style={{ color: s.color }}>
+                              <span className="text-xs font-semibold" style={{ color: s.color }}>
                                 {formatCurrency(sMonto)}
                               </span>
                             )}
                             <input type="number" min="0" max="100" value={subBorrador[s.key]}
                               onChange={e => cambiarSubPct(s.key, e.target.value)}
-                              className="ff-input text-center font-bold w-14"
+                              className="ff-input text-center font-semibold w-14"
                               style={{ color: s.color, fontSize: 14 }} />
-                            <span className="text-sm font-bold w-4" style={{ color: 'var(--text-muted)' }}>%</span>
+                            <span className="text-sm font-semibold w-4" style={{ color: 'var(--text-muted)' }}>%</span>
                           </div>
                         )
                       })}
                       {!subOk && (
-                        <p className="text-[9px] font-bold" style={{ color: 'var(--accent-rose)' }}>
+                        <p className="text-[9px] font-semibold" style={{ color: 'var(--accent-rose)' }}>
                           Suman {subTotalPct}% — deben ser exactamente 100%
                         </p>
                       )}
@@ -354,7 +354,7 @@ export default function PresupuestoPage() {
           { id: 'categorias', label: 'Por categorías', Icon: List },
         ].map(({ id, label, Icon }) => (
           <button key={id} onClick={() => setVista(id)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
             style={{
               background: vista === id ? 'var(--text-primary)' : 'transparent',
               color:      vista === id ? 'var(--bg-card)' : 'var(--text-muted)',
@@ -429,7 +429,7 @@ export default function PresupuestoPage() {
                         <span style={{ color: 'var(--text-muted)' }}>
                           {esFuturo ? 'Ahorrado / invertido' : 'Gastado real'}
                         </span>
-                        <span className="font-bold"
+                        <span className="font-semibold"
                           style={{ color: sobreGiro ? 'var(--accent-rose)' : bloque.color }}>
                           {formatCurrency(gastado)}
                         </span>
@@ -562,7 +562,7 @@ export default function PresupuestoPage() {
                             <p className="text-[9px] font-semibold uppercase tracking-wider"
                               style={{ color: 'var(--text-muted)' }}>Otras categorías</p>
                             <button onClick={() => setVista('categorias')}
-                              className="text-[9px] font-bold flex items-center gap-0.5"
+                              className="text-[9px] font-semibold flex items-center gap-0.5"
                               style={{ color: bloque.color, background: 'none', border: 'none', cursor: 'pointer' }}>
                               Editar <ArrowRight size={9} />
                             </button>
@@ -574,7 +574,7 @@ export default function PresupuestoPage() {
                               <div key={cat.id} className="flex items-center gap-2 py-0.5">
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                                 <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{cat.nombre}</span>
-                                <span className="text-xs font-bold" style={{ color: catPres > 0 ? cat.color : 'var(--text-muted)' }}>
+                                <span className="text-xs font-semibold" style={{ color: catPres > 0 ? cat.color : 'var(--text-muted)' }}>
                                   {catPres > 0 ? formatCurrency(catPres) : 'sin monto'}
                                 </span>
                               </div>
@@ -591,7 +591,7 @@ export default function PresupuestoPage() {
                       {catsBloque.length === 0 ? (
                         <div className="flex items-center justify-between">
                           <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Sin categorías aún</p>
-                          <a href="/ajustes" className="text-xs font-bold flex items-center gap-1"
+                          <a href="/ajustes" className="text-xs font-semibold flex items-center gap-1"
                             style={{ color: bloque.color, textDecoration: 'none' }}>
                             Configurar <ArrowRight size={11} />
                           </a>
@@ -602,7 +602,7 @@ export default function PresupuestoPage() {
                             <p className="text-[9px] font-semibold uppercase tracking-wider"
                               style={{ color: 'var(--text-muted)' }}>Categorías</p>
                             <button onClick={() => setVista('categorias')}
-                              className="text-[9px] font-bold flex items-center gap-0.5"
+                              className="text-[9px] font-semibold flex items-center gap-0.5"
                               style={{ color: bloque.color, background: 'none', border: 'none', cursor: 'pointer' }}>
                               Editar <ArrowRight size={9} />
                             </button>
@@ -624,7 +624,7 @@ export default function PresupuestoPage() {
                                         {formatCurrency(catGast)} /
                                       </span>
                                     )}
-                                    <span className="text-xs font-bold" style={{ color: catPres > 0 ? cat.color : 'var(--text-muted)' }}>
+                                    <span className="text-xs font-semibold" style={{ color: catPres > 0 ? cat.color : 'var(--text-muted)' }}>
                                       {catPres > 0 ? formatCurrency(catPres) : 'sin monto'}
                                     </span>
                                   </div>
@@ -659,7 +659,7 @@ export default function PresupuestoPage() {
                   <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Deudas</p>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Compromisos mensuales fijos</p>
                 </div>
-                <a href="/deudas" className="text-[9px] font-bold flex items-center gap-0.5"
+                <a href="/deudas" className="text-[9px] font-semibold flex items-center gap-0.5"
                   style={{ color: 'var(--accent-rose)', textDecoration: 'none' }}>
                   Ver <ArrowRight size={9} />
                 </a>
@@ -678,7 +678,7 @@ export default function PresupuestoPage() {
                         </span>
                       )}
                       {d.cuota > 0 && (
-                        <span className="text-[10px] font-bold"
+                        <span className="text-[10px] font-semibold"
                           style={{ color: pagadaEsteMes ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                           {formatCurrency(d.cuota)}/mes
                         </span>
@@ -810,15 +810,15 @@ export default function PresupuestoPage() {
                               style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, var(--bg-secondary))' }}>
                               <div className="flex items-center gap-2">
                                 <Target size={12} style={{ color: 'var(--accent-green)' }} />
-                                <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
+                                <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
                               </div>
                               <div className="flex items-center gap-2">
                                 {ingresoNum > 0 && (
-                                  <span className="text-xs font-bold" style={{ color: 'var(--accent-green)' }}>
+                                  <span className="text-xs font-semibold" style={{ color: 'var(--accent-green)' }}>
                                     {sub.metas}% · {formatCurrency(montoMetas)}
                                   </span>
                                 )}
-                                <a href="/metas" className="text-[9px] font-bold flex items-center gap-0.5"
+                                <a href="/metas" className="text-[9px] font-semibold flex items-center gap-0.5"
                                   style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
                                   Editar <ArrowRight size={9} />
                                 </a>
@@ -833,7 +833,7 @@ export default function PresupuestoPage() {
                                     <div className="flex items-center gap-2.5">
                                       <span className="text-base flex-shrink-0">{m.emoji}</span>
                                       <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold truncate" style={{ color: 'var(--text-secondary)' }}>
+                                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
                                           {m.nombre}
                                         </p>
                                         <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
@@ -857,11 +857,11 @@ export default function PresupuestoPage() {
                                 return (
                                   <div className="flex items-center justify-between px-3 py-2"
                                     style={{ background: 'var(--bg-secondary)' }}>
-                                    <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                                    <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>
                                       {totalPctMetas}% asignado · {libre}% libre
                                     </span>
                                     {ingresoNum > 0 && (
-                                      <span className="text-[10px] font-bold" style={{ color: libre > 0 ? 'var(--text-muted)' : 'var(--accent-green)' }}>
+                                      <span className="text-[10px] font-semibold" style={{ color: libre > 0 ? 'var(--text-muted)' : 'var(--accent-green)' }}>
                                         {formatCurrency((libre / 100) * montoMetas)} sin asignar
                                       </span>
                                     )}
@@ -880,15 +880,15 @@ export default function PresupuestoPage() {
                               style={{ background: 'color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))' }}>
                               <div className="flex items-center gap-2">
                                 <TrendingUp size={12} style={{ color: 'var(--accent-violet)' }} />
-                                <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
+                                <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
                               </div>
                               <div className="flex items-center gap-2">
                                 {ingresoNum > 0 && (
-                                  <span className="text-xs font-bold" style={{ color: 'var(--accent-violet)' }}>
+                                  <span className="text-xs font-semibold" style={{ color: 'var(--accent-violet)' }}>
                                     {sub.inversiones}% · {formatCurrency(montoInversiones)}
                                   </span>
                                 )}
-                                <a href="/inversiones" className="text-[9px] font-bold flex items-center gap-0.5"
+                                <a href="/inversiones" className="text-[9px] font-semibold flex items-center gap-0.5"
                                   style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
                                   Editar <ArrowRight size={9} />
                                 </a>
@@ -904,7 +904,7 @@ export default function PresupuestoPage() {
                                     <div className="flex items-center gap-2.5">
                                       <span className="text-base flex-shrink-0">{inv.emoji}</span>
                                       <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold truncate" style={{ color: 'var(--text-secondary)' }}>
+                                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
                                           {inv.nombre}
                                         </p>
                                       </div>
@@ -926,10 +926,10 @@ export default function PresupuestoPage() {
                                 return (
                                   <div className="px-3 py-2" style={{ background: 'var(--bg-secondary)' }}>
                                     <div className="flex items-center justify-between mb-1">
-                                      <span className="text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                                      <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>
                                         Total aportes vs presupuesto
                                       </span>
-                                      <span className="text-[10px] font-bold"
+                                      <span className="text-[10px] font-semibold"
                                         style={{ color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                                         {formatCurrency(totalAporte)} / {formatCurrency(montoInversiones)}
                                       </span>
@@ -970,7 +970,7 @@ export default function PresupuestoPage() {
                                 style={{ background: `color-mix(in srgb, ${cat.color} 8%, var(--bg-secondary))` }}>
                                 <div className="flex items-center gap-2">
                                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                                  <p className="flex-1 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
+                                  <p className="flex-1 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
                                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                                     style={{
                                       background: `color-mix(in srgb, ${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 12%, transparent)`,
@@ -981,10 +981,10 @@ export default function PresupuestoPage() {
                                 </div>
                                 <div className="flex items-center gap-3 mt-1 ml-4">
                                   <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                                    Pres: <span className="font-bold" style={{ color: cat.color }}>{formatCurrency(totalPres)}</span>
+                                    Pres: <span className="font-semibold" style={{ color: cat.color }}>{formatCurrency(totalPres)}</span>
                                   </span>
                                   <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                                    Gastado: <span className="font-bold">{formatCurrency(totalGast)}</span>
+                                    Gastado: <span className="font-semibold">{formatCurrency(totalGast)}</span>
                                   </span>
                                 </div>
                               </div>
@@ -1013,7 +1013,7 @@ export default function PresupuestoPage() {
                                     return (
                                       <div key={sub.id} className="px-3 py-3">
                                         <div className="flex items-center justify-between mb-2.5">
-                                          <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>
+                                          <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
                                             {sub.nombre}
                                           </p>
                                           {(montoPres > 0 || gastadoSub > 0) && (
@@ -1043,7 +1043,7 @@ export default function PresupuestoPage() {
                                           <div className="flex-1">
                                             <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
                                               style={{ color: 'var(--text-muted)' }}>Gastado real</p>
-                                            <div className="ff-input flex items-center text-sm font-bold"
+                                            <div className="ff-input flex items-center text-sm font-semibold"
                                               style={{
                                                 color: gastadoSub > 0 ? 'var(--accent-rose)' : 'var(--text-muted)',
                                                 background: 'var(--bg-secondary)', cursor: 'default',

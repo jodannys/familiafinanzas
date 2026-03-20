@@ -161,7 +161,7 @@ export default function Sidebar() {
 
                     {/* Label */}
                     <span
-                      className="relative z-10 text-xs font-bold whitespace-nowrap transition-all duration-200 overflow-hidden"
+                      className="relative z-10 text-xs font-semibold whitespace-nowrap transition-all duration-200 overflow-hidden"
                       style={{
                         opacity: expanded ? 1 : 0,
                         maxWidth: expanded ? 140 : 0,
@@ -196,7 +196,7 @@ export default function Sidebar() {
           <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center">
             <ThemeSwitcher />
           </div>
-          <span className="text-xs font-bold whitespace-nowrap transition-all duration-200"
+          <span className="text-xs font-semibold whitespace-nowrap transition-all duration-200"
             style={{ opacity: expanded ? 1 : 0, color: 'var(--text-muted)', maxWidth: expanded ? 140 : 0 }}>
             Tema
           </span>
@@ -209,7 +209,7 @@ export default function Sidebar() {
           <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center">
             <LogOut size={17} />
           </div>
-          <span className="text-xs font-bold whitespace-nowrap transition-all duration-200"
+          <span className="text-xs font-semibold whitespace-nowrap transition-all duration-200"
             style={{ opacity: expanded ? 1 : 0, maxWidth: expanded ? 140 : 0 }}>
             Salir
           </span>

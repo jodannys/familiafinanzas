@@ -290,12 +290,12 @@ export default function InversionesPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
         <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
         </div>
         <button onClick={abrirNuevo} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />
-          <span className="hidden sm:inline text-sm font-bold">Nueva cartera</span>
+          <span className="hidden sm:inline text-sm font-semibold">Nueva cartera</span>
         </button>
       </div>
 
@@ -320,7 +320,7 @@ export default function InversionesPage() {
           { label: 'Total proyectado', value: formatCurrency(totalProyectado), color: colores.violet },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
-            <p className="text-[9px] uppercase tracking-wider font-bold mb-1"
+            <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
               style={{ color: colores.muted }}>{s.label}</p>
             <p className="text-sm font-semibold" style={{ color: s.color }}>{s.value}</p>
           </div>
@@ -526,11 +526,11 @@ export default function InversionesPage() {
                   <div className="flex items-center gap-4 mt-2 ml-1">
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 h-0.5 rounded" style={{ background: selected.color }} />
-                      <span className="text-[9px] font-bold" style={{ color: colores.muted }}>Balance proyectado</span>
+                      <span className="text-[9px] font-semibold" style={{ color: colores.muted }}>Balance proyectado</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 border-t border-dashed" style={{ borderColor: colores.muted }} />
-                      <span className="text-[9px] font-bold" style={{ color: colores.muted }}>Total aportado</span>
+                      <span className="text-[9px] font-semibold" style={{ color: colores.muted }}>Total aportado</span>
                     </div>
                   </div>
                 </div>
@@ -550,7 +550,7 @@ export default function InversionesPage() {
                 </div>
                 <p className="text-base font-semibold" style={{ color: colores.green, letterSpacing: '-0.02em' }}>
                   {formatCurrency(calc.finalBalance * 0.04 / 12)}
-                  <span className="text-[10px] font-bold opacity-60">/mes para siempre</span>
+                  <span className="text-[10px] font-semibold opacity-60">/mes para siempre</span>
                 </p>
               </div>
             </Card>
@@ -731,7 +731,7 @@ export default function InversionesPage() {
 
           {/* Preview en tiempo real — usa memo para no recalcular en cada tecla */}
           {calcPreview && (
-            <div className="px-3 py-2.5 rounded-xl text-[10px] font-bold"
+            <div className="px-3 py-2.5 rounded-xl text-[10px] font-semibold"
               style={{
                 background: `color-mix(in srgb, ${form.color} 8%, transparent)`,
                 color: form.color,
