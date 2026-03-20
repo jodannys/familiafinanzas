@@ -10,9 +10,9 @@ import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 const BLOQUES_META = [
-  { id: 'necesidades', nombre: 'Necesidades', icon: Home,     color: 'var(--accent-blue)',  pct: 50, descripcion: 'Gastos obligatorios del mes' },
-  { id: 'estilo',      nombre: 'Estilo de vida', icon: Sparkles, color: 'var(--accent-terra)', pct: 20, descripcion: 'Gastos de disfrute y ocio' },
-  { id: 'futuro',      nombre: 'Futuro',       icon: Sprout,  color: 'var(--accent-green)', pct: 30, descripcion: 'Construye tu patrimonio' },
+  { id: 'necesidades', nombre: 'Necesidades', icon: Home, color: 'var(--accent-blue)', pct: 50, descripcion: 'Gastos obligatorios del mes' },
+  { id: 'estilo', nombre: 'Estilo de vida', icon: Sparkles, color: 'var(--accent-terra)', pct: 20, descripcion: 'Gastos de disfrute y ocio' },
+  { id: 'futuro', nombre: 'Futuro', icon: Sprout, color: 'var(--accent-green)', pct: 30, descripcion: 'Construye tu patrimonio' },
 ]
 
 const CAT_BLOQUE = {
@@ -28,25 +28,25 @@ const ORIGEN_BLOQUE = {
 }
 
 export default function PresupuestoPage() {
-  const [bloques, setBloques]       = useState(BLOQUES_META)
-  const [ingreso, setIngreso]       = useState('')
-  const [editando, setEditando]     = useState(false)
+  const [bloques, setBloques] = useState(BLOQUES_META)
+  const [ingreso, setIngreso] = useState('')
+  const [editando, setEditando] = useState(false)
   const [borradores, setBorradores] = useState(null)
   // Split metas/inversiones dentro de Futuro
-  const [sub, setSub]               = useState({ metas: 60, inversiones: 40 })
+  const [sub, setSub] = useState({ metas: 60, inversiones: 40 })
   const [subBorrador, setSubBorrador] = useState(null)
-  const [movs, setMovs]             = useState([])
-  const [sobreMovs, setSobreMovs]   = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [saving, setSaving]         = useState(false)
-  const [vista, setVista]           = useState('general')
-  const [categoriasCfg, setCategoriasCfg]       = useState([])
+  const [movs, setMovs] = useState([])
+  const [sobreMovs, setSobreMovs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [vista, setVista] = useState('general')
+  const [categoriasCfg, setCategoriasCfg] = useState([])
   const [subcategoriasCfg, setSubcategoriasCfg] = useState([])
-  const [montosCats, setMontosCats]             = useState({})
-  const [metas, setMetas]           = useState([])
+  const [montosCats, setMontosCats] = useState({})
+  const [metas, setMetas] = useState([])
   const [inversiones, setInversiones] = useState([])
-  const [deudas, setDeudas]         = useState([])
-  const [deudaMovs, setDeudaMovs]   = useState([])
+  const [deudas, setDeudas] = useState([])
+  const [deudaMovs, setDeudaMovs] = useState([])
 
   const now = new Date()
   const mes = now.getMonth() + 1
@@ -57,7 +57,7 @@ export default function PresupuestoPage() {
   async function cargarTodo() {
     setLoading(true)
     const fechaInicio = `${año}-${String(mes).padStart(2, '0')}-01`
-    const fechaFin    = new Date(año, mes, 0).toISOString().slice(0, 10)
+    const fechaFin = new Date(año, mes, 0).toISOString().slice(0, 10)
 
     try {
       const [
@@ -96,7 +96,7 @@ export default function PresupuestoPage() {
       setDeudaMovs(deudaMovsData || [])
 
       const initMontos = {}
-      ;(presCatsData || []).forEach(p => { initMontos[p.subcategoria_id] = p.monto })
+        ; (presCatsData || []).forEach(p => { initMontos[p.subcategoria_id] = p.monto })
       setMontosCats(initMontos)
 
       const totalIngresos = (movsData || [])
@@ -193,21 +193,21 @@ export default function PresupuestoPage() {
   }
 
   // ── Derivados ─────────────────────────────────────────────────────────────
-  const ingresoNum    = parseFloat(ingreso) || 0
-  const lista         = editando ? borradores : bloques
-  const totalPct      = lista.reduce((s, b) => s + (parseInt(b.pct) || 0), 0)
-  const totalOk       = totalPct === 100
-  const subTotalPct   = subBorrador
+  const ingresoNum = parseFloat(ingreso) || 0
+  const lista = editando ? borradores : bloques
+  const totalPct = lista.reduce((s, b) => s + (parseInt(b.pct) || 0), 0)
+  const totalOk = totalPct === 100
+  const subTotalPct = subBorrador
     ? (parseInt(subBorrador.metas) || 0) + (parseInt(subBorrador.inversiones) || 0)
     : 100
-  const subOk         = subBorrador ? subTotalPct === 100 : true
-  const panelOk       = totalOk && subOk
+  const subOk = subBorrador ? subTotalPct === 100 : true
+  const panelOk = totalOk && subOk
 
   // Montos derivados del ingreso + porcentajes
-  const futuroPct      = (lista.find(b => b.id === 'futuro')?.pct) || 0
-  const montoFuturo    = ingresoNum * ((parseInt(futuroPct) || 0) / 100)
-  const subActual      = editando ? subBorrador : sub
-  const montoMetas     = montoFuturo * ((parseInt(subActual?.metas) || 0) / 100)
+  const futuroPct = (lista.find(b => b.id === 'futuro')?.pct) || 0
+  const montoFuturo = ingresoNum * ((parseInt(futuroPct) || 0) / 100)
+  const subActual = editando ? subBorrador : sub
+  const montoMetas = montoFuturo * ((parseInt(subActual?.metas) || 0) / 100)
   const montoInversiones = montoFuturo * ((parseInt(subActual?.inversiones) || 0) / 100)
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -225,8 +225,15 @@ export default function PresupuestoPage() {
           </p>
         </div>
         {!editando && (
-          <button onClick={iniciarEdicion} className="ff-btn-ghost flex items-center gap-2">
-            <Edit3 size={8} /> Distribución
+          <button
+            onClick={iniciarEdicion}
+            className="ff-btn-ghost flex items-center gap-1.5"
+            style={{ padding: '4px 8px' }} 
+          >
+            <Edit3 size={11} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">
+              Distribución
+            </span>
           </button>
         )}
       </div>
@@ -280,35 +287,47 @@ export default function PresupuestoPage() {
 
                   {/* Sub-distribución metas/inversiones — solo Futuro */}
                   {b.id === 'futuro' && subBorrador && (
-                    <div className="mt-3 pl-3 space-y-2"
-                      style={{ borderLeft: `2px solid ${b.color}40` }}>
-                      <p className="text-[9px] font-semibold uppercase tracking-wider mb-2"
+                    <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${b.color}30` }}>
+                      <p className="text-[9px] font-semibold uppercase tracking-wider mb-3"
                         style={{ color: 'var(--text-muted)' }}>
                         Distribución interna — suma 100%
                       </p>
-                      {[
-                        { key: 'metas',       label: 'Metas de Ahorro', color: 'var(--accent-green)' },
-                        { key: 'inversiones', label: 'Inversiones',     color: 'var(--accent-violet)' },
-                      ].map(s => {
-                        const sMonto = bMonto * ((parseInt(subBorrador[s.key]) || 0) / 100)
-                        return (
-                          <div key={s.key} className="flex items-center gap-2">
-                            <span className="flex-1 text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
-                            {ingresoNum > 0 && (
-                              <span className="text-xs font-semibold" style={{ color: s.color }}>
-                                {formatCurrency(sMonto)}
-                              </span>
-                            )}
-                            <input type="number" min="0" max="100" value={subBorrador[s.key]}
-                              onChange={e => cambiarSubPct(s.key, e.target.value)}
-                              className="ff-input text-center font-semibold w-14"
-                              style={{ color: s.color, fontSize: 14 }} />
-                            <span className="text-sm font-semibold w-4" style={{ color: 'var(--text-muted)' }}>%</span>
-                          </div>
-                        )
-                      })}
+                      <div className="space-y-2">
+                        {[
+                          { key: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)', emoji: '🎯' },
+                          { key: 'inversiones', label: 'Inversiones', color: 'var(--accent-violet)', emoji: '📈' },
+                        ].map(s => {
+                          const pct = parseInt(subBorrador[s.key]) || 0
+                          const sMonto = bMonto * (pct / 100)
+                          return (
+                            <div key={s.key}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs">{s.emoji}</span>
+                                <span className="flex-1 text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
+                                {ingresoNum > 0 && (
+                                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                    {formatCurrency(sMonto)}
+                                  </span>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <input type="number" min="0" max="100" value={subBorrador[s.key]}
+                                    onChange={e => cambiarSubPct(s.key, e.target.value)}
+                                    className="ff-input text-center font-semibold"
+                                    style={{ color: s.color, fontSize: 13, width: 52, padding: '4px 6px' }} />
+                                  <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>%</span>
+                                </div>
+                              </div>
+                              {/* Barra de progreso visual */}
+                              <div className="w-full h-1 rounded-full" style={{ background: 'var(--progress-track)' }}>
+                                <div className="h-full rounded-full transition-all duration-300"
+                                  style={{ width: `${Math.min(100, pct)}%`, background: s.color }} />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
                       {!subOk && (
-                        <p className="text-[9px] font-semibold" style={{ color: 'var(--accent-rose)' }}>
+                        <p className="text-[9px] font-semibold mt-2" style={{ color: 'var(--accent-rose)' }}>
                           Suman {subTotalPct}% — deben ser exactamente 100%
                         </p>
                       )}
@@ -350,14 +369,14 @@ export default function PresupuestoPage() {
       <div className="flex mb-5 p-1 rounded-xl gap-1"
         style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)', width: 'fit-content' }}>
         {[
-          { id: 'general',    label: 'General',        Icon: LayoutGrid },
+          { id: 'general', label: 'General', Icon: LayoutGrid },
           { id: 'categorias', label: 'Por categorías', Icon: List },
         ].map(({ id, label, Icon }) => (
           <button key={id} onClick={() => setVista(id)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
             style={{
               background: vista === id ? 'var(--text-primary)' : 'transparent',
-              color:      vista === id ? 'var(--bg-card)' : 'var(--text-muted)',
+              color: vista === id ? 'var(--bg-card)' : 'var(--text-muted)',
               border: 'none', cursor: 'pointer',
             }}>
             <Icon size={12} /> {label}
@@ -376,13 +395,13 @@ export default function PresupuestoPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {lista.map(bloque => {
-              const Icon       = bloque.icon
-              const monto      = ingresoNum * ((parseInt(bloque.pct) || 0) / 100)
-              const gastado    = gastadoReal(bloque.id)
+              const Icon = bloque.icon
+              const monto = ingresoNum * ((parseInt(bloque.pct) || 0) / 100)
+              const gastado = gastadoReal(bloque.id)
               const disponible = monto - gastado
               const pctGastado = monto > 0 ? Math.min(100, (gastado / monto) * 100) : 0
-              const sobreGiro  = gastado > monto
-              const esFuturo   = bloque.id === 'futuro'
+              const sobreGiro = gastado > monto
+              const esFuturo = bloque.id === 'futuro'
               const catsBloque = categoriasCfg.filter(c => c.bloque === bloque.id)
 
               return (
@@ -568,7 +587,7 @@ export default function PresupuestoPage() {
                             </button>
                           </div>
                           {catsBloque.map(cat => {
-                            const subs   = subcategoriasCfg.filter(s => s.categoria_id === cat.id)
+                            const subs = subcategoriasCfg.filter(s => s.categoria_id === cat.id)
                             const catPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
                             return (
                               <div key={cat.id} className="flex items-center gap-2 py-0.5">
@@ -609,11 +628,11 @@ export default function PresupuestoPage() {
                           </div>
                           <div className="space-y-1">
                             {catsBloque.map(cat => {
-                              const subs    = subcategoriasCfg.filter(s => s.categoria_id === cat.id)
+                              const subs = subcategoriasCfg.filter(s => s.categoria_id === cat.id)
                               const catPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
                               const catGast = subs.reduce((s, sub) =>
                                 s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0), 0)
-                              const catPct  = catPres > 0 ? Math.min(100, (catGast / catPres) * 100) : 0
+                              const catPct = catPres > 0 ? Math.min(100, (catGast / catPres) * 100) : 0
                               return (
                                 <div key={cat.id}>
                                   <div className="flex items-center gap-2 py-0.5">
@@ -700,20 +719,20 @@ export default function PresupuestoPage() {
           {/* Resumen del mes */}
           {ingresoNum > 0 && (
             <Card className="animate-enter">
-               <p className="font-script" style={{ fontSize: 35, color: 'var(--text-primary)' }}>Resumen del mes</p>
+              <p className="font-script" style={{ fontSize: 35, color: 'var(--text-primary)' }}>Resumen del mes</p>
               <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
                 {now.toLocaleString('es-ES', { month: 'long' })} — ingresos registrados
               </p>
               <div className="space-y-3">
                 {bloques.map(b => {
-                  const monto   = ingresoNum * (b.pct / 100)
-                  const Icon    = b.icon
+                  const monto = ingresoNum * (b.pct / 100)
+                  const Icon = b.icon
                   const gastado = gastadoReal(b.id)
                   return (
                     <div key={b.id} className="rounded-xl p-3"
                       style={{
                         background: `color-mix(in srgb, ${b.color} 6%, transparent)`,
-                        border:     `1px solid color-mix(in srgb, ${b.color} 14%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${b.color} 14%, transparent)`,
                       }}>
                       <div className="flex items-center gap-3">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -724,8 +743,8 @@ export default function PresupuestoPage() {
                           <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{b.nombre}</p>
                           {b.id === 'futuro'
                             ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                {sub.metas}% metas · {sub.inversiones}% inversiones
-                              </p>
+                              {sub.metas}% metas · {sub.inversiones}% inversiones
+                            </p>
                             : <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{b.pct}%</p>
                           }
                         </div>
@@ -772,9 +791,9 @@ export default function PresupuestoPage() {
               </div>
             ) : (
               BLOQUES_META.map(bloque => {
-                const Icon       = bloque.icon
+                const Icon = bloque.icon
                 const catsBloque = categoriasCfg.filter(c => c.bloque === bloque.id)
-                const esFuturo   = bloque.id === 'futuro'
+                const esFuturo = bloque.id === 'futuro'
 
                 if (!esFuturo && catsBloque.length === 0) return null
                 if (esFuturo && catsBloque.length === 0 && metas.length === 0 && inversiones.length === 0) return null
@@ -955,11 +974,11 @@ export default function PresupuestoPage() {
                             style={{ color: 'var(--text-muted)' }}>Otras categorías</p>
                         )}
                         {catsBloque.map(cat => {
-                          const subs      = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
+                          const subs = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
                           const totalPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
                           const totalGast = subs.reduce((s, sub) =>
                             s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0), 0)
-                          const diff     = totalPres - totalGast
+                          const diff = totalPres - totalGast
                           const pctUsado = totalPres > 0 ? Math.min(100, (totalGast / totalPres) * 100) : 0
 
                           return (
@@ -1007,8 +1026,8 @@ export default function PresupuestoPage() {
                                       .filter(m => m.subcategoria_id === sub.id)
                                       .reduce((s, m) => s + parseFloat(m.monto), 0)
                                     const montoPres = parseFloat(montosCats[sub.id]) || 0
-                                    const difSub    = montoPres - gastadoSub
-                                    const pctSub    = montoPres > 0 ? Math.min(100, (gastadoSub / montoPres) * 100) : 0
+                                    const difSub = montoPres - gastadoSub
+                                    const pctSub = montoPres > 0 ? Math.min(100, (gastadoSub / montoPres) * 100) : 0
 
                                     return (
                                       <div key={sub.id} className="px-3 py-3">
