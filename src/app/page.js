@@ -164,7 +164,7 @@ export default function Dashboard() {
         <p className="text-[5px] uppercase tracking-widest font-bold mb-0.5"  style={{ fontSize: 8, color: 'var(--text-muted)' }}>
           {saludo()} · {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight mb-5" style={{ color: 'var(--text-primary)' }}>
+        <h1 className="text-2xl tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Resumen General
         </h1>
 

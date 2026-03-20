@@ -218,8 +218,7 @@ export default function PresupuestoPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4 animate-enter">
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
-          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Mi Presupuesto
+          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Mi Presupuesto
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
             {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}

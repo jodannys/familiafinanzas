@@ -291,8 +291,7 @@ export default function InversionesPage() {
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
-          <h1 className="text-xl font-semibold tracking-tight truncate"
-            style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
+        <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
         </div>
         <button onClick={abrirNuevo} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />

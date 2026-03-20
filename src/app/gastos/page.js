@@ -428,7 +428,7 @@ export default function GastosPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
-              <h1 className="text-xl font-semibold tracking-tight leading-tight" style={{ color: 'var(--text-primary)' }}>Registro</h1>
+              <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Registro</h1>
             </div>
             <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2"
               style={{ background: colores.main }}>
