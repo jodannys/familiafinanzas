@@ -305,7 +305,7 @@ export default function MetasPage() {
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xl font-semibold leading-none" style={{ color: meta.color }}>
+                    <p className="text-lg font-semibold leading-none" style={{ color: meta.color }}>
                       {pct}%
                     </p>
                   </div>
