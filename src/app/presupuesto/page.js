@@ -276,7 +276,7 @@ export default function PresupuestoPage() {
                       <input type="number" min="0" max="100" value={b.pct}
                         onChange={e => cambiarPct(b.id, e.target.value)}
                         className="ff-input text-center font-semibold w-14"
-                        style={{ color: b.color, fontSize: 18 }} />
+                        style={{ color: b.color, fontSize: 12 }} />
                       <span className="text-base font-semibold" style={{ color: 'var(--text-muted)' }}>%</span>
                     </div>
                   </div>
