@@ -228,7 +228,7 @@ export default function PresupuestoPage() {
           <button
             onClick={iniciarEdicion}
             className="ff-btn-ghost flex items-center gap-1.5"
-            style={{ padding: '4px 8px' }} 
+            style={{ padding: '4px 8px' }}
           >
             <Edit3 size={11} />
             <span className="text-[10px] font-bold uppercase tracking-wider">
@@ -273,11 +273,27 @@ export default function PresupuestoPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <input type="number" min="0" max="100" value={b.pct}
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={b.pct}
                         onChange={e => cambiarPct(b.id, e.target.value)}
-                        className="ff-input text-center font-semibold w-14"
-                        style={{ color: b.color, fontSize: 12 }} />
-                      <span className="text-base font-semibold" style={{ color: 'var(--text-muted)' }}>%</span>
+                        className="ff-input text-center font-semibold w-10 p-1 rounded-lg"
+                        style={{
+                          color: b.color,
+                          fontSize: 12, 
+                        }}
+                      />
+                      <span
+                        className="font-semibold"
+                        style={{
+                          color: 'var(--text-muted)',
+                          fontSize: 12
+                        }}
+                      >
+                        %
+                      </span>
                     </div>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
