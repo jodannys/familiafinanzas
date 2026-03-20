@@ -226,7 +226,7 @@ export default function PresupuestoPage() {
         </div>
         {!editando && (
           <button onClick={iniciarEdicion} className="ff-btn-ghost flex items-center gap-2">
-            <Edit3 size={14} /> Distribución
+            <Edit3 size={8} /> Distribución
           </button>
         )}
       </div>
