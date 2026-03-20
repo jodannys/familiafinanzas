@@ -202,7 +202,7 @@ export default function DeudasPage() {
   const [formPrestamo, setFormPrestamo] = useState(makeFormPrestamo)
   const [formCuota, setFormCuota] = useState(makeFormCuota)
 
-  const [calView, setCalView]     = useState({ month: now.getMonth(), year: now.getFullYear() })
+  const [calView, setCalView]     = useState(() => { const d = new Date(); return { month: d.getMonth(), year: d.getFullYear() } })
   const [selectedDay, setSelectedDay] = useState(null)
 
   const [modalMov, setModalMov] = useState(null) // id de deuda para nuevo movimiento
@@ -521,48 +521,36 @@ export default function DeudasPage() {
     }).eq('id', editandoMov.id)
 
     if (!error) {
-      // Recalcular pendiente: revertir el anterior y aplicar el nuevo
-      let nuevoPendiente = deuda.pendiente || 0
-      let nuevosPagados = deuda.pagadas || 0
+      // Recalcular pendiente sumando TODOS los movimientos desde DB (fuente de verdad)
+      const { data: todosMovs } = await supabase
+        .from('deuda_movimientos')
+        .select('tipo, monto')
+        .eq('deuda_id', deuda.id)
 
+      const totalPagado = (todosMovs || []).filter(m => m.tipo === 'pago').reduce((s, m) => s + (m.monto || 0), 0)
+      const totalCargos = (todosMovs || []).filter(m => m.tipo === 'cargo').reduce((s, m) => s + (m.monto || 0), 0)
+      const montoOriginal = deuda.monto || 0
+      const nuevoPendiente = Math.max(0, montoOriginal - totalPagado + totalCargos)
+      const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+
+      // Actualizar movimiento general si existe (para pagos)
       if (editandoMov.tipo === 'pago') {
-        // Revertir pago anterior y aplicar nuevo
-        nuevoPendiente = nuevoPendiente + montoAnterior - montoNuevo
-        nuevoPendiente = Math.max(0, Math.min(deuda.monto || nuevoPendiente, nuevoPendiente))
-
-        // Actualizar movimiento general si existe
         const { data: movGeneral } = await supabase
-          .from('movimientos')
-          .select('id')
-          .eq('deuda_movimiento_id', editandoMov.id)
-          .limit(1)
-
+          .from('movimientos').select('id')
+          .eq('deuda_movimiento_id', editandoMov.id).limit(1)
         if (movGeneral?.[0]?.id) {
           await supabase.from('movimientos').update({
-            monto: montoNuevo,
-            descripcion: formMov.descripcion,
-            fecha: formMov.fecha,
+            monto: montoNuevo, descripcion: formMov.descripcion, fecha: formMov.fecha,
           }).eq('id', movGeneral[0].id)
         }
-      } else {
-        // Cargo: revertir anterior y aplicar nuevo
-        nuevoPendiente = nuevoPendiente - montoAnterior + montoNuevo
       }
 
-      const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
       await supabase.from('deudas').update({
-        pendiente: nuevoPendiente,
-        estado: nuevoEstado,
+        pendiente: nuevoPendiente, estado: nuevoEstado,
       }).eq('id', deuda.id)
 
-      setDeudas(prev => prev.map(d => d.id === deuda.id
-        ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
-      setMovimientos(prev => ({
-        ...prev,
-        [deuda.id]: (prev[deuda.id] || []).map(m => m.id === editandoMov.id
-          ? { ...m, descripcion: formMov.descripcion, monto: montoNuevo, fecha: formMov.fecha }
-          : m)
-      }))
+      // Recargar todo desde DB para garantizar consistencia
+      await cargar()
     }
 
     setEditandoMov(null)
