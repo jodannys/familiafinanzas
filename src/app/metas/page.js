@@ -207,33 +207,39 @@ export default function MetasPage() {
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-2 mb-5 animate-enter">
-        <div className="glass-card p-1.5">
-          <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Ahorrado</p>
-          <p className="text-base font-semibold leading-tight" style={{ color: 'var(--accent-green)' }}>
-            {formatCurrency(totalAhorrado)}
-          </p>
-          {totalObjetivo > 0 && (
-            <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              de {formatCurrency(totalObjetivo)}
-            </p>
-          )}
-        </div>
-      
-        <div className="glass-card p-1.5">
-          <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Mensual</p>
-          <p className="text-base font-semibold leading-tight" style={{ color: 'var(--accent-violet)' }}>
-            {presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}
-          </p>
-          {pctDisponible > 0 && activas.length > 0 && (
-            <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {pctDisponible}% libre
-            </p>
-          )}
-        </div>
-      </div>
+     {/* KPIs — Altura fija para evitar descuadre */}
+<div className="grid grid-cols-2 gap-2 mb-5 animate-enter">
+  
+  {/* Caja 1 */}
+  <div className="glass-card p-2 flex flex-col justify-center" style={{ height: 60 }}>
+    <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Ahorrado</p>
+    <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--accent-green)' }}>
+      {formatCurrency(totalAhorrado)}
+    </p>
+    {totalObjetivo > 0 ? (
+      <p className="text-[8px] mt-0.5 opacity-70" style={{ color: 'var(--text-muted)' }}>
+        de {formatCurrency(totalObjetivo)}
+      </p>
+    ) : (
+      <div className="h-[10px]" /> /* Espacio invisible para mantener la altura si no hay dato */
+    )}
+  </div>
 
+  {/* Caja 2 */}
+  <div className="glass-card p-2 flex flex-col justify-center" style={{ height: 60 }}>
+    <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Mensual</p>
+    <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--accent-violet)' }}>
+      {presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}
+    </p>
+    {pctDisponible > 0 && activas.length > 0 ? (
+      <p className="text-[8px] mt-0.5 opacity-70" style={{ color: 'var(--text-muted)' }}>
+        {pctDisponible}% libre
+      </p>
+    ) : (
+      <div className="h-[10px]" /> /* Espacio invisible para equilibrar con la otra tarjeta */
+    )}
+  </div>
+</div>
       {/* Lista */}
       {loading ? (
         <div className="flex items-center justify-center py-20 gap-3">
