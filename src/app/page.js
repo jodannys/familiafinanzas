@@ -169,7 +169,7 @@ export default function Dashboard() {
           {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
         <h1
-          className="font-script text-2xl tracking-tight"
+          className="font-serif text-1xl tracking-tight"
           style={{
             color: 'var(--text-primary)',
             fontWeight: 400

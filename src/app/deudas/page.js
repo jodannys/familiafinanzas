@@ -181,7 +181,7 @@ export default function DeudasPage() {
 
   const defaultColor = () => themeColors[0] || '#818CF8'
 
-  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: fechaHoy(), color: defaultColor(), telefono: '' })
+  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: fechaHoy(), dia_pago: '', color: defaultColor(), telefono: '' })
   const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', tipo: 'debo', emoji: '🏦', nombre: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor(), telefono: '' })
   const makeFormCuota = () => ({ tipo_deuda: 'cuota', tipo: 'debo', emoji: '📅', nombre: '', categoria: 'deseo', deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor(), telefono: '' })
 
@@ -336,7 +336,7 @@ export default function DeudasPage() {
         categoria: f.categoria, limite: parseFloat(f.limite) || 0,
         capital, monto: capital, pendiente: capital, cuota, plazo_meses: meses,
         perfil_tarjeta_id: f.tarjeta_id || null, tasa: 0, tasa_interes: 0,
-        dia_pago: null, color: f.color, estado: 'activa', pagadas: 0,
+        dia_pago: parseInt(f.dia_pago) || null, color: f.color, estado: 'activa', pagadas: 0,
         telefono: f.telefono || null,
       }
     } else if (tipoSeleccionado === 'prestamo') {
@@ -1388,11 +1388,19 @@ export default function DeudasPage() {
                   </span>
                 </div>
               )}
-              <div>
-                <label className="ff-label">Fecha de la compra</label>
-                <input className="ff-input" type="date" required
-                  value={formTarjeta.fecha_operacion}
-                  onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="ff-label">Fecha de la compra</label>
+                  <input className="ff-input" type="date" required
+                    value={formTarjeta.fecha_operacion}
+                    onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="ff-label">Día de pago mensual</label>
+                  <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 15"
+                    value={formTarjeta.dia_pago}
+                    onChange={e => setFormTarjeta(p => ({ ...p, dia_pago: e.target.value }))} />
+                </div>
               </div>
               <div>
                 <label className="ff-label">WhatsApp (opcional)</label>
