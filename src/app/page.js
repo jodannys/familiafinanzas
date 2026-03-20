@@ -172,11 +172,11 @@ export default function Dashboard() {
           className="font-serif text-1xl tracking-tight"
           style={{
             color: 'var(--text-primary)',
-            fontWeight: 400
+            fontWeight: 400,
+            marginBottom: '20px'
           }}
         >
           {nombre ? `Hola ${nombre}` : saludoBase()}
-          <span></span>
         </h1>
 
         {/* Strip patrimonio */}

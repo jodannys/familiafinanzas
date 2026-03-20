@@ -779,10 +779,11 @@ export default function DeudasPage() {
             {calCells.map((day, i) => {
               if (!day) return <div key={`pad-${i}`} />
               const deudas_dia = deudaByDay[day] || []
-              const todasPagadas = deudas_dia.length > 0 && deudas_dia.every(d => d.pagada)
-              const algunaSinPagar = deudas_dia.some(d => !d.pagada)
               const isSelected = selectedDay === day
               const isToday = esHoy(day)
+              const esMesActual = calView.month === now.getMonth() && calView.year === now.getFullYear()
+              const isPast = esMesActual && day < hoyDia
+              const isFuture = esMesActual && day > hoyDia
 
               return (
                 <button key={day}
@@ -797,11 +798,13 @@ export default function DeudasPage() {
                     border: 'none',
                     cursor: deudas_dia.length > 0 ? 'pointer' : 'default',
                     minHeight: 44,
+                    opacity: isPast && deudas_dia.length === 0 ? 0.35 : 1,
                   }}>
                   <span className="text-[11px] font-semibold tabular-nums"
                     style={{
                       color: isToday ? 'var(--accent-blue)'
                         : isSelected ? 'var(--accent-main)'
+                        : isPast ? 'var(--text-muted)'
                         : 'var(--text-secondary)',
                     }}>
                     {day}
@@ -811,12 +814,23 @@ export default function DeudasPage() {
                     <div className="flex gap-0.5 mt-1 flex-wrap justify-center" style={{ maxWidth: 28 }}>
                       {deudas_dia.slice(0, 3).map((d, idx) => (
                         <div key={idx} className="w-1.5 h-1.5 rounded-full"
-                          style={{ background: d.pagada ? 'var(--accent-green)' : (d.color || 'var(--accent-rose)') }} />
+                          style={{
+                            background: d.pagada
+                              ? 'var(--accent-green)'
+                              : isPast
+                                ? 'var(--accent-rose)'
+                                : (d.color || 'var(--accent-rose)'),
+                            opacity: d.pagada ? 1 : isPast ? 0.7 : 1,
+                          }} />
                       ))}
                       {deudas_dia.length > 3 && (
                         <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--text-muted)' }} />
                       )}
                     </div>
+                  )}
+                  {/* Indicador vencido */}
+                  {isPast && deudas_dia.some(d => !d.pagada) && (
+                    <span className="text-[7px] font-bold mt-0.5" style={{ color: 'var(--accent-rose)', lineHeight: 1 }}>!</span>
                   )}
                 </button>
               )
@@ -854,7 +868,7 @@ export default function DeudasPage() {
           )}
 
           {/* Leyenda */}
-          <div className="flex items-center gap-3 mt-3 pt-2 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+          <div className="flex items-center gap-3 mt-3 pt-2 border-t flex-wrap" style={{ borderColor: 'var(--border-glass)' }}>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} />
               <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Pagado</span>
@@ -862,6 +876,10 @@ export default function DeudasPage() {
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-rose)' }} />
               <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Pendiente</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] font-bold" style={{ color: 'var(--accent-rose)' }}>!</span>
+              <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Vencido</span>
             </div>
             <div className="flex items-center gap-1 ml-auto">
               <div className="w-4 h-4 rounded-md" style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)' }} />
@@ -1388,19 +1406,11 @@ export default function DeudasPage() {
                   </span>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="ff-label">Fecha de la compra</label>
-                  <input className="ff-input" type="date" required
-                    value={formTarjeta.fecha_operacion}
-                    onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="ff-label">Día de pago mensual</label>
-                  <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 15"
-                    value={formTarjeta.dia_pago}
-                    onChange={e => setFormTarjeta(p => ({ ...p, dia_pago: e.target.value }))} />
-                </div>
+              <div>
+                <label className="ff-label">Fecha de la compra</label>
+                <input className="ff-input" type="date" required
+                  value={formTarjeta.fecha_operacion}
+                  onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
               </div>
               <div>
                 <label className="ff-label">WhatsApp (opcional)</label>
