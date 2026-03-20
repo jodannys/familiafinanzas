@@ -176,6 +176,7 @@ export default function Dashboard() {
           }}
         >
           {nombre ? `Hola ${nombre}` : saludoBase()}
+          <span></span>
         </h1>
 
         {/* Strip patrimonio */}
