@@ -700,7 +700,7 @@ export default function PresupuestoPage() {
           {/* Resumen del mes */}
           {ingresoNum > 0 && (
             <Card className="animate-enter">
-              <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Resumen del mes</h3>
+               <p className="font-script" style={{ fontSize: 35, color: 'var(--text-primary)' }}>Resumen del mes</p>
               <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
                 {now.toLocaleString('es-ES', { month: 'long' })} — ingresos registrados
               </p>
