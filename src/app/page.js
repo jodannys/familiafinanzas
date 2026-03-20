@@ -197,7 +197,13 @@ export default function Dashboard() {
                 <Icon size={9} style={{ color }} />
                 <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color }}>{label}</span>
               </div>
-              <p className="font-semibold tracking-tight" style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+              <p
+                className="font-medium tracking-tight"
+                style={{
+                  fontSize: 13,
+                  color: '#4b5563'
+                }}
+              >
                 {formatCurrency(val)}
               </p>
             </Link>

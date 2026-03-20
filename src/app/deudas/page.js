@@ -668,10 +668,27 @@ export default function DeudasPage() {
   activas.forEach(d => {
     const dia = parseInt(d.dia_pago)
     if (!dia || dia < 1 || dia > 31) return
+
+    // Para tarjetas: calcular en qué mes cae el pago según ciclo de facturación
+    if (d.tipo_deuda === 'tarjeta' && d.fecha_operacion) {
+      const op = new Date(d.fecha_operacion)
+      const opDia = op.getDate()
+      let mesPago = op.getMonth()
+      let añoPago = op.getFullYear()
+      // Si la compra fue DESPUÉS del día de pago, se paga el mes siguiente
+      if (opDia > dia) {
+        if (mesPago === 11) { mesPago = 0; añoPago++ } else { mesPago++ }
+      }
+      if (mesPago !== calView.month || añoPago !== calView.year) return
+    }
+
     if (!deudaByDay[dia]) deudaByDay[dia] = []
-    const pagada = (movimientos[d.id] || []).some(
-      m => m.tipo === 'pago' && m.mes === calView.month + 1 && m.año === calView.year
-    )
+    const pagada = (movimientos[d.id] || []).some(m => {
+      if (m.tipo !== 'pago') return false
+      if (m.mes && m.año) return m.mes === calView.month + 1 && m.año === calView.year
+      if (m.fecha) { const f = new Date(m.fecha); return f.getMonth() === calView.month && f.getFullYear() === calView.year }
+      return false
+    })
     deudaByDay[dia].push({ ...d, pagada })
   })
 
