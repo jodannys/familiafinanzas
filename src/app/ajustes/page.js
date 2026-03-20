@@ -201,7 +201,7 @@ export default function AjustesPage() {
           <Settings2 size={18} style={{ color: 'var(--accent-violet)' }} />
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Configuración
           </h1>
@@ -241,7 +241,7 @@ export default function AjustesPage() {
                   {bloque.id === 'futuro' ? (
                     <button
                       onClick={() => { setAddingFuturoTipo('selecting'); setFormFuturo('') }}
-                      className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg"
+                      className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg"
                       style={{
                         background: `color-mix(in srgb, ${bloque.color} 10%, transparent)`,
                         color: bloque.color, border: 'none', cursor: 'pointer',
@@ -254,7 +254,7 @@ export default function AjustesPage() {
                         setAddingCatBloque(bloque.id)
                         setFormCat({ nombre: '', color: themeColors[0] || '' })
                       }}
-                      className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg"
+                      className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg"
                       style={{
                         background: `color-mix(in srgb, ${bloque.color} 10%, transparent)`,
                         color: bloque.color, border: 'none', cursor: 'pointer',
@@ -320,7 +320,7 @@ export default function AjustesPage() {
                             { key: 'inversiones', label: 'Carteras de Inversión', color: 'var(--accent-violet)', Icon: TrendingUp },
                           ].map(t => (
                             <button key={t.key} onClick={() => setAddingFuturoTipo(t.key)}
-                              className="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-bold"
+                              className="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-semibold"
                               style={{
                                 background: `color-mix(in srgb, ${t.color} 10%, transparent)`,
                                 color: t.color,
@@ -415,12 +415,12 @@ export default function AjustesPage() {
                               </div>
                             </div>
                           ) : (
-                            <span className="flex-1 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                            <span className="flex-1 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
                               {cat.nombre}
                             </span>
                           )}
 
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold"
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold"
                             style={{
                               background: `color-mix(in srgb, ${cat.color} 12%, transparent)`,
                               color: cat.color,
@@ -502,7 +502,7 @@ export default function AjustesPage() {
                                         ].map(t => (
                                           <button key={t.key}
                                             onClick={() => setEditandoSub(p => ({ ...p, tipo: p.tipo === t.key ? null : t.key }))}
-                                            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
                                             style={{
                                               background: editandoSub.tipo === t.key ? `color-mix(in srgb, ${t.color} 15%, transparent)` : 'transparent',
                                               color: editandoSub.tipo === t.key ? t.color : 'var(--text-muted)',
@@ -521,7 +521,7 @@ export default function AjustesPage() {
                                       {sub.nombre}
                                     </span>
                                     {bloque.id === 'futuro' && sub.tipo && (
-                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
+                                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
                                         style={{
                                           background: `color-mix(in srgb, ${sub.tipo === 'metas' ? 'var(--accent-green)' : 'var(--accent-violet)'} 12%, transparent)`,
                                           color: sub.tipo === 'metas' ? 'var(--accent-green)' : 'var(--accent-violet)',
@@ -574,7 +574,7 @@ export default function AjustesPage() {
                                     ].map(t => (
                                       <button key={t.key}
                                         onClick={() => setFormSubTipo(formSubTipo === t.key ? null : t.key)}
-                                        className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                        className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
                                         style={{
                                           background: formSubTipo === t.key ? `color-mix(in srgb, ${t.color} 15%, transparent)` : 'transparent',
                                           color: formSubTipo === t.key ? t.color : 'var(--text-muted)',
@@ -613,13 +613,13 @@ export default function AjustesPage() {
                         style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, var(--bg-secondary))' }}>
                         <div className="flex items-center gap-2">
                           <Target size={12} style={{ color: 'var(--accent-green)' }} />
-                          <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                          <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md"
                             style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', color: 'var(--accent-green)' }}>
                             {metas.length}
                           </span>
                         </div>
-                        <a href="/metas" className="text-[10px] font-bold flex items-center gap-0.5"
+                        <a href="/metas" className="text-[10px] font-semibold flex items-center gap-0.5"
                           style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
                           Editar <ArrowRight size={9} />
                         </a>
@@ -634,7 +634,7 @@ export default function AjustesPage() {
                           style={{ borderColor: 'var(--border-glass)' }}>
                           <span className="text-sm">{m.emoji}</span>
                           <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{m.nombre}</span>
-                          <span className="text-[10px] font-bold" style={{ color: 'var(--accent-green)' }}>
+                          <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-green)' }}>
                             {m.pct_mensual}%
                           </span>
                           <button onClick={() => handleDeleteMeta(m.id)}
@@ -652,13 +652,13 @@ export default function AjustesPage() {
                         style={{ background: 'color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))' }}>
                         <div className="flex items-center gap-2">
                           <TrendingUp size={12} style={{ color: 'var(--accent-violet)' }} />
-                          <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                          <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md"
                             style={{ background: 'color-mix(in srgb, var(--accent-violet) 12%, transparent)', color: 'var(--accent-violet)' }}>
                             {inversiones.length}
                           </span>
                         </div>
-                        <a href="/inversiones" className="text-[10px] font-bold flex items-center gap-0.5"
+                        <a href="/inversiones" className="text-[10px] font-semibold flex items-center gap-0.5"
                           style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
                           Editar <ArrowRight size={9} />
                         </a>
@@ -674,7 +674,7 @@ export default function AjustesPage() {
                           <span className="text-sm">{inv.emoji}</span>
                           <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
                           {inv.aporte > 0 && (
-                            <span className="text-[10px] font-bold" style={{ color: 'var(--accent-violet)' }}>
+                            <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-violet)' }}>
                               +{inv.aporte}/mes
                             </span>
                           )}
