@@ -209,7 +209,7 @@ export default function MetasPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-2 mb-5 animate-enter">
-        <div className="glass-card p-3">
+        <div className="glass-card p-2">
           <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Ahorrado</p>
           <p className="text-base font-semibold leading-tight" style={{ color: 'var(--accent-green)' }}>
             {formatCurrency(totalAhorrado)}
@@ -220,18 +220,8 @@ export default function MetasPage() {
             </p>
           )}
         </div>
-        <div className="glass-card p-3">
-          <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Activas</p>
-          <p className="text-base font-semibold leading-tight" style={{ color: 'var(--accent-terra)' }}>
-            {activas.length}
-          </p>
-          {completadas.length > 0 && (
-            <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {completadas.length} completada{completadas.length > 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
-        <div className="glass-card p-3">
+      
+        <div className="glass-card p-2">
           <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Mensual</p>
           <p className="text-base font-semibold leading-tight" style={{ color: 'var(--accent-violet)' }}>
             {presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}
