@@ -1097,7 +1097,7 @@ export default function DeudasPage() {
                           color: 'var(--accent-green)',
                         }}>
                         <Check size={11} strokeWidth={3} />
-                        {pagadaEsteMes ? (esMeDeben ? 'Ya cobrada' : 'Ya pagada') : (esMeDeben ? 'Cobrar' : 'Pagar')}
+                        {pagadaEsteMes ? (esMeDeben ? 'Cobrada' : 'Pagada') : (esMeDeben ? 'Cobrar' : 'Pagar')}
                       </button>
                     )}
                     {/* Cargo (solo si no es medeben) */}
@@ -1775,13 +1775,11 @@ export default function DeudasPage() {
           )}
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-6">
           <button type="button"
             onClick={() => { setModalDeuda(false); setEditandoId(null) }}
            className="ff-btn-ghost flex-1">Cancelar</button>
-          <button
-            onClick={handleSaveDeuda}
-            disabled={saving}
+          <button onClick={handleSaveDeuda} disabled={saving}
            className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
             {saving && <Loader2 size={14} className="animate-spin" />}
             {saving ? 'Guardando...' : editandoId ? 'Guardar' : 'Crear'}
