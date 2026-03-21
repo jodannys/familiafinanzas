@@ -84,7 +84,7 @@ export function ProgressBar({ value, max, color = 'var(--accent-green)', classNa
   const pct = max > 0 ? Math.min(100, Math.max(0, Math.round((value / max) * 100))) : 0
 
   return (
-    <div className={cn('w-full h-2 rounded-full overflow-hidden', className)}
+    <div className={cn('w-full h-1 rounded-full overflow-hidden', className)}
          style={{ background: 'var(--progress-track)' }}>
       <div className="h-full rounded-full transition-all duration-700"
         style={{
