@@ -251,10 +251,10 @@ export default function DeudasPage() {
           .from('deuda_movimientos').select('*').order('fecha', { ascending: true })
         if (!e3) {
           const grouped = {}
-          ;(movs || []).forEach(m => {
-            if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-            grouped[m.deuda_id].push(m)
-          })
+            ; (movs || []).forEach(m => {
+              if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+              grouped[m.deuda_id].push(m)
+            })
           setMovimientos(grouped)
         }
       }
@@ -1851,18 +1851,18 @@ export default function DeudasPage() {
                 onChange={e => setFormMov(p => ({ ...p, fecha: e.target.value }))} />
             </div>
           </div>
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-2 justify-end">
             <button type="button"
               onClick={() => {
                 setModalMov(null)
                 setEditandoMov(null)
                 setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
               }}
-              className="ff-btn-ghost flex-1">
+              className="ff-btn-ghost px-4 py-2 text-xs">
               Cancelar
             </button>
             <button type="submit" disabled={saving}
-              className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
+              className="ff-btn-primary flex items-center justify-center gap-2 px-4 py-2 text-xs"
               style={{
                 background: formMov.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
               }}>
