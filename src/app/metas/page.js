@@ -243,6 +243,31 @@ export default function MetasPage() {
   )}
 </div>
 </div>
+      {/* Mensaje distribución */}
+      {!loading && activas.length > 0 && (() => {
+        const totalPct = activas.reduce((s, m) => s + (m.pct_mensual || 0), 0)
+        const disponible = 100 - totalPct
+        const completo = disponible <= 0
+        return (
+          <div className="mb-5 px-3 py-2.5 rounded-xl flex items-center gap-2"
+            style={{
+              background: completo
+                ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
+                : 'color-mix(in srgb, var(--accent-gold) 8%, transparent)',
+              border: `1px solid ${completo
+                ? 'color-mix(in srgb, var(--accent-green) 20%, transparent)'
+                : 'color-mix(in srgb, var(--accent-gold) 20%, transparent)'}`,
+            }}>
+            <span style={{ fontSize: 14 }}>{completo ? '✅' : '💡'}</span>
+            <p className="text-[10px] font-semibold flex-1" style={{ color: completo ? 'var(--accent-green)' : 'var(--accent-gold)' }}>
+              {completo
+                ? `Distribución completa · ${totalPct}% asignado`
+                : `${disponible}% disponible · Envía el sobrante a Metas o Inversión`}
+            </p>
+          </div>
+        )
+      })()}
+
       {/* Lista */}
       {loading ? (
         <div className="flex items-center justify-center py-20 gap-3">

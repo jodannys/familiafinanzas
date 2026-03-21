@@ -155,29 +155,42 @@ export default function GastosPage() {
 
     // ── Tarjeta de crédito ────────────────────────────────────────────────────
     if (tarjetaSeleccionada && form.tipo === 'egreso') {
-      const deudaTarjeta = tarjetaDeudasMap[tarjetaSeleccionada]
+      let deudaTarjeta = tarjetaDeudasMap[tarjetaSeleccionada]
+
+      // Si no hay deuda asociada, crear una automáticamente (saldo revolving)
       if (!deudaTarjeta) {
-        setError('Esta tarjeta no tiene una deuda activa asociada. Créala primero en el módulo Deudas.')
-        setSaving(false)
-        return
+        const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
+        const { data: nuevaDeuda, error: errCrear } = await supabase.from('deudas').insert([{
+          nombre: tarjeta?.nombre_tarjeta || 'Tarjeta de crédito',
+          tipo: 'debo',
+          tipo_deuda: 'tarjeta',
+          emoji: '💳',
+          color: tarjeta?.color || '#A44A3F',
+          monto: 0,
+          pendiente: 0,
+          cuota: 0,
+          estado: 'activa',
+          perfil_tarjeta_id: tarjetaSeleccionada,
+        }]).select().single()
+        if (errCrear) { setError('Error al crear la deuda de tarjeta: ' + errCrear.message); setSaving(false); return }
+        deudaTarjeta = nuevaDeuda
+        setTarjetaDeudasMap(prev => ({ ...prev, [tarjetaSeleccionada]: deudaTarjeta }))
       }
+
+      const descCargo = form.descripcion || subcategorias.find(s => s.id === form.subcategoria_id)?.nombre || 'Cargo tarjeta'
       const { error } = await supabase.from('deuda_movimientos').insert([{
         deuda_id: deudaTarjeta.id,
         tipo: 'cargo',
-        descripcion: form.descripcion,
+        descripcion: descCargo,
         monto,
         fecha: form.fecha,
         mes, año,
       }])
       if (error) setError('Error al guardar cargo en tarjeta: ' + error.message)
       else {
-        await supabase.from('deudas').update({
-          pendiente: parseFloat(deudaTarjeta.pendiente || 0) + monto
-        }).eq('id', deudaTarjeta.id)
-        setTarjetaDeudasMap(prev => ({
-          ...prev,
-          [tarjetaSeleccionada]: { ...deudaTarjeta, pendiente: deudaTarjeta.pendiente + monto }
-        }))
+        const nuevoPendiente = parseFloat(deudaTarjeta.pendiente || 0) + monto
+        await supabase.from('deudas').update({ pendiente: nuevoPendiente, estado: 'activa' }).eq('id', deudaTarjeta.id)
+        setTarjetaDeudasMap(prev => ({ ...prev, [tarjetaSeleccionada]: { ...deudaTarjeta, pendiente: nuevoPendiente } }))
         resetModal()
       }
       setSaving(false)
@@ -193,10 +206,13 @@ export default function GastosPage() {
       ? metaSeleccionada.replace('inv_', '')
       : null
 
+    const subNombre = form.subcategoria_id ? subcategorias.find(s => s.id === form.subcategoria_id)?.nombre : null
+    const descFinal = form.descripcion.trim() || subNombre || (form.tipo === 'ingreso' ? 'Ingreso' : 'Gasto')
+
     const payloadMov = {
       tipo: form.tipo,
       monto,
-      descripcion: form.descripcion,
+      descripcion: descFinal,
       categoria: form.categoria,
       fecha: form.fecha,
       quien: form.quien,
@@ -551,15 +567,25 @@ export default function GastosPage() {
                         const esIngreso = m.tipo === 'ingreso'
                         const color = esIngreso ? colores.green : (CAT_COLOR_VAR[m.categoria] || colores.muted)
                         const label = esIngreso ? 'ingreso' : m.categoria
+                        const [fy, fm, fd] = (m.fecha || '').split('-').map(Number)
+                        const fechaObj = fy ? new Date(fy, fm - 1, fd) : null
+                        const fechaStr = fechaObj ? fechaObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
                         return (
-                          <span style={{
-                            fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
-                            letterSpacing: '0.12em', padding: '3px 8px', borderRadius: 999,
-                            background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                            color: color,
-                          }}>
-                            {label}
-                          </span>
+                          <>
+                            <span style={{
+                              fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                              letterSpacing: '0.12em', padding: '3px 8px', borderRadius: 999,
+                              background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                              color: color,
+                            }}>
+                              {label}
+                            </span>
+                            {fechaStr && (
+                              <span style={{ fontSize: 9, color: colores.muted, fontWeight: 500 }}>
+                                {fechaStr}
+                              </span>
+                            )}
+                          </>
                         )
                       })()}
                     </div>
@@ -658,7 +684,10 @@ export default function GastosPage() {
                 <div className="space-y-1 animate-enter">
                   <label className="ff-label">Subcategoría (opcional)</label>
                   <select className="ff-input h-12 text-sm" value={form.subcategoria_id}
-                    onChange={e => setForm({ ...form, subcategoria_id: e.target.value })}>
+                    onChange={e => {
+                      const sub = subcategorias.find(s => s.id === e.target.value)
+                      setForm(prev => ({ ...prev, subcategoria_id: e.target.value, descripcion: sub ? sub.nombre : prev.descripcion }))
+                    }}>
                     <option value="">— Sin subcategoría —</option>
                     {catsDisp.map(cat => {
                       const subsGrupo = subcategorias.filter(s => s.categoria_id === cat.id)
@@ -768,11 +797,15 @@ export default function GastosPage() {
               </div>
             )}
 
-            {/* Descripción */}
+            {/* Descripción / Nota */}
             {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
               <div className="space-y-1 animate-enter">
-                <label className="ff-label">Descripción</label>
-                <input className="ff-input h-12 text-sm font-medium" placeholder="Ej: Sueldo, Alquiler..." required
+                <label className="ff-label">
+                  {form.subcategoria_id ? 'Nota (opcional)' : 'Descripción'}
+                </label>
+                <input className="ff-input h-12 text-sm font-medium"
+                  placeholder={form.subcategoria_id ? 'Añade un detalle...' : 'Ej: Sueldo, Alquiler...'}
+                  required={!form.subcategoria_id}
                   value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
               </div>
             )}

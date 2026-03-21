@@ -82,12 +82,11 @@ function FABModal({ onClose }) {
           monto: valor, fecha: hoy,
           mes: now.getMonth() + 1, año: now.getFullYear(),
         }]).select()
-        const nuevoPendiente = Math.max(0, (selectedItem.pendiente || 0) - valor)
+        const nuevoPendiente = Math.max(0, parseFloat(selectedItem.pendiente || 0) - valor)
         await supabase.from('deudas').update({
           pendiente: nuevoPendiente,
           pagadas: (selectedItem.pagadas || 0) + 1,
           estado: nuevoPendiente <= 0 ? 'pagada' : 'activa',
-          deuda_movimiento_id: dmData?.[0]?.id || null,
         }).eq('id', selectedItem.id)
       }
     }
@@ -503,13 +502,13 @@ export default function AppShell({ children }) {
                 <div className="mx-2 mb-2 mt-1 pt-2" style={{ borderTop: '1px solid var(--border-glass)' }}>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all"
+                    title="Cerrar sesión"
+                    className="flex items-center justify-center w-8 h-8 rounded-xl transition-all ml-1"
                     style={{
-                      color: 'var(--accent-rose)', background: 'transparent',
+                      color: 'var(--accent-rose)', background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
                       border: 'none', cursor: 'pointer',
                     }}>
-                    <LogOut size={14} />
-                    <span className="text-xs font-semibold">Cerrar sesión</span>
+                    <LogOut size={15} />
                   </button>
                 </div>
               </div>

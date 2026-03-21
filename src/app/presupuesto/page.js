@@ -83,7 +83,7 @@ export default function PresupuestoPage() {
         supabase.from('metas').select('id, nombre, emoji, pct_mensual, meta, actual, estado, color').order('created_at'),
         supabase.from('inversiones').select('id, nombre, emoji, aporte, color').order('created_at'),
         supabase.from('deudas').select('id, nombre, emoji, cuota, pendiente, estado, tipo, dia_pago').eq('estado', 'activa').neq('tipo', 'medeben'),
-        supabase.from('deuda_movimientos').select('deuda_id, tipo, mes, año').eq('mes', mes).eq('año', año),
+        supabase.from('deuda_movimientos').select('deuda_id, tipo, monto, mes, año').eq('mes', mes).eq('año', año),
       ])
 
       setMovs(movsData || [])
@@ -701,22 +701,32 @@ export default function PresupuestoPage() {
               </div>
               <div className="space-y-2">
                 {deudas.map(d => {
-                  const pagadaEsteMes = deudaMovs.some(m => m.deuda_id === d.id && m.tipo === 'pago')
+                  const movsDeuda = deudaMovs.filter(m => m.deuda_id === d.id)
+                  const pagadaEsteMes = movsDeuda.some(m => m.tipo === 'pago')
+                  const montoPagado = movsDeuda.filter(m => m.tipo === 'pago').reduce((s, m) => s + parseFloat(m.monto || 0), 0)
                   return (
-                    <div key={d.id} className="flex items-center gap-2 py-1">
+                    <div key={d.id} className="flex items-center gap-2 py-1.5 px-2 rounded-xl"
+                      style={{ background: pagadaEsteMes ? 'color-mix(in srgb, var(--accent-green) 5%, transparent)' : 'transparent' }}>
                       <span className="text-sm flex-shrink-0">{d.emoji}</span>
-                      <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{d.nombre}</span>
-                      {pagadaEsteMes && (
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                          style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)', color: 'var(--accent-green)' }}>
-                          ✓ pagada
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate" style={{ color: 'var(--text-secondary)' }}>{d.nombre}</p>
+                        {pagadaEsteMes && montoPagado > 0 && (
+                          <p className="text-[9px]" style={{ color: 'var(--accent-green)' }}>
+                            Abonado {formatCurrency(montoPagado)}
+                          </p>
+                        )}
+                      </div>
+                      {pagadaEsteMes ? (
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                          style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', color: 'var(--accent-green)' }}>
+                          ✓ pagado
                         </span>
-                      )}
-                      {d.cuota > 0 && (
-                        <span className="text-[10px] font-semibold"
-                          style={{ color: pagadaEsteMes ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                          {formatCurrency(d.cuota)}/mes
-                        </span>
+                      ) : (
+                        d.cuota > 0 && (
+                          <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: 'var(--accent-rose)' }}>
+                            {formatCurrency(d.cuota)}/mes
+                          </span>
+                        )
                       )}
                     </div>
                   )

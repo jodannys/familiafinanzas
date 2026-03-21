@@ -1133,18 +1133,17 @@ export default function DeudasPage() {
                       title="Ver historial" bg="var(--bg-secondary)" color="var(--text-muted)">
                       {isExp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </IconBtn>
-                    {/* Botón tabla de amortización */}
-                    {d.plazo_meses && (
-                      <IconBtn onClick={() => {
+                    {/* Botón tabla / historial */}
+                    <IconBtn onClick={e => {
+                        e.stopPropagation()
                         setTablaVisible(isTabla ? null : d.id)
                         if (isExp) setExpandido(null)
                       }}
-                        title="Tabla de amortización"
+                        title={d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'}
                         bg={isTabla ? 'color-mix(in srgb, var(--accent-violet) 15%, transparent)' : 'var(--bg-secondary)'}
                         color={isTabla ? 'var(--accent-violet)' : 'var(--text-muted)'}>
                         <Table2 size={12} />
-                      </IconBtn>
-                    )}
+                    </IconBtn>
                     {d.telefono && (
                       <IconBtn
                         onClick={() => {
@@ -1240,6 +1239,53 @@ export default function DeudasPage() {
                 )}
 
                 {/* Tabla de amortización */}
+                {isTabla && tablaAmort.length === 0 && movsDeuda.length > 0 && (
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+                    <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+                      Historial · {d.nombre}
+                    </p>
+                    <div className="overflow-x-auto -mx-2">
+                      <table className="w-full text-[9px] min-w-[320px]">
+                        <thead>
+                          <tr style={{ color: 'var(--text-muted)' }}>
+                            <th className="px-2 py-1 text-left font-semibold uppercase">Fecha</th>
+                            <th className="px-2 py-1 text-left font-semibold uppercase">Descripción</th>
+                            <th className="px-2 py-1 text-right font-semibold uppercase">Monto</th>
+                            <th className="px-2 py-1 text-center font-semibold uppercase">Tipo</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...movsDeuda].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(m => (
+                            <tr key={m.id}>
+                              <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                {m.fecha ? new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                              </td>
+                              <td className="px-2 py-1.5 truncate max-w-[120px]" style={{ color: 'var(--text-secondary)' }}>
+                                {m.descripcion || '—'}
+                              </td>
+                              <td className="px-2 py-1.5 text-right font-semibold tabular-nums"
+                                style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                                {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
+                              </td>
+                              <td className="px-2 py-1.5 text-center">
+                                <span className="px-1.5 py-0.5 rounded-full font-semibold"
+                                  style={{
+                                    background: m.tipo === 'pago'
+                                      ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
+                                      : 'color-mix(in srgb, var(--accent-rose) 12%, transparent)',
+                                    color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                  }}>
+                                  {m.tipo === 'pago' ? 'Pago' : 'Cargo'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {isTabla && tablaAmort.length > 0 && (
                   <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}>
                     <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
