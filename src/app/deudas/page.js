@@ -202,7 +202,7 @@ export default function DeudasPage() {
   const [formPrestamo, setFormPrestamo] = useState(makeFormPrestamo)
   const [formCuota, setFormCuota] = useState(makeFormCuota)
 
-  const [calView, setCalView]     = useState(() => { const d = new Date(); return { month: d.getMonth(), year: d.getFullYear() } })
+  const [calView, setCalView] = useState(() => { const d = new Date(); return { month: d.getMonth(), year: d.getFullYear() } })
   const [selectedDay, setSelectedDay] = useState(null)
 
   const [modalMov, setModalMov] = useState(null) // id de deuda para nuevo movimiento
@@ -643,8 +643,8 @@ export default function DeudasPage() {
 
   // ─── CALENDARIO ──────────────────────────────────────────────────────────
 
-  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-  const DIAS_SEMANA = ['L','M','X','J','V','S','D']
+  const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+  const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
   // Calcula el mes del primer pago de una deuda a plazos
   function calcPrimerPago(d, dia) {
@@ -685,7 +685,7 @@ export default function DeudasPage() {
       const cargos = (movimientos[d.id] || []).filter(m => m.tipo === 'cargo')
       if (cargos.length > 0) {
         // Tarjeta revolving: solo mostrar si hay cargos en este ciclo
-        const periodoFin    = new Date(calView.year, calView.month, dia)
+        const periodoFin = new Date(calView.year, calView.month, dia)
         const prevM = calView.month === 0 ? 11 : calView.month - 1
         const prevY = calView.month === 0 ? calView.year - 1 : calView.year
         const periodoInicio = new Date(prevY, prevM, dia + 1)
@@ -854,8 +854,8 @@ export default function DeudasPage() {
                     style={{
                       color: isToday ? 'var(--accent-blue)'
                         : isSelected ? 'var(--accent-main)'
-                        : isPast ? 'var(--text-muted)'
-                        : 'var(--text-secondary)',
+                          : isPast ? 'var(--text-muted)'
+                            : 'var(--text-secondary)',
                     }}>
                     {day}
                   </span>
@@ -910,7 +910,7 @@ export default function DeudasPage() {
                   {d.pagada
                     ? <Check size={13} strokeWidth={2.5} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
                     : <div className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ background: 'color-mix(in srgb, var(--accent-rose) 20%, transparent)', border: '1.5px solid var(--accent-rose)' }} />
+                      style={{ background: 'color-mix(in srgb, var(--accent-rose) 20%, transparent)', border: '1.5px solid var(--accent-rose)' }} />
                   }
                 </div>
               ))}
@@ -1131,13 +1131,13 @@ export default function DeudasPage() {
                     </IconBtn>
                     {/* Botón tabla / historial */}
                     <IconBtn onClick={() => {
-                        setTablaVisible(isTabla ? null : d.id)
-                        if (isExp) setExpandido(null)
-                      }}
-                        title={d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'}
-                        bg={isTabla ? 'color-mix(in srgb, var(--accent-violet) 15%, transparent)' : 'var(--bg-secondary)'}
-                        color={isTabla ? 'var(--accent-violet)' : 'var(--text-muted)'}>
-                        <Table2 size={12} />
+                      setTablaVisible(isTabla ? null : d.id)
+                      if (isExp) setExpandido(null)
+                    }}
+                      title={d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'}
+                      bg={isTabla ? 'color-mix(in srgb, var(--accent-violet) 15%, transparent)' : 'var(--bg-secondary)'}
+                      color={isTabla ? 'var(--accent-violet)' : 'var(--text-muted)'}>
+                      <Table2 size={12} />
                     </IconBtn>
                     {d.telefono && (
                       <IconBtn
@@ -1753,18 +1753,18 @@ export default function DeudasPage() {
 
         </div>
 
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-2 pt-2">
           <button type="button"
             onClick={() => { setModalDeuda(false); setEditandoId(null) }}
-            className="ff-btn-ghost flex-1">
+            className="ff-btn-ghost flex-1 py-2 text-xs font-semibold">
             Cancelar
           </button>
           <button
             onClick={handleSaveDeuda}
             disabled={saving}
-            className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+            className="ff-btn-primary flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold">
             {saving && <Loader2 size={12} className="animate-spin" />}
-            {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear'}
+            {saving ? 'Guardando...' : editandoId ? 'Guardar' : 'Crear'}
           </button>
         </div>
       </Modal>
