@@ -605,12 +605,7 @@ export default function DeudasPage() {
       pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
     }).eq('id', mov.deuda_id)
 
-    setDeudas(prev => prev.map(d => d.id === mov.deuda_id
-      ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
-    setMovimientos(prev => ({
-      ...prev,
-      [mov.deuda_id]: (prev[mov.deuda_id] || []).filter(m => m.id !== mov.id)
-    }))
+    await cargar()
   }
 
   async function handleDeleteDeuda(id) {

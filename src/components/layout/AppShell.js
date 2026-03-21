@@ -139,9 +139,10 @@ function FABModal({ onClose }) {
 
       {/* Sheet */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-[120] rounded-t-3xl"
+        className="fixed bottom-0 left-0 right-0 z-[120] rounded-t-3xl flex flex-col"
         style={{
           background: 'var(--bg-card)',
+          maxHeight: '92vh',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
         }}>
 
@@ -158,7 +159,7 @@ function FABModal({ onClose }) {
           </button>
         </div>
 
-        <div className="px-5 space-y-4 pt-2">
+        <div className="px-5 space-y-4 pt-2 overflow-y-auto flex-1">
 
           {/* Tipo toggle */}
           <div className="flex gap-2">
@@ -295,28 +296,26 @@ function FABModal({ onClose }) {
                   {selectedPerfil && (
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
-                        style={{ color: 'var(--text-muted)' }}>Cuotas</p>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {CUOTAS_OPCIONES.map(c => (
-                          <button key={c}
-                            onClick={() => setNumCuotas(c)}
-                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all"
-                            style={{
-                              background: numCuotas === c ? 'color-mix(in srgb, var(--accent-rose) 15%, transparent)' : 'var(--bg-secondary)',
-                              color: numCuotas === c ? 'var(--accent-rose)' : 'var(--text-muted)',
-                              border: `1px solid ${numCuotas === c ? 'var(--accent-rose)' : 'transparent'}`,
-                              cursor: 'pointer',
-                            }}>
-                            {c === 1 ? 'Contado' : `${c}x`}
-                          </button>
-                        ))}
-                      </div>
-                      {numCuotas > 1 && parseFloat(monto) > 0 && (
-                        <p className="text-[10px] mt-1" style={{ color: 'var(--accent-rose)' }}>
-                          {numCuotas} cuotas de {formatCurrency(parseFloat(monto) / numCuotas)}
-                          {selectedPerfil.dia_pago ? ` · vence día ${selectedPerfil.dia_pago}` : ''}
+                        style={{ color: 'var(--text-muted)' }}>Número de cuotas</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min="1"
+                          max="60"
+                          value={numCuotas}
+                          onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="ff-input text-center font-semibold"
+                          style={{ width: 80, color: 'var(--accent-rose)' }}
+                        />
+                        <p className="text-[10px] flex-1" style={{ color: 'var(--text-muted)' }}>
+                          {numCuotas === 1
+                            ? 'Contado · pago único'
+                            : parseFloat(monto) > 0
+                              ? `${numCuotas}x de ${formatCurrency(parseFloat(monto) / numCuotas)}${selectedPerfil.dia_pago ? ` · día ${selectedPerfil.dia_pago}` : ''}`
+                              : `${numCuotas} cuotas`}
                         </p>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -349,7 +348,13 @@ function FABModal({ onClose }) {
                     const color = cat === 'ahorro' ? 'var(--accent-green)' : cat === 'inversion' ? 'var(--accent-violet)' : 'var(--accent-rose)'
                     return (
                       <button key={item.id}
-                        onClick={() => setSelectedItem(isSelected ? null : item)}
+                        onClick={() => {
+                          if (isSelected) { setSelectedItem(null) }
+                          else {
+                            setSelectedItem(item)
+                            if (cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString())
+                          }
+                        }}
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
                         style={{
                           background: isSelected ? `color-mix(in srgb, ${color} 10%, transparent)` : 'var(--bg-secondary)',
