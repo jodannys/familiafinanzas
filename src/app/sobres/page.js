@@ -523,7 +523,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
             </div>
           )}
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-3 pt-2">
             <button type="button" onClick={resetModal} className="ff-btn-ghost flex-1">Cancelar</button>
             <button type="submit" disabled={saving}
               className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
@@ -532,7 +532,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
               {usandoTarjeta
                 ? '💳 Cargar a tarjeta'
                 : montoFormParseado > saldoSobre
-                  ? 'Elegir Origen →'
+                  ? 'Origen →'
                   : 'Confirmar'}
             </button>
           </div>

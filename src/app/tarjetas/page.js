@@ -482,15 +482,13 @@ export default function TarjetasPage() {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={closeModal} className="ff-btn-ghost flex-1">
-              Cancelar
-            </button>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={closeModal}   className="ff-btn-ghost flex-1">Cancelar</button>
             <button type="submit" disabled={saving}
               className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
               {saving
                 ? <><Loader2 size={14} className="animate-spin" /> Guardando...</>
-                : <><Save size={14} /> {editingId ? 'Guardar cambios' : 'Crear'}</>
+                : <><Save size={14} /> {editingId ? 'Guardar' : 'Crear'}</>
               }
             </button>
           </div>
