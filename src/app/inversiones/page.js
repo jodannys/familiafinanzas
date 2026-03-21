@@ -798,13 +798,13 @@ export default function InversionesPage() {
           <div className="flex gap-3 pt-1">
             <button type="button"
               onClick={() => { setModal(false); setEditandoId(null) }}
-              className="ff-btn-ghost flex-1">
+              className="ff-btn-ghost px-4 py-2 text-xs">
               Cancelar
             </button>
             <button type="submit" disabled={saving}
-              className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+             className="ff-btn-primary flex items-center justify-center gap-2 px-4 py-2 text-xs">
               {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear'}
+              {saving ? 'Guardando...' : editandoId ? 'Guardar' : 'Crear'}
             </button>
           </div>
         </form>
