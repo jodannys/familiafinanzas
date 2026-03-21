@@ -1585,7 +1585,9 @@ export default function DeudasPage() {
                     onChange={e => setFormPrestamo(p => ({ ...p, nombre: e.target.value }))} />
                 </div>
               </div>
-              <CategoriaToggle value={formPrestamo.categoria} onChange={v => setFormPrestamo(p => ({ ...p, categoria: v }))} />
+              {formPrestamo.tipo !== 'medeben' && (
+                <CategoriaToggle value={formPrestamo.categoria} onChange={v => setFormPrestamo(p => ({ ...p, categoria: v }))} />
+              )}
               <div>
                 <label className="ff-label">Capital prestado (€)</label>
                 <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
@@ -1778,9 +1780,9 @@ export default function DeudasPage() {
         <div className="flex gap-3 pt-6">
           <button type="button"
             onClick={() => { setModalDeuda(false); setEditandoId(null) }}
-           className="ff-btn-ghost flex-1">Cancelar</button>
+            className="ff-btn-ghost flex-1">Cancelar</button>
           <button onClick={handleSaveDeuda} disabled={saving}
-           className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+            className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
             {saving && <Loader2 size={14} className="animate-spin" />}
             {saving ? 'Guardando...' : editandoId ? 'Guardar' : 'Crear'}
           </button>
