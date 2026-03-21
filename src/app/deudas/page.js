@@ -1775,17 +1775,15 @@ export default function DeudasPage() {
           )}
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-3 pt-2">
           <button type="button"
             onClick={() => { setModalDeuda(false); setEditandoId(null) }}
-            className="ff-btn-ghost flex-1 py-2 text-xs font-semibold">
-            Cancelar
-          </button>
+           className="ff-btn-ghost flex-1">Cancelar</button>
           <button
             onClick={handleSaveDeuda}
             disabled={saving}
-            className="ff-btn-primary flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold">
-            {saving && <Loader2 size={12} className="animate-spin" />}
+           className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+            {saving && <Loader2 size={14} className="animate-spin" />}
             {saving ? 'Guardando...' : editandoId ? 'Guardar' : 'Crear'}
           </button>
         </div>
