@@ -1197,9 +1197,23 @@ export default function DeudasPage() {
                           </p>
                           <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
                             {new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES')}
+                            {m.tipo === 'pago' && d.capital > 0 && (
+                              <> · Total deuda {formatCurrency(d.capital)}</>
+                            )}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {m.tipo === 'pago' && (
+                            <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full"
+                              style={{
+                                background: d.estado === 'pagada'
+                                  ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
+                                  : 'color-mix(in srgb, var(--accent-blue) 12%, transparent)',
+                                color: d.estado === 'pagada' ? 'var(--accent-green)' : 'var(--accent-blue)',
+                              }}>
+                              {d.estado === 'pagada' ? 'Pago' : 'Abono'}
+                            </span>
+                          )}
                           <p className="text-xs font-semibold tabular-nums"
                             style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                             {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
@@ -1270,7 +1284,7 @@ export default function DeudasPage() {
                                       : 'color-mix(in srgb, var(--accent-rose) 12%, transparent)',
                                     color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
                                   }}>
-                                  {m.tipo === 'pago' ? 'Pago' : 'Cargo'}
+                                  {m.tipo === 'cargo' ? 'Cargo' : d.estado === 'pagada' ? 'Pago' : 'Abono'}
                                 </span>
                               </td>
                             </tr>

@@ -281,11 +281,19 @@ export default function GastosPage() {
           estado: nuevoEstado,
         }).eq('id', deudaId)
 
-        // FIX 3: guardar el ID del deuda_movimiento para poder borrarlo con precisión
+        const esAbono = nuevoPendiente > 0
+        const descMovimiento = descFinal !== (form.tipo === 'egreso' ? 'Gasto' : 'Ingreso')
+          ? descFinal
+          : `${esAbono ? 'Abono' : 'Pago'}: ${deuda.nombre}`
+
+        // Actualizar descripción del movimiento ya insertado para reflejar abono/pago
+        await supabase.from('movimientos').update({ descripcion: descMovimiento }).eq('id', data[0].id)
+        setMovs(prev => prev.map(m => m.id === data[0].id ? { ...m, descripcion: descMovimiento } : m))
+
         const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
           deuda_id: deudaId,
           tipo: 'pago',
-          descripcion: form.descripcion,
+          descripcion: descMovimiento,
           monto,
           fecha: form.fecha,
           mes, año,
@@ -584,6 +592,7 @@ export default function GastosPage() {
                         const fechaObj = fy ? new Date(fy, fm - 1, fd) : null
                         const fechaStr = fechaObj ? fechaObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
                         const metodoInfo = m.metodo_pago ? METODOS_PAGO.find(mp => mp.id === m.metodo_pago) : null
+                        const deudaRef = m.deuda_id ? deudasData.find(d => d.id === m.deuda_id) : null
                         return (
                           <>
                             <span style={{
@@ -607,6 +616,11 @@ export default function GastosPage() {
                                 color: metodoInfo.color,
                               }}>
                                 {metodoInfo.short}
+                              </span>
+                            )}
+                            {deudaRef && (
+                              <span style={{ fontSize: 9, color: colores.muted, fontWeight: 500 }}>
+                                pendiente {formatCurrency(deudaRef.pendiente)}
                               </span>
                             )}
                           </>
@@ -755,38 +769,54 @@ export default function GastosPage() {
 
                 {metodoPago === 'tarjeta_credito' && tarjetasData.length > 0 && (
                   <div className="space-y-2">
-                    <select className="ff-input h-11 text-sm" value={tarjetaSeleccionada}
-                      onChange={e => setTarjetaSeleccionada(e.target.value)}>
-                      <option value="">— Selecciona tarjeta —</option>
-                      {tarjetasData.filter(t => t.estado !== 'pausada').map(t => (
-                        <option key={t.id} value={t.id}>
-                          {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <div>
-                      <label className="ff-label">Cuotas</label>
-                      <div className="flex gap-1.5 flex-wrap mt-1">
-                        {CUOTAS_OPCIONES.map(c => (
-                          <button type="button" key={c}
-                            onClick={() => setNumCuotas(c)}
-                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all"
+                    {/* Picker de tarjeta — igual que FAB */}
+                    <div className="space-y-1.5">
+                      {tarjetasData.filter(t => t.estado !== 'pausada').map(t => {
+                        const isSel = tarjetaSeleccionada === t.id
+                        return (
+                          <button type="button" key={t.id}
+                            onClick={() => setTarjetaSeleccionada(isSel ? '' : t.id)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all"
                             style={{
-                              background: numCuotas === c ? `color-mix(in srgb, ${colores.rose} 15%, transparent)` : 'var(--bg-secondary)',
-                              color: numCuotas === c ? colores.rose : colores.muted,
-                              border: `1px solid ${numCuotas === c ? colores.rose : 'transparent'}`,
+                              background: isSel ? `color-mix(in srgb, ${colores.rose} 10%, transparent)` : 'var(--bg-secondary)',
+                              border: `1px solid ${isSel ? colores.rose : 'transparent'}`,
                               cursor: 'pointer',
                             }}>
-                            {c === 1 ? 'Contado' : `${c}x`}
+                            <span className="text-[11px] font-semibold flex-1 truncate"
+                              style={{ color: isSel ? colores.rose : 'var(--text-primary)' }}>
+                              {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
+                            </span>
+                            {t.dia_pago && <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Día {t.dia_pago}</span>}
+                            {isSel && <span style={{ color: colores.rose, fontSize: 12 }}>✓</span>}
                           </button>
-                        ))}
-                      </div>
-                      {numCuotas > 1 && parseFloat(form.monto) > 0 && (
-                        <p className="text-[10px] mt-1" style={{ color: colores.rose }}>
-                          {numCuotas} cuotas de {formatCurrency(parseFloat(form.monto) / numCuotas)} · aparecerá en Deudas
-                        </p>
-                      )}
+                        )
+                      })}
                     </div>
+                    {/* Cuotas — input libre */}
+                    {tarjetaSeleccionada && (
+                      <div>
+                        <label className="ff-label">Número de cuotas</label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min="1"
+                            max="60"
+                            value={numCuotas}
+                            onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="ff-input text-center font-semibold"
+                            style={{ width: 80, color: colores.rose }}
+                          />
+                          <p className="text-[10px] flex-1" style={{ color: colores.muted }}>
+                            {numCuotas === 1
+                              ? 'Contado · pago único · aparecerá en Deudas'
+                              : parseFloat(form.monto) > 0
+                                ? `${numCuotas}x de ${formatCurrency(parseFloat(form.monto) / numCuotas)} · aparecerá en Deudas`
+                                : `${numCuotas} cuotas`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
