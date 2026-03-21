@@ -6,7 +6,7 @@ import Modal from '@/components/ui/Modal'
 import {
   Plus, Loader2, Trash2, CreditCard, Landmark,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Pencil, MessageCircle,
-  ArrowDownRight, ArrowUpRight, Calendar, Check, AlertCircle, Table2, X
+  ArrowDownRight, ArrowUpRight, Calendar, Check, AlertCircle, Table2
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -55,10 +55,13 @@ function generarTablaAmortizacion(deuda, movs = []) {
   if (!meses) return []
 
   const capital = deuda.capital || deuda.monto || 0
-  const cuota = deuda.cuota || 0
   const tasaMensual = (deuda.tasa_interes || deuda.tasa || 0) / 100 / 12
+  const tieneInteres = tasaMensual > 0
+  // Recalcular cuota desde cero para garantizar precisión
+  const cuota = tieneInteres
+    ? parseFloat(calcularCuota(capital, (deuda.tasa_interes || deuda.tasa || 0), meses).toFixed(2))
+    : parseFloat((capital / meses).toFixed(2))
 
-  // Fecha de inicio
   let fechaBase = deuda.fecha_primer_pago
     ? new Date(deuda.fecha_primer_pago + 'T12:00:00')
     : new Date(deuda.created_at || Date.now())
@@ -72,11 +75,10 @@ function generarTablaAmortizacion(deuda, movs = []) {
     const mesNum = f.getMonth() + 1
     const añoNum = f.getFullYear()
 
-    const interes = tasaMensual > 0 ? parseFloat((saldo * tasaMensual).toFixed(2)) : 0
+    const interes = tieneInteres ? parseFloat((saldo * tasaMensual).toFixed(2)) : 0
     const capitalCuota = parseFloat((cuota - interes).toFixed(2))
-    saldo = parseFloat(Math.max(0, saldo - capitalCuota).toFixed(2))
+    saldo = parseFloat(Math.max(0, saldo - (tieneInteres ? capitalCuota : cuota)).toFixed(2))
 
-    // Buscar pago real en movimientos
     const pagoReal = movs.find(m => m.tipo === 'pago' && m.mes === mesNum && m.año === añoNum)
 
     rows.push({
@@ -85,7 +87,7 @@ function generarTablaAmortizacion(deuda, movs = []) {
       año: añoNum,
       cuota,
       interes,
-      capital: capitalCuota,
+      capital: tieneInteres ? capitalCuota : cuota,
       saldo,
       pagada: !!pagoReal,
       montoPagado: pagoReal?.monto,
@@ -113,8 +115,6 @@ function IconBtn({ onClick, title, bg, color, children }) {
   )
 }
 
-// ─── Color picker reutilizable ────────────────────────────────────────────────
-
 function ColorPicker({ value, onChange, colors }) {
   return (
     <div>
@@ -137,7 +137,6 @@ function ColorPicker({ value, onChange, colors }) {
   )
 }
 
-// Toggle Yo debo / Me deben
 function TipoDeudorToggle({ value, onChange }) {
   return (
     <div>
@@ -190,8 +189,13 @@ export default function DeudasPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+
+  // ── Estado de expansión por deuda ──────────────────────────────────────────
+  // expandido: id de deuda con historial visible
+  // tablaVisible: id de deuda con tabla visible
+  // cardActiva: id de deuda con botones de acción visibles
   const [expandido, setExpandido] = useState(null)
-  const [tablaVisible, setTablaVisible] = useState(null) // id de deuda con tabla abierta
+  const [tablaVisible, setTablaVisible] = useState(null)
   const [cardActiva, setCardActiva] = useState(null)
   const [misTarjetas, setMisTarjetas] = useState([])
 
@@ -205,12 +209,9 @@ export default function DeudasPage() {
   const [calView, setCalView] = useState(() => { const d = new Date(); return { month: d.getMonth(), year: d.getFullYear() } })
   const [selectedDay, setSelectedDay] = useState(null)
 
-  const [modalMov, setModalMov] = useState(null) // id de deuda para nuevo movimiento
-  const [editandoMov, setEditandoMov] = useState(null) // objeto movimiento siendo editado
-  const [formMov, setFormMov] = useState({
-    tipo: 'cargo', descripcion: '', monto: '',
-    fecha: fechaHoy(),
-  })
+  const [modalMov, setModalMov] = useState(null)
+  const [editandoMov, setEditandoMov] = useState(null)
+  const [formMov, setFormMov] = useState({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
 
   const now = new Date()
   const mes = now.getMonth() + 1
@@ -250,10 +251,10 @@ export default function DeudasPage() {
           .from('deuda_movimientos').select('*').order('fecha', { ascending: true })
         if (!e3) {
           const grouped = {}
-            ; (movs || []).forEach(m => {
-              if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-              grouped[m.deuda_id].push(m)
-            })
+          ;(movs || []).forEach(m => {
+            if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+            grouped[m.deuda_id].push(m)
+          })
           setMovimientos(grouped)
         }
       }
@@ -420,7 +421,6 @@ export default function DeudasPage() {
       monto, fecha: hoy, mes, año,
     }]).select()
 
-    // medeben → ingreso (nos pagan a nosotros), debo → egreso (pagamos nosotros)
     const tipoMov = deuda.tipo === 'medeben' ? 'ingreso' : 'egreso'
     await supabase.from('movimientos').insert([{
       tipo: tipoMov, categoria: 'deuda',
@@ -440,7 +440,7 @@ export default function DeudasPage() {
       ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
     setMovimientos(prev => ({
       ...prev,
-      [deuda.id]: [{ ...dmData?.[0], tipo: 'pago', monto, fecha: hoy, mes, año, descripcion: `Cuota mensual: ${deuda.nombre}` }, ...(prev[deuda.id] || [])]
+      [deuda.id]: [...(prev[deuda.id] || []), { ...dmData?.[0], tipo: 'pago', monto, fecha: hoy, mes, año, descripcion: `Cuota mensual: ${deuda.nombre}` }]
     }))
     setSaving(false)
   }
@@ -459,7 +459,7 @@ export default function DeudasPage() {
     }]).select()
 
     if (!error && deuda) {
-      setMovimientos(prev => ({ ...prev, [modalMov]: [data[0], ...(prev[modalMov] || [])] }))
+      setMovimientos(prev => ({ ...prev, [modalMov]: [...(prev[modalMov] || []), data[0]] }))
       let nuevoPendiente = deuda.pendiente || 0
       let nuevosPagados = deuda.pagadas || 0
 
@@ -485,7 +485,6 @@ export default function DeudasPage() {
         }).eq('id', modalMov)
 
       } else {
-        // Cargo: sube pendiente, no afecta movimientos generales
         nuevoPendiente = nuevoPendiente + monto
         await supabase.from('deudas').update({
           pendiente: nuevoPendiente,
@@ -504,18 +503,15 @@ export default function DeudasPage() {
     setSaving(false)
   }
 
-  // Editar un movimiento existente
   async function handleEditMov(e) {
     e.preventDefault()
     if (!editandoMov) return
     setSaving(true)
 
     const montoNuevo = parseFloat(formMov.monto)
-    const montoAnterior = editandoMov.monto
     const deuda = deudas.find(d => d.id === editandoMov.deuda_id)
     if (!deuda) { setSaving(false); return }
 
-    // Actualizar el registro deuda_movimientos
     const { error } = await supabase.from('deuda_movimientos').update({
       descripcion: formMov.descripcion,
       monto: montoNuevo,
@@ -523,7 +519,6 @@ export default function DeudasPage() {
     }).eq('id', editandoMov.id)
 
     if (!error) {
-      // Recalcular pendiente sumando TODOS los movimientos desde DB (fuente de verdad)
       const { data: todosMovs } = await supabase
         .from('deuda_movimientos')
         .select('tipo, monto')
@@ -535,7 +530,6 @@ export default function DeudasPage() {
       const nuevoPendiente = Math.max(0, montoOriginal - totalPagado + totalCargos)
       const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
-      // Actualizar movimiento general si existe (para pagos)
       if (editandoMov.tipo === 'pago') {
         const { data: movGeneral } = await supabase
           .from('movimientos').select('id')
@@ -551,7 +545,6 @@ export default function DeudasPage() {
         pendiente: nuevoPendiente, estado: nuevoEstado,
       }).eq('id', deuda.id)
 
-      // Recargar todo desde DB para garantizar consistencia
       await cargar()
     }
 
@@ -575,7 +568,6 @@ export default function DeudasPage() {
       )
       nuevosPagados = Math.max(0, nuevosPagados - 1)
 
-      // CRÍTICO: borrar movimientos PRIMERO (tiene FK a deuda_movimientos)
       const { data: movGeneralData } = await supabase
         .from('movimientos')
         .select('id')
@@ -585,7 +577,6 @@ export default function DeudasPage() {
       if (movGeneralData?.[0]?.id) {
         await supabase.from('movimientos').delete().eq('id', movGeneralData[0].id)
       } else {
-        // Fallback legacy
         await supabase.from('movimientos').delete()
           .eq('categoria', 'deuda')
           .eq('monto', mov.monto)
@@ -596,7 +587,6 @@ export default function DeudasPage() {
       nuevoPendiente = Math.max(0, nuevoPendiente - mov.monto)
     }
 
-    // Ahora sí borrar deuda_movimientos (ya no tiene referencias en movimientos)
     const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
     if (error) { setError(error.message); return }
 
@@ -612,25 +602,21 @@ export default function DeudasPage() {
     if (!confirm('¿Estás seguro de eliminar esta deuda y todos sus registros asociados?')) return
     setSaving(true)
     try {
-      // CRÍTICO: borrar movimientos generales PRIMERO (tienen FK a deuda_movimientos)
       await supabase.from('movimientos').delete().eq('deuda_id', id)
-
-      // Luego borrar deuda_movimientos (ya sin referencias)
       const { error: err1 } = await supabase.from('deuda_movimientos').delete().eq('deuda_id', id)
       if (err1) throw new Error('Error al borrar movimientos de deuda: ' + err1.message)
-
-      // Finalmente borrar la deuda
       const { error: err2 } = await supabase.from('deudas').delete().eq('id', id)
       if (err2) throw new Error('Error al borrar la deuda: ' + err2.message)
-
       if (cardActiva === id) setCardActiva(null)
+      if (expandido === id) setExpandido(null)
+      if (tablaVisible === id) setTablaVisible(null)
       await cargar()
     } catch (err) {
       console.error(err); alert(err.message)
     } finally { setSaving(false) }
   }
 
-  // ─── Estadísticas separadas: debo vs medeben ─────────────────────────────
+  // ─── Estadísticas ──────────────────────────────────────────────────────────
 
   const activas = deudas.filter(d => d.estado !== 'pagada')
   const deboActivas = activas.filter(d => d.tipo !== 'medeben')
@@ -641,12 +627,11 @@ export default function DeudasPage() {
   const cuotasMes = deboActivas.reduce((s, d) => s + (d.cuota || 0), 0)
   const vencenProximo = activas.filter(d => { const dias = diasHastaPago(d.dia_pago); return dias !== null && dias <= 7 }).length
 
-  // ─── CALENDARIO ──────────────────────────────────────────────────────────
+  // ─── CALENDARIO ───────────────────────────────────────────────────────────
 
   const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
   const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
-  // Calcula el mes del primer pago de una deuda a plazos
   function calcPrimerPago(d, dia) {
     const fb = d.fecha_primer_pago
       ? new Date(d.fecha_primer_pago + 'T12:00:00')
@@ -673,18 +658,14 @@ export default function DeudasPage() {
   const daysInMonth = new Date(calView.year, calView.month + 1, 0).getDate()
   const calCells = [...Array(startPad).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
 
-  // Deudas por día en el mes del calendario
   const deudaByDay = {}
   activas.forEach(d => {
     const dia = parseInt(d.dia_pago)
     if (!dia || dia < 1 || dia > 31) return
 
-    // Para tarjetas con cargos acumulados: usar ciclo de facturación
-    // Para tarjetas a plazos (sin cargos): mostrar cada mes igual que un préstamo
     if (d.tipo_deuda === 'tarjeta') {
       const cargos = (movimientos[d.id] || []).filter(m => m.tipo === 'cargo')
       if (cargos.length > 0) {
-        // Tarjeta revolving: solo mostrar si hay cargos en este ciclo
         const periodoFin = new Date(calView.year, calView.month, dia)
         const prevM = calView.month === 0 ? 11 : calView.month - 1
         const prevY = calView.month === 0 ? calView.year - 1 : calView.year
@@ -697,7 +678,6 @@ export default function DeudasPage() {
         })
         if (!tieneCargos) return
       } else if (d.plazo_meses) {
-        // Compra a plazos: solo mostrar dentro del rango de cuotas
         const { primerMes, primerAño } = calcPrimerPago(d, dia)
         const offset = (calView.year - primerAño) * 12 + (calView.month - primerMes)
         if (offset < 0 || offset >= d.plazo_meses) return
@@ -706,15 +686,12 @@ export default function DeudasPage() {
 
     if (!deudaByDay[dia]) deudaByDay[dia] = []
 
-    // Lógica de pagada según tipo de deuda
     let pagada = false
     if (d.tipo_deuda === 'tarjeta' && !((movimientos[d.id] || []).filter(m => m.tipo === 'cargo').length > 0)) {
-      // Compra a plazos: pagada por número de cuota (offset vs pagadas)
       const { primerMes, primerAño } = calcPrimerPago(d, dia)
       const offset = (calView.year - primerAño) * 12 + (calView.month - primerMes)
       pagada = offset < (d.pagadas || 0)
     } else {
-      // Resto de deudas: pagada si hay un pago registrado este mes
       pagada = (movimientos[d.id] || []).some(m => {
         if (m.tipo !== 'pago') return false
         if (m.mes && m.año) return m.mes === calView.month + 1 && m.año === calView.year
@@ -758,33 +735,22 @@ export default function DeudasPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="glass-card p-3 animate-enter">
-          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: 'var(--text-muted)' }}>💸 Lo que debo</p>
-          <p className="text-sm font-semibold" style={{ color: 'var(--accent-rose)' }}>
-            {formatCurrency(totalDebo)}
-          </p>
+          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>💸 Lo que debo</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--accent-rose)' }}>{formatCurrency(totalDebo)}</p>
         </div>
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.05s' }}>
-          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: 'var(--text-muted)' }}>🤝 Me deben</p>
-          <p className="text-sm font-semibold" style={{ color: 'var(--accent-green)' }}>
-            {formatCurrency(totalMeDeben)}
-          </p>
+          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>🤝 Me deben</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--accent-green)' }}>{formatCurrency(totalMeDeben)}</p>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 mb-6">
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.1s' }}>
-          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: 'var(--text-muted)' }}>Letras este mes</p>
-          <p className="text-sm font-semibold" style={{ color: 'var(--accent-terra)' }}>
-            {formatCurrency(cuotasMes)}
-          </p>
+          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>Letras este mes</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--accent-terra)' }}>{formatCurrency(cuotasMes)}</p>
         </div>
         <div className="glass-card p-3 animate-enter" style={{ animationDelay: '0.15s' }}>
-          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
-            style={{ color: 'var(--text-muted)' }}>Vencen pronto</p>
-          <p className="text-sm font-semibold"
-            style={{ color: vencenProximo > 0 ? 'var(--accent-rose)' : 'var(--accent-green)' }}>
+          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>Vencen pronto</p>
+          <p className="text-sm font-semibold" style={{ color: vencenProximo > 0 ? 'var(--accent-rose)' : 'var(--accent-green)' }}>
             {vencenProximo > 0 ? `${vencenProximo} deuda${vencenProximo > 1 ? 's' : ''}` : 'Al día ✓'}
           </p>
         </div>
@@ -793,38 +759,29 @@ export default function DeudasPage() {
       {/* ── CALENDARIO ── */}
       {!loading && activas.length > 0 && (
         <div className="glass-card mb-6 animate-enter" style={{ padding: '16px' }}>
-
-          {/* Cabecera mes */}
           <div className="flex items-center justify-between mb-4">
-            <button onClick={prevMes}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+            <button onClick={prevMes} className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
               style={{ background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
               <ChevronLeft size={14} />
             </button>
             <div className="text-center">
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {MESES[calView.month]} {calView.year}
-              </p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{MESES[calView.month]} {calView.year}</p>
               <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 {Object.keys(deudaByDay).length} pago{Object.keys(deudaByDay).length !== 1 ? 's' : ''} este mes
               </p>
             </div>
-            <button onClick={nextMes}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+            <button onClick={nextMes} className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
               style={{ background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
               <ChevronRight size={14} />
             </button>
           </div>
 
-          {/* Días de la semana */}
           <div className="grid grid-cols-7 mb-1">
             {DIAS_SEMANA.map(d => (
-              <p key={d} className="text-center text-[9px] font-semibold py-0.5"
-                style={{ color: 'var(--text-muted)' }}>{d}</p>
+              <p key={d} className="text-center text-[9px] font-semibold py-0.5" style={{ color: 'var(--text-muted)' }}>{d}</p>
             ))}
           </div>
 
-          {/* Grid de días */}
           <div className="grid grid-cols-7 gap-0.5">
             {calCells.map((day, i) => {
               if (!day) return <div key={`pad-${i}`} />
@@ -833,7 +790,6 @@ export default function DeudasPage() {
               const isToday = esHoy(day)
               const esMesActual = calView.month === now.getMonth() && calView.year === now.getFullYear()
               const isPast = esMesActual && day < hoyDia
-              const isFuture = esMesActual && day > hoyDia
 
               return (
                 <button key={day}
@@ -859,17 +815,12 @@ export default function DeudasPage() {
                     }}>
                     {day}
                   </span>
-                  {/* Dots */}
                   {deudas_dia.length > 0 && (
                     <div className="flex gap-0.5 mt-1 flex-wrap justify-center" style={{ maxWidth: 28 }}>
                       {deudas_dia.slice(0, 3).map((d, idx) => (
                         <div key={idx} className="w-1.5 h-1.5 rounded-full"
                           style={{
-                            background: d.pagada
-                              ? 'var(--accent-green)'
-                              : isPast
-                                ? 'var(--accent-rose)'
-                                : (d.color || 'var(--accent-rose)'),
+                            background: d.pagada ? 'var(--accent-green)' : isPast ? 'var(--accent-rose)' : (d.color || 'var(--accent-rose)'),
                             opacity: d.pagada ? 1 : isPast ? 0.7 : 1,
                           }} />
                       ))}
@@ -878,7 +829,6 @@ export default function DeudasPage() {
                       )}
                     </div>
                   )}
-                  {/* Indicador vencido */}
                   {isPast && deudas_dia.some(d => !d.pagada) && (
                     <span className="text-[7px] font-bold mt-0.5" style={{ color: 'var(--accent-rose)', lineHeight: 1 }}>!</span>
                   )}
@@ -887,15 +837,13 @@ export default function DeudasPage() {
             })}
           </div>
 
-          {/* Detalle del día seleccionado */}
           {selectedDay && deudaByDay[selectedDay] && (
             <div className="mt-4 pt-3 border-t space-y-2" style={{ borderColor: 'var(--border-glass)' }}>
               <p className="text-[9px] uppercase font-semibold tracking-wider" style={{ color: 'var(--text-muted)' }}>
                 Pagos del día {selectedDay}
               </p>
               {deudaByDay[selectedDay].map(d => (
-                <div key={d.id} className="flex items-center gap-2.5 px-2 py-2 rounded-xl"
-                  style={{ background: 'var(--bg-secondary)' }}>
+                <div key={d.id} className="flex items-center gap-2.5 px-2 py-2 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
                   <span className="text-base">{d.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
@@ -903,8 +851,7 @@ export default function DeudasPage() {
                       {d.tipo === 'medeben' ? 'Me deben cobrar' : 'Debo pagar'}
                     </p>
                   </div>
-                  <p className="text-xs font-semibold tabular-nums"
-                    style={{ color: d.color || 'var(--accent-rose)' }}>
+                  <p className="text-xs font-semibold tabular-nums" style={{ color: d.color || 'var(--accent-rose)' }}>
                     {formatCurrency(d.cuota || d.pendiente || 0)}
                   </p>
                   {d.pagada
@@ -917,7 +864,6 @@ export default function DeudasPage() {
             </div>
           )}
 
-          {/* Leyenda */}
           <div className="flex items-center gap-3 mt-3 pt-2 border-t flex-wrap" style={{ borderColor: 'var(--border-glass)' }}>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-green)' }} />
@@ -964,17 +910,35 @@ export default function DeudasPage() {
             const movsDeuda = movimientos[d.id] || []
             const esCuota = d.tipo_deuda === 'cuota'
             const esMeDeben = d.tipo === 'medeben'
-            const pagadaEsteMes = (movimientos[d.id] || [])
-              .some(m => m.tipo === 'pago' && m.mes === mes && m.año === año)
+            const pagadaEsteMes = movsDeuda.some(m => m.tipo === 'pago' && m.mes === mes && m.año === año)
 
-            // Tabla de amortización
+            // ── FIX barra de progreso ──────────────────────────────────────
+            // Usar monto (deuda original) como máximo, con fallback robusto
+            const montoOriginal = d.monto || d.capital || 0
+            const pagado = Math.max(0, montoOriginal - (d.pendiente || 0))
+            const pct = montoOriginal > 0 ? Math.min(100, Math.round((pagado / montoOriginal) * 100)) : 0
+            const tieneProgreso = montoOriginal > 0
+
+            // ── FIX historial: ordenar cronológicamente ASC ────────────────
+            const movsOrdenados = [...movsDeuda].sort((a, b) => {
+              const fa = a.fecha ? new Date(a.fecha) : new Date(0)
+              const fb = b.fecha ? new Date(b.fecha) : new Date(0)
+              return fa - fb
+            })
+
+            // Tabla de amortización (solo cuando está activa)
+            const tieneInteres = (d.tasa_interes || d.tasa || 0) > 0
             const tablaAmort = isTabla ? generarTablaAmortizacion(d, movsDeuda) : []
 
             return (
               <Card key={d.id}
                 className="animate-enter overflow-hidden cursor-pointer select-none"
                 style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px' }}
-                onClick={() => setCardActiva(isActiva ? null : d.id)}>
+                onClick={() => {
+                  // Click en la card: solo abre/cierra botones de acción
+                  // NO toca historial ni tabla
+                  setCardActiva(isActiva ? null : d.id)
+                }}>
 
                 {diasFaltantes !== null && (
                   <div className="absolute top-2 right-2">
@@ -990,20 +954,38 @@ export default function DeudasPage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2.5 mb-2.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                {/* ── Cabecera: emoji + nombre + montos ── */}
+                <div className="flex items-start gap-2.5 mb-2.5">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 mt-0.5"
                     style={{ background: `${d.color || cfg.color}18` }}>
                     <span>{d.emoji}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate text-sm leading-tight"
-                      style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <p className="font-semibold truncate text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {d.nombre}
+                    </p>
+                    {/* ── FIX: mostrar deuda original y pendiente ── */}
+                    {montoOriginal > 0 && (
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                          Original: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(montoOriginal)}</span>
+                        </span>
+                        {pagado > 0 && (
+                          <>
+                            <span style={{ color: 'var(--border-glass)' }}>·</span>
+                            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                              Pagado: <span className="font-semibold" style={{ color: 'var(--accent-green)' }}>{formatCurrency(pagado)}</span>
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {/* Badges */}
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full"
                         style={{ background: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, color: cfg.color }}>
                         {cfg.label}
                       </span>
-                      {/* Badge debo/medeben */}
                       <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                         style={{
                           background: esMeDeben
@@ -1039,6 +1021,7 @@ export default function DeudasPage() {
                       )}
                     </div>
                   </div>
+                  {/* Monto pendiente a la derecha */}
                   <div className="text-right flex-shrink-0">
                     <p className="text-base font-semibold tabular-nums"
                       style={{ color: d.color || cfg.color, letterSpacing: '-0.02em' }}>
@@ -1047,22 +1030,32 @@ export default function DeudasPage() {
                     <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
                       {esMeDeben ? 'por cobrar' : 'pendiente'}
                     </p>
+                    {d.cuota > 0 && (
+                      <p className="text-[9px] font-semibold mt-0.5 tabular-nums"
+                        style={{ color: 'var(--text-muted)' }}>
+                        {formatCurrency(d.cuota)}/mes
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {d.monto > 0 && (
-                  <div className="mb-2.5">
-                    <ProgressBar value={d.monto - (d.pendiente || 0)} max={d.monto} color={d.color || cfg.color} />
+                {/* ── FIX barra de progreso: solo renderizar si hay monto original ── */}
+                {tieneProgreso && (
+                  <div className="mb-1.5">
+                    <ProgressBar value={pagado} max={montoOriginal} color={d.color || cfg.color} />
+                    <div className="flex justify-between mt-1">
+                      <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
+                        {pct}% pagado
+                      </span>
+                      <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
+                        {formatCurrency(d.pendiente || 0)} restante
+                      </span>
+                    </div>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  {d.cuota > 0 && (
-                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                      {formatCurrency(d.cuota)}/mes
-                    </span>
-                  )}
+                {/* Info secundaria */}
+                <div className="flex items-center gap-2 flex-wrap mt-1">
                   {d.plazo_meses && (
                     <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
                       {d.pagadas || 0}/{d.plazo_meses} cuotas
@@ -1087,15 +1080,16 @@ export default function DeudasPage() {
                   )}
                 </div>
 
-                {/* Botones de acción */}
-                <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-20 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
+                {/* ── Botones de acción (se abren al tocar la card) ── */}
+                <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-24 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
                   style={{ borderColor: 'var(--border-glass)' }}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {(esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0)) && d.estado !== 'pagada' && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Marcar pagada (cuotas y préstamos con cuota fija) */}
+                    {(esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0) || (d.tipo_deuda === 'tarjeta' && d.cuota > 0)) && d.estado !== 'pagada' && (
                       <button
                         onClick={e => { e.stopPropagation(); handleMarcarPagada(d) }}
                         disabled={saving || pagadaEsteMes}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase transition-all active:scale-95 disabled:opacity-40"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-semibold uppercase transition-all active:scale-95 disabled:opacity-40"
                         style={{
                           background: pagadaEsteMes
                             ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
@@ -1103,42 +1097,60 @@ export default function DeudasPage() {
                           color: 'var(--accent-green)',
                         }}>
                         <Check size={11} strokeWidth={3} />
-                        {pagadaEsteMes ? (esMeDeben ? 'Ya cobrada' : 'Ya pagada') : (esMeDeben ? 'Marcar cobrada' : 'Marcar pagada')}
+                        {pagadaEsteMes ? (esMeDeben ? 'Ya cobrada' : 'Ya pagada') : (esMeDeben ? 'Cobrar' : 'Pagar')}
                       </button>
                     )}
+                    {/* Cargo (solo si no es medeben) */}
                     {!esMeDeben && (
                       <IconBtn
-                        onClick={() => { setModalMov(d.id); setFormMov({ tipo: 'cargo', descripcion: 'Nuevo cargo', monto: '', fecha: new Date().toISOString().split('T')[0] }) }}
+                        onClick={() => {
+                          setModalMov(d.id)
+                          setFormMov({ tipo: 'cargo', descripcion: 'Nuevo cargo', monto: '', fecha: fechaHoy() })
+                        }}
                         title="Registrar cargo"
                         bg="color-mix(in srgb, var(--accent-rose) 10%, transparent)"
                         color="var(--accent-rose)">
                         <ArrowDownRight size={13} strokeWidth={2.5} />
                       </IconBtn>
                     )}
+                    {/* Pago / cobro */}
                     <IconBtn
-                      onClick={() => { setModalMov(d.id); setFormMov({ tipo: 'pago', descripcion: esMeDeben ? `Cobro ${d.nombre}` : `Pago ${d.nombre}`, monto: d.cuota || d.pendiente || '', fecha: new Date().toISOString().split('T')[0] }) }}
+                      onClick={() => {
+                        setModalMov(d.id)
+                        setFormMov({ tipo: 'pago', descripcion: esMeDeben ? `Cobro ${d.nombre}` : `Pago ${d.nombre}`, monto: d.cuota || d.pendiente || '', fecha: fechaHoy() })
+                      }}
                       title={esMeDeben ? 'Registrar cobro' : 'Registrar pago'}
                       bg="color-mix(in srgb, var(--accent-green) 10%, transparent)"
                       color="var(--accent-green)">
                       <ArrowUpRight size={13} strokeWidth={2.5} />
                     </IconBtn>
-                    <IconBtn onClick={() => {
-                      setExpandido(isExp ? null : d.id)
-                      if (isTabla) setTablaVisible(null)
-                    }}
-                      title="Ver historial" bg="var(--bg-secondary)" color="var(--text-muted)">
+                    {/* ── FIX botón historial: toggle independiente ── */}
+                    <IconBtn
+                      onClick={() => {
+                        const nuevoExp = isExp ? null : d.id
+                        setExpandido(nuevoExp)
+                        // Si abrimos historial, cerramos tabla (y viceversa)
+                        if (nuevoExp) setTablaVisible(null)
+                      }}
+                      title={isExp ? 'Ocultar historial' : 'Ver historial'}
+                      bg={isExp ? 'color-mix(in srgb, var(--accent-blue) 15%, transparent)' : 'var(--bg-secondary)'}
+                      color={isExp ? 'var(--accent-blue)' : 'var(--text-muted)'}>
                       {isExp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </IconBtn>
-                    {/* Botón tabla / historial */}
-                    <IconBtn onClick={() => {
-                      setTablaVisible(isTabla ? null : d.id)
-                      if (isExp) setExpandido(null)
-                    }}
+                    {/* Tabla de amortización */}
+                    <IconBtn
+                      onClick={() => {
+                        const nuevaTabla = isTabla ? null : d.id
+                        setTablaVisible(nuevaTabla)
+                        // Si abrimos tabla, cerramos historial
+                        if (nuevaTabla) setExpandido(null)
+                      }}
                       title={d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'}
                       bg={isTabla ? 'color-mix(in srgb, var(--accent-violet) 15%, transparent)' : 'var(--bg-secondary)'}
                       color={isTabla ? 'var(--accent-violet)' : 'var(--text-muted)'}>
                       <Table2 size={12} />
                     </IconBtn>
+                    {/* WhatsApp */}
                     {d.telefono && (
                       <IconBtn
                         onClick={() => {
@@ -1153,7 +1165,7 @@ export default function DeudasPage() {
                         <MessageCircle size={12} />
                       </IconBtn>
                     )}
-                    <IconBtn onClick={() => abrirEdicion(d)} title="Editar"
+                    <IconBtn onClick={() => { abrirEdicion(d) }} title="Editar"
                       bg="color-mix(in srgb, var(--accent-blue) 10%, transparent)"
                       color="var(--accent-blue)">
                       <Pencil size={12} />
@@ -1166,17 +1178,44 @@ export default function DeudasPage() {
                   </div>
                 </div>
 
-                {/* Historial de movimientos */}
+                {/* ── FIX Historial de movimientos (ordenado ASC, con monto original al inicio) ── */}
                 {isExp && (
-                  <div className="mt-3 pt-3 border-t space-y-1" style={{ borderColor: 'var(--border-glass)' }}>
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}
+                    onClick={e => e.stopPropagation()}>
                     <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
                       Historial de movimientos
                     </p>
-                    {movsDeuda.length === 0 ? (
+
+                    {/* Fila de creación de la deuda (monto original) */}
+                    {montoOriginal > 0 && (
+                      <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg mb-1"
+                        style={{ background: 'var(--bg-secondary)' }}>
+                        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'color-mix(in srgb, var(--text-muted) 12%, transparent)' }}>
+                          <span className="text-[10px]">{d.emoji}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                            Deuda registrada
+                          </p>
+                          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                            {d.fecha_primer_pago
+                              ? new Date(d.fecha_primer_pago + 'T12:00:00').toLocaleDateString('es-ES')
+                              : new Date(d.created_at).toLocaleDateString('es-ES')}
+                          </p>
+                        </div>
+                        <p className="text-xs font-semibold tabular-nums flex-shrink-0"
+                          style={{ color: 'var(--text-secondary)' }}>
+                          {formatCurrency(montoOriginal)}
+                        </p>
+                      </div>
+                    )}
+
+                    {movsOrdenados.length === 0 ? (
                       <p className="text-[10px] italic text-center py-2" style={{ color: 'var(--text-muted)' }}>
-                        Sin movimientos aún
+                        Sin movimientos registrados
                       </p>
-                    ) : movsDeuda.map(m => (
+                    ) : movsOrdenados.map(m => (
                       <div key={m.id}
                         className="flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors"
                         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
@@ -1196,29 +1235,14 @@ export default function DeudasPage() {
                             {m.descripcion}
                           </p>
                           <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                            {new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES')}
-                            {m.tipo === 'pago' && d.capital > 0 && (
-                              <> · Total deuda {formatCurrency(d.capital)}</>
-                            )}
+                            {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES') : '—'}
                           </p>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {m.tipo === 'pago' && (
-                            <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full"
-                              style={{
-                                background: d.estado === 'pagada'
-                                  ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
-                                  : 'color-mix(in srgb, var(--accent-blue) 12%, transparent)',
-                                color: d.estado === 'pagada' ? 'var(--accent-green)' : 'var(--accent-blue)',
-                              }}>
-                              {d.estado === 'pagada' ? 'Pago' : 'Abono'}
-                            </span>
-                          )}
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           <p className="text-xs font-semibold tabular-nums"
                             style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                            {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
+                            {m.tipo === 'pago' ? '−' : '+'}{formatCurrency(m.monto)}
                           </p>
-                          {/* Botón editar movimiento */}
                           <button
                             onClick={e => {
                               e.stopPropagation()
@@ -1244,154 +1268,180 @@ export default function DeudasPage() {
                         </div>
                       </div>
                     ))}
+
+                    {/* Resumen de saldo */}
+                    {montoOriginal > 0 && (
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t px-2"
+                        style={{ borderColor: 'var(--border-glass)' }}>
+                        <span className="text-[9px] font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>
+                          Saldo pendiente
+                        </span>
+                        <span className="text-xs font-semibold tabular-nums"
+                          style={{ color: d.pendiente > 0 ? (d.color || cfg.color) : 'var(--accent-green)' }}>
+                          {formatCurrency(d.pendiente || 0)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Tabla de amortización */}
-                {isTabla && tablaAmort.length === 0 && movsDeuda.length > 0 && (
-                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+                {/* ── FIX Tabla: sin columnas inútiles cuando no hay interés ── */}
+                {isTabla && (
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}
+                    onClick={e => e.stopPropagation()}>
                     <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-                      Historial · {d.nombre}
+                      {d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'} · {d.nombre}
                     </p>
                     <div className="overflow-x-auto -mx-2">
-                      <table className="w-full text-[9px] min-w-[320px]">
-                        <thead>
-                          <tr style={{ color: 'var(--text-muted)' }}>
-                            <th className="px-2 py-1 text-left font-semibold uppercase">Fecha</th>
-                            <th className="px-2 py-1 text-left font-semibold uppercase">Descripción</th>
-                            <th className="px-2 py-1 text-right font-semibold uppercase">Monto</th>
-                            <th className="px-2 py-1 text-center font-semibold uppercase">Tipo</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[...movsDeuda].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map(m => (
-                            <tr key={m.id}>
-                              <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                                {m.fecha ? new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
-                              </td>
-                              <td className="px-2 py-1.5 truncate max-w-[120px]" style={{ color: 'var(--text-secondary)' }}>
-                                {m.descripcion || '—'}
-                              </td>
-                              <td className="px-2 py-1.5 text-right font-semibold tabular-nums"
-                                style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                                {m.tipo === 'pago' ? '-' : '+'}{formatCurrency(m.monto)}
-                              </td>
-                              <td className="px-2 py-1.5 text-center">
-                                <span className="px-1.5 py-0.5 rounded-full font-semibold"
-                                  style={{
-                                    background: m.tipo === 'pago'
-                                      ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
-                                      : 'color-mix(in srgb, var(--accent-rose) 12%, transparent)',
-                                    color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
-                                  }}>
-                                  {m.tipo === 'cargo' ? 'Cargo' : d.estado === 'pagada' ? 'Pago' : 'Abono'}
-                                </span>
-                              </td>
+
+                      {/* Tabla de amortización (préstamo/tarjeta con plazo) */}
+                      {tablaAmort.length > 0 && (
+                        <table className="w-full text-[9px]" style={{ minWidth: tieneInteres ? 380 : 280 }}>
+                          <thead>
+                            <tr style={{ color: 'var(--text-muted)' }}>
+                              <th className="px-2 py-1 text-left font-semibold uppercase">#</th>
+                              <th className="px-2 py-1 text-left font-semibold uppercase">Mes</th>
+                              <th className="px-2 py-1 text-right font-semibold uppercase">Cuota</th>
+                              {tieneInteres && (
+                                <>
+                                  <th className="px-2 py-1 text-right font-semibold uppercase">Capital</th>
+                                  <th className="px-2 py-1 text-right font-semibold uppercase">Interés</th>
+                                </>
+                              )}
+                              <th className="px-2 py-1 text-right font-semibold uppercase">Saldo</th>
+                              <th className="px-2 py-1 text-center font-semibold uppercase">Estado</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {isTabla && tablaAmort.length > 0 && (
-                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}>
-                    <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-                      Tabla de amortización · {d.nombre}
-                    </p>
-                    <div className="overflow-x-auto -mx-2">
-                      <table className="w-full text-[9px] min-w-[460px]">
-                        <thead>
-                          <tr style={{ color: 'var(--text-muted)' }}>
-                            <th className="px-2 py-1 text-left font-semibold uppercase">#</th>
-                            <th className="px-2 py-1 text-left font-semibold uppercase">Mes</th>
-                            <th className="px-2 py-1 text-right font-semibold uppercase">Cuota</th>
-                            {(d.tasa_interes > 0 || d.tasa > 0) && (
-                              <>
-                                <th className="px-2 py-1 text-right font-semibold uppercase">Capital</th>
-                                <th className="px-2 py-1 text-right font-semibold uppercase">Interés</th>
-                              </>
-                            )}
-                            <th className="px-2 py-1 text-right font-semibold uppercase">Saldo</th>
-                            <th className="px-2 py-1 text-center font-semibold uppercase">Estado</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tablaAmort.map(row => {
-                            const esPasada = new Date(row.año, row.mes - 1) < new Date(año, mes - 1)
-                            const esActual = row.mes === mes && row.año === año
-                            return (
-                              <tr key={row.periodo}
-                                style={{
-                                  background: row.pagada
-                                    ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)'
-                                    : esActual
-                                      ? 'color-mix(in srgb, var(--accent-violet) 6%, transparent)'
-                                      : 'transparent',
-                                }}>
-                                <td className="px-2 py-1.5 font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                                  {row.periodo}
-                                </td>
-                                <td className="px-2 py-1.5 font-semibold" style={{ color: esActual ? 'var(--accent-violet)' : 'var(--text-secondary)' }}>
-                                  {row.fechaLabel}
-                                  {esActual && <span className="ml-1 text-[8px] px-1 rounded" style={{ background: 'color-mix(in srgb, var(--accent-violet) 20%, transparent)', color: 'var(--accent-violet)' }}>hoy</span>}
-                                </td>
-                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                                  {formatCurrency(row.cuota)}
-                                </td>
-                                {(d.tasa_interes > 0 || d.tasa > 0) && (
-                                  <>
-                                    <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--accent-blue)' }}>
-                                      {formatCurrency(row.capital)}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--accent-rose)' }}>
-                                      {formatCurrency(row.interes)}
-                                    </td>
-                                  </>
-                                )}
-                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                                  {formatCurrency(row.saldo)}
-                                </td>
-                                <td className="px-2 py-1.5 text-center">
-                                  {row.pagada ? (
-                                    <span className="font-semibold" style={{ color: 'var(--accent-green)' }}>✓</span>
-                                  ) : esPasada ? (
-                                    <span className="font-semibold" style={{ color: 'var(--accent-rose)' }}>!</span>
-                                  ) : (
-                                    <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          </thead>
+                          <tbody>
+                            {tablaAmort.map(row => {
+                              const esPasada = new Date(row.año, row.mes - 1) < new Date(año, mes - 1)
+                              const esActual = row.mes === mes && row.año === año
+                              return (
+                                <tr key={row.periodo}
+                                  style={{
+                                    background: row.pagada
+                                      ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)'
+                                      : esActual
+                                        ? 'color-mix(in srgb, var(--accent-violet) 6%, transparent)'
+                                        : 'transparent',
+                                  }}>
+                                  <td className="px-2 py-1.5 font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                    {row.periodo}
+                                  </td>
+                                  <td className="px-2 py-1.5 font-semibold" style={{ color: esActual ? 'var(--accent-violet)' : 'var(--text-secondary)' }}>
+                                    {row.fechaLabel}
+                                    {esActual && (
+                                      <span className="ml-1 text-[8px] px-1 rounded"
+                                        style={{ background: 'color-mix(in srgb, var(--accent-violet) 20%, transparent)', color: 'var(--accent-violet)' }}>
+                                        hoy
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                                    {formatCurrency(row.cuota)}
+                                  </td>
+                                  {tieneInteres && (
+                                    <>
+                                      <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--accent-blue)' }}>
+                                        {formatCurrency(row.capital)}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--accent-rose)' }}>
+                                        {formatCurrency(row.interes)}
+                                      </td>
+                                    </>
                                   )}
+                                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                                    {formatCurrency(row.saldo)}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-center">
+                                    {row.pagada ? (
+                                      <span style={{ color: 'var(--accent-green)' }}>✓</span>
+                                    ) : esPasada ? (
+                                      <span style={{ color: 'var(--accent-rose)' }}>!</span>
+                                    ) : (
+                                      <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr style={{ borderTop: '1px solid var(--border-glass)' }}>
+                              <td colSpan={2} className="px-2 py-1.5 font-semibold text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>
+                                Total
+                              </td>
+                              <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                                {formatCurrency(tablaAmort.reduce((s, r) => s + r.cuota, 0))}
+                              </td>
+                              {tieneInteres && (
+                                <>
+                                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-blue)' }}>
+                                    {formatCurrency(tablaAmort.reduce((s, r) => s + r.capital, 0))}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-rose)' }}>
+                                    {formatCurrency(tablaAmort.reduce((s, r) => s + r.interes, 0))}
+                                  </td>
+                                </>
+                              )}
+                              <td colSpan={2} />
+                            </tr>
+                          </tfoot>
+                        </table>
+                      )}
+
+                      {/* Historial simple (sin plazo fijo: pago libre o cuota) */}
+                      {tablaAmort.length === 0 && (
+                        <table className="w-full text-[9px]" style={{ minWidth: 280 }}>
+                          <thead>
+                            <tr style={{ color: 'var(--text-muted)' }}>
+                              <th className="px-2 py-1 text-left font-semibold uppercase">Fecha</th>
+                              <th className="px-2 py-1 text-left font-semibold uppercase">Descripción</th>
+                              <th className="px-2 py-1 text-right font-semibold uppercase">Monto</th>
+                              <th className="px-2 py-1 text-center font-semibold uppercase">Tipo</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {movsOrdenados.length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="px-2 py-3 text-center italic" style={{ color: 'var(--text-muted)' }}>
+                                  Sin movimientos aún
                                 </td>
                               </tr>
-                            )
-                          })}
-                        </tbody>
-                        <tfoot>
-                          <tr style={{ borderTop: '1px solid var(--border-glass)' }}>
-                            <td colSpan={2} className="px-2 py-1.5 font-semibold text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>
-                              Total
-                            </td>
-                            <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                              {formatCurrency(tablaAmort.reduce((s, r) => s + r.cuota, 0))}
-                            </td>
-                            {(d.tasa_interes > 0 || d.tasa > 0) && (
-                              <>
-                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-blue)' }}>
-                                  {formatCurrency(tablaAmort.reduce((s, r) => s + r.capital, 0))}
+                            ) : movsOrdenados.map(m => (
+                              <tr key={m.id}>
+                                <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                  {m.fecha ? new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
                                 </td>
-                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-rose)' }}>
-                                  {formatCurrency(tablaAmort.reduce((s, r) => s + r.interes, 0))}
+                                <td className="px-2 py-1.5 truncate max-w-[120px]" style={{ color: 'var(--text-secondary)' }}>
+                                  {m.descripcion || '—'}
                                 </td>
-                              </>
-                            )}
-                            <td colSpan={2} />
-                          </tr>
-                        </tfoot>
-                      </table>
+                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums"
+                                  style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                                  {m.tipo === 'pago' ? '−' : '+'}{formatCurrency(m.monto)}
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                  <span className="px-1.5 py-0.5 rounded-full font-semibold"
+                                    style={{
+                                      background: m.tipo === 'pago'
+                                        ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
+                                        : 'color-mix(in srgb, var(--accent-rose) 12%, transparent)',
+                                      color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                    }}>
+                                    {m.tipo === 'cargo' ? 'Cargo' : 'Pago'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
-                    <p className="text-[8px] mt-1.5 px-2" style={{ color: 'var(--text-muted)' }}>
-                      ✓ = pagada · ! = vencida sin pago registrado · — = pendiente
-                    </p>
+                    {tablaAmort.length > 0 && (
+                      <p className="text-[8px] mt-1.5 px-2" style={{ color: 'var(--text-muted)' }}>
+                        ✓ pagada · ! pendiente vencida · — pendiente
+                      </p>
+                    )}
                   </div>
                 )}
               </Card>
@@ -1424,7 +1474,6 @@ export default function DeudasPage() {
         )}
 
         <div>
-
           {/* ── TARJETA ── */}
           {tipoSeleccionado === 'tarjeta' && (
             <div className="space-y-4">
@@ -1435,37 +1484,26 @@ export default function DeudasPage() {
                     borderColor: 'color-mix(in srgb, var(--accent-violet) 30%, transparent)',
                     background: 'color-mix(in srgb, var(--accent-violet) 4%, transparent)',
                   }}>
-                  <label className="text-[10px] font-semibold uppercase mb-2 block"
-                    style={{ color: 'var(--accent-violet)' }}>
+                  <label className="text-[10px] font-semibold uppercase mb-2 block" style={{ color: 'var(--accent-violet)' }}>
                     Selecciona la tarjeta usada
                   </label>
                   <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                     {misTarjetas.map(t => (
                       <button key={t.id} type="button"
-                        onClick={() => {
-                          if (t.estado === 'pausada') return
-                          handleSeleccionarTarjetaPerfil(t.id)
-                        }}
+                        onClick={() => { if (t.estado !== 'pausada') handleSeleccionarTarjetaPerfil(t.id) }}
                         disabled={t.estado === 'pausada'}
                         className="flex-shrink-0 px-3 py-2 rounded-xl border text-[10px] font-semibold uppercase transition-all flex items-center gap-2"
                         style={{
-                          borderColor: t.estado === 'pausada'
-                            ? 'var(--border-glass)'
-                            : formTarjeta.tarjeta_id === t.id ? t.color : `${t.color}40`,
+                          borderColor: t.estado === 'pausada' ? 'var(--border-glass)' : formTarjeta.tarjeta_id === t.id ? t.color : `${t.color}40`,
                           color: t.estado === 'pausada' ? 'var(--text-muted)' : t.color,
-                          background: t.estado === 'pausada'
-                            ? 'var(--bg-secondary)'
-                            : formTarjeta.tarjeta_id === t.id ? `${t.color}12` : 'var(--bg-card)',
+                          background: t.estado === 'pausada' ? 'var(--bg-secondary)' : formTarjeta.tarjeta_id === t.id ? `${t.color}12` : 'var(--bg-card)',
                           opacity: t.estado === 'pausada' ? 0.5 : 1,
                           cursor: t.estado === 'pausada' ? 'not-allowed' : 'pointer',
                         }}>
                         💳 {t.nombre_tarjeta}
                         {t.estado === 'pausada' && (
                           <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full ml-1"
-                            style={{
-                              background: 'color-mix(in srgb, var(--accent-terra) 15%, transparent)',
-                              color: 'var(--accent-terra)',
-                            }}>
+                            style={{ background: 'color-mix(in srgb, var(--accent-terra) 15%, transparent)', color: 'var(--accent-terra)' }}>
                             PAUSADA
                           </span>
                         )}
@@ -1505,10 +1543,7 @@ export default function DeudasPage() {
               </div>
               {formTarjeta.monto_compra && formTarjeta.num_cuotas && (
                 <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
-                  style={{
-                    background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)',
-                    color: 'var(--accent-violet)',
-                  }}>
+                  style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)' }}>
                   Cuota mensual estimada:{' '}
                   <span className="font-semibold">
                     {formatCurrency(parseFloat(formTarjeta.monto_compra) / parseInt(formTarjeta.num_cuotas) || 0)}
@@ -1526,12 +1561,9 @@ export default function DeudasPage() {
                 <input className="ff-input" type="tel" placeholder="Ej: 573001234567"
                   value={formTarjeta.telefono}
                   onChange={e => setFormTarjeta(p => ({ ...p, telefono: e.target.value }))} />
-                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>
-                  Número internacional sin + (ej: 57 para Colombia)
-                </p>
+                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>Número internacional sin + (ej: 57 para Colombia)</p>
               </div>
-              <ColorPicker value={formTarjeta.color} colors={themeColors}
-                onChange={c => setFormTarjeta(p => ({ ...p, color: c }))} />
+              <ColorPicker value={formTarjeta.color} colors={themeColors} onChange={c => setFormTarjeta(p => ({ ...p, color: c }))} />
             </div>
           )}
 
@@ -1612,10 +1644,7 @@ export default function DeudasPage() {
               </div>
               {formPrestamo.capital && !formPrestamo.plazo_libre && formPrestamo.plazo_meses && (
                 <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
-                  style={{
-                    background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
-                    color: 'var(--accent-rose)',
-                  }}>
+                  style={{ background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)', color: 'var(--accent-rose)' }}>
                   Cuota mensual estimada:{' '}
                   <span className="font-semibold">
                     {formatCurrency(calcularCuota(
@@ -1657,12 +1686,9 @@ export default function DeudasPage() {
                 <input className="ff-input" type="tel" placeholder="Ej: 573001234567"
                   value={formPrestamo.telefono}
                   onChange={e => setFormPrestamo(p => ({ ...p, telefono: e.target.value }))} />
-                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>
-                  Número internacional sin + (ej: 57 para Colombia)
-                </p>
+                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>Número internacional sin + (ej: 57 para Colombia)</p>
               </div>
-              <ColorPicker value={formPrestamo.color} colors={themeColors}
-                onChange={c => setFormPrestamo(p => ({ ...p, color: c }))} />
+              <ColorPicker value={formPrestamo.color} colors={themeColors} onChange={c => setFormPrestamo(p => ({ ...p, color: c }))} />
             </div>
           )}
 
@@ -1742,15 +1768,11 @@ export default function DeudasPage() {
                 <input className="ff-input" type="tel" placeholder="Ej: 573001234567"
                   value={formCuota.telefono}
                   onChange={e => setFormCuota(p => ({ ...p, telefono: e.target.value }))} />
-                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>
-                  Número internacional sin + (ej: 57 para Colombia)
-                </p>
+                <p className="text-[9px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>Número internacional sin + (ej: 57 para Colombia)</p>
               </div>
-              <ColorPicker value={formCuota.color} colors={themeColors}
-                onChange={c => setFormCuota(p => ({ ...p, color: c }))} />
+              <ColorPicker value={formCuota.color} colors={themeColors} onChange={c => setFormCuota(p => ({ ...p, color: c }))} />
             </div>
           )}
-
         </div>
 
         <div className="flex gap-2 pt-2">
@@ -1769,7 +1791,7 @@ export default function DeudasPage() {
         </div>
       </Modal>
 
-      {/* ── MODAL MOVIMIENTO (nuevo o editar) ── */}
+      {/* ── MODAL MOVIMIENTO ── */}
       <Modal
         open={!!modalMov || !!editandoMov}
         onClose={() => {
