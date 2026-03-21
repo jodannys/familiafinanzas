@@ -338,6 +338,7 @@ export default function DeudasPage() {
         capital, monto: capital, pendiente: capital, cuota, plazo_meses: meses,
         perfil_tarjeta_id: f.tarjeta_id || null, tasa: 0, tasa_interes: 0,
         dia_pago: parseInt(f.dia_pago) || null, color: f.color, estado: 'activa', pagadas: 0,
+        fecha_primer_pago: f.fecha_operacion || null,
         telefono: f.telefono || null,
       }
     } else if (tipoSeleccionado === 'prestamo') {
@@ -650,6 +651,19 @@ export default function DeudasPage() {
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
   const DIAS_SEMANA = ['L','M','X','J','V','S','D']
 
+  // Calcula el mes del primer pago de una deuda a plazos
+  function calcPrimerPago(d, dia) {
+    const fb = d.fecha_primer_pago
+      ? new Date(d.fecha_primer_pago + 'T12:00:00')
+      : new Date(d.created_at)
+    let primerMes = fb.getMonth()
+    let primerAño = fb.getFullYear()
+    if (fb.getDate() > dia) {
+      if (primerMes === 11) { primerMes = 0; primerAño++ } else { primerMes++ }
+    }
+    return { primerMes, primerAño }
+  }
+
   function prevMes() {
     setCalView(p => p.month === 0 ? { month: 11, year: p.year - 1 } : { month: p.month - 1, year: p.year })
     setSelectedDay(null)
@@ -687,17 +701,9 @@ export default function DeudasPage() {
           return f >= periodoInicio && f <= periodoFin
         })
         if (!tieneCargos) return
-      }
-      // Si no tiene cargos → compra a plazos → limitar por plazo_meses y pagadas
-      if (d.plazo_meses) {
-        // Determinar mes del primer pago desde created_at y dia_pago
-        const creado = new Date(d.created_at)
-        const creadoDia = creado.getDate()
-        let primerMes = creado.getMonth()
-        let primerAño = creado.getFullYear()
-        if (creadoDia > dia) {
-          if (primerMes === 11) { primerMes = 0; primerAño++ } else { primerMes++ }
-        }
+      } else if (d.plazo_meses) {
+        // Compra a plazos: solo mostrar dentro del rango de cuotas
+        const { primerMes, primerAño } = calcPrimerPago(d, dia)
         const offset = (calView.year - primerAño) * 12 + (calView.month - primerMes)
         if (offset < 0 || offset >= d.plazo_meses) return
       }
@@ -709,13 +715,7 @@ export default function DeudasPage() {
     let pagada = false
     if (d.tipo_deuda === 'tarjeta' && !((movimientos[d.id] || []).filter(m => m.tipo === 'cargo').length > 0)) {
       // Compra a plazos: pagada por número de cuota (offset vs pagadas)
-      const creado = new Date(d.created_at)
-      const creadoDia = creado.getDate()
-      let primerMes = creado.getMonth()
-      let primerAño = creado.getFullYear()
-      if (creadoDia > dia) {
-        if (primerMes === 11) { primerMes = 0; primerAño++ } else { primerMes++ }
-      }
+      const { primerMes, primerAño } = calcPrimerPago(d, dia)
       const offset = (calView.year - primerAño) * 12 + (calView.month - primerMes)
       pagada = offset < (d.pagadas || 0)
     } else {

@@ -199,6 +199,7 @@ export default function GastosPage() {
         cuota: cuotaMensual, plazo_meses: numCuotas, pagadas: 0,
         estado: 'activa', perfil_tarjeta_id: tarjetaSeleccionada,
         dia_pago: tarjeta?.dia_pago || null,
+        fecha_primer_pago: form.fecha,
         color: tarjeta?.color || '#A44A3F',
         tasa: 0, tasa_interes: 0,
       }])

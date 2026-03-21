@@ -117,6 +117,7 @@ function FABModal({ onClose }) {
         cuota: cuotaMensual, plazo_meses: numCuotas, pagadas: 0,
         estado: 'activa', perfil_tarjeta_id: selectedPerfil.id,
         dia_pago: selectedPerfil.dia_pago || null,
+        fecha_primer_pago: hoy,
         color: selectedPerfil.color || '#A44A3F',
         tasa: 0, tasa_interes: 0,
       }])

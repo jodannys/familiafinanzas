@@ -24,6 +24,7 @@ export default function TarjetasPage() {
 
   const [tarjetas, setTarjetas] = useState([])
   const [deudas, setDeudas] = useState([])
+  const [movsPorDeuda, setMovsPorDeuda] = useState({})
   const [usadoPorTarjeta, setUsadoPorTarjeta] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -65,33 +66,46 @@ export default function TarjetasPage() {
     ] = await Promise.all([
       supabase.from('perfiles_tarjetas').select('*').order('created_at', { ascending: false }),
       supabase.from('deudas')
-        .select('id, nombre, perfil_tarjeta_id, pendiente, estado')
+        .select('id, nombre, perfil_tarjeta_id, pendiente, estado, capital, cuota, plazo_meses, pagadas, created_at, fecha_primer_pago, color')
         .eq('tipo_deuda', 'tarjeta')
-        .neq('estado', 'pagada'),
+        .order('created_at', { ascending: false }),
     ])
 
     if (e1) { setLoading(false); return }
 
+    const todasDeudas = deudasTarjeta || []
     setTarjetas(tarjetasData || [])
-    setDeudas(deudasTarjeta || [])
+    setDeudas(todasDeudas)
 
-    // FIX 4: solo contar deudas de tarjetas activas
+    // Solo contar deudas activas para el saldo usado
     const usado = {}
-      ; (tarjetasData || []).forEach(t => { usado[t.id] = 0 })
-      ; (deudasTarjeta || []).forEach(d => {
-        if (
-          d.perfil_tarjeta_id &&
-          usado[d.perfil_tarjeta_id] !== undefined
-        ) {
-          // FIX 4: no contar si la tarjeta está pausada
-          const tarjeta = (tarjetasData || []).find(t => t.id === d.perfil_tarjeta_id)
-          if (tarjeta && tarjeta.estado !== 'pausada') {
-            usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
-          }
+    ;(tarjetasData || []).forEach(t => { usado[t.id] = 0 })
+    ;todasDeudas.filter(d => d.estado !== 'pagada').forEach(d => {
+      if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
+        const tarjeta = (tarjetasData || []).find(t => t.id === d.perfil_tarjeta_id)
+        if (tarjeta && tarjeta.estado !== 'pausada') {
+          usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
         }
-      })
-
+      }
+    })
     setUsadoPorTarjeta(usado)
+
+    // Cargar pagos de cada deuda de tarjeta
+    if (todasDeudas.length) {
+      const ids = todasDeudas.map(d => d.id)
+      const { data: movs } = await supabase
+        .from('deuda_movimientos')
+        .select('deuda_id, tipo, monto, fecha, descripcion')
+        .in('deuda_id', ids)
+        .order('fecha', { ascending: false })
+      const grouped = {}
+      ;(movs || []).forEach(m => {
+        if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+        grouped[m.deuda_id].push(m)
+      })
+      setMovsPorDeuda(grouped)
+    }
+
     setLoading(false)
   }
 
@@ -312,24 +326,81 @@ export default function TarjetasPage() {
                   )}
                 </div>
 
-                {/* Desglose de compras */}
+                {/* Historial de compras */}
                 {isSelected && (
-                  <div className="mt-4 pt-4 space-y-2 max-h-40 overflow-y-auto custom-scroll pr-2"
+                  <div className="mt-4 pt-4 space-y-2 max-h-72 overflow-y-auto custom-scroll pr-1"
                     style={{ borderTop: '1px solid var(--border-glass)' }}>
-                    <p className="ff-label">Compras a plazos activas</p>
+                    <p className="ff-label mb-2">Historial de compras</p>
                     {deudasCard.length === 0 ? (
-                      <p className="text-[11px] italic opacity-50">No hay compras activas</p>
+                      <p className="text-[11px] italic opacity-50">Sin compras registradas</p>
                     ) : (
-                      deudasCard.map(deuda => (
-                        <div key={deuda.id}
-                          className="flex justify-between items-center p-3 rounded-xl"
-                          style={{ background: 'var(--bg-secondary)' }}>
-                          <span className="text-[11px] font-semibold">{deuda.nombre}</span>
-                          <span className="text-[11px] font-semibold" style={{ color: t.color }}>
-                            {formatCurrency(deuda.pendiente)}
-                          </span>
-                        </div>
-                      ))
+                      deudasCard.map(deuda => {
+                        const pagos = (movsPorDeuda[deuda.id] || []).filter(m => m.tipo === 'pago')
+                        const pagadas = deuda.pagadas || 0
+                        const total = deuda.plazo_meses || 1
+                        const esPagada = deuda.estado === 'pagada'
+                        const fechaCompra = deuda.fecha_primer_pago
+                          ? new Date(deuda.fecha_primer_pago + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' })
+                          : new Date(deuda.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' })
+                        return (
+                          <div key={deuda.id} className="rounded-xl p-3 space-y-1.5"
+                            style={{ background: 'var(--bg-secondary)', border: `1px solid ${esPagada ? 'color-mix(in srgb, var(--accent-green) 20%, transparent)' : 'transparent'}` }}>
+                            {/* Fila principal */}
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{deuda.nombre}</p>
+                                <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{fechaCompra}</p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-[11px] font-semibold" style={{ color: esPagada ? 'var(--accent-green)' : t.color }}>
+                                  {formatCurrency(deuda.capital || 0)}
+                                </p>
+                                {esPagada
+                                  ? <p className="text-[9px] font-semibold" style={{ color: 'var(--accent-green)' }}>✓ pagada</p>
+                                  : <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{formatCurrency(deuda.pendiente)} pend.</p>
+                                }
+                              </div>
+                            </div>
+                            {/* Cuotas */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {total > 1 && (
+                                  <span className="text-[9px] px-2 py-0.5 rounded-full font-semibold"
+                                    style={{ background: `color-mix(in srgb, ${t.color} 12%, transparent)`, color: t.color }}>
+                                    {pagadas}/{total} cuotas
+                                  </span>
+                                )}
+                                {deuda.cuota > 0 && total > 1 && (
+                                  <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                    {formatCurrency(deuda.cuota)}/mes
+                                  </span>
+                                )}
+                                {total === 1 && (
+                                  <span className="text-[9px] px-2 py-0.5 rounded-full font-semibold"
+                                    style={{ background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
+                                    Contado
+                                  </span>
+                                )}
+                              </div>
+                              {/* Barra de progreso */}
+                              {total > 1 && (
+                                <div className="flex-1 max-w-[80px] h-1 rounded-full ml-3" style={{ background: 'var(--progress-track)' }}>
+                                  <div className="h-1 rounded-full" style={{
+                                    width: `${Math.min(100, Math.round((pagadas / total) * 100))}%`,
+                                    background: esPagada ? 'var(--accent-green)' : t.color,
+                                  }} />
+                                </div>
+                              )}
+                            </div>
+                            {/* Último pago */}
+                            {pagos.length > 0 && (
+                              <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                Último pago: {new Date(pagos[0].fecha + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · {formatCurrency(pagos[0].monto)}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })
                     )}
                   </div>
                 )}
