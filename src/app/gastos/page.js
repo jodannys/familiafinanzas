@@ -46,6 +46,8 @@ export default function GastosPage() {
   const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
+  const [metodoPago, setMetodoPago] = useState('efectivo')
+  const [numCuotas, setNumCuotas] = useState(1)
   const [presupuesto, setPresupuesto] = useState(null)
   const [colores, setColores] = useState({})
   const [subcategorias, setSubcategorias] = useState([])
@@ -55,6 +57,14 @@ export default function GastosPage() {
     categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys',
     subcategoria_id: '',
   })
+
+  const METODOS_PAGO = [
+    { id: 'efectivo',        short: 'EF', label: 'Efectivo',   color: colores.green  },
+    { id: 'transferencia',   short: 'TR', label: 'Transf.',    color: colores.blue   },
+    { id: 'debito',          short: 'DB', label: 'Débito',     color: colores.violet },
+    { id: 'tarjeta_credito', short: 'TC', label: 'T. Crédito', color: colores.rose   },
+  ]
+  const CUOTAS_OPCIONES = [1, 3, 6, 9, 12, 18, 24, 36]
   const [hayMas, setHayMas] = useState(false)
   const LIMITE_INICIAL = 100
 
@@ -104,10 +114,12 @@ export default function GastosPage() {
     supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
     supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, banco, color').eq('estado', 'activa')
       .then(({ data }) => setTarjetasData(data || []))
-    supabase.from('deudas').select('id, perfil_tarjeta_id, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
+    supabase.from('deudas').select('id, nombre, perfil_tarjeta_id, pendiente, color').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
       .then(({ data }) => {
         const map = {}
-          ; (data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
+        // Primero mapear los que tienen perfil_tarjeta_id
+        ;(data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
+        // Para tarjetas de perfiles sin deuda asociada, guardar un fallback genérico
         setTarjetaDeudasMap(map)
       })
   }, [])
@@ -116,7 +128,7 @@ export default function GastosPage() {
     setLoading(true)
     setError(null)
     // BUG FIX: paginación — carga los últimos LIMITE_INICIAL registros por defecto
-    const query = supabase.from('movimientos').select('*').order('fecha', { ascending: false })
+    const query = supabase.from('movimientos').select('*').order('fecha', { ascending: false }).order('created_at', { ascending: false })
     const { data, error } = cargarTodos ? await query : await query.limit(LIMITE_INICIAL + 1)
     if (error) {
       setError('Error al cargar movimientos: ' + error.message)
@@ -143,6 +155,8 @@ export default function GastosPage() {
     setTarjetaSeleccionada('')
     setMetaSeleccionada('')
     setDeudaSeleccionada('')
+    setMetodoPago('efectivo')
+    setNumCuotas(1)
     setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys', subcategoria_id: '' })
   }
 
@@ -154,45 +168,42 @@ export default function GastosPage() {
     setSaving(true)
 
     // ── Tarjeta de crédito ────────────────────────────────────────────────────
-    if (tarjetaSeleccionada && form.tipo === 'egreso') {
-      let deudaTarjeta = tarjetaDeudasMap[tarjetaSeleccionada]
-
-      // Si no hay deuda asociada, crear una automáticamente (saldo revolving)
-      if (!deudaTarjeta) {
-        const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
-        const { data: nuevaDeuda, error: errCrear } = await supabase.from('deudas').insert([{
-          nombre: tarjeta?.nombre_tarjeta || 'Tarjeta de crédito',
-          tipo: 'debo',
-          tipo_deuda: 'tarjeta',
-          emoji: '💳',
-          color: tarjeta?.color || '#A44A3F',
-          monto: 0,
-          pendiente: 0,
-          cuota: 0,
-          estado: 'activa',
-          perfil_tarjeta_id: tarjetaSeleccionada,
-        }]).select().single()
-        if (errCrear) { setError('Error al crear la deuda de tarjeta: ' + errCrear.message); setSaving(false); return }
-        deudaTarjeta = nuevaDeuda
-        setTarjetaDeudasMap(prev => ({ ...prev, [tarjetaSeleccionada]: deudaTarjeta }))
+    // ── Tarjeta de crédito (nuevo flujo con cuotas) ───────────────────────────
+    if (metodoPago === 'tarjeta_credito' && form.tipo === 'egreso') {
+      if (!tarjetaSeleccionada) {
+        setError('Selecciona una tarjeta de crédito')
+        setSaving(false)
+        return
       }
+      const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
+      const subNombreTC = form.subcategoria_id ? subcategorias.find(s => s.id === form.subcategoria_id)?.nombre : null
+      const descTC = form.descripcion.trim() || subNombreTC || 'Compra con tarjeta'
+      const cuotaMensual = parseFloat((monto / numCuotas).toFixed(2))
 
-      const descCargo = form.descripcion || subcategorias.find(s => s.id === form.subcategoria_id)?.nombre || 'Cargo tarjeta'
-      const { error } = await supabase.from('deuda_movimientos').insert([{
-        deuda_id: deudaTarjeta.id,
-        tipo: 'cargo',
-        descripcion: descCargo,
-        monto,
-        fecha: form.fecha,
-        mes, año,
+      // 1. Crear movimiento
+      const { error: errMov } = await supabase.from('movimientos').insert([{
+        tipo: 'egreso', monto, descripcion: descTC,
+        categoria: form.categoria, fecha: form.fecha, quien: form.quien,
+        metodo_pago: 'tarjeta_credito',
+        num_cuotas: numCuotas,
+        tarjeta_nombre: tarjeta?.nombre_tarjeta || null,
+        ...(form.subcategoria_id && { subcategoria_id: form.subcategoria_id }),
       }])
-      if (error) setError('Error al guardar cargo en tarjeta: ' + error.message)
-      else {
-        const nuevoPendiente = parseFloat(deudaTarjeta.pendiente || 0) + monto
-        await supabase.from('deudas').update({ pendiente: nuevoPendiente, estado: 'activa' }).eq('id', deudaTarjeta.id)
-        setTarjetaDeudasMap(prev => ({ ...prev, [tarjetaSeleccionada]: { ...deudaTarjeta, pendiente: nuevoPendiente } }))
-        resetModal()
-      }
+      if (errMov) { setError('Error: ' + errMov.message); setSaving(false); return }
+
+      // 2. Crear deuda en cuotas
+      await supabase.from('deudas').insert([{
+        tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳',
+        nombre: descTC, categoria: form.categoria,
+        capital: monto, monto, pendiente: monto,
+        cuota: cuotaMensual, plazo_meses: numCuotas, pagadas: 0,
+        estado: 'activa', perfil_tarjeta_id: tarjetaSeleccionada,
+        dia_pago: tarjeta?.dia_pago || null,
+        color: tarjeta?.color || '#A44A3F',
+        tasa: 0, tasa_interes: 0,
+      }])
+
+      resetModal()
       setSaving(false)
       return
     }
@@ -213,6 +224,7 @@ export default function GastosPage() {
       tipo: form.tipo,
       monto,
       descripcion: descFinal,
+      metodo_pago: form.tipo === 'egreso' ? metodoPago : 'transferencia',
       categoria: form.categoria,
       fecha: form.fecha,
       quien: form.quien,
@@ -515,7 +527,7 @@ export default function GastosPage() {
               placeholder="Buscar movimiento..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }].map(f => (
+            {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }, { v: 'deuda', l: 'Deudas' }, { v: 'ahorro', l: 'Ahorro' }].map(f => (
               <button key={f.v} onClick={() => setFiltro(f.v)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border"
                 style={{
@@ -570,6 +582,7 @@ export default function GastosPage() {
                         const [fy, fm, fd] = (m.fecha || '').split('-').map(Number)
                         const fechaObj = fy ? new Date(fy, fm - 1, fd) : null
                         const fechaStr = fechaObj ? fechaObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
+                        const metodoInfo = m.metodo_pago ? METODOS_PAGO.find(mp => mp.id === m.metodo_pago) : null
                         return (
                           <>
                             <span style={{
@@ -583,6 +596,16 @@ export default function GastosPage() {
                             {fechaStr && (
                               <span style={{ fontSize: 9, color: colores.muted, fontWeight: 500 }}>
                                 {fechaStr}
+                              </span>
+                            )}
+                            {metodoInfo && m.tipo === 'egreso' && (
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                                padding: '3px 6px', borderRadius: 999,
+                                background: `color-mix(in srgb, ${metodoInfo.color} 12%, transparent)`,
+                                color: metodoInfo.color,
+                              }}>
+                                {metodoInfo.short}
                               </span>
                             )}
                           </>
@@ -705,33 +728,64 @@ export default function GastosPage() {
               )
             })()}
 
-            {/* Tarjeta de crédito */}
-            {form.tipo === 'egreso' && form.categoria !== 'deuda' && tarjetasData.length > 0 && (
-              <div className="space-y-1 animate-enter">
-                <label className="ff-label flex items-center gap-1.5">
-                  <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
-                </label>
-                <select className="ff-input h-12 text-sm" value={tarjetaSeleccionada}
-                  onChange={e => setTarjetaSeleccionada(e.target.value)}>
-                  <option value="">— No, pago directo —</option>
-                  {tarjetasData
-                    .filter(t => t.estado !== 'pausada') // FIX: ocultar tarjetas pausadas
-                    .map(t => (
-                      <option key={t.id} value={t.id}>
-                        {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
-                        {!tarjetaDeudasMap[t.id] ? ' ⚠ sin deuda' : ''}
-                      </option>
-                    ))
-                  }
-                </select>
-                {tarjetaSeleccionada && (
-                  <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
-                    style={{
-                      background: `color-mix(in srgb, ${colores.violet} 8%, transparent)`,
-                      color: colores.violet,
-                      border: `1px solid color-mix(in srgb, ${colores.violet} 20%, transparent)`,
-                    }}>
-                    💳 Este gasto se acumulará en la tarjeta. No restará del presupuesto hasta que pagues la tarjeta.
+            {/* Método de pago */}
+            {form.tipo === 'egreso' && (
+              <div className="space-y-2 animate-enter">
+                <label className="ff-label">Método de pago</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {METODOS_PAGO.map(m => {
+                    const sel = metodoPago === m.id
+                    const c = m.color || 'var(--text-muted)'
+                    return (
+                      <button type="button" key={m.id}
+                        onClick={() => { setMetodoPago(m.id); setTarjetaSeleccionada(''); setNumCuotas(1) }}
+                        className="py-2 rounded-xl text-[10px] font-semibold transition-all"
+                        style={{
+                          background: sel ? `color-mix(in srgb, ${c} 15%, transparent)` : 'var(--bg-secondary)',
+                          color: sel ? c : 'var(--text-muted)',
+                          border: `1.5px solid ${sel ? c : 'transparent'}`,
+                          cursor: 'pointer',
+                        }}>
+                        {m.short}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {metodoPago === 'tarjeta_credito' && tarjetasData.length > 0 && (
+                  <div className="space-y-2">
+                    <select className="ff-input h-11 text-sm" value={tarjetaSeleccionada}
+                      onChange={e => setTarjetaSeleccionada(e.target.value)}>
+                      <option value="">— Selecciona tarjeta —</option>
+                      {tarjetasData.filter(t => t.estado !== 'pausada').map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.nombre_tarjeta}{t.banco ? ` · ${t.banco}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <div>
+                      <label className="ff-label">Cuotas</label>
+                      <div className="flex gap-1.5 flex-wrap mt-1">
+                        {CUOTAS_OPCIONES.map(c => (
+                          <button type="button" key={c}
+                            onClick={() => setNumCuotas(c)}
+                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all"
+                            style={{
+                              background: numCuotas === c ? `color-mix(in srgb, ${colores.rose} 15%, transparent)` : 'var(--bg-secondary)',
+                              color: numCuotas === c ? colores.rose : colores.muted,
+                              border: `1px solid ${numCuotas === c ? colores.rose : 'transparent'}`,
+                              cursor: 'pointer',
+                            }}>
+                            {c === 1 ? 'Contado' : `${c}x`}
+                          </button>
+                        ))}
+                      </div>
+                      {numCuotas > 1 && parseFloat(form.monto) > 0 && (
+                        <p className="text-[10px] mt-1" style={{ color: colores.rose }}>
+                          {numCuotas} cuotas de {formatCurrency(parseFloat(form.monto) / numCuotas)} · aparecerá en Deudas
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

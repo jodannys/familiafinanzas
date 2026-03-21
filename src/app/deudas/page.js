@@ -278,10 +278,11 @@ export default function DeudasPage() {
     if (d.tipo_deuda === 'tarjeta') {
       setFormTarjeta({
         tipo_deuda: 'tarjeta', tipo: tipoDeudor, emoji: d.emoji || '💳', nombre: d.nombre || '',
-        categoria: d.categoria || 'deseo', tarjeta_id: '',
+        categoria: d.categoria || 'deseo', tarjeta_id: d.perfil_tarjeta_id || '',
         limite: d.limite?.toString() || '', monto_compra: d.capital?.toString() || '',
         num_cuotas: d.plazo_meses?.toString() || '',
-        fecha_operacion: fechaHoy(), color: c, telefono: d.telefono || '',
+        dia_pago: d.dia_pago?.toString() || '',
+        fecha_operacion: d.fecha_primer_pago || fechaHoy(), color: c, telefono: d.telefono || '',
       })
     } else if (d.tipo_deuda === 'prestamo') {
       setFormPrestamo({
@@ -1134,8 +1135,7 @@ export default function DeudasPage() {
                       {isExp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </IconBtn>
                     {/* Botón tabla / historial */}
-                    <IconBtn onClick={e => {
-                        e.stopPropagation()
+                    <IconBtn onClick={() => {
                         setTablaVisible(isTabla ? null : d.id)
                         if (isExp) setExpandido(null)
                       }}

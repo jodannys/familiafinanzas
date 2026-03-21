@@ -18,27 +18,39 @@ const CATS_EGRESO = [
 
 const SPECIAL_CATS = ['ahorro', 'inversion', 'deuda']
 
+const METODOS_PAGO = [
+  { id: 'efectivo',        short: 'EF', label: 'Efectivo',    color: 'var(--accent-green)'  },
+  { id: 'transferencia',   short: 'TR', label: 'Transf.',     color: 'var(--accent-blue)'   },
+  { id: 'debito',          short: 'DB', label: 'Débito',      color: 'var(--accent-violet)' },
+  { id: 'tarjeta_credito', short: 'TC', label: 'T. Crédito',  color: 'var(--accent-rose)'   },
+]
+const CUOTAS_OPCIONES = [1, 3, 6, 9, 12, 18, 24, 36]
+
 function FABModal({ onClose }) {
-  const [tipo,         setTipo]         = useState('egreso')
-  const [monto,        setMonto]        = useState('')
-  const [cat,          setCat]          = useState('basicos')
-  const [desc,         setDesc]         = useState('')
-  const [saving,       setSaving]       = useState(false)
-  const [items,           setItems]           = useState([])
-  const [selectedItem,    setSelectedItem]    = useState(null)
-  const [loadingItems,    setLoadingItems]    = useState(false)
-  const [usaTarjeta,      setUsaTarjeta]      = useState(false)
-  const [tarjetas,        setTarjetas]        = useState([])
-  const [selectedTarjeta, setSelectedTarjeta] = useState(null)
-  const [loadingTarjetas, setLoadingTarjetas] = useState(false)
+  const [tipo,          setTipo]          = useState('egreso')
+  const [monto,         setMonto]         = useState('')
+  const [cat,           setCat]           = useState('basicos')
+  const [desc,          setDesc]          = useState('')
+  const [saving,        setSaving]        = useState(false)
+  const [items,         setItems]         = useState([])
+  const [selectedItem,  setSelectedItem]  = useState(null)
+  const [loadingItems,  setLoadingItems]  = useState(false)
+  const [metodoPago,    setMetodoPago]    = useState('efectivo')
+  const [perfilesTarj,  setPerfilesTarj]  = useState([])
+  const [selectedPerfil,setSelectedPerfil]= useState(null)
+  const [numCuotas,     setNumCuotas]     = useState(1)
+  const [loadingPerf,   setLoadingPerf]   = useState(false)
 
   useEffect(() => {
-    if (!usaTarjeta || tipo !== 'egreso') { setTarjetas([]); setSelectedTarjeta(null); return }
-    setLoadingTarjetas(true)
-    supabase.from('deudas').select('id,nombre,emoji,pendiente,cuota,dia_pago,color')
-      .eq('tipo_deuda', 'tarjeta').eq('estado', 'activa').neq('tipo', 'medeben')
-      .then(({ data }) => { setTarjetas(data || []); setLoadingTarjetas(false) })
-  }, [usaTarjeta, tipo])
+    if (metodoPago !== 'tarjeta_credito' || tipo !== 'egreso') {
+      setPerfilesTarj([]); setSelectedPerfil(null); return
+    }
+    setLoadingPerf(true)
+    supabase.from('perfiles_tarjetas')
+      .select('id,nombre_tarjeta,banco,color,dia_pago,limite_credito')
+      .eq('estado', 'activa')
+      .then(({ data }) => { setPerfilesTarj(data || []); setLoadingPerf(false) })
+  }, [metodoPago, tipo])
 
   useEffect(() => {
     if (!SPECIAL_CATS.includes(cat) || tipo !== 'egreso') {
@@ -55,33 +67,37 @@ function FABModal({ onClose }) {
   async function guardar() {
     const valor = parseFloat(monto)
     if (!valor || valor <= 0) return
+    const esTarjeta = tipo === 'egreso' && metodoPago === 'tarjeta_credito'
+    if (esTarjeta && !selectedPerfil) { alert('Selecciona una tarjeta de crédito'); return }
     setSaving(true)
     const now = new Date()
     const hoy = now.toISOString().slice(0, 10)
     const catLabel = CATS_EGRESO.find(c => c.id === cat)?.label || cat
     const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : catLabel)
+
     const { error } = await supabase.from('movimientos').insert([{
-      tipo,
-      monto: valor,
-      descripcion: descFinal,
+      tipo, monto: valor, descripcion: descFinal,
       categoria: tipo === 'ingreso' ? 'ingreso' : cat,
       fecha: hoy,
+      metodo_pago: tipo === 'egreso' ? metodoPago : 'transferencia',
+      num_cuotas: esTarjeta ? numCuotas : null,
+      tarjeta_nombre: esTarjeta ? selectedPerfil.nombre_tarjeta : null,
     }])
     if (error) { alert('Error: ' + error.message); setSaving(false); return }
 
-    // Actualizar el item vinculado
-    if (tipo === 'egreso' && selectedItem) {
+    // Actualizar item vinculado (ahorro / inversión / deuda)
+    if (tipo === 'egreso' && selectedItem && !esTarjeta) {
       if (cat === 'ahorro') {
         await supabase.from('metas').update({ actual: (selectedItem.actual || 0) + valor }).eq('id', selectedItem.id)
       } else if (cat === 'inversion') {
         await supabase.from('inversiones').update({ capital: (selectedItem.capital || 0) + valor }).eq('id', selectedItem.id)
       } else if (cat === 'deuda') {
-        const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
+        await supabase.from('deuda_movimientos').insert([{
           deuda_id: selectedItem.id, tipo: 'pago',
           descripcion: descFinal || `Pago ${selectedItem.nombre}`,
           monto: valor, fecha: hoy,
           mes: now.getMonth() + 1, año: now.getFullYear(),
-        }]).select()
+        }])
         const nuevoPendiente = Math.max(0, parseFloat(selectedItem.pendiente || 0) - valor)
         await supabase.from('deudas').update({
           pendiente: nuevoPendiente,
@@ -91,21 +107,19 @@ function FABModal({ onClose }) {
       }
     }
 
-    // Cargo a tarjeta de crédito si aplica
-    if (tipo === 'egreso' && usaTarjeta && selectedTarjeta) {
-      await supabase.from('deuda_movimientos').insert([{
-        deuda_id: selectedTarjeta.id,
-        tipo: 'cargo',
-        descripcion: descFinal,
-        monto: valor,
-        fecha: hoy,
-        mes: now.getMonth() + 1,
-        año: now.getFullYear(),
+    // Crear deuda en cuotas si es tarjeta de crédito
+    if (esTarjeta && selectedPerfil) {
+      const cuotaMensual = parseFloat((valor / numCuotas).toFixed(2))
+      await supabase.from('deudas').insert([{
+        tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳',
+        nombre: descFinal, categoria: cat,
+        capital: valor, monto: valor, pendiente: valor,
+        cuota: cuotaMensual, plazo_meses: numCuotas, pagadas: 0,
+        estado: 'activa', perfil_tarjeta_id: selectedPerfil.id,
+        dia_pago: selectedPerfil.dia_pago || null,
+        color: selectedPerfil.color || '#A44A3F',
+        tasa: 0, tasa_interes: 0,
       }])
-      await supabase.from('deudas').update({
-        pendiente: (selectedTarjeta.pendiente || 0) + valor,
-        estado: 'activa',
-      }).eq('id', selectedTarjeta.id)
     }
 
     setSaving(false)
@@ -209,70 +223,99 @@ function FABModal({ onClose }) {
             </div>
           )}
 
-          {/* Toggle tarjeta de crédito */}
-          {tipo === 'egreso' && cat !== 'deuda' && (
+          {/* Método de pago (solo egreso) */}
+          {tipo === 'egreso' && (
             <div>
-              <button
-                onClick={() => { setUsaTarjeta(p => !p); setSelectedTarjeta(null) }}
-                className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl transition-all"
-                style={{
-                  background: usaTarjeta
-                    ? 'color-mix(in srgb, var(--accent-blue) 12%, transparent)'
-                    : 'var(--bg-secondary)',
-                  border: `1.5px solid ${usaTarjeta ? 'var(--accent-blue)' : 'transparent'}`,
-                  cursor: 'pointer',
-                }}>
-                <CreditCard size={14} style={{ color: usaTarjeta ? 'var(--accent-blue)' : 'var(--text-muted)', flexShrink: 0 }} />
-                <span className="flex-1 text-xs font-semibold text-left"
-                  style={{ color: usaTarjeta ? 'var(--accent-blue)' : 'var(--text-muted)' }}>
-                  Pagado con tarjeta de crédito
-                </span>
-                <div className="w-8 h-4 rounded-full flex-shrink-0 transition-all"
-                  style={{ background: usaTarjeta ? 'var(--accent-blue)' : 'var(--border-glass)', position: 'relative' }}>
-                  <div className="w-3 h-3 rounded-full absolute top-0.5 transition-all"
-                    style={{ background: 'white', left: usaTarjeta ? 20 : 2 }} />
-                </div>
-              </button>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                style={{ color: 'var(--text-muted)' }}>Método de pago</p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {METODOS_PAGO.map(m => {
+                  const sel = metodoPago === m.id
+                  return (
+                    <button key={m.id}
+                      onClick={() => { setMetodoPago(m.id); setSelectedPerfil(null); setNumCuotas(1) }}
+                      className="py-2 rounded-xl text-[10px] font-semibold transition-all"
+                      style={{
+                        background: sel ? `color-mix(in srgb, ${m.color} 15%, transparent)` : 'var(--bg-secondary)',
+                        color: sel ? m.color : 'var(--text-muted)',
+                        border: `1.5px solid ${sel ? m.color : 'transparent'}`,
+                        cursor: 'pointer',
+                      }}>
+                      {m.short}
+                    </button>
+                  )
+                })}
+              </div>
 
-              {/* Picker de tarjeta */}
-              {usaTarjeta && (
-                <div className="mt-2">
-                  {loadingTarjetas ? (
+              {/* Picker tarjeta crédito */}
+              {metodoPago === 'tarjeta_credito' && (
+                <div className="mt-2 space-y-2">
+                  {loadingPerf ? (
                     <div className="flex justify-center py-2">
                       <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
                     </div>
-                  ) : tarjetas.length === 0 ? (
+                  ) : perfilesTarj.length === 0 ? (
                     <div className="px-3 py-2.5 rounded-xl"
                       style={{ background: 'color-mix(in srgb, var(--accent-gold) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-gold) 25%, transparent)' }}>
                       <p className="text-xs" style={{ color: 'var(--accent-gold)' }}>
-                        No tienes tarjetas activas. Créala en el módulo de Deudas.
+                        No tienes tarjetas en Mis Tarjetas. Agrégalas primero.
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      {tarjetas.map(t => {
-                        const isSel = selectedTarjeta?.id === t.id
+                      {perfilesTarj.map(t => {
+                        const isSel = selectedPerfil?.id === t.id
                         return (
                           <button key={t.id}
-                            onClick={() => setSelectedTarjeta(isSel ? null : t)}
-                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
+                            onClick={() => setSelectedPerfil(isSel ? null : t)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all"
                             style={{
-                              background: isSel ? 'color-mix(in srgb, var(--accent-blue) 10%, transparent)' : 'var(--bg-secondary)',
-                              border: `1px solid ${isSel ? 'var(--accent-blue)' : 'transparent'}`,
+                              background: isSel ? 'color-mix(in srgb, var(--accent-rose) 10%, transparent)' : 'var(--bg-secondary)',
+                              border: `1px solid ${isSel ? 'var(--accent-rose)' : 'transparent'}`,
                               cursor: 'pointer',
                             }}>
-                            <span className="text-sm">{t.emoji}</span>
-                            <span className="flex-1 text-xs font-semibold"
-                              style={{ color: isSel ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
-                              {t.nombre}
-                            </span>
-                            <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                              {formatCurrency(t.pendiente || 0)} pendiente
-                            </span>
-                            {isSel && <Check size={13} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />}
+                            <CreditCard size={13} style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-muted)', flexShrink: 0 }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold truncate"
+                                style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-primary)' }}>
+                                {t.nombre_tarjeta}
+                              </p>
+                              {t.banco && <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t.banco}</p>}
+                            </div>
+                            {t.dia_pago && <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Día {t.dia_pago}</p>}
+                            {isSel && <Check size={12} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />}
                           </button>
                         )
                       })}
+                    </div>
+                  )}
+
+                  {/* Cuotas */}
+                  {selectedPerfil && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                        style={{ color: 'var(--text-muted)' }}>Cuotas</p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {CUOTAS_OPCIONES.map(c => (
+                          <button key={c}
+                            onClick={() => setNumCuotas(c)}
+                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all"
+                            style={{
+                              background: numCuotas === c ? 'color-mix(in srgb, var(--accent-rose) 15%, transparent)' : 'var(--bg-secondary)',
+                              color: numCuotas === c ? 'var(--accent-rose)' : 'var(--text-muted)',
+                              border: `1px solid ${numCuotas === c ? 'var(--accent-rose)' : 'transparent'}`,
+                              cursor: 'pointer',
+                            }}>
+                            {c === 1 ? 'Contado' : `${c}x`}
+                          </button>
+                        ))}
+                      </div>
+                      {numCuotas > 1 && parseFloat(monto) > 0 && (
+                        <p className="text-[10px] mt-1" style={{ color: 'var(--accent-rose)' }}>
+                          {numCuotas} cuotas de {formatCurrency(parseFloat(monto) / numCuotas)}
+                          {selectedPerfil.dia_pago ? ` · vence día ${selectedPerfil.dia_pago}` : ''}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -363,7 +406,9 @@ function FABModal({ onClose }) {
             }}>
             {saving
               ? <Loader2 size={16} className="animate-spin" />
-              : <><Plus size={15} /> Registrar</>
+              : tipo === 'egreso' && metodoPago === 'tarjeta_credito'
+                ? <><CreditCard size={15} /> {numCuotas > 1 ? `${numCuotas} cuotas · TC` : 'Contado · TC'}</>
+                : <><Plus size={15} /> Registrar</>
             }
           </button>
 

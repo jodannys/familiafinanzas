@@ -418,6 +418,14 @@ export default function MetasPage() {
                       color="var(--accent-rose)">
                       <Trash2 size={12} />
                     </IconBtn>
+                    {/* EL PORCENTAJE EN LA ESQUINA */}
+                      <span className="text-[10px] font-bold px-2 py-1.5 rounded-lg ml-1"
+                        style={{ 
+                          background: `color-mix(in srgb, ${meta.color} 15%, transparent)`, 
+                          color: meta.color 
+                        }}>
+                        {meta.pct_mensual}%
+                      </span>
                   </div>
                 )}
               </Card>
