@@ -2,34 +2,34 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 export const THEMES = {
-  linen: {
-    name: 'Warm Linen',
-    themeColor: '#ECE8E5',
-    emoji: '🌾',
-    preview: ['#B3A89D', '#D99E5C', '#F8F3EE', '#2C241E'],
-    vars: {
-      '--bg-primary': '#ECE8E5',
-      '--bg-secondary': '#F1E9E0',
-      '--bg-card': '#F8F3EE',
-      '--bg-dark-card': '#2C241E',
-      '--bg-glass': 'rgba(255,255,255,0.45)',
-      '--border-glass': 'rgba(255,255,255,0.4)',
-      '--input-bg': 'rgba(255,255,255,0.3)',
-      '--accent-main': '#D99E5C',
-      '--accent-green': '#2D7A5F',
-      '--accent-terra': '#D99E5C',
-      '--accent-blue': '#4A6FA5',
-      '--accent-rose': '#C0605A',
-      '--accent-violet': '#7C6FAB',
-      '--accent-gold': '#C17A3A',
-      '--sidebar-bg': '#F8F3EE',
-      '--sidebar-border': 'rgba(255,255,255,0.4)',
-      '--progress-track': '#EAE2D8',
-      '--text-primary': '#1A1410',
-      '--text-secondary': '#6D5F54',
-      '--text-muted': '#918479',
-    }
-  },
+ linen: {
+  name: 'Warm Linen',
+  themeColor: '#CEC6BB', 
+  emoji: '🌾',
+  preview: ['#B3A89D', '#D99E5C', '#F8F3EE', '#2C241E'],
+  vars: {
+    '--bg-primary': "url('/c84a6c948206bfe7eacf8e2920d26239.jpg') center top / cover no-repeat fixed",
+    '--bg-secondary': '#F1E9E0',
+    '--bg-card': '#F8F3EE',
+    '--bg-dark-card': '#2C241E',
+    '--bg-glass': 'rgba(255,255,255,0.45)',
+    '--border-glass': 'rgba(255,255,255,0.4)',
+    '--input-bg': 'rgba(255,255,255,0.3)',
+    '--accent-main': '#D99E5C',
+    '--accent-green': '#2D7A5F',
+    '--accent-terra': '#D99E5C',
+    '--accent-blue': '#4A6FA5',
+    '--accent-rose': '#C0605A',
+    '--accent-violet': '#7C6FAB',
+    '--accent-gold': '#C17A3A',
+    '--sidebar-bg': '#F8F3EE',
+    '--sidebar-border': 'rgba(255,255,255,0.4)',
+    '--progress-track': '#EAE2D8',
+    '--text-primary': '#1A1410',
+    '--text-secondary': '#6D5F54',
+    '--text-muted': '#918479',
+  }
+},
   
   ocean: {
     name: 'Ocean Slate',

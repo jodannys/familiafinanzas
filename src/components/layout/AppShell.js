@@ -8,37 +8,37 @@ import { supabase, signOut } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 
 const CATS_EGRESO = [
-  { id: 'basicos',   label: 'Necesidades',   color: 'var(--accent-blue)'   },
-  { id: 'deseo',     label: 'Estilo de vida',color: 'var(--accent-violet)' },
-  { id: 'ahorro',    label: 'Ahorro',        color: 'var(--accent-green)'  },
-  { id: 'inversion', label: 'Inversión',     color: 'var(--accent-gold)'   },
-  { id: 'deuda',     label: 'Deuda',         color: 'var(--accent-rose)'   },
+  { id: 'basicos', label: 'Necesidades', color: 'var(--accent-blue)' },
+  { id: 'deseo', label: 'Estilo de vida', color: 'var(--accent-violet)' },
+  { id: 'ahorro', label: 'Ahorro', color: 'var(--accent-green)' },
+  { id: 'inversion', label: 'Inversión', color: 'var(--accent-gold)' },
+  { id: 'deuda', label: 'Deuda', color: 'var(--accent-rose)' },
 ]
 
 const SPECIAL_CATS = ['ahorro', 'inversion', 'deuda']
 
 const METODOS_PAGO = [
-  { id: 'efectivo',        short: 'EF', label: 'Efectivo',    color: 'var(--accent-green)'  },
-  { id: 'transferencia',   short: 'TR', label: 'Transf.',     color: 'var(--accent-blue)'   },
-  { id: 'debito',          short: 'DB', label: 'Débito',      color: 'var(--accent-violet)' },
-  { id: 'tarjeta_credito', short: 'TC', label: 'T. Crédito',  color: 'var(--accent-rose)'   },
+  { id: 'efectivo', short: 'EF', label: 'Efectivo', color: 'var(--accent-green)' },
+  { id: 'transferencia', short: 'TR', label: 'Transf.', color: 'var(--accent-blue)' },
+  { id: 'debito', short: 'DB', label: 'Débito', color: 'var(--accent-violet)' },
+  { id: 'tarjeta_credito', short: 'TC', label: 'T. Crédito', color: 'var(--accent-rose)' },
 ]
 const CUOTAS_OPCIONES = [1, 3, 6, 9, 12, 18, 24, 36]
 
 function FABModal({ onClose }) {
-  const [tipo,          setTipo]          = useState('egreso')
-  const [monto,         setMonto]         = useState('')
-  const [cat,           setCat]           = useState('basicos')
-  const [desc,          setDesc]          = useState('')
-  const [saving,        setSaving]        = useState(false)
-  const [items,         setItems]         = useState([])
-  const [selectedItem,  setSelectedItem]  = useState(null)
-  const [loadingItems,  setLoadingItems]  = useState(false)
-  const [metodoPago,    setMetodoPago]    = useState('efectivo')
-  const [perfilesTarj,  setPerfilesTarj]  = useState([])
-  const [selectedPerfil,setSelectedPerfil]= useState(null)
-  const [numCuotas,     setNumCuotas]     = useState(1)
-  const [loadingPerf,   setLoadingPerf]   = useState(false)
+  const [tipo, setTipo] = useState('egreso')
+  const [monto, setMonto] = useState('')
+  const [cat, setCat] = useState('basicos')
+  const [desc, setDesc] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [items, setItems] = useState([])
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [loadingItems, setLoadingItems] = useState(false)
+  const [metodoPago, setMetodoPago] = useState('efectivo')
+  const [perfilesTarj, setPerfilesTarj] = useState([])
+  const [selectedPerfil, setSelectedPerfil] = useState(null)
+  const [numCuotas, setNumCuotas] = useState(1)
+  const [loadingPerf, setLoadingPerf] = useState(false)
 
   useEffect(() => {
     if (metodoPago !== 'tarjeta_credito' || tipo !== 'egreso') {
@@ -57,9 +57,9 @@ function FABModal({ onClose }) {
     }
     setLoadingItems(true); setSelectedItem(null)
     const fetch =
-      cat === 'ahorro'    ? supabase.from('metas').select('id,nombre,emoji,meta,actual').eq('estado', 'activa')
-      : cat === 'inversion' ? supabase.from('inversiones').select('id,nombre,emoji,capital,aporte')
-      :                       supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas').eq('estado', 'activa').neq('tipo', 'medeben')
+      cat === 'ahorro' ? supabase.from('metas').select('id,nombre,emoji,meta,actual').eq('estado', 'activa')
+        : cat === 'inversion' ? supabase.from('inversiones').select('id,nombre,emoji,capital,aporte')
+          : supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas').eq('estado', 'activa').neq('tipo', 'medeben')
     fetch.then(({ data }) => { setItems(data || []); setLoadingItems(false) })
   }, [cat, tipo])
 
@@ -157,8 +157,8 @@ function FABModal({ onClose }) {
 
           <div className="flex gap-2">
             {[
-              { id: 'egreso',  label: 'Gasto',   icon: ArrowDownRight, color: 'var(--accent-rose)'  },
-              { id: 'ingreso', label: 'Ingreso',  icon: ArrowUpRight,   color: 'var(--accent-green)' },
+              { id: 'egreso', label: 'Gasto', icon: ArrowDownRight, color: 'var(--accent-rose)' },
+              { id: 'ingreso', label: 'Ingreso', icon: ArrowUpRight, color: 'var(--accent-green)' },
             ].map(t => (
               <button key={t.id}
                 onClick={() => setTipo(t.id)}
@@ -167,7 +167,7 @@ function FABModal({ onClose }) {
                   background: tipo === t.id
                     ? `color-mix(in srgb, ${t.color} 12%, transparent)`
                     : 'var(--bg-secondary)',
-                  color:  tipo === t.id ? t.color : 'var(--text-muted)',
+                  color: tipo === t.id ? t.color : 'var(--text-muted)',
                   border: `1.5px solid ${tipo === t.id ? t.color : 'transparent'}`,
                   cursor: 'pointer',
                 }}>
@@ -205,7 +205,7 @@ function FABModal({ onClose }) {
                       background: cat === c.id
                         ? `color-mix(in srgb, ${c.color} 15%, transparent)`
                         : 'var(--bg-secondary)',
-                      color:  cat === c.id ? c.color : 'var(--text-muted)',
+                      color: cat === c.id ? c.color : 'var(--text-muted)',
                       border: `1px solid ${cat === c.id ? c.color : 'transparent'}`,
                       cursor: 'pointer',
                     }}>
@@ -353,9 +353,9 @@ function FABModal({ onClose }) {
                           {item.nombre}
                         </span>
                         <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          {cat === 'deuda'    ? (item.cuota > 0 ? `${formatCurrency(item.cuota)}/mes` : formatCurrency(item.pendiente))
-                           : cat === 'ahorro'  ? `${formatCurrency(item.actual || 0)} / ${formatCurrency(item.meta || 0)}`
-                           : item.aporte > 0  ? `${formatCurrency(item.aporte)}/mes` : ''}
+                          {cat === 'deuda' ? (item.cuota > 0 ? `${formatCurrency(item.cuota)}/mes` : formatCurrency(item.pendiente))
+                            : cat === 'ahorro' ? `${formatCurrency(item.actual || 0)} / ${formatCurrency(item.meta || 0)}`
+                              : item.aporte > 0 ? `${formatCurrency(item.aporte)}/mes` : ''}
                         </span>
                         {isSelected && <Check size={13} style={{ color, flexShrink: 0 }} />}
                       </button>
@@ -391,7 +391,7 @@ function FABModal({ onClose }) {
             className="w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all"
             style={{
               background: (!monto || parseFloat(monto) <= 0) ? 'var(--bg-secondary)' : 'var(--text-primary)',
-              color:      (!monto || parseFloat(monto) <= 0) ? 'var(--text-muted)' : 'var(--bg-card)',
+              color: (!monto || parseFloat(monto) <= 0) ? 'var(--text-muted)' : 'var(--bg-card)',
               border: 'none', cursor: 'pointer',
             }}>
             {saving
@@ -409,12 +409,12 @@ function FABModal({ onClose }) {
 }
 
 export default function AppShell({ children }) {
-  const [fabOpen,    setFabOpen]    = useState(false)
-  const [menuOpen,   setMenuOpen]   = useState(false)
+  const [fabOpen, setFabOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [navigating, setNavigating] = useState(false)
-  const [authReady,  setAuthReady]  = useState(false)
+  const [authReady, setAuthReady] = useState(false)
   const pathname = usePathname()
-  const router   = useRouter()
+  const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -461,7 +461,7 @@ export default function AppShell({ children }) {
           <div
             className="flex items-center justify-between px-5"
             style={{
-              paddingTop:    'calc(env(safe-area-inset-top) + 0.75rem)',
+              paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)',
               paddingBottom: '0.75rem',
             }}>
             <div className="flex items-center gap-2">
@@ -512,12 +512,13 @@ export default function AppShell({ children }) {
         {/* FAB móvil */}
         <button
           onClick={() => setFabOpen(true)}
-          className="lg:hidden flex fixed right-5 z-[80] w-14 h-14 rounded-full items-center justify-center shadow-2xl active:scale-95 transition-transform"
+          className="lg:hidden flex fixed right-5 z-[80] items-center justify-center active:scale-95 transition-transform"
           style={{
             bottom: 'calc(env(safe-area-inset-bottom) + 76px)',
-            background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer',
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--accent-green)',
           }}>
-          <Plus size={24} strokeWidth={2.5} />
+          <Plus size={30} strokeWidth={2.5} />
         </button>
 
         {/* FAB desktop */}
