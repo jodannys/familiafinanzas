@@ -476,14 +476,9 @@ export default function AppShell({ children }) {
               <button
                 onClick={handleLogout}
                 title="Cerrar sesión"
-                className="w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90"
-                style={{
-                  background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
-                  border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
-                  cursor: 'pointer',
-                  color: 'var(--accent-rose)',
-                }}>
-                <LogOut size={16} />
+                className="flex items-center justify-center transition-all active:scale-90"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <LogOut size={18} />
               </button>
             </div>
           </div>
@@ -512,13 +507,12 @@ export default function AppShell({ children }) {
         {/* FAB móvil */}
         <button
           onClick={() => setFabOpen(true)}
-          className="lg:hidden flex fixed right-5 z-[80] items-center justify-center active:scale-95 transition-transform"
+          className="lg:hidden flex fixed right-5 z-[80] w-14 h-14 rounded-full items-center justify-center shadow-2xl active:scale-95 transition-transform"
           style={{
             bottom: 'calc(env(safe-area-inset-bottom) + 76px)',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--accent-green)',
+            background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer',
           }}>
-          <Plus size={30} strokeWidth={2.5} />
+          <Plus size={24} strokeWidth={2.5} />
         </button>
 
         {/* FAB desktop */}
