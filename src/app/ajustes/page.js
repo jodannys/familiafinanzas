@@ -49,6 +49,8 @@ export default function AjustesPage() {
   // Edición inline
   const [editandoCat, setEditandoCat] = useState(null)
   const [editandoSub, setEditandoSub] = useState(null)
+  const [bloqueCollapsed, setBloqueCollapsed] = useState({})
+  const [hoveredCat, setHoveredCat] = useState(null)
 
   useEffect(() => {
     cargar()
@@ -235,16 +237,18 @@ export default function AjustesPage() {
         <div className="space-y-5">
 
           {/* ── Perfil ── */}
-          <div className="glass-card p-4 animate-enter">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)' }}>
-                <User size={15} style={{ color: 'var(--accent-green)' }} />
-              </div>
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Tu perfil</p>
+          <div className="animate-enter">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setEditNombre(v => !v)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', border: 'none', cursor: 'pointer' }}>
+                <User size={16} style={{ color: 'var(--accent-green)' }} />
+              </button>
+              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Perfil</p>
             </div>
-            {editNombre ? (
-              <div className="flex gap-2">
+            {editNombre && (
+              <div className="mt-3 flex gap-2">
                 <input
                   type="text"
                   value={nombrePerfil}
@@ -265,20 +269,6 @@ export default function AjustesPage() {
                   <X size={13} />
                 </button>
               </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Nombre</p>
-                  <p className="text-sm font-semibold" style={{ color: nombrePerfil ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                    {nombrePerfil || 'Sin nombre'}
-                  </p>
-                </div>
-                <button onClick={() => setEditNombre(true)}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
-                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
-                  <Edit3 size={11} /> Editar
-                </button>
-              </div>
             )}
           </div>
 
@@ -290,20 +280,28 @@ export default function AjustesPage() {
               <Card key={bloque.id} className="animate-enter">
 
                 {/* Cabecera del bloque */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: `color-mix(in srgb, ${bloque.color} 12%, transparent)` }}>
-                    <Icon size={16} style={{ color: bloque.color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {bloque.id === 'futuro'
-                        ? `${metas.length} meta${metas.length !== 1 ? 's' : ''} · ${inversiones.length} inversión${inversiones.length !== 1 ? 'es' : ''}`
-                        : `${catBloque.length} categoría${catBloque.length !== 1 ? 's' : ''}`}
-                    </p>
-                  </div>
-                  {bloque.id === 'futuro' ? (
+                <div className={`flex items-center gap-3 ${bloqueCollapsed[bloque.id] ? '' : 'mb-4'}`}>
+                  <button
+                    onClick={() => setBloqueCollapsed(p => ({ ...p, [bloque.id]: !p[bloque.id] }))}
+                    className="flex items-center gap-3 flex-1 min-w-0"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: `color-mix(in srgb, ${bloque.color} 12%, transparent)` }}>
+                      <Icon size={16} style={{ color: bloque.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {bloque.id === 'futuro'
+                          ? `${metas.length} meta${metas.length !== 1 ? 's' : ''} · ${inversiones.length} inversión${inversiones.length !== 1 ? 'es' : ''}`
+                          : `${catBloque.length} categoría${catBloque.length !== 1 ? 's' : ''}`}
+                      </p>
+                    </div>
+                    {bloqueCollapsed[bloque.id]
+                      ? <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      : <ChevronUp size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
+                  </button>
+                  {!bloqueCollapsed[bloque.id] && (bloque.id === 'futuro' ? (
                     <button
                       onClick={() => { setAddingFuturoTipo('selecting'); setFormFuturo('') }}
                       className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg"
@@ -326,11 +324,11 @@ export default function AjustesPage() {
                       }}>
                       <Plus size={12} /> Categoría
                     </button>
-                  )}
+                  ))}
                 </div>
 
                 {/* Formulario nueva categoría */}
-                {addingCatBloque === bloque.id && (
+                {!bloqueCollapsed[bloque.id] && addingCatBloque === bloque.id && (
                   <div className="mb-4 p-3 rounded-xl space-y-3"
                     style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
                     <input
@@ -373,7 +371,7 @@ export default function AjustesPage() {
                 )}
 
                 {/* Formulario Futuro: selector tipo → nombre */}
-                {bloque.id === 'futuro' && addingFuturoTipo && (
+                {bloque.id === 'futuro' && !bloqueCollapsed[bloque.id] && addingFuturoTipo && (
                   <div className="mb-4 p-3 rounded-xl space-y-3"
                     style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
                     {addingFuturoTipo === 'selecting' ? (
@@ -434,10 +432,11 @@ export default function AjustesPage() {
                 )}
 
                 {/* Lista de categorías */}
+                {!bloqueCollapsed[bloque.id] && (
                 <div className="space-y-2">
-                  {catBloque.length === 0 && addingCatBloque !== bloque.id && (
+                  {catBloque.length === 0 && addingCatBloque !== bloque.id && bloque.id !== 'futuro' && (
                     <p className="text-xs italic text-center py-4" style={{ color: 'var(--text-muted)' }}>
-                      
+
                     </p>
                   )}
 
@@ -451,7 +450,10 @@ export default function AjustesPage() {
 
                         {/* Fila de categoría */}
                         <div className="flex items-center gap-2 px-3 py-2.5"
-                          style={{ background: `color-mix(in srgb, ${cat.color} 6%, var(--bg-secondary))` }}>
+                          style={{ background: `color-mix(in srgb, ${cat.color} 6%, var(--bg-secondary))` }}
+                          onMouseEnter={() => setHoveredCat(cat.id)}
+                          onMouseLeave={() => setHoveredCat(null)}
+                          onTouchStart={() => setHoveredCat(prev => prev === cat.id ? null : cat.id)}>
 
                           <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
 
@@ -507,15 +509,17 @@ export default function AjustesPage() {
                               </>
                             ) : (
                               <>
-                                <button
-                                  onClick={() => setEditandoCat({ id: cat.id, nombre: cat.nombre, color: cat.color })}
-                                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                                  <Edit3 size={12} />
-                                </button>
-                                <button onClick={() => handleDeleteCat(cat.id)}
-                                  style={{ color: 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                                  <Trash2 size={12} />
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 2, opacity: hoveredCat === cat.id ? 1 : 0, transition: 'opacity 0.15s' }}>
+                                  <button
+                                    onClick={() => setEditandoCat({ id: cat.id, nombre: cat.nombre, color: cat.color })}
+                                    style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                                    <Edit3 size={12} />
+                                  </button>
+                                  <button onClick={() => handleDeleteCat(cat.id)}
+                                    style={{ color: 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
                                 <button onClick={() => setExpandido(isExpanded ? null : cat.id)}
                                   style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
                                   {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -666,10 +670,11 @@ export default function AjustesPage() {
                     )
                   })}
                 </div>
+                )}
 
                 {/* Metas e Inversiones — solo bloque Futuro */}
-                {bloque.id === 'futuro' && (
-                  <div className="mt-3 space-y-3">
+                {bloque.id === 'futuro' && !bloqueCollapsed[bloque.id] && (
+                  <div className={`space-y-3 ${catBloque.length > 0 ? 'mt-3' : ''}`}>
 
                     {/* Metas de Ahorro */}
                     <div className="rounded-xl overflow-hidden"

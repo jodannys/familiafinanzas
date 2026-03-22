@@ -31,32 +31,32 @@ export const THEMES = {
     }
   },
   obsidian: {
-    name: 'Dark Obsidian',
-    themeColor: '#0F1115',
-    emoji: '🌑',
-    preview: ['#0F1115', '#4ADE80', '#818CF8', '#1C2127'],
+    name: 'Eucalyptus Garden',
+    themeColor: '#2D3536', // Usando el tono Soot como color base
+    emoji: '🌿',
+    preview: ['#98AA9D', '#B3C9D6', '#F2EFE2', '#2D3536'],
     vars: {
-      '--bg-primary': '#0F1115',
-      '--bg-secondary': '#16191E',
-      '--bg-card': '#1C2127',
-      '--bg-dark-card': '#0F1115',
-      '--bg-glass': 'rgba(28,33,39,0.8)',
-      '--border-glass': 'rgba(255,255,255,0.05)',
-      '--accent-green': '#4ADE80',
-      '--accent-terra': '#D1A35C',
-      '--accent-blue': '#818CF8',
-      '--accent-rose': '#E879F9',
+      '--bg-primary': '#2D3536',    // Soot (Fondo principal)
+      '--bg-secondary': '#242a2b',  // Soot (Versión un poco más oscura)
+      '--bg-card': '#363f40',       // Soot (Versión un poco más clara)
+      '--bg-dark-card': '#1c2223',
+      '--bg-glass': 'rgba(45, 53, 54, 0.8)',
+      '--border-glass': 'rgba(242, 239, 226, 0.1)',
+      '--accent-green': '#98AA9D',  // Eucalyptus
+      '--accent-terra': '#697C70',  // Moss
+      '--accent-blue': '#B3C9D6',   // Mist
+      '--accent-rose': '#E879F9',   // (Mantengo el original o puedes usar un tono similar)
       '--accent-violet': '#A78BFA',
-      '--accent-gold': '#F59E0B',
-      '--accent-main': '#4ADE80',
+      '--accent-gold': '#F2EFE2',   // Plaster
+      '--accent-main': '#98AA9D',   // Eucalyptus como color principal
       '--accent-danger': '#F87171',
-      '--text-primary': '#E2E8F0',
-      '--text-secondary': '#94A3B8',
-      '--text-muted': '#475569',
-      '--sidebar-bg': '#16191E',
-      '--sidebar-border': 'rgba(255,255,255,0.04)',
-      '--input-bg': '#0F1115',
-      '--progress-track': '#2D3748',
+      '--text-primary': '#F2EFE2',  // Plaster (Texto principal)
+      '--text-secondary': '#B3C9D6', // Mist (Texto secundario)
+      '--text-muted': '#697C70',    // Moss (Texto atenuado)
+      '--sidebar-bg': '#242a2b',
+      '--sidebar-border': 'rgba(242, 239, 226, 0.05)',
+      '--input-bg': '#1c2223',
+      '--progress-track': '#697C70', // Moss
     }
   },
   ocean: {
