@@ -6,7 +6,6 @@ import BottomNav from '@/components/layout/BottomNav'
 import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, SlidersHorizontal, LogOut, Check, CreditCard } from 'lucide-react'
 import { supabase, signOut } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { THEMES, useTheme } from '@/lib/themes'
 
 const CATS_EGRESO = [
   { id: 'basicos',   label: 'Necesidades',   color: 'var(--accent-blue)'   },
@@ -85,7 +84,6 @@ function FABModal({ onClose }) {
     }])
     if (error) { alert('Error: ' + error.message); setSaving(false); return }
 
-    // Actualizar item vinculado (ahorro / inversión / deuda)
     if (tipo === 'egreso' && selectedItem && !esTarjeta) {
       if (cat === 'ahorro') {
         await supabase.from('metas').update({ actual: (selectedItem.actual || 0) + valor }).eq('id', selectedItem.id)
@@ -107,7 +105,6 @@ function FABModal({ onClose }) {
       }
     }
 
-    // Crear deuda en cuotas si es tarjeta de crédito
     if (esTarjeta && selectedPerfil) {
       const cuotaMensual = parseFloat((valor / numCuotas).toFixed(2))
       await supabase.from('deudas').insert([{
@@ -130,14 +127,12 @@ function FABModal({ onClose }) {
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 z-[110]"
         style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)' }}
         onClick={onClose}
       />
 
-      {/* Sheet */}
       <div
         className="fixed bottom-0 left-0 right-0 z-[120] rounded-t-3xl flex flex-col"
         style={{
@@ -146,7 +141,6 @@ function FABModal({ onClose }) {
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
         }}>
 
-        {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-glass)' }} />
         </div>
@@ -161,7 +155,6 @@ function FABModal({ onClose }) {
 
         <div className="px-5 space-y-4 pt-2 overflow-y-auto flex-1">
 
-          {/* Tipo toggle */}
           <div className="flex gap-2">
             {[
               { id: 'egreso',  label: 'Gasto',   icon: ArrowDownRight, color: 'var(--accent-rose)'  },
@@ -184,7 +177,6 @@ function FABModal({ onClose }) {
             ))}
           </div>
 
-          {/* Monto */}
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
               style={{ color: 'var(--text-muted)' }}>Monto</p>
@@ -200,7 +192,6 @@ function FABModal({ onClose }) {
             />
           </div>
 
-          {/* Categoría (solo egreso) */}
           {tipo === 'egreso' && (
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
@@ -225,7 +216,6 @@ function FABModal({ onClose }) {
             </div>
           )}
 
-          {/* Método de pago (solo egreso) */}
           {tipo === 'egreso' && (
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
@@ -249,7 +239,6 @@ function FABModal({ onClose }) {
                 })}
               </div>
 
-              {/* Picker tarjeta crédito */}
               {metodoPago === 'tarjeta_credito' && (
                 <div className="mt-2 space-y-2">
                   {loadingPerf ? (
@@ -292,7 +281,6 @@ function FABModal({ onClose }) {
                     </div>
                   )}
 
-                  {/* Cuotas */}
                   {selectedPerfil && (
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
@@ -323,7 +311,6 @@ function FABModal({ onClose }) {
             </div>
           )}
 
-          {/* Picker de item vinculado */}
           {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && (
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
@@ -379,7 +366,6 @@ function FABModal({ onClose }) {
             </div>
           )}
 
-          {/* Descripción */}
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
               style={{ color: 'var(--text-muted)' }}>Descripción <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 9 }}>(opcional)</span></p>
@@ -393,14 +379,12 @@ function FABModal({ onClose }) {
             />
           </div>
 
-          {/* Aviso cuando hay items pero ninguno seleccionado */}
           {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && items.length > 0 && !selectedItem && (
             <p className="text-[10px] text-center" style={{ color: 'var(--text-muted)', marginTop: -8 }}>
               Sin selección — se guardará sin vincular a ningún item
             </p>
           )}
 
-          {/* Guardar */}
           <button
             onClick={guardar}
             disabled={!monto || parseFloat(monto) <= 0 || saving}
@@ -429,9 +413,8 @@ export default function AppShell({ children }) {
   const [menuOpen,   setMenuOpen]   = useState(false)
   const [navigating, setNavigating] = useState(false)
   const [authReady,  setAuthReady]  = useState(false)
-  const pathname   = usePathname()
-  const router     = useRouter()
-  const { theme, setTheme } = useTheme()
+  const pathname = usePathname()
+  const router   = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -465,12 +448,10 @@ export default function AppShell({ children }) {
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Sidebar — solo desktop */}
       <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]">
         <Sidebar />
       </div>
 
-      {/* Main */}
       <main
         className="flex-1 min-h-screen lg:ml-20 flex flex-col overflow-x-hidden"
         style={{ background: 'var(--bg-primary)' }}>
@@ -485,7 +466,7 @@ export default function AppShell({ children }) {
             }}>
             <div className="flex items-center gap-2">
               <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
-              <span className="font-script text-base" style={{ color: 'var(--text-primary)', fontSize: 25, }}>
+              <span className="font-script text-base" style={{ color: 'var(--text-primary)', fontSize: 25 }}>
                 Familia Quintero
               </span>
             </div>
@@ -493,81 +474,22 @@ export default function AppShell({ children }) {
             <div className="flex items-center gap-2">
               {navigating && <Loader2 size={15} className="animate-spin" style={{ color: 'var(--accent-main)' }} />}
               <button
-                onClick={() => setMenuOpen(o => !o)}
+                onClick={handleLogout}
+                title="Cerrar sesión"
                 className="w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90"
                 style={{
-                  background: menuOpen ? 'var(--bg-card)' : 'transparent',
-                  border: '1px solid var(--border-glass)',
+                  background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)',
                   cursor: 'pointer',
-                  color: 'var(--text-muted)',
+                  color: 'var(--accent-rose)',
                 }}>
-                <SlidersHorizontal size={16} />
+                <LogOut size={16} />
               </button>
             </div>
           </div>
-
-          {/* Dropdown */}
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-[59]" onClick={() => setMenuOpen(false)} />
-              <div
-                className="absolute right-4 z-[60] rounded-2xl overflow-hidden shadow-2xl"
-                style={{
-                  top: 'calc(100% + 4px)',
-                  width: 200,
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-glass)',
-                }}>
-                <p className="px-4 pt-3 pb-2 text-[9px] font-semibold uppercase tracking-widest"
-                  style={{ color: 'var(--text-muted)' }}>Tema</p>
-                <div className="px-2 pb-2 space-y-0.5">
-                  {Object.entries(THEMES).map(([key, t]) => {
-                    const active = theme === key
-                    return (
-                      <button key={key}
-                        onClick={() => { setTheme(key); setMenuOpen(false) }}
-                        className="flex items-center gap-3 w-full px-3 py-2 rounded-xl transition-all"
-                        style={{
-                          background: active ? 'var(--bg-secondary)' : 'transparent',
-                          border: 'none', cursor: 'pointer',
-                        }}>
-                        <div style={{
-                          width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-                          background: t.preview[0], border: '2px solid var(--border-glass)',
-                        }} />
-                        <span className="flex-1 text-left text-xs font-semibold"
-                          style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                          {t.name}
-                        </span>
-                        {active && (
-                          <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ background: 'var(--accent-green)' }}>
-                            <Check size={9} color="white" strokeWidth={4} />
-                          </div>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <div className="mx-2 mb-2 mt-1 pt-2" style={{ borderTop: '1px solid var(--border-glass)' }}>
-                  <button
-                    onClick={handleLogout}
-                    title="Cerrar sesión"
-                    className="flex items-center justify-center w-8 h-8 rounded-xl transition-all ml-1"
-                    style={{
-                      color: 'var(--accent-rose)', background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
-                      border: 'none', cursor: 'pointer',
-                    }}>
-                    <LogOut size={15} />
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Barra de progreso desktop */}
+        {/* Barra de progreso */}
         {navigating && (
           <div className="fixed top-0 left-0 right-0 z-[200] h-0.5" style={{ background: 'var(--accent-main)' }}>
             <div className="h-full" style={{
@@ -587,7 +509,7 @@ export default function AppShell({ children }) {
           }} />
         </div>
 
-        {/* FAB móvil — encima del BottomNav */}
+        {/* FAB móvil */}
         <button
           onClick={() => setFabOpen(true)}
           className="lg:hidden flex fixed right-5 z-[80] w-14 h-14 rounded-full items-center justify-center shadow-2xl active:scale-95 transition-transform"
@@ -606,16 +528,13 @@ export default function AppShell({ children }) {
           <Plus size={24} strokeWidth={2.5} />
         </button>
 
-        {/* Contenido */}
         <div className="relative z-10 p-4 md:p-10 lg:p-12 max-w-[1600px] mx-auto w-full flex-1 pb-24 lg:pb-12">
           {children}
         </div>
       </main>
 
-      {/* Bottom Nav — solo móvil */}
       <BottomNav onFABClick={() => setFabOpen(true)} />
 
-      {/* FAB Modal */}
       {fabOpen && <FABModal onClose={() => setFabOpen(false)} />}
     </div>
   )
