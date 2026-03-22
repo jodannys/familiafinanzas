@@ -8,7 +8,7 @@ export const THEMES = {
     emoji: '🌾',
     preview: ['#B3A89D', '#D99E5C', '#F8F3EE', '#2C241E'],
     vars: {
-      '--bg-primary': '#B3A89D',
+      '--bg-primary': '#EFE6D4',
       '--bg-secondary': '#F1E9E0',
       '--bg-card': '#F8F3EE',
       '--bg-dark-card': '#2C241E',
@@ -30,35 +30,7 @@ export const THEMES = {
       '--text-muted': '#918479',
     }
   },
-  obsidian: {
-    name: 'Eucalyptus Garden',
-    themeColor: '#2D3536', // Usando el tono Soot como color base
-    emoji: '🌿',
-    preview: ['#98AA9D', '#B3C9D6', '#F2EFE2', '#2D3536'],
-    vars: {
-      '--bg-primary': '#2D3536',    // Soot (Fondo principal)
-      '--bg-secondary': '#242a2b',  // Soot (Versión un poco más oscura)
-      '--bg-card': '#363f40',       // Soot (Versión un poco más clara)
-      '--bg-dark-card': '#1c2223',
-      '--bg-glass': 'rgba(45, 53, 54, 0.8)',
-      '--border-glass': 'rgba(242, 239, 226, 0.1)',
-      '--accent-green': '#98AA9D',  // Eucalyptus
-      '--accent-terra': '#697C70',  // Moss
-      '--accent-blue': '#B3C9D6',   // Mist
-      '--accent-rose': '#E879F9',   // (Mantengo el original o puedes usar un tono similar)
-      '--accent-violet': '#A78BFA',
-      '--accent-gold': '#F2EFE2',   // Plaster
-      '--accent-main': '#98AA9D',   // Eucalyptus como color principal
-      '--accent-danger': '#F87171',
-      '--text-primary': '#F2EFE2',  // Plaster (Texto principal)
-      '--text-secondary': '#B3C9D6', // Mist (Texto secundario)
-      '--text-muted': '#697C70',    // Moss (Texto atenuado)
-      '--sidebar-bg': '#242a2b',
-      '--sidebar-border': 'rgba(242, 239, 226, 0.05)',
-      '--input-bg': '#1c2223',
-      '--progress-track': '#697C70', // Moss
-    }
-  },
+  
   ocean: {
     name: 'Ocean Slate',
     themeColor: '#E8F4F6',

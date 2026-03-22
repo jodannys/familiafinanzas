@@ -5,10 +5,10 @@ import { Card } from '@/components/ui/Card'
 import {
   Settings2, Plus, Trash2, Edit3, Save, X,
   ChevronDown, ChevronUp, Loader2, Home, Sparkles, Sprout,
-  Target, TrendingUp, ArrowRight, User
+  Target, TrendingUp, ArrowRight, User, Palette, Check
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { useTheme, getThemeColors } from '@/lib/themes'
+import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 
 const BLOQUES = [
   { id: 'necesidades', nombre: 'Necesidades', color: 'var(--accent-blue)', Icon: Home },
@@ -17,7 +17,7 @@ const BLOQUES = [
 ]
 
 export default function AjustesPage() {
-  const { theme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const themeColors = getThemeColors(theme)
 
   const [categorias, setCategorias] = useState([])
@@ -51,6 +51,7 @@ export default function AjustesPage() {
   const [editandoSub, setEditandoSub] = useState(null)
   const [bloqueCollapsed, setBloqueCollapsed] = useState({})
   const [hoveredCat, setHoveredCat] = useState(null)
+  const [showTemas, setShowTemas] = useState(false)
 
   useEffect(() => {
     cargar()
@@ -270,6 +271,58 @@ export default function AjustesPage() {
                 </button>
               </div>
             )}
+
+            {/* ── Temas ── */}
+            <div className="mt-4">
+              <button
+                onClick={() => setShowTemas(v => !v)}
+                className="flex items-center gap-3"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'color-mix(in srgb, var(--accent-violet) 12%, transparent)' }}>
+                  <Palette size={16} style={{ color: 'var(--accent-violet)' }} />
+                </div>
+                <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Temas</p>
+                {showTemas
+                  ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
+                  : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
+              </button>
+
+              {showTemas && (
+                <div className="mt-3 space-y-1">
+                  {Object.entries(THEMES).map(([key, t]) => {
+                    const active = theme === key
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setTheme(key)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl"
+                        style={{
+                          background: active ? 'color-mix(in srgb, var(--accent-violet) 8%, var(--bg-secondary))' : 'var(--bg-secondary)',
+                          border: active ? '1px solid color-mix(in srgb, var(--accent-violet) 30%, transparent)' : '1px solid transparent',
+                          cursor: 'pointer',
+                        }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                          background: `linear-gradient(135deg, ${t.preview[0]} 50%, ${t.preview[1]} 50%)`,
+                          border: '1px solid var(--border-glass)',
+                        }} />
+                        <span className="flex-1 text-left text-sm font-semibold"
+                          style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                          {t.name}
+                        </span>
+                        {active && (
+                          <div className="w-4 h-4 rounded-full flex items-center justify-center"
+                            style={{ background: 'var(--accent-violet)' }}>
+                            <Check size={10} color="white" strokeWidth={4} />
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {BLOQUES.map(bloque => {
