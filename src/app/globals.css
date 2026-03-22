@@ -10,8 +10,8 @@
 :root {
   /* Fondos Principales */
   --bg-primary:      #B3A89D;
- --bg-card: rgba(248, 243, 238, 0.85);
- --bg-secondary: rgba(241, 233, 224, 0.92);
+ --bg-card: rgba(248, 243, 238, 0.724);
+ --bg-secondary: rgba(241, 233, 224, 0.84);
   --bg-dark-card:    #2C241E;
   --bg-glass:        rgba(255, 255, 255, 0.45);
   --input-bg:        rgba(255, 255, 255, 0.3);
