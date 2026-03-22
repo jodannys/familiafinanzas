@@ -3,22 +3,25 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, Target,
-  TrendingUp, Wallet, CircleDollarSign,
+  MoreHorizontal, TrendingUp, Wallet, CircleDollarSign,
   CreditCard, Settings2, BarChart3, X
 } from 'lucide-react'
 import { useState } from 'react'
 
+const MAIN_TABS = [
+  { href: '/',            label: 'Inicio',      icon: LayoutDashboard },
+  { href: '/gastos',      label: 'Registro',    icon: ArrowLeftRight },
+  { href: '/presupuesto', label: 'Presupuesto', icon: PieChart },
+  { href: '/metas',       label: 'Metas',       icon: Target },
+]
+
 const MORE_ITEMS = [
-  { href: '/',            label: 'Inicio',        icon: LayoutDashboard },
-  { href: '/gastos',      label: 'Registro',      icon: ArrowLeftRight },
-  { href: '/presupuesto', label: 'Presupuesto',   icon: PieChart },
-  { href: '/metas',       label: 'Metas',         icon: Target },
-  { href: '/inversiones', label: 'Inversiones',   icon: TrendingUp },
-  { href: '/sobres',      label: 'Sobres',        icon: Wallet },
-  { href: '/deudas',      label: 'Deudas',        icon: CircleDollarSign },
-  { href: '/tarjetas',    label: 'Mis Tarjetas',  icon: CreditCard },
-  { href: '/reportes',    label: 'Reportes',      icon: BarChart3 },
-  { href: '/ajustes',     label: 'Configuración', icon: Settings2 },
+  { href: '/inversiones', label: 'Inversiones',  icon: TrendingUp },
+  { href: '/sobres',      label: 'Sobres',       icon: Wallet },
+  { href: '/deudas',      label: 'Deudas',       icon: CircleDollarSign },
+  { href: '/tarjetas',    label: 'Mis Tarjetas', icon: CreditCard },
+  { href: '/reportes',    label: 'Reportes',     icon: BarChart3 },
+  { href: '/ajustes',     label: 'Configuración',icon: Settings2 },
 ]
 
 export default function BottomNav({ onFABClick }) {
@@ -68,21 +71,43 @@ export default function BottomNav({ onFABClick }) {
         </>
       )}
 
-      {/* Bottom Nav Bar — solo botón cerrar */}
+      {/* Bottom Nav Bar */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[80] flex items-stretch justify-center"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[80] flex items-stretch"
         style={{
           background: 'var(--bg-card)',
           borderTop: '1px solid var(--border-glass)',
           paddingBottom: 'env(safe-area-inset-bottom)',
           height: 'calc(64px + env(safe-area-inset-bottom))',
         }}>
+        {MAIN_TABS.map((tab) => {
+          const active = pathname === tab.href
+          const Icon   = tab.icon
+          return (
+            <Link key={tab.href} href={tab.href}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
+              style={{ textDecoration: 'none', color: active ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              <div className="relative flex items-center justify-center">
+                <Icon size={21} strokeWidth={active ? 2.5 : 1.8} />
+                {active && (
+                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
+                    style={{ background: 'var(--accent-green)' }} />
+                )}
+              </div>
+              <span style={{ fontSize: 9, fontWeight: active ? 800 : 600, letterSpacing: '0.02em' }}>
+                {tab.label}
+              </span>
+            </Link>
+          )
+        })}
+
+        {/* Más tab */}
         <button
-          onClick={() => setShowMore(v => !v)}
-          className="flex flex-col items-center justify-center gap-0.5 px-8 active:scale-95 transition-transform"
+          onClick={() => setShowMore(true)}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
           style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <X size={22} strokeWidth={2} />
-          <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.02em' }}>Menú</span>
+          <MoreHorizontal size={21} strokeWidth={1.8} />
+          <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.02em' }}>Más</span>
         </button>
       </nav>
     </>

@@ -4,11 +4,11 @@ import { createContext, useContext, useEffect, useState } from 'react'
 export const THEMES = {
   linen: {
     name: 'Warm Linen',
-    themeColor: '#C5CED0',
+    themeColor: '#ECE8E5',
     emoji: '🌾',
     preview: ['#B3A89D', '#D99E5C', '#F8F3EE', '#2C241E'],
     vars: {
-      '--bg-primary': '#C5CED0',
+      '--bg-primary': '#ECE8E5',
       '--bg-secondary': '#F1E9E0',
       '--bg-card': '#F8F3EE',
       '--bg-dark-card': '#2C241E',
