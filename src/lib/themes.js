@@ -118,6 +118,36 @@ export const THEMES = {
       '--sidebar-border': '#1A1A1A',
     }
   },
+  dusk: {
+    name: 'Dusk Violet',
+    themeColor: '#1E1E2E',
+    emoji: '🌌',
+    preview: ['#1E1E2E', '#CBA6F7', '#2A2739', '#CDD6F4'],
+    vars: {
+      '--bg-primary':    '#1E1E2E',
+      '--bg-secondary':  '#313244',
+      '--bg-card':       '#2A2739',
+      '--bg-dark-card':  '#11111B',
+      '--bg-glass':      'rgba(49, 50, 68, 0.55)',
+      '--border-glass':  'rgba(205, 214, 244, 0.1)',
+      '--input-bg':      'rgba(49, 50, 68, 0.85)',
+      '--progress-track':'rgba(49, 50, 68, 0.7)',
+      '--accent-main':   '#CBA6F7',
+      '--accent-green':  '#A6E3A1',
+      '--accent-terra':  '#FAB387',
+      '--accent-blue':   '#89B4FA',
+      '--accent-rose':   '#F38BA8',
+      '--accent-violet': '#B4BEFE',
+      '--accent-gold':   '#F9E2AF',
+      '--accent-danger': '#F38BA8',
+      '--text-primary':  '#CDD6F4',
+      '--text-secondary':'#BAC2DE',
+      '--text-muted':    '#6C7086',
+      '--sidebar-bg':    '#181825',
+      '--sidebar-border':'rgba(205, 214, 244, 0.08)',
+    }
+  },
+
   silk: {
     name: 'Desert Silk',
     themeColor: '#F7F3F0',
