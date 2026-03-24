@@ -38,6 +38,8 @@ function IconBtn({ onClick, title, bg, color, children }) {
 }
 
 export default function MetasPage() {
+  const { theme } = useTheme()
+  const themeColors = getThemeColors(theme)
   const [metas, setMetas] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -47,8 +49,6 @@ export default function MetasPage() {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || '#2D7A5F' })
   const [selectedMetaId, setSelectedMetaId] = useState(null)
-  const { theme } = useTheme()
-  const themeColors = getThemeColors(theme)
 
   useEffect(() => {
     cargar()
