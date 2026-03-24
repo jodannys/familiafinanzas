@@ -8,7 +8,7 @@ export const THEMES = {
   emoji: '🌾',
   preview: ['#B3A89D', '#D99E5C', '#F8F3EE', '#2C241E'],
   vars: {
-    '--bg-primary': "url('/una.jpg') center top / cover no-repeat fixed",
+    '--bg-primary': '#CEC6BB',
     '--bg-secondary': '#F1E9E0',
     '--bg-card': '#F8F3EE',
     '--bg-dark-card': '#2C241E',
