@@ -564,12 +564,12 @@ export default function GastosPage() {
             <div className="divide-y" style={{ borderColor: colores.border }}>
               {filtered.map((m, i) => (
                 <div key={m.id}
-                  className="flex items-center gap-3 px-3 py-4 transition-colors group"
+                  className="flex items-center gap-2.5 px-3 py-3 transition-colors group"
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   style={{ animationDelay: `${i * 0.02}s` }}>
 
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{
                       background: m.tipo === 'ingreso'
                         ? `color-mix(in srgb, ${colores.green} 10%, transparent)`
@@ -583,7 +583,7 @@ export default function GastosPage() {
                     <p className="text-sm font-medium truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {m.descripcion}
                     </p>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       {(() => {
                         const esIngreso = m.tipo === 'ingreso'
                         const color = esIngreso ? colores.green : (CAT_COLOR_VAR[m.categoria] || colores.muted)
@@ -629,7 +629,7 @@ export default function GastosPage() {
                     </div>
                   </div>
 
-                  <div className="text-right flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="text-right flex flex-col items-end gap-0.5 flex-shrink-0">
                     <p className="text-sm font-semibold tabular-nums"
                       style={{ color: m.tipo === 'ingreso' ? colores.green : colores.rose }}>
                       {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
-import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, SlidersHorizontal, LogOut, Check, CreditCard } from 'lucide-react'
+import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, LogOut, Check, CreditCard } from 'lucide-react'
 import { supabase, signOut } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 
@@ -23,7 +23,6 @@ const METODOS_PAGO = [
   { id: 'debito', short: 'DB', label: 'Débito', color: 'var(--accent-violet)' },
   { id: 'tarjeta_credito', short: 'TC', label: 'T. Crédito', color: 'var(--accent-rose)' },
 ]
-const CUOTAS_OPCIONES = [1, 3, 6, 9, 12, 18, 24, 36]
 
 function FABModal({ onClose }) {
   const [tipo, setTipo] = useState('egreso')
@@ -127,183 +126,124 @@ function FABModal({ onClose }) {
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-[110]"
-        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)' }}
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-[110]" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={onClose} />
 
-      <div
-        className="fixed bottom-0 left-0 right-0 z-[120] rounded-t-3xl flex flex-col"
+      <div className="fixed bottom-0 left-0 right-0 z-[120] rounded-t-[40px] flex flex-col shadow-2xl overflow-hidden"
         style={{
-          background: 'var(--bg-card)',
-          maxHeight: '92vh',
+          background: 'color-mix(in srgb, var(--bg-card) 82%, transparent)',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)',
+          border: '1px solid var(--border-glass)',
+          borderBottom: 'none',
+          maxHeight: '94vh',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
         }}>
 
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-glass)' }} />
+        {/* Handle */}
+        <div className="flex justify-center pt-4 pb-2"><div className="w-12 h-1.5 rounded-full" style={{ background: 'var(--border-glass)' }} /></div>
+
+        {/* Cabecera */}
+        <div className="px-7 pb-4 flex items-center justify-between">
+          <p className="font-script text-[32px]" style={{ color: 'var(--text-primary)' }}>Registrar</p>
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full transition-colors"
+            style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', border: 'none' }}><X size={20} /></button>
         </div>
 
-        <div className="px-5 pb-2 flex items-center justify-between">
-          <p className="font-script" style={{ fontSize: 25, color: 'var(--text-primary)' }}>Registrar</p>
-          <button onClick={onClose}
-            style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <X size={18} />
-          </button>
-        </div>
+        <div className="px-7 space-y-6 pt-2 overflow-y-auto flex-1 custom-scrollbar">
 
-        <div className="px-5 space-y-4 pt-2 overflow-y-auto flex-1">
-
-          <div className="flex gap-2">
+          {/* Selector de Tipo Segmentado */}
+          <div className="flex p-1.5 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
             {[
               { id: 'egreso', label: 'Gasto', icon: ArrowDownRight, color: 'var(--accent-rose)' },
               { id: 'ingreso', label: 'Ingreso', icon: ArrowUpRight, color: 'var(--accent-green)' },
             ].map(t => (
-              <button key={t.id}
-                onClick={() => setTipo(t.id)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all"
+              <button key={t.id} onClick={() => { setTipo(t.id); setMonto(''); setSelectedItem(null); setMetodoPago('efectivo'); setNumCuotas(1); setSelectedPerfil(null) }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] font-bold text-sm transition-all duration-300"
                 style={{
-                  background: tipo === t.id
-                    ? `color-mix(in srgb, ${t.color} 12%, transparent)`
-                    : 'var(--bg-secondary)',
+                  background: tipo === t.id ? 'var(--bg-card)' : 'transparent',
                   color: tipo === t.id ? t.color : 'var(--text-muted)',
-                  border: `1.5px solid ${tipo === t.id ? t.color : 'transparent'}`,
-                  cursor: 'pointer',
+                  boxShadow: tipo === t.id ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
                 }}>
-                <t.icon size={15} strokeWidth={2} />
-                {t.label}
+                <t.icon size={16} strokeWidth={2.5} /> {t.label}
               </button>
             ))}
           </div>
 
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
-              style={{ color: 'var(--text-muted)' }}>Monto</p>
-            <input
-              type="number"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={monto}
-              onChange={e => setMonto(e.target.value)}
-              autoFocus
-              className="ff-input w-full font-serif text-2xl font-semibold text-center"
-              style={{ color: tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-primary)' }}
-            />
+          {/* Monto Heroico */}
+          <div className="flex flex-col items-center py-6 rounded-3xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-2 opacity-40">Monto del movimiento</p>
+            <div className="flex items-center gap-1">
+              <span className="text-3xl font-serif font-light opacity-50">$</span>
+              <input type="number" inputMode="decimal" placeholder="0.00" value={monto} onChange={e => setMonto(e.target.value)}
+                autoFocus className="bg-transparent border-none outline-none text-5xl font-serif font-bold text-center w-full max-w-[220px]"
+                style={{ color: tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-primary)' }} />
+            </div>
           </div>
 
+          {/* Categorías */}
           {tipo === 'egreso' && (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
-                style={{ color: 'var(--text-muted)' }}>Categoría</p>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-3 px-1 opacity-50">Categoría</p>
+              <div className="flex flex-wrap gap-2.5">
                 {CATS_EGRESO.map(c => (
-                  <button key={c.id}
-                    onClick={() => setCat(c.id)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                  <button key={c.id} onClick={() => setCat(c.id)}
+                    className="px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all"
                     style={{
-                      background: cat === c.id
-                        ? `color-mix(in srgb, ${c.color} 15%, transparent)`
-                        : 'var(--bg-secondary)',
-                      color: cat === c.id ? c.color : 'var(--text-muted)',
-                      border: `1px solid ${cat === c.id ? c.color : 'transparent'}`,
-                      cursor: 'pointer',
-                    }}>
-                    {c.label}
-                  </button>
+                      background: cat === c.id ? c.color : 'var(--bg-secondary)',
+                      color: cat === c.id ? 'white' : 'var(--text-muted)',
+                      boxShadow: cat === c.id ? `0 4px 15px color-mix(in srgb, ${c.color} 30%, transparent)` : 'none',
+                    }}> {c.label} </button>
                 ))}
               </div>
             </div>
           )}
 
+          {/* Métodos de Pago */}
           {tipo === 'egreso' && (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
-                style={{ color: 'var(--text-muted)' }}>Método de pago</p>
-              <div className="grid grid-cols-4 gap-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-3 px-1 opacity-50">Método de pago</p>
+              <div className="grid grid-cols-4 gap-2">
                 {METODOS_PAGO.map(m => {
                   const sel = metodoPago === m.id
                   return (
-                    <button key={m.id}
-                      onClick={() => { setMetodoPago(m.id); setSelectedPerfil(null); setNumCuotas(1) }}
-                      className="py-2 rounded-xl text-[10px] font-semibold transition-all"
+                    <button key={m.id} onClick={() => { setMetodoPago(m.id); setSelectedPerfil(null); setNumCuotas(1) }}
+                      className="py-3 rounded-2xl text-[10px] font-bold transition-all flex flex-col items-center"
                       style={{
-                        background: sel ? `color-mix(in srgb, ${m.color} 15%, transparent)` : 'var(--bg-secondary)',
+                        background: sel ? 'var(--bg-card)' : 'var(--bg-secondary)',
                         color: sel ? m.color : 'var(--text-muted)',
-                        border: `1.5px solid ${sel ? m.color : 'transparent'}`,
-                        cursor: 'pointer',
-                      }}>
-                      {m.short}
-                    </button>
+                        border: `1.5px solid ${sel ? m.color : 'transparent'}`
+                      }}> {m.short} </button>
                   )
                 })}
               </div>
 
+              {/* Tarjetas de Crédito */}
               {metodoPago === 'tarjeta_credito' && (
-                <div className="mt-2 space-y-2">
-                  {loadingPerf ? (
-                    <div className="flex justify-center py-2">
-                      <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
-                    </div>
-                  ) : perfilesTarj.length === 0 ? (
-                    <div className="px-3 py-2.5 rounded-xl"
-                      style={{ background: 'color-mix(in srgb, var(--accent-gold) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-gold) 25%, transparent)' }}>
-                      <p className="text-xs" style={{ color: 'var(--accent-gold)' }}>
-                        No tienes tarjetas en Mis Tarjetas. Agrégalas primero.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {perfilesTarj.map(t => {
-                        const isSel = selectedPerfil?.id === t.id
-                        return (
-                          <button key={t.id}
-                            onClick={() => setSelectedPerfil(isSel ? null : t)}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all"
-                            style={{
-                              background: isSel ? 'color-mix(in srgb, var(--accent-rose) 10%, transparent)' : 'var(--bg-secondary)',
-                              border: `1px solid ${isSel ? 'var(--accent-rose)' : 'transparent'}`,
-                              cursor: 'pointer',
-                            }}>
-                            <CreditCard size={13} style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-muted)', flexShrink: 0 }} />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate"
-                                style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-primary)' }}>
-                                {t.nombre_tarjeta}
-                              </p>
-                              {t.banco && <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t.banco}</p>}
-                            </div>
-                            {t.dia_pago && <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Día {t.dia_pago}</p>}
-                            {isSel && <Check size={12} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-
+                <div className="mt-4 p-4 rounded-3xl space-y-2" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+                  {loadingPerf ? <div className="flex justify-center py-2"><Loader2 size={16} className="animate-spin opacity-50" /></div> :
+                    perfilesTarj.map(t => {
+                      const isSel = selectedPerfil?.id === t.id
+                      return (
+                        <button key={t.id} onClick={() => setSelectedPerfil(isSel ? null : t)}
+                          className="w-full flex items-center gap-3 p-3 rounded-2xl transition-all"
+                          style={{ background: isSel ? 'var(--bg-card)' : 'transparent', border: isSel ? '1px solid var(--accent-rose)' : '1px solid transparent' }}>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+                            <CreditCard size={18} style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-muted)' }} />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-xs font-bold">{t.nombre_tarjeta}</p>
+                            <p className="text-[9px] opacity-50">{t.banco || 'Tarjeta'}</p>
+                          </div>
+                          {isSel && <Check size={14} className="text-[var(--accent-rose)]" />}
+                        </button>
+                      )
+                    })}
                   {selectedPerfil && (
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
-                        style={{ color: 'var(--text-muted)' }}>Número de cuotas</p>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min="1"
-                          max="60"
-                          value={numCuotas}
-                          onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="ff-input text-center font-semibold"
-                          style={{ width: 80, color: 'var(--accent-rose)' }}
-                        />
-                        <p className="text-[10px] flex-1" style={{ color: 'var(--text-muted)' }}>
-                          {numCuotas === 1
-                            ? 'Contado · pago único'
-                            : parseFloat(monto) > 0
-                              ? `${numCuotas}x de ${formatCurrency(parseFloat(monto) / numCuotas)}${selectedPerfil.dia_pago ? ` · día ${selectedPerfil.dia_pago}` : ''}`
-                              : `${numCuotas} cuotas`}
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-3 pt-2">
+                      <p className="text-[10px] font-bold opacity-50">CUOTAS:</p>
+                      <input type="number" min="1" value={numCuotas} onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="ff-input text-center font-bold" style={{ width: 60, color: 'var(--accent-rose)', padding: '5px' }} />
+                      <p className="text-[10px] opacity-70 flex-1">{numCuotas > 1 ? `${numCuotas}x ${formatCurrency(parseFloat(monto || 0) / numCuotas)}` : 'Contado'}</p>
                     </div>
                   )}
                 </div>
@@ -311,97 +251,60 @@ function FABModal({ onClose }) {
             </div>
           )}
 
-          {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && (
+          {/* Vínculo a Metas/Deudas (SPECIAL_CATS) */}
+          {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && items.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
-                style={{ color: 'var(--text-muted)' }}>
-                {cat === 'ahorro' ? 'Meta de ahorro' : cat === 'inversion' ? 'Cartera de inversión' : 'Deuda a pagar'}
-              </p>
-              {loadingItems ? (
-                <div className="flex justify-center py-3">
-                  <Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
-                </div>
-              ) : items.length === 0 ? (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-                  style={{ background: 'color-mix(in srgb, var(--accent-gold) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-gold) 25%, transparent)' }}>
-                  <span className="text-xs" style={{ color: 'var(--accent-gold)' }}>
-                    Sin {cat === 'ahorro' ? 'metas activas' : cat === 'inversion' ? 'inversiones' : 'deudas activas'} — se guardará sin vincular
-                  </span>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {items.map(item => {
-                    const isSelected = selectedItem?.id === item.id
-                    const color = cat === 'ahorro' ? 'var(--accent-green)' : cat === 'inversion' ? 'var(--accent-violet)' : 'var(--accent-rose)'
-                    return (
-                      <button key={item.id}
-                        onClick={() => {
-                          if (isSelected) { setSelectedItem(null) }
-                          else {
-                            setSelectedItem(item)
-                            if (cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString())
-                          }
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
-                        style={{
-                          background: isSelected ? `color-mix(in srgb, ${color} 10%, transparent)` : 'var(--bg-secondary)',
-                          border: `1px solid ${isSelected ? color : 'transparent'}`,
-                          cursor: 'pointer',
-                        }}>
-                        <span className="text-sm">{item.emoji}</span>
-                        <span className="flex-1 text-xs font-semibold" style={{ color: isSelected ? color : 'var(--text-primary)' }}>
-                          {item.nombre}
-                        </span>
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          {cat === 'deuda' ? (item.cuota > 0 ? `${formatCurrency(item.cuota)}/mes` : formatCurrency(item.pendiente))
-                            : cat === 'ahorro' ? `${formatCurrency(item.actual || 0)} / ${formatCurrency(item.meta || 0)}`
-                              : item.aporte > 0 ? `${formatCurrency(item.aporte)}/mes` : ''}
-                        </span>
-                        {isSelected && <Check size={13} style={{ color, flexShrink: 0 }} />}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-3 px-1 opacity-50">Vincular a:</p>
+              <div className="space-y-2">
+                {items.map(item => {
+                  const isSelected = selectedItem?.id === item.id
+                  const color = cat === 'ahorro' ? 'var(--accent-green)' : cat === 'inversion' ? 'var(--accent-violet)' : 'var(--accent-rose)'
+                  return (
+                    <button key={item.id} onClick={() => { setSelectedItem(isSelected ? null : item); if (!isSelected && cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString()) }}
+                      className="w-full flex items-center gap-3 p-3 rounded-2xl transition-all"
+                      style={{ background: isSelected ? `color-mix(in srgb, ${color} 10%, var(--bg-secondary))` : 'var(--bg-secondary)', border: `1px solid ${isSelected ? color : 'transparent'}` }}>
+                      <span className="text-lg">{item.emoji}</span>
+                      <div className="flex-1 text-left">
+                        <p className="text-xs font-bold">{item.nombre}</p>
+                        <p className="text-[9px] opacity-50">{cat === 'deuda' ? `Pendiente: ${formatCurrency(item.pendiente)}` : `Meta: ${formatCurrency(item.meta || 0)}`}</p>
+                      </div>
+                      {isSelected && <Check size={14} style={{ color }} />}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
 
+          {/* Descripción */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
-              style={{ color: 'var(--text-muted)' }}>Descripción <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 9 }}>(opcional)</span></p>
-            <input
-              type="text"
-              placeholder="Ej: Supermercado, Nómina..."
-              value={desc}
-              onChange={e => setDesc(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && guardar()}
-              className="ff-input w-full text-sm"
-            />
+            <p className="text-[10px] font-bold uppercase tracking-wider mb-2 px-1 opacity-50">Descripción <span className="lowercase font-normal opacity-70">(opcional)</span></p>
+            <input type="text" placeholder="Ej: Supermercado, Alquiler..." value={desc} onChange={e => setDesc(e.target.value)}
+              className="ff-input" />
           </div>
 
-          {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && items.length > 0 && !selectedItem && (
-            <p className="text-[10px] text-center" style={{ color: 'var(--text-muted)', marginTop: -8 }}>
-              Sin selección — se guardará sin vincular a ningún item
-            </p>
-          )}
-
-          <button
-            onClick={guardar}
-            disabled={!monto || parseFloat(monto) <= 0 || saving}
-            className="w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all"
-            style={{
-              background: (!monto || parseFloat(monto) <= 0) ? 'var(--bg-secondary)' : 'var(--text-primary)',
-              color: (!monto || parseFloat(monto) <= 0) ? 'var(--text-muted)' : 'var(--bg-card)',
-              border: 'none', cursor: 'pointer',
-            }}>
-            {saving
-              ? <Loader2 size={16} className="animate-spin" />
-              : tipo === 'egreso' && metodoPago === 'tarjeta_credito'
-                ? <><CreditCard size={15} /> {numCuotas > 1 ? `${numCuotas} cuotas · TC` : 'Contado · TC'}</>
-                : <><Plus size={15} /> Registrar</>
-            }
-          </button>
-
+          {/* Botón Guardar */}
+          <div className="pt-2">
+            <button
+              onClick={guardar}
+              disabled={!monto || parseFloat(monto) <= 0 || saving}
+              className="w-full py-5 rounded-3xl font-bold text-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-xl"
+              style={{
+                background: (!monto || parseFloat(monto) <= 0)
+                  ? 'var(--bg-secondary)'
+                  : tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-terra)',
+                color: (!monto || parseFloat(monto) <= 0) ? 'var(--text-muted)' : '#fff',
+              }}>
+              {saving ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <>
+                  {tipo === 'egreso' && metodoPago === 'tarjeta_credito' ? <CreditCard size={18} /> : <Plus size={18} />}
+                  <span>Registrar {tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </>
@@ -410,9 +313,8 @@ function FABModal({ onClose }) {
 
 export default function AppShell({ children }) {
   const [fabOpen, setFabOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [navigating, setNavigating] = useState(false)
   const [authReady, setAuthReady] = useState(false)
+  const [navigating, setNavigating] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
@@ -430,96 +332,40 @@ export default function AppShell({ children }) {
   }, [pathname])
 
   async function handleLogout() {
-    setMenuOpen(false)
     await signOut()
     router.replace('/login')
   }
 
   if (!authReady) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-      <div className="animate-spin rounded-full" style={{
-        width: 24, height: 24,
-        border: '2px solid var(--border-glass)',
-        borderTopColor: 'var(--accent-main)',
-      }} />
+      <div className="animate-spin rounded-full" style={{ width: 24, height: 24, border: '2px solid var(--border-glass)', borderTopColor: 'var(--accent-main)' }} />
     </div>
   )
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
-
-      <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]">
-        <Sidebar />
-      </div>
-
-      <main
-        className="flex-1 min-h-screen lg:ml-20 flex flex-col overflow-x-hidden"
-        style={{ background: 'var(--bg-primary)' }}>
+      <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]"><Sidebar /></div>
+      <main className="flex-1 min-h-screen lg:ml-20 flex flex-col overflow-x-hidden">
 
         {/* Header móvil */}
-        <div className="lg:hidden sticky top-0 z-50 w-full" style={{ background: 'var(--bg-primary)' }}>
-          <div
-            className="flex items-center justify-between px-5"
-            style={{
-              paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)',
-              paddingBottom: '0.75rem',
-            }}>
+        <div className="lg:hidden sticky top-0 z-50 w-full" style={{
+          background: 'color-mix(in srgb, var(--bg-primary) 75%, transparent)',
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+          borderBottom: '1px solid var(--border-glass)',
+        }}>
+          <div className="flex items-center justify-between px-5 py-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
             <div className="flex items-center gap-2">
               <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
-              <span className="font-script text-base" style={{ color: 'var(--text-primary)', fontSize: 25 }}>
-                Familia Quintero
-              </span>
+              <span className="font-script text-[25px]" style={{ color: 'var(--text-primary)' }}>Familia Quintero</span>
             </div>
-
-            <div className="flex items-center gap-2">
-              {navigating && <Loader2 size={15} className="animate-spin" style={{ color: 'var(--accent-main)' }} />}
-              <button
-                onClick={handleLogout}
-                title="Cerrar sesión"
-                className="flex items-center justify-center transition-all active:scale-90"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                <LogOut size={18} />
-              </button>
-            </div>
+            <button onClick={handleLogout} className="text-[var(--text-muted)] active:scale-90 transition-transform"><LogOut size={18} /></button>
           </div>
         </div>
 
-        {/* Barra de progreso */}
-        {navigating && (
-          <div className="fixed top-0 left-0 right-0 z-[200] h-0.5" style={{ background: 'var(--accent-main)' }}>
-            <div className="h-full" style={{
-              background: `linear-gradient(90deg, transparent, var(--accent-main), transparent)`,
-              animation: 'progress-bar 0.4s ease-out forwards',
-            }} />
-          </div>
-        )}
-
-        {/* Fondo decorativo */}
-        <div className="fixed inset-0 lg:ml-20 pointer-events-none" style={{ zIndex: 0 }}>
-          <div style={{
-            position: 'absolute', top: '-5%', right: '-5%',
-            width: '600px', height: '600px',
-            background: 'radial-gradient(circle, var(--accent-main) 0%, transparent 70%)',
-            opacity: 0.07,
-          }} />
-        </div>
-
-        {/* FAB móvil */}
-        <button
-          onClick={() => setFabOpen(true)}
-          className="lg:hidden flex fixed right-5 z-[80] w-14 h-14 rounded-full items-center justify-center shadow-2xl active:scale-95 transition-transform"
-          style={{
-            bottom: 'calc(env(safe-area-inset-bottom) + 76px)',
-            background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer',
-          }}>
-          <Plus size={24} strokeWidth={2.5} />
-        </button>
-
-        {/* FAB desktop */}
-        <button
-          onClick={() => setFabOpen(true)}
-          className="hidden lg:flex fixed bottom-8 right-8 z-[80] w-14 h-14 rounded-full items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-transform"
-          style={{ background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer' }}>
+        {/* FAB */}
+        <button onClick={() => setFabOpen(true)} className="fixed right-5 z-[80] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-all"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 76px)', background: 'var(--accent-green)', color: 'white', border: 'none' }}>
           <Plus size={24} strokeWidth={2.5} />
         </button>
 
@@ -529,7 +375,6 @@ export default function AppShell({ children }) {
       </main>
 
       <BottomNav onFABClick={() => setFabOpen(true)} />
-
       {fabOpen && <FABModal onClose={() => setFabOpen(false)} />}
     </div>
   )

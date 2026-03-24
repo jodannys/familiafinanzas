@@ -8,6 +8,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { FinanceChart } from '@/components/ui/FinanceChart'
+import AgendaWidget from '@/components/agenda/AgendaWidget'
 import Link from 'next/link'
 
 const COLORES_CAT = {
@@ -201,7 +202,7 @@ export default function Dashboard() {
                 className="font-medium tracking-tight"
                 style={{
                   fontSize: 13,
-                  color: '#4b5563'
+                  color: 'var(--text-secondary)'
                 }}
               >
                 {formatCurrency(val)}
@@ -246,7 +247,10 @@ export default function Dashboard() {
         ].map((k, i) => (
           <div key={i} className="animate-enter"
             style={{
-              background: 'var(--bg-card)', borderRadius: 24, padding: '18px 18px 14px',
+              background: 'color-mix(in srgb, var(--bg-card) 70%, transparent)',
+              backdropFilter: 'blur(14px)',
+              WebkitBackdropFilter: 'blur(14px)',
+              borderRadius: 24, padding: '18px 18px 14px',
               minHeight: 118, border: '1px solid var(--border-glass)',
               display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
               animationDelay: `${i * 0.06}s`,
@@ -273,6 +277,11 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Agenda widget ── */}
+      <div className="mb-7">
+        <AgendaWidget />
       </div>
 
       {/* ── Gráfico + Últimos movimientos ── */}

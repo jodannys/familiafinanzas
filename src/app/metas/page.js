@@ -45,7 +45,7 @@ export default function MetasPage() {
   const [presupuesto, setPresupuesto] = useState(null)
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: '#10b981' })
+  const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || '#2D7A5F' })
   const [selectedMetaId, setSelectedMetaId] = useState(null)
   const { theme } = useTheme()
   const themeColors = getThemeColors(theme)
@@ -105,7 +105,7 @@ export default function MetasPage() {
   function closeModal() {
     setModal(false)
     setEditingId(null)
-    setForm({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: '#10b981' })
+    setForm({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || '#2D7A5F' })
   }
 
   async function handleDelete(id) {

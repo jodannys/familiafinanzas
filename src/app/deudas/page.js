@@ -178,7 +178,7 @@ export default function DeudasPage() {
   const { theme } = useTheme()
   const themeColors = getThemeColors(theme)
 
-  const defaultColor = () => themeColors[0] || '#818CF8'
+  const defaultColor = () => themeColors[0] || 'var(--accent-green)'
 
   const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: fechaHoy(), dia_pago: '', color: defaultColor(), telefono: '' })
   const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', tipo: 'debo', emoji: '🏦', nombre: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor(), telefono: '' })
