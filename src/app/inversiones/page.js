@@ -321,7 +321,7 @@ export default function InversionesPage() {
       )}
 
       {/* Barra de presupuesto para inversiones */}
-    v{presupuesto?.montoInversiones > 0 && (
+    {presupuesto?.montoInversiones > 0 && (
   <div className="glass-card p-5 mb-5 rounded-[32px] border border-[var(--border-glass)]"
     style={{ background: 'var(--bg-card)', backdropFilter: 'blur(20px)' }}>
     
