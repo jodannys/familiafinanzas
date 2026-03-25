@@ -311,6 +311,47 @@ export default function InversionesPage() {
         </div>
       )}
 
+      {/* Barra de presupuesto para inversiones */}
+      {presupuesto?.montoInversiones > 0 && (
+        <div className="glass-card p-4 mb-4">
+          {(() => {
+            const presupuestado = presupuesto.montoInversiones
+            const comprometido = totalAportes
+            const disponible = presupuestado - comprometido
+            const pct = Math.min(100, (comprometido / presupuestado) * 100)
+            const sobrePasado = comprometido > presupuestado
+            return (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                    Presupuesto inversiones este mes
+                  </p>
+                  <span className="text-[10px] font-bold" style={{ color: sobrePasado ? colores.rose : colores.green }}>
+                    {pct.toFixed(0)}% usado
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full mb-3" style={{ background: 'var(--progress-track)' }}>
+                  <div className="h-2 rounded-full transition-all"
+                    style={{ width: `${pct}%`, background: sobrePasado ? colores.rose : colores.violet }} />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { label: 'Presupuestado', val: formatCurrency(presupuestado), color: 'var(--text-muted)' },
+                    { label: 'Comprometido', val: formatCurrency(comprometido), color: colores.violet },
+                    { label: disponible >= 0 ? 'Disponible' : 'Excedido', val: formatCurrency(Math.abs(disponible)), color: sobrePasado ? colores.rose : colores.green },
+                  ].map((s, i) => (
+                    <div key={i}>
+                      <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+                      <p className="text-xs font-bold" style={{ color: s.color }}>{s.val}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      )}
+
       {/* Stats globales */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {[
@@ -600,10 +641,30 @@ export default function InversionesPage() {
                       {formatCurrency(metaLibertad - totalProyectado)}
                     </p>
                   </div>
-                  {/* Tiempo estimado basado en aportes actuales */}
+                  {/* Tiempo estimado con interés compuesto ponderado */}
                   {totalAportes > 0 && (() => {
-                    const faltante = metaLibertad - totalProyectado
-                    const mesesEstimados = Math.ceil(faltante / totalAportes)
+                    // Tasa anual ponderada por capital de cada cartera
+                    const tasaPonderada = inversiones.reduce((s, i) => s + (i.tasa || 0) * (i.capital || 0), 0)
+                    const capitalTotal = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
+                    const tasaAnual = capitalTotal > 0 ? tasaPonderada / capitalTotal : 0
+                    const r = tasaAnual / 100 / 12 // tasa mensual
+
+                    const PV = totalProyectado  // capital actual proyectado
+                    const PMT = totalAportes    // aporte mensual total
+                    const FV = metaLibertad     // meta
+
+                    let mesesEstimados
+                    if (r > 0 && PMT + PV * r > 0) {
+                      // Fórmula: n = ln((FV·r + PMT) / (PV·r + PMT)) / ln(1+r)
+                      const num = Math.log((FV * r + PMT) / (PV * r + PMT))
+                      const den = Math.log(1 + r)
+                      mesesEstimados = num > 0 && den > 0 ? Math.ceil(num / den) : null
+                    } else {
+                      // Sin interés: división simple
+                      mesesEstimados = Math.ceil((FV - PV) / PMT)
+                    }
+
+                    if (!mesesEstimados || mesesEstimados <= 0) return null
                     const años = Math.floor(mesesEstimados / 12)
                     const meses = mesesEstimados % 12
                     return (
