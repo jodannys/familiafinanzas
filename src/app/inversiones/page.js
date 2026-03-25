@@ -258,6 +258,15 @@ export default function InversionesPage() {
     calcsPorInversion.reduce((s, { calc: c }) => s + (c?.finalBalance || 0), 0)
     , [calcsPorInversion])
 
+  // Ganancia pura por interés = proyectado − lo que tú metes (capital + aportes×años×12)
+  const gananciaInteres = useMemo(() =>
+    inversiones.reduce((s, inv, idx) => {
+      const finalBalance = calcsPorInversion[idx]?.calc?.finalBalance || 0
+      const totalMetido = (inv.capital || 0) + (inv.aporte || 0) * (inv.anos || 0) * 12
+      return s + Math.max(0, finalBalance - totalMetido)
+    }, 0)
+  , [inversiones, calcsPorInversion])
+
   // FIX 5: fallback sin número mágico — usa presupuesto real
   const baseGastos = useMemo(() => {
     if (gastosMes > 0) return gastosMes
@@ -291,7 +300,7 @@ export default function InversionesPage() {
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
-        <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
+          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
         </div>
         <button onClick={abrirNuevo} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />
@@ -313,36 +322,75 @@ export default function InversionesPage() {
 
       {/* Barra de presupuesto para inversiones */}
       {presupuesto?.montoInversiones > 0 && (
-        <div className="glass-card p-4 mb-4">
+        <div className="glass-card p-5 mb-5 rounded-[32px] border border-[var(--border-glass)] overflow-hidden"
+          style={{ background: 'var(--bg-card)', backdropFilter: 'blur(20px)' }}>
+
           {(() => {
             const presupuestado = presupuesto.montoInversiones
             const comprometido = totalAportes
             const disponible = presupuestado - comprometido
             const pct = Math.min(100, (comprometido / presupuestado) * 100)
             const sobrePasado = comprometido > presupuestado
+
             return (
               <>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                    Presupuesto inversiones este mes
+                {/* Header del presupuesto */}
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>
+                    Presupuesto Inversiones
                   </p>
-                  <span className="text-[10px] font-bold" style={{ color: sobrePasado ? colores.rose : colores.green }}>
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg"
+                    style={{
+                      color: sobrePasado ? 'var(--accent-rose)' : 'var(--accent-green)',
+                      background: sobrePasado ? 'color-mix(in srgb, var(--accent-rose) 10%, transparent)' : 'color-mix(in srgb, var(--accent-green) 10%, transparent)'
+                    }}>
                     {pct.toFixed(0)}% usado
                   </span>
                 </div>
-                <div className="w-full h-2 rounded-full mb-3" style={{ background: 'var(--progress-track)' }}>
-                  <div className="h-2 rounded-full transition-all"
-                    style={{ width: `${pct}%`, background: sobrePasado ? colores.rose : colores.violet }} />
+
+                {/* Barra de Progreso con Grosor Premium (h-3.5 = 14px) */}
+                <div className="relative w-full h-3.5 rounded-full mb-5 p-[2px] border border-[var(--border-glass)]"
+                  style={{ background: 'var(--bg-secondary)', boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.1)' }}>
+
+                  <div className="h-full rounded-full transition-all duration-1000 ease-out relative"
+                    style={{
+                      width: `${pct}%`,
+                      background: sobrePasado ? 'var(--accent-rose)' : 'var(--accent-violet)',
+                      boxShadow: `0 0 12px ${sobrePasado ? 'color-mix(in srgb, var(--accent-rose) 30%, transparent)' : 'color-mix(in srgb, var(--accent-violet) 30%, transparent)'}`
+                    }}>
+
+                    {/* Reflejo de cristal superior (opcional para estética premium) */}
+                    <div className="absolute top-0 left-0 right-0 h-[35%] bg-white/20 rounded-full mx-1.5 mt-[1px]" />
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
+
+                {/* Grid de valores inferiores */}
+                <div className="grid grid-cols-3 gap-3 pt-1 border-t border-[var(--border-glass)]">
                   {[
-                    { label: 'Presupuestado', val: formatCurrency(presupuestado), color: 'var(--text-muted)' },
-                    { label: 'Comprometido', val: formatCurrency(comprometido), color: colores.violet },
-                    { label: disponible >= 0 ? 'Disponible' : 'Excedido', val: formatCurrency(Math.abs(disponible)), color: sobrePasado ? colores.rose : colores.green },
+                    {
+                      label: 'Presupuesto',
+                      val: formatCurrency(presupuestado),
+                      color: 'var(--text-muted)'
+                    },
+                    {
+                      label: 'Comprometido',
+                      val: formatCurrency(comprometido),
+                      color: 'var(--accent-violet)'
+                    },
+                    {
+                      label: disponible >= 0 ? 'Disponible' : 'Excedido',
+                      val: formatCurrency(Math.abs(disponible)),
+                      color: sobrePasado ? 'var(--accent-rose)' : 'var(--accent-green)'
+                    },
                   ].map((s, i) => (
-                    <div key={i}>
-                      <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
-                      <p className="text-xs font-bold" style={{ color: s.color }}>{s.val}</p>
+                    <div key={i} className="flex flex-col">
+                      <p className="text-[9px] font-black uppercase tracking-[0.15em] mb-1 opacity-50"
+                        style={{ color: 'var(--text-muted)' }}>
+                        {s.label}
+                      </p>
+                      <p className="text-[12px] font-bold tracking-tight" style={{ color: s.color }}>
+                        {s.val}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -351,13 +399,12 @@ export default function InversionesPage() {
           })()}
         </div>
       )}
-
       {/* Stats globales */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {[
           { label: 'Capital total', value: formatCurrency(totalCapital), color: colores.green },
           { label: 'Aportes / mes', value: formatCurrency(totalAportes), color: colores.terra },
-          { label: 'Carteras activas', value: `${inversiones.length}`, color: colores.blue },
+          { label: 'Ganancia por interés', value: formatCurrency(gananciaInteres), color: colores.blue },
           { label: 'Total proyectado', value: formatCurrency(totalProyectado), color: colores.violet },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -861,7 +908,7 @@ export default function InversionesPage() {
               onClick={() => { setModal(false); setEditandoId(null) }}
               className="ff-btn-ghost flex-1">Cancelar</button>
             <button type="submit" disabled={saving}
-             className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
               {saving && <Loader2 size={14} className="animate-spin" />}
               {saving ? 'Guardando...' : editandoId ? 'Guardar' : 'Crear'}
             </button>
