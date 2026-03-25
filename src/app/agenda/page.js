@@ -98,7 +98,7 @@ export default function AgendaPage() {
     const hasta = `${año}-${pad(mes + 1)}-${pad(diasMes)}`
     const [{ data: nd }, { data: dd }] = await Promise.all([
       supabase.from('agenda_notas').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha'),
-      supabase.from('deudas').select('id,nombre,emoji,dia_pago,cuota,color').eq('estado', 'activa'),
+      supabase.from('deudas').select('id,nombre,emoji,dia_pago,cuota,color,fecha_primer_pago,plazo_meses').eq('estado', 'activa'),
     ])
     setNotas(nd || [])
     setDeudasData(dd || [])
@@ -106,10 +106,20 @@ export default function AgendaPage() {
   }
 
   // Eventos automáticos desde deudas (no se guardan en BD)
-  const eventosDeudas = (deudasData || []).map(d => {
+  const eventosDeudas = (deudasData || []).flatMap(d => {
+    if (d.fecha_primer_pago) {
+      const [fpAño, fpMes] = d.fecha_primer_pago.split('-').map(Number)
+      const currentIdx = año * 12 + mes
+      const startIdx = fpAño * 12 + (fpMes - 1)
+      if (currentIdx < startIdx) return []
+      if (d.plazo_meses) {
+        const endIdx = startIdx + d.plazo_meses - 1
+        if (currentIdx > endIdx) return []
+      }
+    }
     const diasMes = new Date(año, mes + 1, 0).getDate()
     const dia = Math.min(d.dia_pago || 1, diasMes)
-    return {
+    return [{
       id: `auto-${d.id}`,
       fecha: toFechaStr(año, mes, dia),
       titulo: `${d.emoji || '💳'} ${d.nombre}`,
@@ -118,7 +128,7 @@ export default function AgendaPage() {
       completado: false,
       _auto: true,
       _cuota: d.cuota,
-    }
+    }]
   })
 
   const todasNotas = [...notas, ...eventosDeudas]

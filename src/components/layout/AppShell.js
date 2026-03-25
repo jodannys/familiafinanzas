@@ -352,7 +352,6 @@ export default function AppShell({ children }) {
           background: 'color-mix(in srgb, var(--bg-primary) 75%, transparent)',
           backdropFilter: 'blur(18px)',
           WebkitBackdropFilter: 'blur(18px)',
-          borderBottom: '1px solid var(--border-glass)',
         }}>
           <div className="flex items-center justify-between px-5 py-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
             <div className="flex items-center gap-2">
@@ -363,13 +362,7 @@ export default function AppShell({ children }) {
           </div>
         </div>
 
-        {/* FAB */}
-        <button onClick={() => setFabOpen(true)} className="fixed right-5 z-[80] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-all"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 76px)', background: 'var(--accent-green)', color: 'white', border: 'none' }}>
-          <Plus size={24} strokeWidth={2.5} />
-        </button>
-
-        <div className="relative z-10 p-4 md:p-10 lg:p-12 max-w-[1600px] mx-auto w-full flex-1 pb-24 lg:pb-12">
+<div className="relative z-10 p-4 md:p-10 lg:p-12 max-w-[1600px] mx-auto w-full flex-1 pb-24 lg:pb-12">
           {children}
         </div>
       </main>

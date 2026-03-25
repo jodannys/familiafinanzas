@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, Target, TrendingUp, PieChart,
-  CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2
+  CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2, CalendarDays
 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
 import { supabase, signOut } from '@/lib/supabase'
@@ -22,6 +22,7 @@ const MENU_GROUPS = [
     items: [
       { href: '/presupuesto', label: 'Presupuesto', icon: PieChart },
       { href: '/gastos', label: 'Registro', icon: ArrowLeftRight },
+      { href: '/agenda', label: 'Agenda', icon: CalendarDays },
       { href: '/sobres', label: 'Sobres', icon: Wallet },
     ],
   },

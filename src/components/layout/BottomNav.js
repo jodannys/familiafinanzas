@@ -4,13 +4,15 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, Target,
   MoreHorizontal, TrendingUp, Wallet, CircleDollarSign,
-  CreditCard, Settings2, BarChart3, X, CalendarDays
+  CreditCard, Settings2, BarChart3, X, CalendarDays, Plus
 } from 'lucide-react'
 import { useState } from 'react'
 
-const MAIN_TABS = [
-  { href: '/',            label: 'Inicio',      icon: LayoutDashboard },
-  { href: '/gastos',      label: 'Registro',    icon: ArrowLeftRight },
+const LEFT_TABS = [
+  { href: '/',       label: 'Inicio',    icon: LayoutDashboard },
+  { href: '/gastos', label: 'Registro',  icon: ArrowLeftRight },
+]
+const RIGHT_TABS = [
   { href: '/presupuesto', label: 'Presupuesto', icon: PieChart },
   { href: '/metas',       label: 'Metas',       icon: Target },
 ]
@@ -114,7 +116,7 @@ export default function BottomNav({ onFABClick }) {
 
       {/* Bottom Nav Bar Principal */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[80] flex items-stretch"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[80] flex items-end"
         style={{
           background: 'var(--bg-glass)',
           backdropFilter: 'blur(20px)',
@@ -123,13 +125,15 @@ export default function BottomNav({ onFABClick }) {
           paddingBottom: 'env(safe-area-inset-bottom)',
           height: 'calc(64px + env(safe-area-inset-bottom))',
         }}>
-        {MAIN_TABS.map((tab) => {
+
+        {/* Tabs izquierda */}
+        {LEFT_TABS.map((tab) => {
           const active = pathname === tab.href
           const Icon = tab.icon
           return (
             <Link key={tab.href} href={tab.href}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
-              style={{ textDecoration: 'none', color: active ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform pb-2"
+              style={{ textDecoration: 'none', color: active ? 'var(--text-primary)' : 'var(--text-muted)', height: 64 }}>
               <div className="relative flex items-center justify-center">
                 <Icon size={21} strokeWidth={active ? 2.5 : 1.8} />
                 {active && (
@@ -144,14 +148,51 @@ export default function BottomNav({ onFABClick }) {
           )
         })}
 
-        {/* Botón "Más" de la barra principal */}
+        {/* Botón + central elevado */}
+        <div className="flex-1 flex flex-col items-center justify-end pb-3" style={{ height: 64 }}>
+          <button
+            onClick={onFABClick}
+            className="flex items-center justify-center rounded-full shadow-xl active:scale-90 transition-all"
+            style={{
+              width: 52, height: 52,
+              background: 'var(--accent-green)',
+              color: 'white',
+              border: '3px solid var(--bg-primary)',
+              marginBottom: -6,
+              transform: 'translateY(-10px)',
+            }}>
+            <Plus size={24} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        {/* Tabs derecha */}
+        {RIGHT_TABS.map((tab) => {
+          const active = pathname === tab.href
+          const Icon = tab.icon
+          return (
+            <Link key={tab.href} href={tab.href}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform pb-2"
+              style={{ textDecoration: 'none', color: active ? 'var(--text-primary)' : 'var(--text-muted)', height: 64 }}>
+              <div className="relative flex items-center justify-center">
+                <Icon size={21} strokeWidth={active ? 2.5 : 1.8} />
+                {active && (
+                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
+                    style={{ background: 'var(--accent-green)' }} />
+                )}
+              </div>
+              <span style={{ fontSize: 9, fontWeight: active ? 800 : 600, letterSpacing: '0.02em' }}>
+                {tab.label}
+              </span>
+            </Link>
+          )
+        })}
+
+        {/* Botón "Más" */}
         <button
           onClick={() => setShowMore(true)}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
-          style={{ color: showMore ? 'var(--text-primary)' : 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <div className="relative flex items-center justify-center">
-            <MoreHorizontal size={21} strokeWidth={1.8} />
-          </div>
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform pb-2"
+          style={{ color: showMore ? 'var(--text-primary)' : 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', height: 64 }}>
+          <MoreHorizontal size={21} strokeWidth={1.8} />
           <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.02em' }}>Más</span>
         </button>
       </nav>

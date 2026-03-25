@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(sed \"s/.*\\\\.from\\(''''//\")",
-      "Bash(sed \"s/''''.*//\")"
+      "Bash(sed \"s/''''.*//\")",
+      "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas -type f -name *.md -o -name *.sql)"
     ]
   }
 }

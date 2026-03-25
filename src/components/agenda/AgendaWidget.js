@@ -32,15 +32,27 @@ export default function AgendaWidget() {
         supabase.from('agenda_notas').select('*')
           .gte('fecha', hoyStr).lte('fecha', en7Str)
           .eq('completado', false).order('fecha').limit(5),
-        supabase.from('deudas').select('id,nombre,emoji,dia_pago,cuota,color').eq('estado', 'activa'),
+        supabase.from('deudas').select('id,nombre,emoji,dia_pago,cuota,color,fecha_primer_pago,plazo_meses').eq('estado', 'activa'),
       ])
       if (e1 || e2) return
 
       // Eventos automáticos de deudas en los próximos 7 días
+      const añoHoy = hoy.getFullYear()
+      const mesHoy = hoy.getMonth() // 0-indexed
       const eventosDeudas = (deudas || []).flatMap(d => {
-        const diasMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate()
+        if (d.fecha_primer_pago) {
+          const [fpAño, fpMes] = d.fecha_primer_pago.split('-').map(Number)
+          const currentIdx = añoHoy * 12 + mesHoy
+          const startIdx = fpAño * 12 + (fpMes - 1)
+          if (currentIdx < startIdx) return []
+          if (d.plazo_meses) {
+            const endIdx = startIdx + d.plazo_meses - 1
+            if (currentIdx > endIdx) return []
+          }
+        }
+        const diasMes = new Date(añoHoy, mesHoy + 1, 0).getDate()
         const dia = Math.min(d.dia_pago || 1, diasMes)
-        const fecha = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(dia)}`
+        const fecha = `${añoHoy}-${pad(mesHoy + 1)}-${pad(dia)}`
         if (fecha >= hoyStr && fecha <= en7Str) {
           return [{
             id: `auto-${d.id}`,

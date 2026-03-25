@@ -22,6 +22,7 @@ export const THEMES = {
     '--accent-rose': '#B85452',
     '--accent-violet': '#7060A8',
     '--accent-gold': '#B07830',
+    '--accent-danger': '#B03030',
     '--sidebar-bg': '#F2EBE2',
     '--sidebar-border': 'rgba(180,165,150,0.45)',
     '--progress-track': '#E3D8CC',
