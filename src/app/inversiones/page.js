@@ -321,84 +321,67 @@ export default function InversionesPage() {
       )}
 
       {/* Barra de presupuesto para inversiones */}
-      {presupuesto?.montoInversiones > 0 && (
-        <div className="glass-card p-5 mb-5 rounded-[32px] border border-[var(--border-glass)] overflow-hidden"
-          style={{ background: 'var(--bg-card)', backdropFilter: 'blur(20px)' }}>
+    v{presupuesto?.montoInversiones > 0 && (
+  <div className="glass-card p-5 mb-5 rounded-[32px] border border-[var(--border-glass)]"
+    style={{ background: 'var(--bg-card)', backdropFilter: 'blur(20px)' }}>
+    
+    {(() => {
+      const presupuestado = presupuesto.montoInversiones
+      const comprometido = totalAportes
+      const disponible = presupuestado - comprometido
+      const pct = Math.min(100, (comprometido / presupuestado) * 100)
+      const sobrePasado = comprometido > presupuestado
+      
+      return (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4 px-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>
+              Presupuesto Inversiones
+            </p>
+            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+              style={{ 
+                color: sobrePasado ? 'var(--accent-danger)' : 'var(--accent-green)',
+                background: sobrePasado ? 'color-mix(in srgb, var(--accent-danger) 15%, transparent)' : 'color-mix(in srgb, var(--accent-green) 15%, transparent)'
+              }}>
+              {pct.toFixed(0)}% usado
+            </span>
+          </div>
 
-          {(() => {
-            const presupuestado = presupuesto.montoInversiones
-            const comprometido = totalAportes
-            const disponible = presupuestado - comprometido
-            const pct = Math.min(100, (comprometido / presupuestado) * 100)
-            const sobrePasado = comprometido > presupuestado
+          {/* Barra de Progreso Minimalista - Usando tus variables de tema */}
+          <div className="relative w-full h-1.5 rounded-full mb-6" 
+               style={{ background: 'var(--progress-track)' }}>
+            <div className="h-full rounded-full transition-all duration-1000 ease-out"
+                 style={{ 
+                   width: `${pct}%`, 
+                   background: sobrePasado ? 'var(--accent-danger)' : 'var(--accent-main)',
+                   boxShadow: `0 2px 8px ${sobrePasado ? 'color-mix(in srgb, var(--accent-danger) 30%, transparent)' : 'color-mix(in srgb, var(--accent-main) 30%, transparent)'}`
+                 }} />
+          </div>
 
-            return (
-              <>
-                {/* Header del presupuesto */}
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>
-                    Presupuesto Inversiones
-                  </p>
-                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg"
-                    style={{
-                      color: sobrePasado ? 'var(--accent-rose)' : 'var(--accent-green)',
-                      background: sobrePasado ? 'color-mix(in srgb, var(--accent-rose) 10%, transparent)' : 'color-mix(in srgb, var(--accent-green) 10%, transparent)'
-                    }}>
-                    {pct.toFixed(0)}% usado
-                  </span>
-                </div>
-
-                {/* Barra de Progreso con Grosor Premium (h-3.5 = 14px) */}
-                <div className="relative w-full h-3.5 rounded-full mb-5 p-[2px] border border-[var(--border-glass)]"
-                  style={{ background: 'var(--bg-secondary)', boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.1)' }}>
-
-                  <div className="h-full rounded-full transition-all duration-1000 ease-out relative"
-                    style={{
-                      width: `${pct}%`,
-                      background: sobrePasado ? 'var(--accent-rose)' : 'var(--accent-violet)',
-                      boxShadow: `0 0 12px ${sobrePasado ? 'color-mix(in srgb, var(--accent-rose) 30%, transparent)' : 'color-mix(in srgb, var(--accent-violet) 30%, transparent)'}`
-                    }}>
-
-                    {/* Reflejo de cristal superior (opcional para estética premium) */}
-                    <div className="absolute top-0 left-0 right-0 h-[35%] bg-white/20 rounded-full mx-1.5 mt-[1px]" />
-                  </div>
-                </div>
-
-                {/* Grid de valores inferiores */}
-                <div className="grid grid-cols-3 gap-3 pt-1 border-t border-[var(--border-glass)]">
-                  {[
-                    {
-                      label: 'Presupuesto',
-                      val: formatCurrency(presupuestado),
-                      color: 'var(--text-muted)'
-                    },
-                    {
-                      label: 'Comprometido',
-                      val: formatCurrency(comprometido),
-                      color: 'var(--accent-violet)'
-                    },
-                    {
-                      label: disponible >= 0 ? 'Disponible' : 'Excedido',
-                      val: formatCurrency(Math.abs(disponible)),
-                      color: sobrePasado ? 'var(--accent-rose)' : 'var(--accent-green)'
-                    },
-                  ].map((s, i) => (
-                    <div key={i} className="flex flex-col">
-                      <p className="text-[9px] font-black uppercase tracking-[0.15em] mb-1 opacity-50"
-                        style={{ color: 'var(--text-muted)' }}>
-                        {s.label}
-                      </p>
-                      <p className="text-[12px] font-bold tracking-tight" style={{ color: s.color }}>
-                        {s.val}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )
-          })()}
-        </div>
-      )}
+          {/* Grid de valores CENTRADOS */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'Presupuesto', val: formatCurrency(presupuestado), color: 'var(--text-muted)' },
+              { label: 'Comprometido', val: formatCurrency(comprometido), color: 'var(--accent-violet)' }, // Mantenemos violeta solo aquí para identificar "Inversión"
+              { label: disponible >= 0 ? 'Disponible' : 'Excedido', val: formatCurrency(Math.abs(disponible)), color: sobrePasado ? 'var(--accent-danger)' : 'var(--accent-green)' },
+            ].map((s, i) => (
+              <div key={i} className="text-center">
+                <p className="text-[9px] font-black uppercase tracking-[0.1em] mb-1 opacity-60" 
+                   style={{ color: 'var(--text-muted)' }}>
+                  {s.label}
+                </p>
+                <p className="text-[12px] font-bold tracking-tight" style={{ color: s.color }}>
+                  {s.val}
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
+      )
+    })()}
+  </div>
+)}
       {/* Stats globales */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {[
