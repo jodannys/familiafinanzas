@@ -691,7 +691,7 @@ export default function InversionesPage() {
           <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="ff-label">Emoji</label>
-              <input className="ff-input text-center text-xl" maxLength={2}
+              <input className="ff-input text-center text-xl" maxLength={8}
                 value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))} />
             </div>
             <div className="col-span-3">

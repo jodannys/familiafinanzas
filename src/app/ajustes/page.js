@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
+import { getFlagEmoji } from '@/lib/utils'
 
 const BLOQUES = [
   { id: 'necesidades', nombre: 'Necesidades', color: 'var(--accent-blue)', Icon: Home },
@@ -535,7 +536,7 @@ export default function AjustesPage() {
                               </div>
                             </div>
                           ) : (
-                            <span className="flex-1 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                            <span className="flex-1 text-sm font-normal" style={{ color: 'var(--text-secondary)' }}>
                               {cat.nombre}
                             </span>
                           )}
@@ -755,7 +756,7 @@ export default function AjustesPage() {
                       {metas.map(m => (
                         <div key={m.id} className="flex items-center gap-2 px-3 py-2 border-t"
                           style={{ borderColor: 'var(--border-glass)' }}>
-                          <span className="text-sm">{m.emoji}</span>
+                          <span className="text-sm">{getFlagEmoji(m.emoji)}</span>
                           <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{m.nombre}</span>
                           <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-green)' }}>
                             {m.pct_mensual}%
@@ -794,7 +795,7 @@ export default function AjustesPage() {
                       {inversiones.map(inv => (
                         <div key={inv.id} className="flex items-center gap-2 px-3 py-2 border-t"
                           style={{ borderColor: 'var(--border-glass)' }}>
-                          <span className="text-sm">{inv.emoji}</span>
+                          <span className="text-sm">{getFlagEmoji(inv.emoji)}</span>
                           <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
                           {inv.aporte > 0 && (
                             <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-violet)' }}>

@@ -1515,7 +1515,7 @@ export default function DeudasPage() {
               <div className="grid grid-cols-4 gap-3">
                 <div>
                   <label className="ff-label">Emoji</label>
-                  <input className="ff-input text-center text-xl" maxLength={2}
+                  <input className="ff-input text-center text-xl" maxLength={8}
                     value={formTarjeta.emoji}
                     onChange={e => setFormTarjeta(p => ({ ...p, emoji: e.target.value }))} />
                 </div>
@@ -1574,7 +1574,7 @@ export default function DeudasPage() {
               <div className="grid grid-cols-4 gap-3">
                 <div>
                   <label className="ff-label">Emoji</label>
-                  <input className="ff-input text-center text-xl" maxLength={2}
+                  <input className="ff-input text-center text-xl" maxLength={8}
                     value={formPrestamo.emoji}
                     onChange={e => setFormPrestamo(p => ({ ...p, emoji: e.target.value }))} />
                 </div>
@@ -1739,7 +1739,7 @@ export default function DeudasPage() {
               <div className="grid grid-cols-4 gap-3">
                 <div>
                   <label className="ff-label">Emoji</label>
-                  <input className="ff-input text-center text-xl" maxLength={2}
+                  <input className="ff-input text-center text-xl" maxLength={8}
                     value={formCuota.emoji}
                     onChange={e => setFormCuota(p => ({ ...p, emoji: e.target.value }))} />
                 </div>
