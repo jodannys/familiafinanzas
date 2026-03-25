@@ -126,72 +126,93 @@ function FABModal({ onClose }) {
 
   return (
     <>
-      <div className="fixed inset-0 z-[110]" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={onClose} />
+      {/* Overlay más sutil */}
+      <div className="fixed inset-0 z-[110]"
+        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' }}
+        onClick={onClose} />
 
-      <div className="fixed bottom-0 left-0 right-0 z-[120] rounded-t-[40px] flex flex-col shadow-2xl overflow-hidden"
+      <div className="fixed bottom-0 left-0 right-0 z-[120] rounded-t-[32px] flex flex-col shadow-2xl overflow-hidden"
         style={{
-          background: 'color-mix(in srgb, var(--bg-card) 82%, transparent)',
-          backdropFilter: 'blur(28px)',
-          WebkitBackdropFilter: 'blur(28px)',
+          background: 'var(--bg-card)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
           border: '1px solid var(--border-glass)',
           borderBottom: 'none',
-          maxHeight: '94vh',
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
+          maxHeight: '92vh',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
         }}>
 
-        {/* Handle */}
-        <div className="flex justify-center pt-4 pb-2"><div className="w-12 h-1.5 rounded-full" style={{ background: 'var(--border-glass)' }} /></div>
-
-        {/* Cabecera */}
-        <div className="px-7 pb-4 flex items-center justify-between">
-          <p className="font-script text-[32px]" style={{ color: 'var(--text-primary)' }}>Registrar</p>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full transition-colors"
-            style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', border: 'none' }}><X size={20} /></button>
+        {/* Handle superior */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full opacity-20" style={{ background: 'var(--text-primary)' }} />
         </div>
 
-        <div className="px-7 space-y-6 pt-2 overflow-y-auto flex-1 custom-scrollbar">
+        {/* Cabecera compacta */}
+        {/* Cabecera compacta con más aire */}
+        <div className="px-6 pb-4 flex items-center justify-between shrink-0">
+          <div className="flex flex-col">
+            <p className="font-script text-[32px] mb-1"
+              style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>
+              Registrar
+            </p>
+            <p className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-black"
+              style={{ marginLeft: '2px' }}>
+              Nuevo movimiento
+            </p>
+          </div>
 
-          {/* Selector de Tipo Segmentado */}
-          <div className="flex p-1.5 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+          <button onClick={onClose}
+            className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
+            style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', border: 'none' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="px-6 space-y-5 pt-2 overflow-y-auto flex-1 no-scrollbar">
+
+          {/* Selector de Tipo (Gasto/Ingreso) */}
+          <div className="flex p-1 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
             {[
               { id: 'egreso', label: 'Gasto', icon: ArrowDownRight, color: 'var(--accent-rose)' },
               { id: 'ingreso', label: 'Ingreso', icon: ArrowUpRight, color: 'var(--accent-green)' },
             ].map(t => (
-              <button key={t.id} onClick={() => { setTipo(t.id); setMonto(''); setSelectedItem(null); setMetodoPago('efectivo'); setNumCuotas(1); setSelectedPerfil(null) }}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] font-bold text-sm transition-all duration-300"
+              <button key={t.id}
+                onClick={() => { setTipo(t.id); setMonto(''); setSelectedItem(null); setMetodoPago('efectivo'); setNumCuotas(1); setSelectedPerfil(null) }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[12px] font-bold text-[13px] transition-all"
                 style={{
                   background: tipo === t.id ? 'var(--bg-card)' : 'transparent',
                   color: tipo === t.id ? t.color : 'var(--text-muted)',
-                  boxShadow: tipo === t.id ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
+                  boxShadow: tipo === t.id ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
                 }}>
-                <t.icon size={16} strokeWidth={2.5} /> {t.label}
+                <t.icon size={14} strokeWidth={2.5} /> {t.label}
               </button>
             ))}
           </div>
 
-          {/* Monto Heroico */}
-          <div className="flex flex-col items-center py-6 rounded-3xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-2 opacity-40">Monto del movimiento</p>
-            <div className="flex items-center gap-1">
-              <span className="text-3xl font-serif font-light opacity-50">$</span>
+          {/* Monto Heroico más estilizado */}
+          <div className="flex flex-col items-center py-5 rounded-2xl"
+            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-1 opacity-30">Cantidad</p>
+            <div className="flex items-center justify-center w-full px-4">
+              <span className="text-2xl font-serif opacity-30 mr-1">$</span>
               <input type="number" inputMode="decimal" placeholder="0.00" value={monto} onChange={e => setMonto(e.target.value)}
-                autoFocus className="bg-transparent border-none outline-none text-5xl font-serif font-bold text-center w-full max-w-[220px]"
+                autoFocus className="bg-transparent border-none outline-none text-4xl font-serif font-bold text-center w-full"
                 style={{ color: tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-primary)' }} />
             </div>
           </div>
 
-          {/* Categorías */}
+          {/* Categorías (Chips) */}
           {tipo === 'egreso' && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider mb-3 px-1 opacity-50">Categoría</p>
-              <div className="flex flex-wrap gap-2.5">
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 px-1">Categoría</p>
+              <div className="flex flex-wrap gap-1.5">
                 {CATS_EGRESO.map(c => (
                   <button key={c.id} onClick={() => setCat(c.id)}
-                    className="px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all"
+                    className="px-3.5 py-2 rounded-xl text-[10px] font-bold transition-all border"
                     style={{
-                      background: cat === c.id ? c.color : 'var(--bg-secondary)',
+                      background: cat === c.id ? c.color : 'transparent',
                       color: cat === c.id ? 'white' : 'var(--text-muted)',
-                      boxShadow: cat === c.id ? `0 4px 15px color-mix(in srgb, ${c.color} 30%, transparent)` : 'none',
+                      borderColor: cat === c.id ? 'transparent' : 'var(--border-glass)',
                     }}> {c.label} </button>
                 ))}
               </div>
@@ -200,50 +221,50 @@ function FABModal({ onClose }) {
 
           {/* Métodos de Pago */}
           {tipo === 'egreso' && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider mb-3 px-1 opacity-50">Método de pago</p>
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 px-1">Método de pago</p>
               <div className="grid grid-cols-4 gap-2">
                 {METODOS_PAGO.map(m => {
                   const sel = metodoPago === m.id
                   return (
                     <button key={m.id} onClick={() => { setMetodoPago(m.id); setSelectedPerfil(null); setNumCuotas(1) }}
-                      className="py-3 rounded-2xl text-[10px] font-bold transition-all flex flex-col items-center"
+                      className="py-2.5 rounded-xl text-[10px] font-black transition-all border"
                       style={{
-                        background: sel ? 'var(--bg-card)' : 'var(--bg-secondary)',
+                        background: sel ? 'var(--bg-card)' : 'transparent',
                         color: sel ? m.color : 'var(--text-muted)',
-                        border: `1.5px solid ${sel ? m.color : 'transparent'}`
+                        borderColor: sel ? m.color : 'var(--border-glass)'
                       }}> {m.short} </button>
                   )
                 })}
               </div>
 
-              {/* Tarjetas de Crédito */}
+              {/* Lógica de Tarjetas de Crédito (INTACTA) */}
               {metodoPago === 'tarjeta_credito' && (
-                <div className="mt-4 p-4 rounded-3xl space-y-2" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
-                  {loadingPerf ? <div className="flex justify-center py-2"><Loader2 size={16} className="animate-spin opacity-50" /></div> :
+                <div className="mt-3 p-3 rounded-2xl space-y-2 border border-dashed" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-glass)' }}>
+                  {loadingPerf ? <div className="flex justify-center py-2"><Loader2 size={16} className="animate-spin opacity-30" /></div> :
                     perfilesTarj.map(t => {
                       const isSel = selectedPerfil?.id === t.id
                       return (
                         <button key={t.id} onClick={() => setSelectedPerfil(isSel ? null : t)}
-                          className="w-full flex items-center gap-3 p-3 rounded-2xl transition-all"
+                          className="w-full flex items-center gap-3 p-2.5 rounded-xl transition-all"
                           style={{ background: isSel ? 'var(--bg-card)' : 'transparent', border: isSel ? '1px solid var(--accent-rose)' : '1px solid transparent' }}>
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
-                            <CreditCard size={18} style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-muted)' }} />
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5">
+                            <CreditCard size={14} style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-muted)' }} />
                           </div>
                           <div className="flex-1 text-left">
-                            <p className="text-xs font-bold">{t.nombre_tarjeta}</p>
-                            <p className="text-[9px] opacity-50">{t.banco || 'Tarjeta'}</p>
+                            <p className="text-[11px] font-bold">{t.nombre_tarjeta}</p>
+                            <p className="text-[9px] opacity-40">{t.banco || 'Tarjeta'}</p>
                           </div>
                           {isSel && <Check size={14} className="text-[var(--accent-rose)]" />}
                         </button>
                       )
                     })}
                   {selectedPerfil && (
-                    <div className="flex items-center gap-3 pt-2">
-                      <p className="text-[10px] font-bold opacity-50">CUOTAS:</p>
+                    <div className="flex items-center gap-3 pt-2 px-1 border-t border-white/5">
+                      <p className="text-[9px] font-bold opacity-40">CUOTAS:</p>
                       <input type="number" min="1" value={numCuotas} onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="ff-input text-center font-bold" style={{ width: 60, color: 'var(--accent-rose)', padding: '5px' }} />
-                      <p className="text-[10px] opacity-70 flex-1">{numCuotas > 1 ? `${numCuotas}x ${formatCurrency(parseFloat(monto || 0) / numCuotas)}` : 'Contado'}</p>
+                        className="bg-black/10 rounded-lg text-center font-bold text-xs p-1" style={{ width: 45, color: 'var(--accent-rose)', border: 'none' }} />
+                      <p className="text-[9px] opacity-60 font-medium">{numCuotas > 1 ? `${numCuotas}x ${formatCurrency(parseFloat(monto || 0) / numCuotas)}` : 'Pago único'}</p>
                     </div>
                   )}
                 </div>
@@ -251,22 +272,26 @@ function FABModal({ onClose }) {
             </div>
           )}
 
-          {/* Vínculo a Metas/Deudas (SPECIAL_CATS) */}
+          {/* Vínculo a Metas/Deudas (Lógica INTEL INTACTA) */}
           {tipo === 'egreso' && SPECIAL_CATS.includes(cat) && items.length > 0 && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider mb-3 px-1 opacity-50">Vincular a:</p>
-              <div className="space-y-2">
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 px-1">Vincular a {cat === 'ahorro' ? 'Meta' : 'Deuda'}</p>
+              <div className="grid gap-2">
                 {items.map(item => {
                   const isSelected = selectedItem?.id === item.id
                   const color = cat === 'ahorro' ? 'var(--accent-green)' : cat === 'inversion' ? 'var(--accent-violet)' : 'var(--accent-rose)'
                   return (
-                    <button key={item.id} onClick={() => { setSelectedItem(isSelected ? null : item); if (!isSelected && cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString()) }}
-                      className="w-full flex items-center gap-3 p-3 rounded-2xl transition-all"
-                      style={{ background: isSelected ? `color-mix(in srgb, ${color} 10%, var(--bg-secondary))` : 'var(--bg-secondary)', border: `1px solid ${isSelected ? color : 'transparent'}` }}>
-                      <span className="text-lg">{item.emoji}</span>
+                    <button key={item.id}
+                      onClick={() => { setSelectedItem(isSelected ? null : item); if (!isSelected && cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString()) }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl transition-all border"
+                      style={{
+                        background: isSelected ? 'var(--bg-card)' : 'transparent',
+                        borderColor: isSelected ? color : 'var(--border-glass)'
+                      }}>
+                      <span className="text-base">{item.emoji}</span>
                       <div className="flex-1 text-left">
-                        <p className="text-xs font-bold">{item.nombre}</p>
-                        <p className="text-[9px] opacity-50">{cat === 'deuda' ? `Pendiente: ${formatCurrency(item.pendiente)}` : `Meta: ${formatCurrency(item.meta || 0)}`}</p>
+                        <p className="text-[11px] font-bold">{item.nombre}</p>
+                        <p className="text-[9px] opacity-40">{cat === 'deuda' ? `Pendiente: ${formatCurrency(item.pendiente)}` : `Meta: ${formatCurrency(item.meta || 0)}`}</p>
                       </div>
                       {isSelected && <Check size={14} style={{ color }} />}
                     </button>
@@ -277,30 +302,28 @@ function FABModal({ onClose }) {
           )}
 
           {/* Descripción */}
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider mb-2 px-1 opacity-50">Descripción <span className="lowercase font-normal opacity-70">(opcional)</span></p>
-            <input type="text" placeholder="Ej: Supermercado, Alquiler..." value={desc} onChange={e => setDesc(e.target.value)}
-              className="ff-input" />
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 px-1">Descripción</p>
+            <input type="text" placeholder="Ej: Supermercado..." value={desc} onChange={e => setDesc(e.target.value)}
+              className="ff-input !py-3 !text-xs !rounded-xl" />
           </div>
 
-          {/* Botón Guardar */}
+          {/* Botón Guardar (DINÁMICO CON TEMA) */}
           <div className="pt-2">
             <button
               onClick={guardar}
               disabled={!monto || parseFloat(monto) <= 0 || saving}
-              className="w-full py-5 rounded-3xl font-bold text-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-xl"
+              className="w-full py-4 rounded-2xl font-bold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-[0.97] shadow-xl"
               style={{
                 background: (!monto || parseFloat(monto) <= 0)
                   ? 'var(--bg-secondary)'
-                  : tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-terra)',
+                  : tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-main)',
                 color: (!monto || parseFloat(monto) <= 0) ? 'var(--text-muted)' : '#fff',
               }}>
-              {saving ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
+              {saving ? <Loader2 size={18} className="animate-spin" /> : (
                 <>
-                  {tipo === 'egreso' && metodoPago === 'tarjeta_credito' ? <CreditCard size={18} /> : <Plus size={18} />}
-                  <span>Registrar {tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}</span>
+                  {tipo === 'egreso' && metodoPago === 'tarjeta_credito' ? <CreditCard size={16} /> : <Plus size={16} />}
+                  <span>Confirmar {tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}</span>
                 </>
               )}
             </button>
@@ -362,7 +385,7 @@ export default function AppShell({ children }) {
           </div>
         </div>
 
-<div className="relative z-10 p-4 md:p-10 lg:p-12 max-w-[1600px] mx-auto w-full flex-1 pb-24 lg:pb-12">
+        <div className="relative z-10 p-4 md:p-10 lg:p-12 max-w-[1600px] mx-auto w-full flex-1 pb-24 lg:pb-12">
           {children}
         </div>
       </main>
