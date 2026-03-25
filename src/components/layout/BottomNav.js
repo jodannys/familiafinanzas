@@ -14,9 +14,9 @@ const LEFT_TABS = [
 ]
 const RIGHT_TABS = [
   { href: '/agenda', label: 'Agenda', icon: CalendarDays },
-  { href: '/presupuesto', label: 'Presup.', icon: PieChart },
 ]
 const MORE_ITEMS = [
+  { href: '/presupuesto', label: 'Presup.', icon: PieChart },
   { href: '/metas', label: 'Metas', icon: Target },
   { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
   { href: '/sobres', label: 'Sobres', icon: Wallet },

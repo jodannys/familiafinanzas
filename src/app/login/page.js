@@ -2,25 +2,26 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, signIn } from '@/lib/supabase'
-import { Loader2, Eye, EyeOff, ArrowLeft, Mail, CheckCircle } from 'lucide-react'
+import { Loader2, Eye, EyeOff, ArrowLeft, Mail, CheckCircle, Lock, UserCircle2, Fingerprint } from 'lucide-react'
 
 function LoginContent() {
-  const router       = useRouter()
+  const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [mode,     setMode]     = useState('login')   // 'login' | 'recover' | 'reset' | 'nombre'
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [newPwd,   setNewPwd]   = useState('')
-  const [showPwd,  setShowPwd]  = useState(false)
-  const [loading,  setLoading]  = useState(false)
+  const [mode, setMode] = useState('login') // 'login' | 'recover' | 'reset' | 'nombre'
+  const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
-  const [error,    setError]    = useState('')
-  const [sent,     setSent]     = useState(false)
-  const [nombre,   setNombre]   = useState('')
+  const [error, setError] = useState('')
+  const [sent, setSent] = useState(false)
+  const [passkeySupported, setPasskeySupported] = useState(false)
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [newPwd, setNewPwd] = useState('')
+  const [nombre, setNombre] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
 
   useEffect(() => {
-    // Si Supabase redirige con type=recovery (enlace del email)
     supabase.auth.getSession().then(({ data: { session } }) => {
       const type = searchParams.get('type')
       if (type === 'recovery' && session) {
@@ -33,23 +34,52 @@ function LoginContent() {
       }
     })
 
-    // Escuchar el evento de recovery
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setMode('reset')
     })
+
+    // Detectar soporte de passkeys/biometría en el dispositivo
+    if (typeof window !== 'undefined' && window.PublicKeyCredential) {
+      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        .then(available => setPasskeySupported(available))
+        .catch(() => setPasskeySupported(false))
+    }
+
     return () => subscription.unsubscribe()
-  }, [])
+  }, [searchParams, router])
 
   async function handleLogin(e) {
     e.preventDefault()
     if (!email || !password) return
     setLoading(true); setError('')
     const { data, error } = await signIn(email.trim(), password)
-    if (error) { setError('Correo o contraseña incorrectos'); setLoading(false) }
-    else {
+    if (error) {
+      setError('Credenciales no válidas')
+      setLoading(false)
+    } else {
       const nombreGuardado = data?.user?.user_metadata?.nombre
       if (!nombreGuardado) { setLoading(false); setMode('nombre') }
       else router.replace('/')
+    }
+  }
+
+  async function handleBiometricLogin() {
+    setLoading(true)
+    setError('')
+    try {
+      const { data, error } = await supabase.auth.signInWithPasskey({
+        email: email.trim() || undefined,
+      })
+      if (error) throw error
+      if (data?.user) {
+        const nombreGuardado = data.user.user_metadata?.nombre
+        if (!nombreGuardado) setMode('nombre')
+        else router.replace('/')
+      }
+    } catch (err) {
+      setError('Huella no disponible. Inicia sesión con contraseña primero para registrarla.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -71,7 +101,7 @@ function LoginContent() {
     setLoading(true); setError('')
     const { error } = await supabase.auth.updateUser({ password: newPwd })
     setLoading(false)
-    if (error) setError('No se pudo cambiar la contraseña')
+    if (error) setError('No se pudo actualizar la contraseña')
     else router.replace('/')
   }
 
@@ -81,48 +111,13 @@ function LoginContent() {
     setLoading(true); setError('')
     const { error } = await supabase.auth.updateUser({ data: { nombre: nombre.trim() } })
     setLoading(false)
-    if (error) setError('No se pudo guardar el nombre')
+    if (error) setError('Error al guardar el perfil')
     else router.replace('/')
   }
 
-  if (mode === 'nombre') return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ background: 'var(--bg-primary)' }}>
-      <div className="w-full max-w-sm">
-        <p className="font-script text-center mb-1" style={{ fontSize: 32, color: 'var(--text-primary)' }}>
-          Familia Quintero
-        </p>
-        <p className="text-center text-sm mb-8" style={{ color: 'var(--text-muted)' }}>
-          ¿Cómo te llamas?
-        </p>
-        <form onSubmit={handleGuardarNombre} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Tu nombre"
-            value={nombre}
-            onChange={e => setNombre(e.target.value)}
-            autoFocus
-            className="ff-input w-full text-center text-lg font-semibold"
-            style={{ color: 'var(--text-primary)' }}
-          />
-          {error && <p className="text-xs text-center" style={{ color: 'var(--accent-rose)' }}>{error}</p>}
-          <button type="submit" disabled={!nombre.trim() || loading}
-            className="w-full py-4 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2"
-            style={{
-              background: nombre.trim() ? 'var(--text-primary)' : 'var(--bg-secondary)',
-              color: nombre.trim() ? 'var(--bg-card)' : 'var(--text-muted)',
-              border: 'none', cursor: 'pointer',
-            }}>
-            {loading ? <Loader2 size={16} className="animate-spin" /> : 'Continuar →'}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
-
   if (checking) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-      <Loader2 size={24} className="animate-spin" style={{ color: 'var(--accent-main)' }} />
+      <Loader2 size={32} className="animate-spin opacity-20" style={{ color: 'var(--text-primary)' }} />
     </div>
   )
 
@@ -130,186 +125,173 @@ function LoginContent() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden"
       style={{ background: 'var(--bg-primary)' }}>
 
-      {/* Fondos decorativos */}
-      <div style={{
-        position: 'fixed', top: '-10%', right: '-10%',
-        width: 500, height: 500, borderRadius: '50%',
-        background: 'radial-gradient(circle, var(--accent-main) 0%, transparent 70%)',
-        opacity: 0.1, pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'fixed', bottom: '-10%', left: '-10%',
-        width: 400, height: 400, borderRadius: '50%',
-        background: 'radial-gradient(circle, var(--accent-green) 0%, transparent 70%)',
-        opacity: 0.08, pointerEvents: 'none',
-      }} />
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-10 blur-[100px]"
+        style={{ background: 'var(--accent-main)' }} />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full opacity-5 blur-[100px]"
+        style={{ background: 'var(--accent-green)' }} />
 
       <div className="w-full max-w-sm relative z-10">
+        <div className="border rounded-[40px] p-8 shadow-2xl"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
 
-        {/* Logo + nombre */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 shadow-lg"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
-            <img src="/icon.svg" alt="Logo" className="w-9 h-9" />
+          {/* Header */}
+          <div className="flex flex-col items-center mb-8 text-center">
+            <div className="w-20 h-20 rounded-[28px] flex items-center justify-center mb-6 shadow-xl"
+              style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-glass)' }}>
+              <img src="/icon.svg" alt="Logo" className="w-10 h-10" />
+            </div>
+            <h1 className="font-script text-[38px] leading-none mb-2" style={{ color: 'var(--text-primary)' }}>
+              Familia Quintero
+            </h1>
+            <p className="text-[10px] uppercase tracking-[0.25em] font-black opacity-40">
+              {mode === 'recover' ? 'Seguridad' : mode === 'reset' ? 'Nueva Clave' : mode === 'nombre' ? 'Bienvenida' : 'Finanzas Familiares'}
+            </p>
           </div>
-          <p className="font-script mb-1" style={{ fontSize: 36, color: 'var(--text-primary)', lineHeight: 1.1 }}>
-            Familia Quintero
-          </p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {mode === 'recover' ? 'Recuperar acceso' : mode === 'reset' ? 'Nueva contraseña' : 'Finanzas familiares'}
-          </p>
+
+          {/* ── LOGIN ── */}
+          {mode === 'login' && (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
+                <input type="email" placeholder="nombre@familia.com"
+                  value={email} onChange={e => setEmail(e.target.value)}
+                  className="ff-input w-full" autoFocus />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
+                <div className="relative">
+                  <input type={showPwd ? 'text' : 'password'} placeholder="••••••••"
+                    value={password} onChange={e => setPassword(e.target.value)}
+                    className="ff-input w-full pr-12" />
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
+                    {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">
+                  {error}
+                </div>
+              )}
+
+              <button type="submit" disabled={loading || !email || !password}
+                className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
+                style={{
+                  background: email && password ? 'var(--text-primary)' : 'var(--bg-secondary)',
+                  color: email && password ? 'var(--bg-card)' : 'var(--text-muted)',
+                }}>
+                {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Entrar'}
+              </button>
+
+
+              <button type="button" onClick={() => { setMode('recover'); setError('') }}
+                className="w-full text-center text-[11px] font-bold opacity-30 hover:opacity-100 transition-opacity py-2 uppercase tracking-tighter">
+                ¿Olvidaste tu contraseña?
+              </button>
+            </form>
+          )}
+
+          {/* ── RECOVER ── */}
+          {mode === 'recover' && (
+            <form onSubmit={handleRecover} className="space-y-4">
+              {sent ? (
+                <div className="flex flex-col items-center gap-6 py-4 text-center">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center bg-green-500/10">
+                    <CheckCircle size={40} style={{ color: 'var(--accent-green)' }} />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>Enlace Enviado</h2>
+                    <p className="text-[12px] opacity-60 leading-relaxed px-4">Revisa <span className="font-bold">{email}</span> para restablecer tu acceso.</p>
+                  </div>
+                  <button type="button" onClick={() => { setMode('login'); setSent(false) }}
+                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-all mt-4">
+                    <ArrowLeft size={14} /> Volver
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="p-4 rounded-2xl text-[11px] font-medium leading-relaxed mb-2 border"
+                    style={{ background: 'color-mix(in srgb, var(--accent-blue) 5%, transparent)', borderColor: 'color-mix(in srgb, var(--accent-blue) 15%, transparent)', color: 'var(--text-secondary)' }}>
+                    Escribe tu email para recibir un enlace de recuperación.
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
+                    <input type="email" placeholder="tu-correo@familia.com" value={email}
+                      onChange={e => setEmail(e.target.value)} className="ff-input w-full" autoFocus />
+                  </div>
+                  {error && <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>}
+                  <button type="submit" disabled={loading || !email}
+                    className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
+                    style={{ background: email ? 'var(--text-primary)' : 'var(--bg-secondary)', color: email ? 'var(--bg-card)' : 'var(--text-muted)' }}>
+                    {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : <><Mail size={16} className="mr-2 inline" />Enviar Enlace</>}
+                  </button>
+                  <button type="button" onClick={() => { setMode('login'); setError('') }}
+                    className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-30 py-4 hover:opacity-100 transition-opacity">
+                    <ArrowLeft size={12} /> Cancelar
+                  </button>
+                </>
+              )}
+            </form>
+          )}
+
+          {/* ── RESET ── */}
+          {mode === 'reset' && (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="p-4 rounded-2xl text-[11px] font-medium mb-2 text-center"
+                style={{ background: 'color-mix(in srgb, var(--accent-green) 5%, transparent)', color: 'var(--text-secondary)' }}>
+                Establece una nueva contraseña segura.
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Nueva Contraseña</label>
+                <div className="relative">
+                  <input type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
+                    value={newPwd} onChange={e => setNewPwd(e.target.value)}
+                    className="ff-input w-full pr-12" autoFocus />
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
+                    {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+              {error && <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>}
+              <button type="submit" disabled={loading || newPwd.length < 6}
+                className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
+                style={{ background: newPwd.length >= 6 ? 'var(--accent-green)' : 'var(--bg-secondary)', color: 'white' }}>
+                {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Actualizar Contraseña'}
+              </button>
+            </form>
+          )}
+
+          {/* ── NOMBRE (ONBOARDING) ── */}
+          {mode === 'nombre' && (
+            <form onSubmit={handleGuardarNombre} className="space-y-6">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
+                  style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)', color: 'var(--accent-blue)' }}>
+                  <UserCircle2 size={40} strokeWidth={1.5} />
+                </div>
+                <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>¡Bienvenido!</h2>
+                <p className="text-[12px] opacity-60 leading-relaxed">¿Cómo quieres que te llamemos?</p>
+              </div>
+              <input type="text" placeholder="Tu nombre..." value={nombre}
+                onChange={e => setNombre(e.target.value)}
+                className="ff-input w-full text-center text-lg font-bold" autoFocus />
+              {error && <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>}
+              <button type="submit" disabled={loading || !nombre.trim()}
+                className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                style={{ background: nombre.trim() ? 'var(--text-primary)' : 'var(--bg-secondary)', color: nombre.trim() ? 'var(--bg-card)' : 'var(--text-muted)' }}>
+                {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Comenzar →'}
+              </button>
+            </form>
+          )}
         </div>
 
-        {/* ── LOGIN ── */}
-        {mode === 'login' && (
-          <form onSubmit={handleLogin} className="space-y-3">
-            <div>
-              <label className="ff-label" style={{ marginLeft: 4 }}>Correo</label>
-              <input type="email" autoComplete="email" placeholder="correo@ejemplo.com"
-                value={email} onChange={e => setEmail(e.target.value)}
-                className="ff-input w-full" style={{ fontSize: 15 }} autoFocus />
-            </div>
-            <div>
-              <label className="ff-label" style={{ marginLeft: 4 }}>Contraseña</label>
-              <div className="relative">
-                <input type={showPwd ? 'text' : 'password'} autoComplete="current-password"
-                  placeholder="••••••••" value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="ff-input w-full pr-12" style={{ fontSize: 15 }} />
-                <button type="button" onClick={() => setShowPwd(v => !v)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2"
-                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}>
-                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-xs text-center px-3 py-2 rounded-xl"
-                style={{ color: 'var(--accent-rose)', background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)' }}>
-                {error}
-              </p>
-            )}
-
-            <button type="submit" disabled={loading || !email || !password}
-              className="w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all"
-              style={{
-                background: email && password ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                color:      email && password ? 'var(--bg-card)'      : 'var(--text-muted)',
-                border: 'none', cursor: email && password ? 'pointer' : 'not-allowed', fontSize: 15,
-              }}>
-              {loading ? <Loader2 size={16} className="animate-spin" /> : 'Entrar'}
-            </button>
-
-            <button type="button" onClick={() => { setMode('recover'); setError('') }}
-              className="w-full text-center text-xs py-2 transition-all"
-              style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-              ¿Olvidaste la contraseña?
-            </button>
-          </form>
-        )}
-
-        {/* ── RECUPERAR ── */}
-        {mode === 'recover' && (
-          <form onSubmit={handleRecover} className="space-y-3">
-            {sent ? (
-              <div className="flex flex-col items-center gap-4 py-4">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center"
-                  style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)' }}>
-                  <CheckCircle size={28} style={{ color: 'var(--accent-green)' }} />
-                </div>
-                <div className="text-center">
-                  <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
-                    Enlace enviado
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    Revisa el correo <strong>{email}</strong> y haz clic en el enlace para restablecer tu contraseña.
-                  </p>
-                </div>
-                <button type="button" onClick={() => { setMode('login'); setSent(false) }}
-                  className="flex items-center gap-1.5 text-xs font-semibold"
-                  style={{ color: 'var(--accent-main)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  <ArrowLeft size={13} /> Volver al inicio
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="px-3 py-3 rounded-xl text-xs"
-                  style={{ background: 'color-mix(in srgb, var(--accent-blue) 8%, transparent)', color: 'var(--text-secondary)' }}>
-                  Escribe tu correo y te enviaremos un enlace para restablecer la contraseña.
-                </div>
-                <div>
-                  <label className="ff-label" style={{ marginLeft: 4 }}>Correo</label>
-                  <input type="email" autoComplete="email" placeholder="correo@ejemplo.com"
-                    value={email} onChange={e => setEmail(e.target.value)}
-                    className="ff-input w-full" style={{ fontSize: 15 }} autoFocus />
-                </div>
-                {error && (
-                  <p className="text-xs text-center px-3 py-2 rounded-xl"
-                    style={{ color: 'var(--accent-rose)', background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)' }}>
-                    {error}
-                  </p>
-                )}
-                <button type="submit" disabled={loading || !email}
-                  className="w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all"
-                  style={{
-                    background: email ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                    color:      email ? 'var(--bg-card)'      : 'var(--text-muted)',
-                    border: 'none', cursor: email ? 'pointer' : 'not-allowed', fontSize: 15,
-                  }}>
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : <><Mail size={15} /> Enviar enlace</>}
-                </button>
-                <button type="button" onClick={() => { setMode('login'); setError('') }}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs py-2"
-                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  <ArrowLeft size={13} /> Volver
-                </button>
-              </>
-            )}
-          </form>
-        )}
-
-        {/* ── RESET NUEVA CONTRASEÑA ── */}
-        {mode === 'reset' && (
-          <form onSubmit={handleResetPassword} className="space-y-3">
-            <div className="px-3 py-3 rounded-xl text-xs"
-              style={{ background: 'color-mix(in srgb, var(--accent-green) 8%, transparent)', color: 'var(--text-secondary)' }}>
-              Elige una nueva contraseña para tu cuenta familiar.
-            </div>
-            <div>
-              <label className="ff-label" style={{ marginLeft: 4 }}>Nueva contraseña</label>
-              <div className="relative">
-                <input type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
-                  value={newPwd} onChange={e => setNewPwd(e.target.value)}
-                  className="ff-input w-full pr-12" style={{ fontSize: 15 }} autoFocus />
-                <button type="button" onClick={() => setShowPwd(v => !v)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2"
-                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}>
-                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            {error && (
-              <p className="text-xs text-center px-3 py-2 rounded-xl"
-                style={{ color: 'var(--accent-rose)', background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)' }}>
-                {error}
-              </p>
-            )}
-            <button type="submit" disabled={loading || newPwd.length < 6}
-              className="w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all"
-              style={{
-                background: newPwd.length >= 6 ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                color:      newPwd.length >= 6 ? 'var(--bg-card)'      : 'var(--text-muted)',
-                border: 'none', cursor: newPwd.length >= 6 ? 'pointer' : 'not-allowed', fontSize: 15,
-              }}>
-              {loading ? <Loader2 size={16} className="animate-spin" /> : 'Guardar contraseña'}
-            </button>
-          </form>
-        )}
-
-        <p className="text-center text-[10px] mt-8" style={{ color: 'var(--text-muted)' }}>
-          Solo para uso familiar · Familia Quintero
-        </p>
+        <div className="flex items-center justify-center gap-2 mt-10 opacity-30">
+          <Lock size={10} />
+          <p className="text-[9px] font-black uppercase tracking-[0.4em]">Acceso Privado · 2026</p>
+        </div>
       </div>
     </div>
   )
@@ -319,7 +301,7 @@ export default function LoginPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--accent-main)' }} />
+        <Loader2 size={32} className="animate-spin opacity-20" style={{ color: 'var(--text-primary)' }} />
       </div>
     }>
       <LoginContent />
