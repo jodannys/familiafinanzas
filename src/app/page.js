@@ -166,7 +166,7 @@ export default function Dashboard() {
 
       {/* ── Header ── */}
       <div className="mb-7 animate-enter">
-        <p className="text-[5px] uppercase tracking-widest font-semibold mb-0.5" style={{ fontSize: 8, color: 'var(--text-muted)' }}>
+        <p className="text-[5px] uppercase tracking-widest font-semibold mb-0.5" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
         <h1
@@ -237,47 +237,54 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
-        {[
-          { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', Icon: ArrowUpRight, signo: '+', pct: 100 },
-          { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', Icon: ArrowDownRight, signo: '-', pct: pctGastos },
-          { label: 'Futuro', val: ahorroMes, col: 'var(--accent-terra)', Icon: Target, signo: '', pct: pctAhorro },
-          { label: 'Disponible', val: saldoLibre, col: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', Icon: Wallet, signo: '', pct: pctDisp },
-        ].map((k, i) => (
-          <div key={i} className="animate-enter"
-            style={{
-              background: 'color-mix(in srgb, var(--bg-card) 70%, transparent)',
-              backdropFilter: 'blur(14px)',
-              WebkitBackdropFilter: 'blur(14px)',
-              borderRadius: 24, padding: '18px 18px 14px',
-              minHeight: 118, border: '1px solid var(--border-glass)',
-              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-              animationDelay: `${i * 0.06}s`,
-            }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-muted)' }}>
-                {k.label}
-              </span>
-              <div style={{
-                width: 26, height: 26, borderRadius: 9, flexShrink: 0,
-                background: `color-mix(in srgb, ${k.col} 12%, transparent)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <k.Icon size={12} style={{ color: k.col }} strokeWidth={2.5} />
-              </div>
-            </div>
-            <div>
-              <p className="font-serif" style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8 }}>
-                <span style={{ marginRight: '6px' }}>{k.signo}</span>{formatCurrency(Math.abs(k.val))}
-              </p>
-              <div style={{ height: 3, borderRadius: 999, background: `color-mix(in srgb, ${k.col} 12%, transparent)`, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${k.pct}%`, background: k.col, borderRadius: 999 }} />
-              </div>
-            </div>
-          </div>
-        ))}
+     {/* ── KPIs ── */}
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
+  {[
+    { label: 'Ingresos',   val: ingresosMes, col: 'var(--accent-green)',  Icon: ArrowUpRight,   signo: '+', pct: 100 },
+    { label: 'Gastos',     val: gastosMes,   col: 'var(--accent-rose)',   Icon: ArrowDownRight, signo: '-', pct: pctGastos },
+    { label: 'Futuro',     val: ahorroMes,   col: 'var(--accent-gold)',   Icon: Target,         signo: '',  pct: pctAhorro },
+    { label: 'Disponible', val: saldoLibre,  col: saldoLibre >= 0 ? 'var(--accent-blue)' : 'var(--accent-danger)', Icon: Wallet, signo: '', pct: pctDisp },
+  ].map((k, i) => (
+    <div key={i} className="animate-enter"
+      style={{
+        background: 'var(--bg-card)',
+        borderRadius: 24,
+        padding: '18px 18px 14px',
+        minHeight: 118,
+        border: '1px solid var(--border-glass)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        animationDelay: `${i * 0.06}s`,
+      }}>
+
+      {/* Label e Icono */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-muted)' }}>
+          {k.label}
+        </span>
+        <div style={{
+          width: 26, height: 26, borderRadius: 9, flexShrink: 0,
+          background: `color-mix(in srgb, ${k.col} 14%, transparent)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <k.Icon size={12} style={{ color: k.col }} strokeWidth={2.5} />
+        </div>
       </div>
+
+      {/* Monto y barra */}
+      <div>
+        <p style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 8, color: k.col }}>
+          {k.signo && <span style={{ marginRight: 3, opacity: 0.5 }}>{k.signo}</span>}
+          {formatCurrency(Math.abs(k.val))}
+        </p>
+        <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${k.pct}%`, background: k.col, borderRadius: 999, transition: 'width 1s ease-out' }} />
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
 
       {/* ── Agenda widget ── */}
       <div className="mb-7">

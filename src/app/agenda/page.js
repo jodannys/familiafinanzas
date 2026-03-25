@@ -277,15 +277,13 @@ export default function AgendaPage() {
 
   return (
     <AppShell>
-      {/* Header */}
-      <div className="mb-5 animate-enter">
-        <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--text-muted)', marginBottom: 4 }}>
-          Módulo
-        </p>
-        <div className="flex items-center justify-between">
-          <h1 className="font-serif text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>
-            Agenda
-          </h1>
+   
+      <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
+          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Agenda</h1>
+        </div>
+       
           <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
             {[{ id: 'mes', Icon: CalendarDays }, { id: 'semana', Icon: List }].map(({ id, Icon }) => (
               <button key={id} onClick={() => setVista(id)}
@@ -300,8 +298,8 @@ export default function AgendaPage() {
               </button>
             ))}
           </div>
-        </div>
       </div>
+
 
       {/* Nav mes / semana */}
       <div className="flex items-center justify-between mb-3 px-1">
