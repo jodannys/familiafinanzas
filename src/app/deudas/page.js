@@ -886,16 +886,25 @@ export default function DeudasPage() {
       )}
 
       {/* Lista */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={20} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
-        </div>
-      ) : deudas.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No hay deudas registradas</p>
-          <button onClick={abrirNueva} className="ff-btn-primary">Agregar primera deuda</button>
-        </div>
-      ) : (
+   {loading ? (
+  <div className="flex items-center justify-center py-20">
+    <Loader2 size={20} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+  </div>
+) : deudas.length === 0 ? (
+  /* Añadimos flex-col e items-center para forzar el centrado vertical de los hijos */
+  <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+    <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+      No hay deudas registradas
+    </p>
+    
+    <button 
+      onClick={abrirNueva} 
+      className="ff-btn-primary !w-auto min-w-[200px]"
+    >
+      Agregar primera deuda
+    </button>
+  </div>
+) : (
         <div className="space-y-3">
           {deudas.map((d, i) => {
             const diasFaltantes = d.fecha_vencimiento

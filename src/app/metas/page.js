@@ -274,18 +274,33 @@ export default function MetasPage() {
           <Loader2 size={18} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
         </div>
       ) : metas.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)' }}>
-            <Target size={28} style={{ color: 'var(--accent-green)' }} />
-          </div>
-          <p className="font-serif text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Sin metas aún</p>
-          <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
-            Define hacia dónde va tu ahorro
-          </p>
-          <button onClick={() => setModal(true)} className="ff-btn-primary">Crear primera meta</button>
-        </div>
-      ) : (
+  /* Agregamos flex flex-col e items-center para asegurar el eje central */
+  <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+    
+    {/* Icono centrado por el padre flex-col */}
+    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+      style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)' }}>
+      <Target size={28} style={{ color: 'var(--accent-green)' }} />
+    </div>
+
+    <p className="font-serif text-lg mb-1" style={{ color: 'var(--text-primary)' }}>
+      Sin metas aún
+    </p>
+    
+    <p className="text-sm mb-6 max-w-[240px] opacity-60" style={{ color: 'var(--text-muted)' }}>
+      Define hacia dónde va tu ahorro
+    </p>
+
+    {/* El botón ahora se mantendrá en el centro gracias a items-center del padre */}
+    <button 
+      onClick={() => setModal(true)} 
+      className="ff-btn-primary !w-auto min-w-[200px] shadow-lg"
+    >
+      Crear primera meta
+    </button>
+    
+  </div>
+) : (
         <div className="space-y-2">
           {metasActivas.map((meta, i) => {
             const isSelected = selectedMetaId === meta.id

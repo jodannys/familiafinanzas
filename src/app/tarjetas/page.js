@@ -229,15 +229,31 @@ export default function TarjetasPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="animate-spin" style={{ color: 'var(--text-muted)' }} />
-        </div>
-      ) : tarjetas.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No hay tarjetas registradas</p>
-          <button onClick={() => openModal()} className="ff-btn-primary">Agregar primera tarjeta</button>
-        </div>
-      ) : (
+  <div className="flex justify-center py-20">
+    <Loader2 className="animate-spin opacity-30" style={{ color: 'var(--text-muted)' }} />
+  </div>
+) : tarjetas.length === 0 ? (
+  /* Aplicamos flex-col e items-center para el centrado total en móviles */
+  <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+    
+    {/* Icono de tarjeta (opcional, le da un toque pro) */}
+    <div className="w-16 h-12 rounded-xl mb-6 flex items-center justify-center border-2 border-dashed opacity-20"
+      style={{ borderColor: 'var(--text-muted)' }}>
+      <CreditCard size={24} style={{ color: 'var(--text-muted)' }} />
+    </div>
+
+    <p className="text-sm mb-6 font-medium" style={{ color: 'var(--text-muted)' }}>
+      No hay tarjetas registradas
+    </p>
+
+    <button 
+      onClick={() => openModal()} 
+      className="ff-btn-primary !w-auto min-w-[220px] shadow-lg active:scale-95 transition-transform"
+    >
+      Agregar primera tarjeta
+    </button>
+  </div>
+) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tarjetas.map((t) => {
             const isSelected = selectedId === t.id

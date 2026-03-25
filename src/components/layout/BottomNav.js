@@ -43,25 +43,26 @@ export default function BottomNav({ onFABClick }) {
   const pathname = usePathname()
   const [showMore, setShowMore] = useState(false)
 
-  return (
+ return (
     <>
       {showMore && (
         <>
+          {/* Overlay original con blur */}
           <div className="lg:hidden fixed inset-0 z-[90]"
             style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
             onClick={() => setShowMore(false)} />
 
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] rounded-t-[32px] overflow-hidden shadow-2xl"
+          {/* Menú de Módulos original (Redondeado y con estilo Glassmorphism) */}
+          <div className="lg:hidden fixed bottom-4 left-4 right-4 z-[100] rounded-[32px] overflow-hidden shadow-2xl"
             style={{
               background: 'var(--bg-card)',
               backdropFilter: 'blur(28px)',
               WebkitBackdropFilter: 'blur(28px)',
               border: '1px solid var(--border-glass)',
-              borderBottom: 'none',
               maxHeight: '80vh',
               display: 'flex',
               flexDirection: 'column',
-              paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+              paddingBottom: '12px',
             }}>
 
             <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-1 shrink-0" style={{ background: 'var(--border-glass)' }} />
@@ -97,7 +98,6 @@ export default function BottomNav({ onFABClick }) {
                     <div className="p-2.5 rounded-xl shadow-sm"
                       style={{
                         background: 'var(--bg-secondary)',
-                        /* DINÁMICO: Cambia según el tema principal */
                         color: active ? 'var(--accent-main)' : 'var(--text-muted)'
                       }}>
                       <Icon size={20} strokeWidth={active ? 2.5 : 2} />
@@ -119,14 +119,14 @@ export default function BottomNav({ onFABClick }) {
         </>
       )}
 
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[80] flex justify-center"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', paddingLeft: 16, paddingRight: 16 }}>
+      {/* Barra de navegación inferior */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[80] flex justify-center">
 
-        <div className="relative w-full h-[68px] flex items-center justify-around rounded-[32px] shadow-2xl border border-white/20"
+        <div className="relative w-full h-[68px] flex items-center justify-around border-t"
           style={{
             background: 'var(--bg-card)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)'
+            borderColor: 'var(--border-glass)',
+            paddingBottom: 'env(safe-area-inset-bottom)'
           }}>
 
           <div className="flex flex-1 justify-around">
@@ -135,21 +135,21 @@ export default function BottomNav({ onFABClick }) {
             ))}
           </div>
 
-          <div className="relative -top-7 flex flex-col items-center">
+          {/* Botón central (FAB) SIN BRILLO y SÓLIDO */}
+          <div className="relative -top-6 flex flex-col items-center">
             <button
               onClick={onFABClick}
-              className="active:scale-90 transition-all flex items-center justify-center rounded-full"
+              className="active:scale-95 transition-all flex items-center justify-center rounded-full"
               style={{
-                width: 62,
-                height: 62,
-                /* DINÁMICO: Sigue la variable --accent-main del CSS */
+                width: 60,
+                height: 60,
                 background: 'var(--accent-main)',
                 color: 'white',
-                border: 'none',
-                boxShadow: '0 12px 24px -6px color-mix(in srgb, var(--accent-main) 45%, transparent)',
+                border: '4px solid var(--bg-card)', // Crea ese efecto de recorte limpio
+                boxShadow: 'none', // Quitamos el brillo
                 cursor: 'pointer',
               }}>
-              <Plus size={30} strokeWidth={2.5} />
+              <Plus size={32} strokeWidth={3} />
             </button>
           </div>
 
@@ -161,7 +161,12 @@ export default function BottomNav({ onFABClick }) {
             <button
               onClick={() => setShowMore(true)}
               className="flex-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
-              style={{ color: showMore ? 'var(--accent-main)' : 'var(--text-muted)', background: 'none', border: 'none', height: 64 }}>
+              style={{ 
+                color: showMore ? 'var(--accent-main)' : 'var(--text-muted)', 
+                background: 'none', 
+                border: 'none', 
+                height: 64 
+              }}>
               <MoreHorizontal size={21} strokeWidth={1.8} />
               <span style={{ fontSize: 9, fontWeight: 600 }}>Más</span>
             </button>
