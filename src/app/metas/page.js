@@ -50,6 +50,8 @@ export default function MetasPage() {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || '#2D7A5F' })
   const [selectedMetaId, setSelectedMetaId] = useState(null)
+  const [modalAporte, setModalAporte] = useState(null) // meta object
+  const [montoAporte, setMontoAporte] = useState('')
 
   useEffect(() => {
     cargar()
@@ -117,47 +119,42 @@ export default function MetasPage() {
     else setError(error.message)
   }
 
-  async function handleAgregarDinero(id, montoActual, nombreMeta, pctMeta) {
-    if (!presupuesto || !presupuesto.montoMetas) {
-      toast('Primero define un presupuesto para el bloque de metas.')
-      return
-    }
-    const metaObj = metas.find(m => m.id === id)
-    if (!metaObj) return
+  function abrirModalAporte(meta) {
+    const autoMonto = presupuesto?.montoMetas && meta.pct_mensual
+      ? ((meta.pct_mensual / 100) * presupuesto.montoMetas).toFixed(2)
+      : ''
+    setModalAporte(meta)
+    setMontoAporte(autoMonto)
+  }
 
-    const montoAuto = (pctMeta / 100) * presupuesto.montoMetas
-    const totalAsignadoOtras = metas
-      .filter(m => m.id !== id && m.estado === 'activa')
-      .reduce((s, m) => s + (m.pct_mensual || 0), 0)
-    const maxDisponible = (100 - totalAsignadoOtras) / 100 * presupuesto.montoMetas
-
-    if (montoAuto > maxDisponible) {
-      toast(`No puedes aportar más de ${formatCurrency(maxDisponible)}`, 'warning')
-      return
-    }
-    if (!confirm(`¿Aportar ${formatCurrency(montoAuto)} a "${nombreMeta}"?`)) return
-
+  async function handleAgregarDinero(e) {
+    e.preventDefault()
+    const monto = parseFloat(montoAporte)
+    if (!monto || monto <= 0 || !modalAporte) return
     setSaving(true)
-    const nuevoMonto = montoActual + montoAuto
-    const completada = nuevoMonto >= metaObj.meta
+
+    const nuevoActual = (modalAporte.actual || 0) + monto
+    const completada = nuevoActual >= modalAporte.meta
 
     const { error: metaError } = await supabase.from('metas').update({
-      actual: nuevoMonto,
+      actual: nuevoActual,
       ...(completada && { estado: 'completada' }),
-    }).eq('id', id)
+    }).eq('id', modalAporte.id)
 
     if (metaError) { setError('Error al actualizar la meta'); setSaving(false); return }
 
     await supabase.from('movimientos').insert([{
-      tipo: 'egreso', monto: montoAuto, descripcion: nombreMeta,
-      categoria: 'ahorro', fecha: fechaHoy(), quien: 'Ambos', meta_id: id,
+      tipo: 'egreso', monto, descripcion: `Aporte: ${modalAporte.nombre}`,
+      categoria: 'ahorro', fecha: fechaHoy(), quien: 'Ambos', meta_id: modalAporte.id,
     }])
 
-    setMetas(prev => prev.map(m => m.id === id
-      ? { ...m, actual: nuevoMonto, ...(completada && { estado: 'completada' }) } : m
+    setMetas(prev => prev.map(m => m.id === modalAporte.id
+      ? { ...m, actual: nuevoActual, ...(completada && { estado: 'completada' }) } : m
     ))
     setSaving(false)
-    if (completada) toast(`🎉 ¡Meta "${nombreMeta}" completada!`, 'success')
+    setModalAporte(null)
+    setMontoAporte('')
+    toast(completada ? `🎉 ¡Meta "${modalAporte.nombre}" completada!` : `Aporte de ${formatCurrency(monto)} registrado`, 'success')
   }
 
   async function handleEstado(id, estado) {
@@ -385,9 +382,9 @@ export default function MetasPage() {
                 {isSelected && (
                   <div className="mt-3 pt-3 flex items-center gap-2 flex-wrap"
                     style={{ borderTop: '1px solid var(--border-glass)' }}>
-                    {meta.estado === 'activa' && presupuesto?.montoMetas > 0 && (
+                    {meta.estado === 'activa' && (
                       <button
-                        onClick={e => { e.stopPropagation(); handleAgregarDinero(meta.id, meta.actual || 0, meta.nombre, meta.pct_mensual) }}
+                        onClick={e => { e.stopPropagation(); abrirModalAporte(meta) }}
                         disabled={saving}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all"
                         style={{
@@ -489,7 +486,72 @@ export default function MetasPage() {
         </div>
       )}
 
-      {/* MODAL */}
+      {/* MODAL APORTE */}
+      <Modal open={!!modalAporte} onClose={() => { setModalAporte(null); setMontoAporte('') }}
+        title={`Aportar a ${modalAporte?.nombre || ''}`} size="sm">
+        {modalAporte && (
+          <form onSubmit={handleAgregarDinero} className="space-y-4">
+            {/* Preview progreso */}
+            <div className="rounded-xl px-4 py-3"
+              style={{ background: `color-mix(in srgb, ${modalAporte.color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${modalAporte.color} 20%, transparent)` }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: modalAporte.color }}>
+                  {getFlagEmoji(modalAporte.emoji)} {modalAporte.nombre}
+                </span>
+                <span className="text-xs font-semibold" style={{ color: modalAporte.color }}>
+                  {Math.min(100, Math.round(((modalAporte.actual || 0) / modalAporte.meta) * 100))}%
+                </span>
+              </div>
+              <ProgressBar value={modalAporte.actual || 0} max={modalAporte.meta} color={modalAporte.color} />
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                  {formatCurrency(modalAporte.actual || 0)}
+                </span>
+                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                  meta: {formatCurrency(modalAporte.meta)}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="ff-label">Monto a aportar</label>
+              <input className="ff-input" type="number" min="0.01" step="0.01" placeholder="0.00"
+                required autoFocus
+                value={montoAporte}
+                onChange={e => setMontoAporte(e.target.value)} />
+              {presupuesto?.montoMetas > 0 && modalAporte.pct_mensual > 0 && (
+                <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Aporte automático sugerido: {formatCurrency((modalAporte.pct_mensual / 100) * presupuesto.montoMetas)}
+                </p>
+              )}
+            </div>
+
+            {/* Preview nuevo total */}
+            {parseFloat(montoAporte) > 0 && (
+              <div className="rounded-xl px-3 py-2.5 flex items-center justify-between"
+                style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-green) 18%, transparent)' }}>
+                <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>Nuevo total</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--accent-green)' }}>
+                  {formatCurrency((modalAporte.actual || 0) + parseFloat(montoAporte))}
+                  {(modalAporte.actual || 0) + parseFloat(montoAporte) >= modalAporte.meta && ' 🎉'}
+                </span>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={() => { setModalAporte(null); setMontoAporte('') }}
+                className="ff-btn-ghost flex-1">Cancelar</button>
+              <button type="submit" disabled={saving}
+                className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+                {saving && <Loader2 size={14} className="animate-spin" />}
+                {saving ? 'Guardando...' : 'Registrar aporte'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* MODAL CREAR/EDITAR */}
       <Modal open={modal} onClose={closeModal} title={editingId ? 'Editar Meta' : 'Nueva Meta de Ahorro'}>
         <form onSubmit={handleSubmit} className="space-y-4">
 

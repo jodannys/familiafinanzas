@@ -50,7 +50,7 @@ function ToastDisplay() {
 }
 
 const CATS_EGRESO = [
-  { id: 'basicos', label: 'Necesidades', color: 'var(--accent-blue)' },
+  { id: 'basicos', label: 'Básicos', color: 'var(--accent-blue)' },
   { id: 'deseo', label: 'Estilo de vida', color: 'var(--accent-violet)' },
   { id: 'ahorro', label: 'Ahorro', color: 'var(--accent-green)' },
   { id: 'inversion', label: 'Inversión', color: 'var(--accent-gold)' },
@@ -100,7 +100,7 @@ function FABModal({ onClose }) {
     const fetch =
       cat === 'ahorro' ? supabase.from('metas').select('id,nombre,emoji,meta,actual').eq('estado', 'activa')
         : cat === 'inversion' ? supabase.from('inversiones').select('id,nombre,emoji,capital,aporte')
-          : supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas').eq('estado', 'activa').neq('tipo', 'medeben')
+          : supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas').eq('estado', 'activa').neq('tipo', 'medeben').neq('tipo_deuda', 'tarjeta')
     fetch.then(({ data }) => { setItems(data || []); setLoadingItems(false) })
   }, [cat, tipo])
 

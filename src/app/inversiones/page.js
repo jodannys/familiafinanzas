@@ -6,10 +6,11 @@ import Modal from '@/components/ui/Modal'
 import {
   Plus, Loader2, Trash2, Pencil,
   TrendingUp, Target, Wallet, Sparkles,
-  AlertCircle
+  AlertCircle, PlusCircle
 } from 'lucide-react'
 import { formatCurrency, calculateCompoundInterest } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import {
@@ -54,6 +55,9 @@ export default function InversionesPage() {
   const [gastosMes, setGastosMes] = useState(0)
   const [modal, setModal] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
+  const [modalAporte, setModalAporte] = useState(false)
+  const [formAporte, setFormAporte] = useState({ monto: '', descripcion: '', fecha: '' })
+  const [savingAporte, setSavingAporte] = useState(false)
   const [colores, setColores] = useState({
     green: '', rose: '', blue: '', terra: '', violet: '',
     muted: '', border: '', card: '', track: '',
@@ -216,6 +220,41 @@ export default function InversionesPage() {
       setError(error.message)
     }
     setSaving(false)
+  }
+
+  async function handleAddAporte(e) {
+    e.preventDefault()
+    const monto = parseFloat(formAporte.monto)
+    if (!monto || monto <= 0) return
+    setSavingAporte(true)
+    setError(null)
+
+    const nuevoCapital = (selected.capital || 0) + monto
+    const fecha = formAporte.fecha || new Date().toISOString().slice(0, 10)
+
+    const { error: errInv } = await supabase
+      .from('inversiones')
+      .update({ capital: nuevoCapital })
+      .eq('id', selected.id)
+
+    if (errInv) { setError(errInv.message); setSavingAporte(false); return }
+
+    await supabase.from('movimientos').insert([{
+      tipo: 'egreso',
+      categoria: 'inversion',
+      monto,
+      descripcion: formAporte.descripcion || `Aporte a ${selected.nombre}`,
+      fecha,
+      inversion_id: selected.id,
+    }])
+
+    const updated = { ...selected, capital: nuevoCapital }
+    setInversiones(prev => prev.map(i => i.id === selected.id ? updated : i))
+    setSelected(updated)
+    setSavingAporte(false)
+    setModalAporte(false)
+    setFormAporte({ monto: '', descripcion: '', fecha: '' })
+    toast(`Aporte de ${formatCurrency(monto)} registrado`, 'success')
   }
 
   // ── MEMOS — todos al nivel del componente, nunca dentro de loops ──────────
@@ -480,6 +519,15 @@ export default function InversionesPage() {
                   </div>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">
+                  <button onClick={() => setModalAporte(true)}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
+                    title="Agregar aporte"
+                    style={{
+                      background: `color-mix(in srgb, ${colores.green} 10%, transparent)`,
+                      color: colores.green,
+                    }}>
+                    <PlusCircle size={13} />
+                  </button>
                   <button onClick={() => abrirEdicion(selected)}
                     className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
                     style={{
@@ -770,6 +818,59 @@ export default function InversionesPage() {
           )}
         </div>
       )}
+
+      {/* MODAL APORTE */}
+      <Modal
+        open={modalAporte}
+        onClose={() => { setModalAporte(false); setFormAporte({ monto: '', descripcion: '', fecha: '' }) }}
+        title="Agregar aporte">
+        <form onSubmit={handleAddAporte} className="space-y-4">
+
+          <div>
+            <label className="ff-label">Monto a aportar</label>
+            <input className="ff-input" type="number" min="0.01" step="0.01" placeholder="0.00" required
+              autoFocus
+              value={formAporte.monto}
+              onChange={e => setFormAporte(p => ({ ...p, monto: e.target.value }))} />
+          </div>
+
+          <div>
+            <label className="ff-label">Descripción (opcional)</label>
+            <input className="ff-input" placeholder="Ej: Aporte enero, bono, etc."
+              value={formAporte.descripcion}
+              onChange={e => setFormAporte(p => ({ ...p, descripcion: e.target.value }))} />
+          </div>
+
+          <div>
+            <label className="ff-label">Fecha</label>
+            <input className="ff-input" type="date"
+              value={formAporte.fecha || new Date().toISOString().slice(0, 10)}
+              onChange={e => setFormAporte(p => ({ ...p, fecha: e.target.value }))} />
+          </div>
+
+          {formAporte.monto > 0 && selected && (
+            <div className="px-3 py-2.5 rounded-xl text-[10px] font-semibold"
+              style={{
+                background: `color-mix(in srgb, ${colores.green} 8%, transparent)`,
+                color: colores.green,
+                border: `1px solid color-mix(in srgb, ${colores.green} 20%, transparent)`,
+              }}>
+              Capital nuevo: {formatCurrency((selected.capital || 0) + (parseFloat(formAporte.monto) || 0))}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button type="button"
+              onClick={() => { setModalAporte(false); setFormAporte({ monto: '', descripcion: '', fecha: '' }) }}
+              className="ff-btn-ghost flex-1">Cancelar</button>
+            <button type="submit" disabled={savingAporte}
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+              {savingAporte && <Loader2 size={14} className="animate-spin" />}
+              {savingAporte ? 'Guardando...' : 'Registrar aporte'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* MODAL CREAR / EDITAR */}
       <Modal

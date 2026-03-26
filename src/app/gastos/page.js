@@ -11,8 +11,8 @@ import { getPresupuestoMes } from '@/lib/presupuesto'
 import { useTheme, getThemeColors } from '@/lib/themes'
 
 const CATS = [
-  { value: 'basicos', label: 'Gastos Básicos' },
-  { value: 'deseo', label: 'Gastos Deseo' },
+  { value: 'basicos', label: 'Básicos' },
+  { value: 'deseo', label: 'Estilo de vida' },
   { value: 'ahorro', label: 'Ahorro / Metas' },
   { value: 'inversion', label: 'Inversión' },
   { value: 'deuda', label: 'Deudas' },
@@ -182,15 +182,16 @@ export default function GastosPage() {
       const cuotaMensual = parseFloat((monto / numCuotas).toFixed(2))
 
       // 1. Crear movimiento
-      const { error: errMov } = await supabase.from('movimientos').insert([{
+      const { data: dataMov, error: errMov } = await supabase.from('movimientos').insert([{
         tipo: 'egreso', monto, descripcion: descTC,
         categoria: form.categoria, fecha: form.fecha, quien: form.quien,
         metodo_pago: 'tarjeta_credito',
         num_cuotas: numCuotas,
         tarjeta_nombre: tarjeta?.nombre_tarjeta || null,
         ...(form.subcategoria_id && { subcategoria_id: form.subcategoria_id }),
-      }])
+      }]).select()
       if (errMov) { setError('Error: ' + errMov.message); setSaving(false); return }
+      if (dataMov?.[0]) setMovs(prev => [dataMov[0], ...prev])
 
       // 2. Crear deuda en cuotas
       await supabase.from('deudas').insert([{
@@ -439,6 +440,7 @@ export default function GastosPage() {
   })() : []
 
   const movsMes = movs.filter(m => {
+    if (!m.fecha) return false
     const [year, month] = m.fecha.split('-').map(Number)
     return month - 1 === now.getMonth() && year === now.getFullYear()
   })
@@ -864,24 +866,37 @@ export default function GastosPage() {
             )}
 
             {/* Selector deuda */}
-            {form.tipo === 'egreso' && form.categoria === 'deuda' && deudasData.length > 0 && (
-              <div className="space-y-1 animate-enter">
-                <label className="ff-label">¿Qué deuda pagas?</label>
-                <select className="ff-input h-12 text-sm" value={deudaSeleccionada}
-                  onChange={e => {
-                    setDeudaSeleccionada(e.target.value)
-                    const d = deudasData.find(d => d.id === e.target.value)
-                    if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: (d.cuota || d.pendiente || '').toString() }))
-                  }}>
-                  <option value="">— Seleccionar deuda —</option>
-                  {deudasData.map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.tipo_deuda === 'tarjeta' ? '💳 ' : ''}{d.nombre} · Pendiente {formatCurrency(d.pendiente)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {form.tipo === 'egreso' && form.categoria === 'deuda' && (() => {
+              const deudasPrestamo = deudasData.filter(d => d.tipo_deuda !== 'tarjeta')
+              const hayTarjetas = deudasData.some(d => d.tipo_deuda === 'tarjeta')
+              return (
+                <div className="space-y-2 animate-enter">
+                  {deudasPrestamo.length > 0 && (
+                    <div className="space-y-1">
+                      <label className="ff-label">¿Qué deuda pagas?</label>
+                      <select className="ff-input h-12 text-sm" value={deudaSeleccionada}
+                        onChange={e => {
+                          setDeudaSeleccionada(e.target.value)
+                          const d = deudasPrestamo.find(d => d.id === e.target.value)
+                          if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: (d.cuota || d.pendiente || '').toString() }))
+                        }}>
+                        <option value="">— Seleccionar deuda —</option>
+                        {deudasPrestamo.map(d => (
+                          <option key={d.id} value={d.id}>
+                            {d.nombre} · Pendiente {formatCurrency(d.pendiente)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {hayTarjetas && (
+                    <p style={{ fontSize: 10, color: 'var(--text-muted)', padding: '6px 10px', background: 'var(--bg-secondary)', borderRadius: 10 }}>
+                      💳 Los pagos de tarjeta de crédito se registran desde el módulo <strong>Tarjetas</strong>.
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Descripción / Nota */}
             {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Save } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Save, AlertTriangle, DollarSign } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { formatCurrency } from '@/lib/utils'
@@ -32,6 +32,10 @@ export default function TarjetasPage() {
   const [selectedId, setSelectedId] = useState(null)
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [modalPago, setModalPago] = useState(false)
+  const [pagoDeuda, setPagoDeuda] = useState(null)
+  const [formPago, setFormPago] = useState({ monto: '', descripcion: '', fecha: '' })
+  const [savingPago, setSavingPago] = useState(false)
 
   const [form, setForm] = useState({
     nombre_tarjeta: '', banco: '', limite_credito: '',
@@ -215,6 +219,69 @@ export default function TarjetasPage() {
     if (selectedId === id) setSelectedId(null)
   }
 
+  function abrirPago(e, deuda) {
+    e.stopPropagation()
+    setPagoDeuda(deuda)
+    setFormPago({ monto: deuda.cuota > 0 ? deuda.cuota.toString() : '', descripcion: '', fecha: new Date().toISOString().slice(0, 10) })
+    setModalPago(true)
+  }
+
+  async function handlePago(e) {
+    e.preventDefault()
+    const monto = parseFloat(formPago.monto)
+    if (!monto || monto <= 0 || !pagoDeuda) return
+    setSavingPago(true)
+
+    const fecha = formPago.fecha || new Date().toISOString().slice(0, 10)
+    const mesNum = parseInt(fecha.slice(5, 7))
+    const añoNum = parseInt(fecha.slice(0, 4))
+    const nuevoPendiente = Math.max(0, (pagoDeuda.pendiente || 0) - monto)
+    const estaPagada = nuevoPendiente === 0
+    const cuotaPagada = pagoDeuda.cuota > 0 && monto >= pagoDeuda.cuota * 0.9
+
+    const [{ error: errMov }, { error: errDeuda }] = await Promise.all([
+      supabase.from('deuda_movimientos').insert([{
+        deuda_id: pagoDeuda.id,
+        tipo: 'pago',
+        monto,
+        descripcion: formPago.descripcion || 'Pago tarjeta',
+        fecha,
+        mes: mesNum,
+        año: añoNum,
+      }]),
+      supabase.from('deudas').update({
+        pendiente: nuevoPendiente,
+        ...(estaPagada ? { estado: 'pagada' } : {}),
+        ...(cuotaPagada ? { pagadas: (pagoDeuda.pagadas || 0) + 1 } : {}),
+      }).eq('id', pagoDeuda.id),
+    ])
+
+    if (errMov || errDeuda) {
+      toast('Error al registrar el pago')
+      setSavingPago(false)
+      return
+    }
+
+    // Actualizar estado local
+    setDeudas(prev => prev.map(d => d.id === pagoDeuda.id
+      ? { ...d, pendiente: nuevoPendiente, ...(estaPagada ? { estado: 'pagada' } : {}), ...(cuotaPagada ? { pagadas: (d.pagadas || 0) + 1 } : {}) }
+      : d
+    ))
+    setMovsPorDeuda(prev => ({
+      ...prev,
+      [pagoDeuda.id]: [{ tipo: 'pago', monto, fecha, descripcion: formPago.descripcion || 'Pago tarjeta' }, ...(prev[pagoDeuda.id] || [])],
+    }))
+    setUsadoPorTarjeta(prev => ({
+      ...prev,
+      [pagoDeuda.perfil_tarjeta_id]: Math.max(0, (prev[pagoDeuda.perfil_tarjeta_id] || 0) - monto),
+    }))
+
+    setSavingPago(false)
+    setModalPago(false)
+    setPagoDeuda(null)
+    toast(`Pago de ${formatCurrency(monto)} registrado${estaPagada ? ' — compra pagada ✓' : ''}`, 'success')
+  }
+
   return (
     <AppShell>
       {/* Header */}
@@ -310,6 +377,15 @@ export default function TarjetasPage() {
                     <span>{pctUsado}% usado</span>
                     <span style={{ color: 'var(--accent-green)' }}>Disp: {formatCurrency(disponible)}</span>
                   </div>
+                  {pctUsado >= 75 && limite > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg mt-1"
+                      style={{ background: `color-mix(in srgb, var(--accent-rose) ${pctUsado >= 90 ? 12 : 8}%, transparent)` }}>
+                      <AlertTriangle size={10} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
+                      <p className="text-[9px] font-semibold" style={{ color: 'var(--accent-rose)' }}>
+                        {pctUsado >= 90 ? `¡Límite casi agotado! Solo quedan ${formatCurrency(disponible)}` : `Cerca del límite — ${formatCurrency(disponible)} disponible`}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Días de corte y pago */}
@@ -410,12 +486,26 @@ export default function TarjetasPage() {
                                 </div>
                               )}
                             </div>
-                            {/* Último pago */}
-                            {pagos.length > 0 && (
-                              <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                                Último pago: {new Date(pagos[0].fecha + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · {formatCurrency(pagos[0].monto)}
-                              </p>
-                            )}
+                            {/* Último pago + botón pagar */}
+                            <div className="flex items-center justify-between gap-2">
+                              {pagos.length > 0 ? (
+                                <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                  Último: {new Date(pagos[0].fecha + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · {formatCurrency(pagos[0].monto)}
+                                </p>
+                              ) : <span />}
+                              {!esPagada && (
+                                <button
+                                  onClick={e => abrirPago(e, deuda)}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-semibold flex-shrink-0"
+                                  style={{
+                                    background: `color-mix(in srgb, ${t.color} 12%, transparent)`,
+                                    color: t.color,
+                                  }}>
+                                  <DollarSign size={9} />
+                                  Pagar
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )
                       })
@@ -427,6 +517,69 @@ export default function TarjetasPage() {
           })}
         </div>
       )}
+
+      {/* Modal pago directo */}
+      <Modal
+        open={modalPago}
+        onClose={() => { setModalPago(false); setPagoDeuda(null) }}
+        title="Registrar pago">
+        {pagoDeuda && (
+          <form onSubmit={handlePago} className="space-y-4">
+            <div className="px-3 py-2.5 rounded-xl text-xs font-semibold"
+              style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+              {pagoDeuda.nombre}
+              <span className="ml-2 font-normal" style={{ color: 'var(--text-muted)' }}>
+                Pendiente: {formatCurrency(pagoDeuda.pendiente)}
+              </span>
+            </div>
+
+            <div>
+              <label className="ff-label">Monto del pago</label>
+              <input className="ff-input" type="number" min="0.01" step="0.01" required autoFocus
+                value={formPago.monto}
+                onChange={e => setFormPago(p => ({ ...p, monto: e.target.value }))} />
+            </div>
+
+            <div>
+              <label className="ff-label">Descripción (opcional)</label>
+              <input className="ff-input" placeholder="Ej: Pago mínimo, pago total..."
+                value={formPago.descripcion}
+                onChange={e => setFormPago(p => ({ ...p, descripcion: e.target.value }))} />
+            </div>
+
+            <div>
+              <label className="ff-label">Fecha</label>
+              <input className="ff-input" type="date"
+                value={formPago.fecha}
+                onChange={e => setFormPago(p => ({ ...p, fecha: e.target.value }))} />
+            </div>
+
+            {formPago.monto > 0 && (
+              <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
+                style={{
+                  background: parseFloat(formPago.monto) >= pagoDeuda.pendiente
+                    ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
+                    : 'color-mix(in srgb, var(--accent-blue) 8%, transparent)',
+                  color: parseFloat(formPago.monto) >= pagoDeuda.pendiente ? 'var(--accent-green)' : 'var(--accent-blue)',
+                }}>
+                {parseFloat(formPago.monto) >= pagoDeuda.pendiente
+                  ? '✓ Pago total — la compra quedará liquidada'
+                  : `Quedará pendiente: ${formatCurrency(Math.max(0, pagoDeuda.pendiente - parseFloat(formPago.monto)))}`}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setModalPago(false); setPagoDeuda(null) }}
+                className="ff-btn-ghost flex-1">Cancelar</button>
+              <button type="submit" disabled={savingPago}
+                className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
+                {savingPago && <Loader2 size={14} className="animate-spin" />}
+                {savingPago ? 'Guardando...' : 'Registrar pago'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       {/* Modal crear / editar */}
       <Modal open={modal} onClose={closeModal} title={editingId ? 'Editar Tarjeta' : 'Nueva Tarjeta'}>

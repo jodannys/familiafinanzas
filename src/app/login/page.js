@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, signIn } from '@/lib/supabase'
-import { Loader2, Eye, EyeOff, ArrowLeft, Mail, CheckCircle, Lock, UserCircle2, Fingerprint } from 'lucide-react'
+import { Loader2, Eye, EyeOff, ArrowLeft, Mail, CheckCircle, Lock, UserCircle2 } from 'lucide-react'
 
 function LoginContent() {
   const router = useRouter()
@@ -13,8 +13,6 @@ function LoginContent() {
   const [checking, setChecking] = useState(true)
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
-  const [passkeySupported, setPasskeySupported] = useState(false)
-
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [newPwd, setNewPwd] = useState('')
@@ -38,13 +36,6 @@ function LoginContent() {
       if (event === 'PASSWORD_RECOVERY') setMode('reset')
     })
 
-    // Detectar soporte de passkeys/biometría en el dispositivo
-    if (typeof window !== 'undefined' && window.PublicKeyCredential) {
-      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        .then(available => setPasskeySupported(available))
-        .catch(() => setPasskeySupported(false))
-    }
-
     return () => subscription.unsubscribe()
   }, [searchParams, router])
 
@@ -60,26 +51,6 @@ function LoginContent() {
       const nombreGuardado = data?.user?.user_metadata?.nombre
       if (!nombreGuardado) { setLoading(false); setMode('nombre') }
       else router.replace('/')
-    }
-  }
-
-  async function handleBiometricLogin() {
-    setLoading(true)
-    setError('')
-    try {
-      const { data, error } = await supabase.auth.signInWithPasskey({
-        email: email.trim() || undefined,
-      })
-      if (error) throw error
-      if (data?.user) {
-        const nombreGuardado = data.user.user_metadata?.nombre
-        if (!nombreGuardado) setMode('nombre')
-        else router.replace('/')
-      }
-    } catch (err) {
-      setError('Huella no disponible. Inicia sesión con contraseña primero para registrarla.')
-    } finally {
-      setLoading(false)
     }
   }
 

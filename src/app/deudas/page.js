@@ -50,22 +50,29 @@ function urgenciaColor(dias) {
   }
 }
 
-// Genera tabla de amortización completa desde el período 1
+// Genera tabla de amortización completa desde el período 1.
+// Cuando hay un pago real registrado (parcial o completo), el saldo de los
+// períodos siguientes se recalcula sobre lo que realmente se pagó, no sobre
+// la cuota teórica. Los períodos futuros sin pago usan proyección teórica.
 function generarTablaAmortizacion(deuda, movs = []) {
   const meses = deuda.plazo_meses
   if (!meses) return []
 
   const capital = deuda.capital || deuda.monto || 0
-  const tasaMensual = (deuda.tasa_interes || deuda.tasa || 0) / 100 / 12
+  const tasaAnual = deuda.tasa_interes || deuda.tasa || 0
+  const tasaMensual = tasaAnual / 100 / 12
   const tieneInteres = tasaMensual > 0
-  // Recalcular cuota desde cero para garantizar precisión
-  const cuota = tieneInteres
-    ? parseFloat(calcularCuota(capital, (deuda.tasa_interes || deuda.tasa || 0), meses).toFixed(2))
+  const cuotaBase = tieneInteres
+    ? parseFloat(calcularCuota(capital, tasaAnual, meses).toFixed(2))
     : parseFloat((capital / meses).toFixed(2))
 
   let fechaBase = deuda.fecha_primer_pago
     ? new Date(deuda.fecha_primer_pago + 'T12:00:00')
     : new Date(deuda.created_at || Date.now())
+
+  const hoy = new Date()
+  const mesHoy = hoy.getMonth() + 1
+  const añoHoy = hoy.getFullYear()
 
   let saldo = capital
   const rows = []
@@ -76,22 +83,44 @@ function generarTablaAmortizacion(deuda, movs = []) {
     const mesNum = f.getMonth() + 1
     const añoNum = f.getFullYear()
 
+    // Interés sobre el saldo REAL acumulado (no teórico)
     const interes = tieneInteres ? parseFloat((saldo * tasaMensual).toFixed(2)) : 0
-    const capitalCuota = parseFloat((cuota - interes).toFixed(2))
-    saldo = parseFloat(Math.max(0, saldo - (tieneInteres ? capitalCuota : cuota)).toFixed(2))
 
     const pagoReal = movs.find(m => m.tipo === 'pago' && m.mes === mesNum && m.año === añoNum)
+    const montoPagado = pagoReal ? parseFloat(pagoReal.monto || 0) : null
+
+    let capitalAbonado
+    if (montoPagado !== null) {
+      // Pago registrado (completo o parcial): intereses primero, el resto a capital
+      capitalAbonado = parseFloat(Math.max(0, montoPagado - interes).toFixed(2))
+    } else {
+      // Sin pago: proyección teórica (cuotaBase)
+      capitalAbonado = tieneInteres
+        ? parseFloat(Math.max(0, cuotaBase - interes).toFixed(2))
+        : cuotaBase
+    }
+
+    saldo = parseFloat(Math.max(0, saldo - capitalAbonado).toFixed(2))
+
+    // ¿El pago difiere de la cuota teórica? → parcial o excedente
+    const esParcial = montoPagado !== null && Math.abs(montoPagado - cuotaBase) > 0.01
+
+    // Estado del período para determinar si está vencido sin pago
+    const esPasado = añoNum < añoHoy || (añoNum === añoHoy && mesNum < mesHoy)
 
     rows.push({
       periodo: i + 1,
       mes: mesNum,
       año: añoNum,
-      cuota,
+      cuota: cuotaBase,
+      cuotaReal: montoPagado,           // null = sin pago registrado
       interes,
-      capital: tieneInteres ? capitalCuota : cuota,
+      capital: capitalAbonado,
       saldo,
-      pagada: !!pagoReal,
-      montoPagado: pagoReal?.monto,
+      pagada: montoPagado !== null,
+      montoPagado,
+      parcial: esParcial,
+      vencida: esPasado && montoPagado === null,
       fechaLabel: `${String(mesNum).padStart(2, '0')}/${añoNum}`,
     })
   }
@@ -1021,13 +1050,13 @@ export default function DeudasPage() {
                     {montoOriginal > 0 && (
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                          Original: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(montoOriginal)}</span>
+                          {esMeDeben ? 'Prestado' : 'Original'}: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(montoOriginal)}</span>
                         </span>
                         {pagado > 0 && (
                           <>
                             <span style={{ color: 'var(--border-glass)' }}>·</span>
                             <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                              Pagado: <span className="font-semibold" style={{ color: 'var(--accent-green)' }}>{formatCurrency(pagado)}</span>
+                              {esMeDeben ? 'Cobrado' : 'Pagado'}: <span className="font-semibold" style={{ color: 'var(--accent-green)' }}>{formatCurrency(pagado)}</span>
                             </span>
                           </>
                         )}
@@ -1098,10 +1127,10 @@ export default function DeudasPage() {
                     <ProgressBar value={pagado} max={montoOriginal} color={d.color || cfg.color} />
                     <div className="flex justify-between mt-1">
                       <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
-                        {pct}% pagado
+                        {pct}% {esMeDeben ? 'cobrado' : 'pagado'}
                       </span>
                       <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
-                        {formatCurrency(d.pendiente || 0)} restante
+                        {formatCurrency(d.pendiente || 0)} {esMeDeben ? 'por cobrar' : 'restante'}
                       </span>
                     </div>
                   </div>
@@ -1137,8 +1166,8 @@ export default function DeudasPage() {
                 <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-24 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
                   style={{ borderColor: 'var(--border-glass)' }}>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {/* Marcar pagada (cuotas y préstamos con cuota fija) */}
-                    {(esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0) || (d.tipo_deuda === 'tarjeta' && d.cuota > 0)) && d.estado !== 'pagada' && (
+                    {/* Marcar pagada / cobrar */}
+                    {((esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0) || (d.tipo_deuda === 'tarjeta' && d.cuota > 0)) || (esMeDeben && (d.pendiente || 0) > 0)) && d.estado !== 'pagada' && (
                       <button
                         onClick={e => { e.stopPropagation(); handleMarcarPagada(d) }}
                         disabled={saving || pagadaEsteMes}
@@ -1153,19 +1182,19 @@ export default function DeudasPage() {
                         {pagadaEsteMes ? (esMeDeben ? 'Cobrada' : 'Pagada') : (esMeDeben ? 'Cobrar' : 'Pagar')}
                       </button>
                     )}
-                    {/* Cargo (solo si no es medeben) */}
-                    {!esMeDeben && (
-                      <IconBtn
-                        onClick={() => {
-                          setModalMov(d.id)
-                          setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
-                        }}
-                        title="Registrar cargo"
-                        bg="color-mix(in srgb, var(--accent-rose) 10%, transparent)"
-                        color="var(--accent-rose)">
-                        <ArrowDownRight size={13} strokeWidth={2.5} />
-                      </IconBtn>
-                    )}
+                    {/* Cargo / Prestar más */}
+                    <IconBtn
+                      onClick={() => {
+                        setModalMov(d.id)
+                        setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
+                      }}
+                      title={esMeDeben ? 'Prestar más dinero' : 'Registrar cargo'}
+                      bg={esMeDeben
+                        ? 'color-mix(in srgb, var(--accent-blue) 10%, transparent)'
+                        : 'color-mix(in srgb, var(--accent-rose) 10%, transparent)'}
+                      color={esMeDeben ? 'var(--accent-blue)' : 'var(--accent-rose)'}>
+                      <ArrowDownRight size={13} strokeWidth={2.5} />
+                    </IconBtn>
                     {/* Pago / cobro */}
                     <IconBtn
                       onClick={() => {
@@ -1367,16 +1396,17 @@ export default function DeudasPage() {
                           </thead>
                           <tbody>
                             {tablaAmort.map(row => {
-                              const esPasada = new Date(row.año, row.mes - 1) < new Date(año, mes - 1)
                               const esActual = row.mes === mes && row.año === año
                               return (
                                 <tr key={row.periodo}
                                   style={{
-                                    background: row.pagada
-                                      ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)'
-                                      : esActual
-                                        ? 'color-mix(in srgb, var(--accent-violet) 6%, transparent)'
-                                        : 'transparent',
+                                    background: row.parcial
+                                      ? 'color-mix(in srgb, var(--accent-terra) 6%, transparent)'
+                                      : row.pagada
+                                        ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)'
+                                        : esActual
+                                          ? 'color-mix(in srgb, var(--accent-violet) 6%, transparent)'
+                                          : 'transparent',
                                   }}>
                                   <td className="px-2 py-1.5 font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
                                     {row.periodo}
@@ -1390,8 +1420,18 @@ export default function DeudasPage() {
                                       </span>
                                     )}
                                   </td>
-                                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                                    {formatCurrency(row.cuota)}
+                                  <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                                    {row.parcial ? (
+                                      <span>
+                                        <span className="line-through opacity-40">{formatCurrency(row.cuota)}</span>
+                                        {' '}
+                                        <span className="font-semibold" style={{ color: 'var(--accent-terra)' }}>
+                                          {formatCurrency(row.cuotaReal)}
+                                        </span>
+                                      </span>
+                                    ) : (
+                                      <span className="font-semibold">{formatCurrency(row.cuota)}</span>
+                                    )}
                                   </td>
                                   {tieneInteres && (
                                     <>
@@ -1407,9 +1447,11 @@ export default function DeudasPage() {
                                     {formatCurrency(row.saldo)}
                                   </td>
                                   <td className="px-2 py-1.5 text-center">
-                                    {row.pagada ? (
+                                    {row.parcial ? (
+                                      <span title="Pago parcial" style={{ color: 'var(--accent-terra)' }}>≈</span>
+                                    ) : row.pagada ? (
                                       <span style={{ color: 'var(--accent-green)' }}>✓</span>
-                                    ) : esPasada ? (
+                                    ) : row.vencida ? (
                                       <span style={{ color: 'var(--accent-rose)' }}>!</span>
                                     ) : (
                                       <span style={{ color: 'var(--text-muted)' }}>—</span>
@@ -1492,7 +1534,7 @@ export default function DeudasPage() {
                     </div>
                     {tablaAmort.length > 0 && (
                       <p className="text-[8px] mt-1.5 px-2" style={{ color: 'var(--text-muted)' }}>
-                        ✓ pagada · ! pendiente vencida · — pendiente
+                        ✓ pagada · ≈ parcial (saldo recalculado) · ! vencida sin pago · — pendiente
                       </p>
                     )}
                   </div>
@@ -1861,86 +1903,108 @@ export default function DeudasPage() {
       </Modal>
 
       {/* ── MODAL MOVIMIENTO ── */}
-      <Modal
-        open={!!modalMov || !!editandoMov}
-        onClose={() => {
-          setModalMov(null)
-          setEditandoMov(null)
-          setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
-        }}
-        title={editandoMov
+      {(() => {
+        const deudaModal = deudas.find(d => d.id === (modalMov || editandoMov?.deuda_id))
+        const esMeDebenModal = deudaModal?.tipo === 'medeben'
+        const labelCargo = esMeDebenModal ? '↓ Prestar más' : '↓ Cargo'
+        const labelPago  = esMeDebenModal ? '↑ Cobro recibido' : '↑ Pago'
+        const titleModal = editandoMov
           ? 'Editar Movimiento'
-          : formMov.tipo === 'pago' ? 'Registrar Pago' : 'Registrar Cargo'}>
-        <form onSubmit={editandoMov ? handleEditMov : handleAddMov} className="space-y-4">
-          {!editandoMov && (
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: 'var(--bg-secondary)' }}>
-              {[{ v: 'cargo', l: '↓ Cargo' }, { v: 'pago', l: '↑ Pago' }].map(t => (
-                <button type="button" key={t.v}
-                  onClick={() => setFormMov(p => ({ ...p, tipo: t.v }))}
-                  className="py-2.5 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all"
+          : formMov.tipo === 'pago'
+            ? (esMeDebenModal ? 'Registrar Cobro' : 'Registrar Pago')
+            : (esMeDebenModal ? 'Prestar más dinero' : 'Registrar Cargo')
+        const placeholderDesc = formMov.tipo === 'pago'
+          ? (esMeDebenModal ? 'Ej: Me devolvió julio...' : 'Ej: Pago mensual')
+          : (esMeDebenModal ? 'Ej: Nuevo préstamo salud...' : 'Ej: Compra supermercado...')
+        const colorBoton = formMov.tipo === 'pago'
+          ? 'var(--accent-green)'
+          : (esMeDebenModal ? 'var(--accent-blue)' : 'var(--accent-rose)')
+        const labelConfirmar = saving
+          ? 'Guardando...'
+          : editandoMov
+            ? 'Guardar cambios'
+            : formMov.tipo === 'pago'
+              ? (esMeDebenModal ? 'Confirmar Cobro' : 'Confirmar Pago')
+              : (esMeDebenModal ? 'Registrar Préstamo' : 'Registrar Cargo')
+        return (
+          <Modal
+            open={!!modalMov || !!editandoMov}
+            onClose={() => {
+              setModalMov(null)
+              setEditandoMov(null)
+              setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
+            }}
+            title={titleModal}>
+            <form onSubmit={editandoMov ? handleEditMov : handleAddMov} className="space-y-4">
+              {!editandoMov && (
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl" style={{ background: 'var(--bg-secondary)' }}>
+                  {[{ v: 'cargo', l: labelCargo }, { v: 'pago', l: labelPago }].map(t => (
+                    <button type="button" key={t.v}
+                      onClick={() => setFormMov(p => ({ ...p, tipo: t.v }))}
+                      className="py-2.5 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all"
+                      style={{
+                        background: formMov.tipo === t.v ? 'var(--bg-card)' : 'transparent',
+                        color: formMov.tipo === t.v ? 'var(--text-primary)' : 'var(--text-muted)',
+                        boxShadow: formMov.tipo === t.v ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      }}>
+                      {t.l}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {editandoMov && (
+                <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
                   style={{
-                    background: formMov.tipo === t.v ? 'var(--bg-card)' : 'transparent',
-                    color: formMov.tipo === t.v ? 'var(--text-primary)' : 'var(--text-muted)',
-                    boxShadow: formMov.tipo === t.v ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    background: editandoMov.tipo === 'pago'
+                      ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
+                      : 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
+                    color: editandoMov.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
                   }}>
-                  {t.l}
+                  Tipo: {editandoMov.tipo === 'pago' ? labelPago : labelCargo} · No se puede cambiar al editar
+                </div>
+              )}
+              <div>
+                <label className="ff-label">Descripción</label>
+                <input className="ff-input" required
+                  placeholder={placeholderDesc}
+                  value={formMov.descripcion}
+                  onChange={e => setFormMov(p => ({ ...p, descripcion: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="ff-label">Monto (€)</label>
+                  <input className="ff-input text-lg font-semibold" type="number" step="0.01" placeholder="0.00" required
+                    value={formMov.monto}
+                    onChange={e => setFormMov(p => ({ ...p, monto: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="ff-label">Fecha</label>
+                  <input className="ff-input" type="date" required
+                    value={formMov.fecha}
+                    onChange={e => setFormMov(p => ({ ...p, fecha: e.target.value }))} />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-6">
+                <button type="button"
+                  onClick={() => {
+                    setModalMov(null)
+                    setEditandoMov(null)
+                    setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
+                  }}
+                  className="ff-btn-ghost flex-1">
+                  Cancelar
                 </button>
-              ))}
-            </div>
-          )}
-          {editandoMov && (
-            <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
-              style={{
-                background: editandoMov.tipo === 'pago'
-                  ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
-                  : 'color-mix(in srgb, var(--accent-rose) 8%, transparent)',
-                color: editandoMov.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
-              }}>
-              Tipo: {editandoMov.tipo === 'pago' ? '↑ Pago' : '↓ Cargo'} · No se puede cambiar al editar
-            </div>
-          )}
-          <div>
-            <label className="ff-label">Descripción</label>
-            <input className="ff-input" required
-              placeholder={formMov.tipo === 'pago' ? 'Ej: Pago mensual' : 'Ej: Compra supermercado...'}
-              value={formMov.descripcion}
-              onChange={e => setFormMov(p => ({ ...p, descripcion: e.target.value }))} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="ff-label">Monto (€)</label>
-              <input className="ff-input text-lg font-semibold" type="number" step="0.01" placeholder="0.00" required
-                value={formMov.monto}
-                onChange={e => setFormMov(p => ({ ...p, monto: e.target.value }))} />
-            </div>
-            <div>
-              <label className="ff-label">Fecha</label>
-              <input className="ff-input" type="date" required
-                value={formMov.fecha}
-                onChange={e => setFormMov(p => ({ ...p, fecha: e.target.value }))} />
-            </div>
-          </div>
-          <div className="flex gap-3 pt-6">
-            <button type="button"
-              onClick={() => {
-                setModalMov(null)
-                setEditandoMov(null)
-                setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
-              }}
-              className="ff-btn-ghost flex-1">
-              Cancelar
-            </button>
-            <button type="submit" disabled={saving}
-              className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
-              style={{
-                background: formMov.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
-              }}>
-              {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? 'Guardando...' : editandoMov ? 'Guardar cambios' : formMov.tipo === 'pago' ? 'Confirmar' : 'Registrar'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+                <button type="submit" disabled={saving}
+                  className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
+                  style={{ background: colorBoton }}>
+                  {saving && <Loader2 size={14} className="animate-spin" />}
+                  {labelConfirmar}
+                </button>
+              </div>
+            </form>
+          </Modal>
+        )
+      })()}
     </AppShell>
   )
 }
@@ -1950,7 +2014,7 @@ export default function DeudasPage() {
 function CategoriaToggle({ value, onChange }) {
   return (
     <div className="grid grid-cols-2 gap-2">
-      {[{ v: 'deseo', l: 'Gasto Deseo' }, { v: 'basicos', l: 'Gasto Básico' }].map(c => (
+      {[{ v: 'deseo', l: 'Estilo de vida' }, { v: 'basicos', l: 'Básicos' }].map(c => (
         <button type="button" key={c.v} onClick={() => onChange(c.v)}
           className="py-2.5 rounded-xl text-[10px] font-semibold uppercase transition-all"
           style={{

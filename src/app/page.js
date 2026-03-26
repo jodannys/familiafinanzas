@@ -20,7 +20,7 @@ const COLORES_CAT = {
 }
 
 const NOMBRES_CAT = {
-  basicos: 'Necesidades',
+  basicos: 'Básicos',
   deseo: 'Estilo de vida',
   deuda: 'Deudas',
   ahorro: 'Ahorro',
@@ -101,6 +101,7 @@ export default function Dashboard() {
 
   const movsMes = useMemo(() =>
     movs.filter(m => {
+      if (!m.fecha) return false
       const [year, month] = m.fecha.split('-').map(Number)
       return month - 1 === mesActual && year === añoActual
     }), [movs, mesActual, añoActual])
@@ -112,6 +113,7 @@ export default function Dashboard() {
     const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     const porMes = Array.from({ length: 12 }, (_, i) => ({ name: MESES[i], gastos: 0, ingresos: 0 }))
     movs.forEach(mov => {
+      if (!mov.fecha) return
       const mes = parseInt(mov.fecha.split('-')[1], 10) - 1
       const año = parseInt(mov.fecha.split('-')[0], 10)
       if (año !== añoActual || mes < 0 || mes > 11) return

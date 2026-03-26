@@ -20,7 +20,7 @@ function fechaHoy() {
 }
 
 const ORIGENES = [
-  { value: 'basicos', label: 'Gastos Básicos', color: 'var(--accent-blue)', desc: 'Súper, facturas...' },
+  { value: 'basicos', label: 'Básicos', color: 'var(--accent-blue)', desc: 'Súper, facturas...' },
   { value: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)', desc: 'Retrasa tu ahorro' },
   { value: 'inversiones', label: 'Inversiones', color: 'var(--accent-violet)', desc: 'Retrasa tu inversión' },
 ]
@@ -52,7 +52,8 @@ export default function SobrePage() {
   async function cargarTodo() {
     setLoading(true)
     const fechaInicio = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-01`
-    const fechaFin = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-31`
+    const ultimoDia = new Date(filtroAño, filtroMes, 0).getDate()
+    const fechaFin = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
 
     try {
       const [pres, { data: sobre }, { data: movs }, { data: tarjetas }] = await Promise.all([
@@ -306,7 +307,9 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
             <select value={filtroAño} onChange={e => setFiltroAño(Number(e.target.value))}
               className="bg-transparent outline-none cursor-pointer"
               style={{ color: 'var(--text-muted)' }}>
-              {[2025, 2026].map(a => <option key={a} value={a}>{a}</option>)}
+              {Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - 1 + i).map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
             </select>
           </div>
         </div>

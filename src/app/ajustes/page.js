@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card'
 import {
   Settings2, Plus, Trash2, Edit3, Save, X,
   ChevronDown, ChevronUp, Loader2, Home, Sparkles, Sprout,
-  Target, TrendingUp, ArrowRight, User, Palette, Check
+  Target, TrendingUp, ArrowRight, User, Palette, Check, Download
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
@@ -51,6 +51,9 @@ export default function AjustesPage() {
   // Edición inline
   const [editandoCat, setEditandoCat] = useState(null)
   const [editandoSub, setEditandoSub] = useState(null)
+  const [editandoMeta, setEditandoMeta] = useState(null)       // { id, nombre, emoji, pct_mensual }
+  const [editandoInversion, setEditandoInversion] = useState(null) // { id, nombre, emoji, aporte }
+  const [exportando, setExportando] = useState(false)
   const [bloqueCollapsed, setBloqueCollapsed] = useState({})
   const [hoveredCat, setHoveredCat] = useState(null)
   const [showTemas, setShowTemas] = useState(false)
@@ -208,6 +211,93 @@ export default function AjustesPage() {
     const { error } = await supabase.from('inversiones').delete().eq('id', id)
     if (error) { toast('' + error.message); return }
     setInversiones(prev => prev.filter(i => i.id !== id))
+  }
+
+  // ── EDITAR METAS ──────────────────────────────────────────────────────────
+
+  async function handleSaveMeta(meta) {
+    if (!editandoMeta?.nombre?.trim() || saving) return
+    setSaving(true)
+    const { error } = await supabase.from('metas').update({
+      nombre: editandoMeta.nombre.trim(),
+      emoji: editandoMeta.emoji || '🎯',
+      pct_mensual: parseFloat(editandoMeta.pct_mensual) || 0,
+    }).eq('id', meta.id)
+    setSaving(false)
+    if (error) { toast('' + error.message); return }
+    setMetas(prev => prev.map(m => m.id === meta.id
+      ? { ...m, nombre: editandoMeta.nombre.trim(), emoji: editandoMeta.emoji || '🎯', pct_mensual: parseFloat(editandoMeta.pct_mensual) || 0 }
+      : m
+    ))
+    setEditandoMeta(null)
+  }
+
+  // ── EDITAR INVERSIONES ────────────────────────────────────────────────────
+
+  async function handleSaveInversion(inv) {
+    if (!editandoInversion?.nombre?.trim() || saving) return
+    setSaving(true)
+    const { error } = await supabase.from('inversiones').update({
+      nombre: editandoInversion.nombre.trim(),
+      emoji: editandoInversion.emoji || '📈',
+      aporte: parseFloat(editandoInversion.aporte) || 0,
+    }).eq('id', inv.id)
+    setSaving(false)
+    if (error) { toast('' + error.message); return }
+    setInversiones(prev => prev.map(i => i.id === inv.id
+      ? { ...i, nombre: editandoInversion.nombre.trim(), emoji: editandoInversion.emoji || '📈', aporte: parseFloat(editandoInversion.aporte) || 0 }
+      : i
+    ))
+    setEditandoInversion(null)
+  }
+
+  // ── EXPORTAR BACKUP ───────────────────────────────────────────────────────
+
+  async function handleExportar() {
+    setExportando(true)
+    try {
+      const [
+        { data: movs }, { data: deudasData }, { data: deudaMovs },
+        { data: metasData }, { data: invData },
+        { data: cats }, { data: subs },
+        { data: sobreMovs }, { data: bloquesData },
+      ] = await Promise.all([
+        supabase.from('movimientos').select('*').order('fecha'),
+        supabase.from('deudas').select('*'),
+        supabase.from('deuda_movimientos').select('*'),
+        supabase.from('metas').select('*'),
+        supabase.from('inversiones').select('*'),
+        supabase.from('categorias').select('*'),
+        supabase.from('subcategorias').select('*'),
+        supabase.from('sobre_movimientos').select('*'),
+        supabase.from('presupuesto_bloques').select('*'),
+      ])
+      const backup = {
+        exportado: new Date().toISOString(),
+        version: 1,
+        movimientos: movs || [],
+        deudas: deudasData || [],
+        deuda_movimientos: deudaMovs || [],
+        metas: metasData || [],
+        inversiones: invData || [],
+        categorias: cats || [],
+        subcategorias: subs || [],
+        sobre_movimientos: sobreMovs || [],
+        presupuesto_bloques: bloquesData || [],
+      }
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `familiafinanzas-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('Backup descargado', 'success')
+    } catch (err) {
+      toast('Error al exportar: ' + err.message)
+    } finally {
+      setExportando(false)
+    }
   }
 
   // ── RENDER ────────────────────────────────────────────────────────────────
@@ -746,7 +836,7 @@ export default function AjustesPage() {
                         </div>
                         <a href="/metas" className="text-[10px] font-semibold flex items-center gap-0.5"
                           style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
-                          Editar <ArrowRight size={9} />
+                          Ver todo <ArrowRight size={9} />
                         </a>
                       </div>
                       {metas.length === 0 && (
@@ -755,17 +845,46 @@ export default function AjustesPage() {
                         </p>
                       )}
                       {metas.map(m => (
-                        <div key={m.id} className="flex items-center gap-2 px-3 py-2 border-t"
-                          style={{ borderColor: 'var(--border-glass)' }}>
-                          <span className="text-sm">{getFlagEmoji(m.emoji)}</span>
-                          <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{m.nombre}</span>
-                          <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-green)' }}>
-                            {m.pct_mensual}%
-                          </span>
-                          <button onClick={() => handleDeleteMeta(m.id)}
-                            style={{ color: 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                            <Trash2 size={11} />
-                          </button>
+                        <div key={m.id} className="border-t" style={{ borderColor: 'var(--border-glass)' }}>
+                          {editandoMeta?.id === m.id ? (
+                            <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
+                              <input className="ff-input w-8 text-center text-sm p-1" maxLength={4}
+                                value={editandoMeta.emoji}
+                                onChange={e => setEditandoMeta(p => ({ ...p, emoji: e.target.value }))} />
+                              <input className="ff-input flex-1 text-xs py-1 min-w-[100px]"
+                                value={editandoMeta.nombre}
+                                onChange={e => setEditandoMeta(p => ({ ...p, nombre: e.target.value }))}
+                                onKeyDown={e => e.key === 'Enter' && handleSaveMeta(m)} />
+                              <div className="flex items-center gap-1">
+                                <input className="ff-input w-14 text-xs py-1 text-center" type="number" min="0" max="100"
+                                  value={editandoMeta.pct_mensual}
+                                  onChange={e => setEditandoMeta(p => ({ ...p, pct_mensual: e.target.value }))} />
+                                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>%</span>
+                              </div>
+                              <button onClick={() => handleSaveMeta(m)} disabled={saving}
+                                style={{ color: 'var(--accent-green)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                              </button>
+                              <button onClick={() => setEditandoMeta(null)}
+                                style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 px-3 py-2">
+                              <span className="text-sm">{getFlagEmoji(m.emoji)}</span>
+                              <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{m.nombre}</span>
+                              <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-green)' }}>{m.pct_mensual}%</span>
+                              <button onClick={() => setEditandoMeta({ id: m.id, nombre: m.nombre, emoji: m.emoji || '🎯', pct_mensual: m.pct_mensual })}
+                                style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                <Edit3 size={11} />
+                              </button>
+                              <button onClick={() => handleDeleteMeta(m.id)}
+                                style={{ color: 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -785,7 +904,7 @@ export default function AjustesPage() {
                         </div>
                         <a href="/inversiones" className="text-[10px] font-semibold flex items-center gap-0.5"
                           style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
-                          Editar <ArrowRight size={9} />
+                          Ver todo <ArrowRight size={9} />
                         </a>
                       </div>
                       {inversiones.length === 0 && (
@@ -794,19 +913,51 @@ export default function AjustesPage() {
                         </p>
                       )}
                       {inversiones.map(inv => (
-                        <div key={inv.id} className="flex items-center gap-2 px-3 py-2 border-t"
-                          style={{ borderColor: 'var(--border-glass)' }}>
-                          <span className="text-sm">{getFlagEmoji(inv.emoji)}</span>
-                          <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
-                          {inv.aporte > 0 && (
-                            <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-violet)' }}>
-                              +{inv.aporte}/mes
-                            </span>
+                        <div key={inv.id} className="border-t" style={{ borderColor: 'var(--border-glass)' }}>
+                          {editandoInversion?.id === inv.id ? (
+                            <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
+                              <input className="ff-input w-8 text-center text-sm p-1" maxLength={4}
+                                value={editandoInversion.emoji}
+                                onChange={e => setEditandoInversion(p => ({ ...p, emoji: e.target.value }))} />
+                              <input className="ff-input flex-1 text-xs py-1 min-w-[100px]"
+                                value={editandoInversion.nombre}
+                                onChange={e => setEditandoInversion(p => ({ ...p, nombre: e.target.value }))}
+                                onKeyDown={e => e.key === 'Enter' && handleSaveInversion(inv)} />
+                              <div className="flex items-center gap-1">
+                                <input className="ff-input w-16 text-xs py-1 text-center" type="number" min="0" step="0.01"
+                                  placeholder="0"
+                                  value={editandoInversion.aporte}
+                                  onChange={e => setEditandoInversion(p => ({ ...p, aporte: e.target.value }))} />
+                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>/mes</span>
+                              </div>
+                              <button onClick={() => handleSaveInversion(inv)} disabled={saving}
+                                style={{ color: 'var(--accent-violet)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                              </button>
+                              <button onClick={() => setEditandoInversion(null)}
+                                style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 px-3 py-2">
+                              <span className="text-sm">{getFlagEmoji(inv.emoji)}</span>
+                              <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
+                              {inv.aporte > 0 && (
+                                <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-violet)' }}>
+                                  +{inv.aporte}/mes
+                                </span>
+                              )}
+                              <button onClick={() => setEditandoInversion({ id: inv.id, nombre: inv.nombre, emoji: inv.emoji || '📈', aporte: inv.aporte?.toString() || '0' })}
+                                style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                <Edit3 size={11} />
+                              </button>
+                              <button onClick={() => handleDeleteInversion(inv.id)}
+                                style={{ color: 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
                           )}
-                          <button onClick={() => handleDeleteInversion(inv.id)}
-                            style={{ color: 'var(--accent-rose)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                            <Trash2 size={11} />
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -815,6 +966,28 @@ export default function AjustesPage() {
               </Card>
             )
           })}
+          {/* ── Exportar datos ── */}
+          <Card className="animate-enter">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'color-mix(in srgb, var(--accent-terra) 12%, transparent)' }}>
+                <Download size={16} style={{ color: 'var(--accent-terra)' }} />
+              </div>
+              <div>
+                <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Exportar datos</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Descarga un backup completo en JSON</p>
+              </div>
+            </div>
+            <button
+              onClick={handleExportar}
+              disabled={exportando}
+              className="ff-btn-ghost w-full flex items-center justify-center gap-2 text-sm">
+              {exportando
+                ? <><Loader2 size={14} className="animate-spin" /> Exportando...</>
+                : <><Download size={14} /> Descargar backup</>}
+            </button>
+          </Card>
+
         </div>
       )}
     </AppShell>

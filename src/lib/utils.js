@@ -89,8 +89,8 @@ export function calculateCompoundInterest({ principal, monthlyContribution, annu
 
 // FIX 4: usar CSS vars del tema en vez de hex hardcodeados
 export const CATEGORY_CONFIG = {
-  basicos:   { label: 'Gastos Básicos', color: 'var(--accent-blue)',   icon: 'Home'       },
-  deseo:     { label: 'Gastos Deseo',   color: 'var(--accent-violet)', icon: 'Sparkles'   },
+  basicos:   { label: 'Básicos',        color: 'var(--accent-blue)',   icon: 'Home'       },
+  deseo:     { label: 'Estilo de vida', color: 'var(--accent-violet)', icon: 'Sparkles'   },
   ahorro:    { label: 'Ahorro / Metas', color: 'var(--accent-green)',  icon: 'PiggyBank'  },
   inversion: { label: 'Inversión',      color: 'var(--accent-gold)',   icon: 'TrendingUp' },
   deuda:     { label: 'Deudas',         color: 'var(--accent-rose)',   icon: 'CreditCard' },

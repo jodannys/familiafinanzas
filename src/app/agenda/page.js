@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell'
 import Modal from '@/components/ui/Modal'
 import {
   ChevronLeft, ChevronRight, Plus, Loader2, Trash2, Pencil,
-  Check, CalendarDays, List, Bell, CreditCard, Target, StickyNote,
+  Check, CalendarDays, List, Bell, CreditCard, Target, StickyNote, Sun,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme, getThemeColors } from '@/lib/themes'
@@ -163,6 +163,18 @@ export default function AgendaPage() {
     setAño(fecha.getFullYear())
   }
 
+  function navDia(delta) {
+    const [y, m, d] = diaSeleccionado.split('-').map(Number)
+    const fecha = new Date(y, m - 1, d)
+    fecha.setDate(fecha.getDate() + delta)
+    const nuevaFecha = toFechaStr(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())
+    setDiaSeleccionado(nuevaFecha)
+    if (fecha.getMonth() !== mes || fecha.getFullYear() !== año) {
+      setMes(fecha.getMonth())
+      setAño(fecha.getFullYear())
+    }
+  }
+
   function renderNota(nota) {
     const tipo = TIPOS.find(t => t.id === nota.tipo) || TIPOS[3]
     return (
@@ -286,7 +298,7 @@ export default function AgendaPage() {
         </div>
        
           <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
-            {[{ id: 'mes', Icon: CalendarDays }, { id: 'semana', Icon: List }].map(({ id, Icon }) => (
+            {[{ id: 'mes', Icon: CalendarDays }, { id: 'semana', Icon: List }, { id: 'dia', Icon: Sun }].map(({ id, Icon }) => (
               <button key={id} onClick={() => setVista(id)}
                 className="flex items-center justify-center rounded-lg transition-all"
                 style={{
@@ -302,14 +314,14 @@ export default function AgendaPage() {
       </div>
 
 
-      {/* Nav mes / semana */}
+      {/* Nav mes / semana / dia */}
       <div className="flex items-center justify-between mb-3 px-1">
-        <button onClick={() => vista === 'mes' ? navMes(-1) : navSemana(-1)}
+        <button onClick={() => vista === 'mes' ? navMes(-1) : vista === 'semana' ? navSemana(-1) : navDia(-1)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6 }}>
           <ChevronLeft size={20} />
         </button>
         <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          {vista === 'mes' ? `${MESES[mes]} ${año}` : (() => {
+          {vista === 'mes' ? `${MESES[mes]} ${año}` : vista === 'dia' ? formatFechaRelativa(diaSeleccionado) : (() => {
             const ini = semanaSeleccionada[0]
             const fin = semanaSeleccionada[6]
             const [iy, im, id] = ini.fecha.split('-').map(Number)
@@ -319,7 +331,7 @@ export default function AgendaPage() {
             return `${fIni} — ${fFin}`
           })()}
         </p>
-        <button onClick={() => vista === 'mes' ? navMes(1) : navSemana(1)}
+        <button onClick={() => vista === 'mes' ? navMes(1) : vista === 'semana' ? navSemana(1) : navDia(1)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6 }}>
           <ChevronRight size={20} />
         </button>
@@ -420,6 +432,145 @@ export default function AgendaPage() {
             )}
           </div>
         </>
+      ) : vista === 'dia' ? (
+        /* Vista diaria */
+        <div className="rounded-[24px] overflow-hidden animate-enter"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
+          {/* Cabecera día */}
+          <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border-glass)' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                {(() => {
+                  const [y, m, d] = diaSeleccionado.split('-').map(Number)
+                  const nombreDia = new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'long' })
+                  const esHoy = diaSeleccionado === hoyStr
+                  return (
+                    <>
+                      <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'capitalize', letterSpacing: '0.14em', color: esHoy ? 'var(--accent-green)' : 'var(--text-muted)' }}>
+                        {nombreDia}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, color: esHoy ? 'var(--accent-green)' : 'var(--text-primary)' }}>
+                          {d}
+                        </span>
+                        <div>
+                          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            {new Date(y, m - 1, d).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                          </p>
+                          {notasDia.length > 0 && (
+                            <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                              {notasDia.length} {notasDia.length === 1 ? 'evento' : 'eventos'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
+              <button onClick={abrirModalNueva}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all active:scale-95"
+                style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', color: 'var(--accent-green)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                <Plus size={14} /> Agregar
+              </button>
+            </div>
+          </div>
+
+          {/* Timeline de eventos */}
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="animate-spin" size={24} style={{ color: 'var(--accent-green)' }} />
+            </div>
+          ) : notasDia.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-3">
+              <Sun size={30} style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
+              <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Sin eventos para este día</p>
+              <button onClick={abrirModalNueva}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all active:scale-95"
+                style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)', color: 'var(--accent-green)', border: '1px dashed color-mix(in srgb, var(--accent-green) 30%, transparent)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                <Plus size={13} /> Agregar evento
+              </button>
+            </div>
+          ) : (
+            <div className="relative px-4 py-3">
+              {/* Línea de tiempo vertical */}
+              <div className="absolute left-[28px] top-4 bottom-4 w-px" style={{ background: 'var(--border-glass)' }} />
+              <div className="flex flex-col gap-1">
+                {notasDia.map(nota => {
+                  const tipo = TIPOS.find(t => t.id === nota.tipo) || TIPOS[3]
+                  return (
+                    <div key={nota.id} className="flex items-start gap-3">
+                      {/* Dot en la línea */}
+                      <div className="flex-shrink-0 flex items-center justify-center rounded-full z-10 mt-3"
+                        style={{
+                          width: 12, height: 12,
+                          background: nota.completado ? `color-mix(in srgb, ${nota.color} 30%, transparent)` : nota.color,
+                          border: `2px solid ${nota.color}`,
+                          marginLeft: 2,
+                        }} />
+                      {/* Contenido */}
+                      <div className="flex-1 rounded-2xl px-3.5 py-3 mb-1"
+                        style={{
+                          background: nota.completado
+                            ? `color-mix(in srgb, ${nota.color} 4%, var(--bg-secondary))`
+                            : `color-mix(in srgb, ${nota.color} 8%, var(--bg-secondary))`,
+                          border: `1px solid color-mix(in srgb, ${nota.color} 18%, transparent)`,
+                          opacity: nota.completado ? 0.55 : 1,
+                        }}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold"
+                              style={{ color: 'var(--text-primary)', textDecoration: nota.completado ? 'line-through' : 'none' }}>
+                              {nota.titulo}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em',
+                                padding: '2px 7px', borderRadius: 999,
+                                background: `color-mix(in srgb, ${tipo.color} 14%, transparent)`,
+                                color: tipo.color,
+                              }}>
+                                {nota._auto ? '⚡ Auto · ' : ''}{tipo.label}
+                              </span>
+                              {nota._cuota > 0 && (
+                                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                  {formatCurrency(nota._cuota)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {!nota._auto && (
+                            <div className="flex items-center gap-0.5 flex-shrink-0">
+                              <button type="button" onClick={() => handleToggle(nota)}
+                                className="flex items-center justify-center rounded-lg transition-all"
+                                style={{
+                                  width: 26, height: 26, cursor: 'pointer',
+                                  background: nota.completado ? `color-mix(in srgb, ${nota.color} 20%, transparent)` : `color-mix(in srgb, ${nota.color} 8%, transparent)`,
+                                  border: `1.5px solid color-mix(in srgb, ${nota.color} 30%, transparent)`,
+                                }}>
+                                {nota.completado && <Check size={12} style={{ color: nota.color }} />}
+                              </button>
+                              <button onClick={() => abrirModalEditar(nota)}
+                                style={{ width: 26, height: 26, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
+                                <Pencil size={12} />
+                              </button>
+                              <button onClick={() => handleDelete(nota)}
+                                style={{ width: 26, height: 26, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+                                onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-rose)'}
+                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         /* Vista semana — lista vertical */
         <div className="rounded-[24px] overflow-hidden animate-enter"

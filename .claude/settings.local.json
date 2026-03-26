@@ -5,7 +5,8 @@
       "Bash(sed \"s/''''.*//\")",
       "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas -type f -name *.md -o -name *.sql)",
       "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas/app -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js \\\\\\))",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx next:*)"
     ]
   }
 }

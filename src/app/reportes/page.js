@@ -17,12 +17,15 @@ function getCatVars(col) {
   return {
     basicos:   { label: 'Básicos',   color: col.blue,  grupo: 'necesidades' },
     deuda:     { label: 'Deuda',     color: col.rose,  grupo: 'necesidades' },
-    deseo:     { label: 'Deseo',     color: col.terra, grupo: 'deseos'      },
-    remesa:    { label: 'Remesa',    color: col.terra, grupo: 'deseos'      },
+    deseo:     { label: 'Estilo',    color: col.terra, grupo: 'deseos'      },
     ahorro:    { label: 'Ahorro',    color: col.green, grupo: 'futuro'      },
     inversion: { label: 'Inversión', color: col.green, grupo: 'futuro'      },
   }
 }
+
+// Parseo de fecha sin timezone: evita que "2026-01-01" se convierta en dic 2025 en UTC-4
+function fechaAño(f)  { return parseInt((f || '').slice(0, 4)) }
+function fechaMes(f)  { return parseInt((f || '').slice(5, 7)) - 1 } // 0-indexed
 
 // FIX 5: usar el campo bloque (id estable) en vez del nombre
 function grupoDeBloque(bloqueId) {
@@ -64,11 +67,12 @@ function ChartTooltip({ active, payload, label, colores }) {
 }
 
 export default function ReportesPage() {
-  const [movs, setMovs]       = useState([])
-  const [bloques, setBloques] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [filtro, setFiltro]   = useState('todos')
-  const [año, setAño]         = useState(new Date().getFullYear())
+  const [movs, setMovs]           = useState([])
+  const [movsAnterior, setMovsAnterior] = useState([])
+  const [bloques, setBloques]     = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [filtro, setFiltro]       = useState('todos')
+  const [año, setAño]             = useState(new Date().getFullYear())
   const [colores, setColores] = useState({
     green: '', rose: '', blue: '', terra: '', violet: '',
     muted: '', border: '', card: '', track: '',
@@ -109,16 +113,20 @@ export default function ReportesPage() {
     async function cargar() {
       setLoading(true)
       try {
-        const [{ data: movData, error: movErr }, { data: blqData }] = await Promise.all([
+        const [{ data: movData, error: movErr }, { data: blqData }, { data: movAntData }] = await Promise.all([
           supabase.from('movimientos').select('*')
             .gte('fecha', `${año}-01-01`)
             .lte('fecha', `${año}-12-31`)
             .order('fecha'),
           supabase.from('presupuesto_bloques').select('*'),
+          supabase.from('movimientos').select('monto,tipo,categoria,fecha')
+            .gte('fecha', `${año - 1}-01-01`)
+            .lte('fecha', `${año - 1}-12-31`),
         ])
         if (movErr) throw movErr
         setMovs(movData || [])
         setBloques(blqData || [])
+        setMovsAnterior(movAntData || [])
       } catch (err) {
         console.error('Error cargando reportes:', err)
       } finally {
@@ -130,7 +138,7 @@ export default function ReportesPage() {
 
   // FIX 4: todos los cálculos derivados memoizados
   const movsAño = useMemo(() =>
-    movs.filter(m => new Date(m.fecha).getFullYear() === año)
+    movs.filter(m => fechaAño(m.fecha) === año)
   , [movs, año])
 
   const totalIngresos = useMemo(() =>
@@ -208,11 +216,11 @@ export default function ReportesPage() {
     { v: 'todos',     l: 'Todos',     color: colores.muted  },
     { v: 'basicos',   l: 'Básicos',   color: colores.blue   },
     { v: 'deuda',     l: 'Deuda',     color: colores.rose   },
-    { v: 'deseo',     l: 'Deseo',     color: colores.terra  },
+    { v: 'deseo',     l: 'Estilo',    color: colores.terra  },
     { v: 'ahorro',    l: 'Ahorro',    color: colores.green  },
     { v: 'inversion', l: 'Inversión', color: colores.green  },
     ...catsConDatos
-      .filter(cat => !['basicos','deuda','deseo','ahorro','inversion','remesa'].includes(cat))
+      .filter(cat => !['basicos','deuda','deseo','ahorro','inversion'].includes(cat))
       .map(cat => ({ v: cat, l: cat, color: colores.muted }))
   ], [catsConDatos, colores])
 
@@ -226,7 +234,7 @@ export default function ReportesPage() {
   // FIX 3: resumenMes excluye ahorro/inversión de Gastos
   const resumenMes = useMemo(() =>
     MESES.map((mes, i) => {
-      const mm = movsAño.filter(m => new Date(m.fecha).getMonth() === i)
+      const mm = movsAño.filter(m => fechaMes(m.fecha) === i)
       return {
         mes,
         mesCorto: MESES_CORTO[i],
@@ -243,7 +251,7 @@ export default function ReportesPage() {
       mes,
       mesCorto: MESES_CORTO[i],
       total: movsFiltrados
-        .filter(m => new Date(m.fecha).getMonth() === i)
+        .filter(m => fechaMes(m.fecha) === i)
         .reduce((s, m) => s + m.monto, 0),
     }))
   , [movsFiltrados])
@@ -259,6 +267,40 @@ export default function ReportesPage() {
       conDatos[0] || porMes[0]
     )
   }, [porMes])
+
+  // ── Año anterior ─────────────────────────────────────────────────────────
+  const totalIngresosAnt = useMemo(() =>
+    movsAnterior.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
+  , [movsAnterior])
+
+  const totalGastosAnt = useMemo(() =>
+    movsAnterior.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
+  , [movsAnterior])
+
+  const totalAhorroAnt = useMemo(() =>
+    movsAnterior
+      .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(normCat(m.categoria)))
+      .reduce((s, m) => s + m.monto, 0)
+  , [movsAnterior])
+
+  const balanceAnt   = totalIngresosAnt - totalGastosAnt
+  const tasaAhorroAnt = totalIngresosAnt > 0 ? (totalAhorroAnt / totalIngresosAnt) * 100 : 0
+  const hayDatosAnt   = totalIngresosAnt > 0 || totalGastosAnt > 0
+
+  // Gráfico comparativo mensual (ingresos y gastos de ambos años)
+  const resumenComparativa = useMemo(() =>
+    MESES.map((mes, i) => {
+      const act = movsAño.filter(m => fechaMes(m.fecha) === i)
+      const ant = movsAnterior.filter(m => fechaMes(m.fecha) === i)
+      return {
+        mesCorto: MESES_CORTO[i],
+        [`Ing ${año}`]:   act.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
+        [`Gas ${año}`]:   act.filter(m => m.tipo === 'egreso' && ['basicos','deseo','deuda'].includes(normCat(m.categoria))).reduce((s, m) => s + m.monto, 0),
+        [`Ing ${año - 1}`]: ant.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
+        [`Gas ${año - 1}`]: ant.filter(m => m.tipo === 'egreso' && ['basicos','deseo','deuda'].includes(normCat(m.categoria))).reduce((s, m) => s + m.monto, 0),
+      }
+    })
+  , [movsAño, movsAnterior, año])
 
   // Tooltip con colores inyectados
   const TooltipConColores = (props) => <ChartTooltip {...props} colores={colores} />
@@ -355,6 +397,71 @@ export default function ReportesPage() {
               </div>
             ))}
           </div>
+
+          {/* COMPARATIVA AÑO ANTERIOR */}
+          {hayDatosAnt && (
+            <Card className="mb-4 animate-enter" style={{ padding: '14px 16px', animationDelay: '0.08s' }}>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-semibold uppercase" style={{ color: colores.muted }}>
+                  Comparativa — {año} vs {año - 1}
+                </p>
+              </div>
+
+              {/* Deltas KPI */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                {[
+                  { label: 'Ingresos',    actual: totalIngresos,   ant: totalIngresosAnt },
+                  { label: 'Gastos',      actual: totalGastos,     ant: totalGastosAnt, invertir: true },
+                  { label: 'Balance',     actual: balance,         ant: balanceAnt },
+                  { label: 'Tasa ahorro', actual: tasaAhorro,      ant: tasaAhorroAnt, esPct: true },
+                ].map(({ label, actual, ant, invertir, esPct }) => {
+                  const delta = actual - ant
+                  // Para gastos: bajar es bueno (invertir = true)
+                  const positivo = invertir ? delta <= 0 : delta >= 0
+                  const color = ant === 0 ? colores.muted : positivo ? colores.green : colores.rose
+                  const signo = delta >= 0 ? '+' : ''
+                  return (
+                    <div key={label} className="p-2.5 rounded-xl"
+                      style={{
+                        background: `color-mix(in srgb, ${color} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${color} 15%, transparent)`,
+                      }}>
+                      <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: colores.muted }}>
+                        {label}
+                      </p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        {esPct ? `${actual.toFixed(1)}%` : formatCurrency(actual)}
+                      </p>
+                      {ant > 0 && (
+                        <p className="text-[9px] font-semibold mt-0.5" style={{ color }}>
+                          {signo}{esPct ? `${delta.toFixed(1)}%` : formatCurrency(delta)}
+                          <span className="opacity-50 ml-1 font-normal">vs {año - 1}</span>
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Gráfico comparativo mensual */}
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={resumenComparativa} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barCategoryGap="15%" barGap={1}>
+                  <XAxis dataKey="mesCorto" tick={{ fill: colores.muted, fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: colores.muted, fontSize: 9 }} axisLine={false} tickLine={false}
+                    tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                  <Tooltip content={<TooltipConColores />} />
+                  <Legend
+                    wrapperStyle={{ fontSize: 9, fontWeight: 700, paddingTop: 6 }}
+                    formatter={v => <span style={{ color: colores.muted }}>{v}</span>}
+                  />
+                  <Bar dataKey={`Ing ${año}`}     fill={colores.green}  radius={[3,3,0,0]} maxBarSize={10} />
+                  <Bar dataKey={`Gas ${año}`}     fill={colores.rose}   radius={[3,3,0,0]} maxBarSize={10} />
+                  <Bar dataKey={`Ing ${año - 1}`} fill={`color-mix(in srgb, ${colores.green} 40%, var(--bg-secondary))`} radius={[3,3,0,0]} maxBarSize={10} />
+                  <Bar dataKey={`Gas ${año - 1}`} fill={`color-mix(in srgb, ${colores.rose}  40%, var(--bg-secondary))`} radius={[3,3,0,0]} maxBarSize={10} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          )}
 
           {/* DISTRIBUCIÓN */}
           {grandTotal > 0 && (
