@@ -95,14 +95,16 @@ export default function PresupuestoPage() {
       setMetas(metasData || [])
       setInversiones(invData || [])
 
-      // Aportes reales a inversiones este mes (movimientos + sobrantes de sobres)
-      const totalMovsInv = (movsData || [])
-        .filter(m => m.tipo === 'egreso' && m.categoria === 'inversion' && m.inversion_id != null)
-        .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-      const totalSobrantesInv = (sobreData || [])
-        .filter(m => m.origen === 'sobre' && m.destino === 'inversiones')
-        .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-      setAportesInvEsteMes(totalMovsInv + totalSobrantesInv)
+      // Aportes directos al presupuesto de inversiones — excluye sobrantes del sobre
+      // (descripcion 'Sobrante sobre →') que vienen del bloque Estilo, no del presupuesto de inversiones.
+      setAportesInvEsteMes((movsData || [])
+        .filter(m =>
+          m.tipo === 'egreso' &&
+          m.categoria === 'inversion' &&
+          m.inversion_id != null &&
+          !m.descripcion?.startsWith('Sobrante sobre')
+        )
+        .reduce((s, m) => s + parseFloat(m.monto || 0), 0))
       setDeudas(deudasData || [])
       setDeudaMovs(deudaMovsData || [])
 
@@ -160,10 +162,9 @@ export default function PresupuestoPage() {
       .filter(m => ORIGEN_BLOQUE[m.origen] === bloqueId && parseFloat(m.monto) > 0)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
-    // Sobrantes enviados desde el sobre hacia metas/inversiones (cuentan en futuro)
-    const deSobrantes = sobreMovs
-      .filter(m => m.origen === 'sobre' && DESTINO_BLOQUE[m.destino] === bloqueId)
-      .reduce((s, m) => s + parseFloat(m.monto), 0)
+    // Sobrantes a metas e inversiones ahora crean movimientos propios (categoria='ahorro'/'inversion')
+    // y se cuentan en deMovimientos — deSobrantes eliminado para evitar doble conteo.
+    const deSobrantes = 0
 
     // Sobrantes enviados DESDE el sobre se descuentan del bloque estilo (el sobre pertenece a estilo)
     const deSobrantesDelSobre = bloqueId === SOBRE_BLOQUE
@@ -172,7 +173,15 @@ export default function PresupuestoPage() {
         .reduce((s, m) => s + parseFloat(m.monto), 0)
       : 0
 
-    return deMovimientos + deTraspasos + deSobrantes + deSobrantesDelSobre
+    // Traspasos ENTRANTES al sobre (desde otras cubetas) — el gasto (categoria:'deseo') ya aparece
+    // en deMovimientos como estilo, pero fue pagado por otro bloque. Se resta para evitar doble conteo.
+    const deTraspasosSobre = bloqueId === SOBRE_BLOQUE
+      ? sobreMovs
+        .filter(m => m.destino === 'sobre')
+        .reduce((s, m) => s + parseFloat(m.monto), 0)
+      : 0
+
+    return deMovimientos + deTraspasos + deSobrantes + deSobrantesDelSobre - deTraspasosSobre
   }
 
   // ── Edición de porcentajes ────────────────────────────────────────────────
@@ -600,20 +609,25 @@ export default function PresupuestoPage() {
                             <p className="text-[10px] italic" style={{ color: 'var(--text-muted)' }}>Sin carteras aún</p>
                           ) : (
                             <div className="space-y-1.5">
-                              {inversiones.map(inv => (
-                                <div key={inv.id} className="flex items-center gap-2 px-2 py-1 rounded-lg"
-                                  style={{ background: 'var(--bg-secondary)' }}>
-                                  <span className="text-sm flex-shrink-0">{inv.emoji}</span>
-                                  <span className="flex-1 text-[10px] font-medium truncate"
-                                    style={{ color: 'var(--text-primary)' }}>{inv.nombre}</span>
-                                  {inv.aporte > 0 && (
-                                    <span className="text-[10px] font-semibold tabular-nums"
-                                      style={{ color: 'var(--accent-violet)' }}>
-                                      {formatCurrency(inv.aporte)}/mes
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
+                              {inversiones.map(inv => {
+                                const invMensual = ((inv.pct_mensual || 0) / 100) * montoInversiones
+                                return (
+                                  <div key={inv.id} className="flex items-center gap-2 px-2 py-1 rounded-lg"
+                                    style={{ background: 'var(--bg-secondary)' }}>
+                                    <span className="text-sm flex-shrink-0">{inv.emoji}</span>
+                                    <span className="flex-1 text-[10px] font-medium truncate"
+                                      style={{ color: 'var(--text-primary)' }}>{inv.nombre}</span>
+                                    <span className="text-[9px] tabular-nums"
+                                      style={{ color: 'var(--text-muted)' }}>{inv.pct_mensual || 0}%</span>
+                                    {ingresoNum > 0 && invMensual > 0 && (
+                                      <span className="text-[10px] font-semibold tabular-nums"
+                                        style={{ color: 'var(--accent-violet)' }}>
+                                        {formatCurrency(invMensual)}/mes
+                                      </span>
+                                    )}
+                                  </div>
+                                )
+                              })}
                             </div>
                           )}
                         </div>

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard } from 'lucide-react'
+import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard, Minus } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
@@ -550,7 +550,7 @@ export default function GastosPage() {
               placeholder="Buscar movimiento..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }, { v: 'deuda', l: 'Deudas' }, { v: 'ahorro', l: 'Ahorro' }].map(f => (
+            {[{ v: 'todos', l: 'Todos' }, { v: 'ingreso', l: 'Ingresos' }, { v: 'egreso', l: 'Egresos' }, { v: 'retiro', l: 'Retiros' }, { v: 'deuda', l: 'Deudas' }, { v: 'ahorro', l: 'Ahorro' }].map(f => (
               <button key={f.v} onClick={() => setFiltro(f.v)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border"
                 style={{
@@ -587,10 +587,12 @@ export default function GastosPage() {
                     style={{
                       background: m.tipo === 'ingreso'
                         ? `color-mix(in srgb, ${colores.green} 10%, transparent)`
+                        : m.tipo === 'retiro'
+                        ? `color-mix(in srgb, ${colores.terra} 10%, transparent)`
                         : `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
-                      color: m.tipo === 'ingreso' ? colores.green : colores.rose,
+                      color: m.tipo === 'ingreso' ? colores.green : m.tipo === 'retiro' ? colores.terra : colores.rose,
                     }}>
-                    {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                    {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : m.tipo === 'retiro' ? <Minus size={18} /> : <ArrowDownRight size={18} />}
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -600,8 +602,9 @@ export default function GastosPage() {
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       {(() => {
                         const esIngreso = m.tipo === 'ingreso'
-                        const color = esIngreso ? colores.green : (CAT_COLOR_VAR[m.categoria] || colores.muted)
-                        const label = esIngreso ? 'ingreso' : m.categoria
+                        const esRetiro = m.tipo === 'retiro'
+                        const color = esIngreso ? colores.green : esRetiro ? colores.terra : (CAT_COLOR_VAR[m.categoria] || colores.muted)
+                        const label = esIngreso ? 'ingreso' : esRetiro ? 'retiro' : m.categoria
                         const [fy, fm, fd] = (m.fecha || '').split('-').map(Number)
                         const fechaObj = fy ? new Date(fy, fm - 1, fd) : null
                         const fechaStr = fechaObj ? fechaObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
@@ -645,8 +648,8 @@ export default function GastosPage() {
 
                   <div className="text-right flex flex-col items-end gap-0.5 flex-shrink-0">
                     <p className="text-sm font-semibold tabular-nums"
-                      style={{ color: m.tipo === 'ingreso' ? colores.green : colores.rose }}>
-                      {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
+                      style={{ color: m.tipo === 'ingreso' ? colores.green : m.tipo === 'retiro' ? colores.terra : colores.rose }}>
+                      {m.tipo === 'ingreso' ? '+' : m.tipo === 'retiro' ? '−' : '-'}{formatCurrency(m.monto)}
                     </p>
                     <button
                       onClick={() => handleDelete(m)}

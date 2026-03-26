@@ -48,6 +48,8 @@ export default function SobrePage() {
   const [montoSobrante, setMontoSobrante] = useState('')
   const [metasData, setMetasData] = useState([])
   const [metaSeleccionada, setMetaSeleccionada] = useState('')
+  const [inversionesData, setInversionesData] = useState([])
+  const [inversionSeleccionada, setInversionSeleccionada] = useState('')
 
   useEffect(() => { cargarTodo() }, [filtroMes, filtroAño])
 
@@ -58,18 +60,20 @@ export default function SobrePage() {
     const fechaFin = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
 
     try {
-      const [pres, { data: sobre }, { data: movs }, { data: tarjetas }, { data: metas }] = await Promise.all([
+      const [pres, { data: sobre }, { data: movs }, { data: tarjetas }, { data: metas }, { data: inversiones }] = await Promise.all([
         getPresupuestoMes(filtroMes, filtroAño),
         supabase.from('sobre_movimientos').select('*').eq('mes', filtroMes).eq('año', filtroAño).order('created_at', { ascending: false }),
         supabase.from('movimientos').select('*').gte('fecha', fechaInicio).lte('fecha', fechaFin),
         supabase.from('deudas').select('id, nombre, emoji, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa'),
         supabase.from('metas').select('id, nombre, emoji, meta, actual, estado').eq('estado', 'activa').order('created_at'),
+        supabase.from('inversiones').select('id, nombre, emoji, capital, color').order('created_at'),
       ])
       setPresupuesto(pres)
       setSobreMovs(sobre || [])
       setMovsMes(movs || [])
       setTarjetasData(tarjetas || [])
       setMetasData(metas || [])
+      setInversionesData(inversiones || [])
     } catch (err) {
       console.error('Error al cargar:', err)
     } finally {
@@ -247,22 +251,25 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
     const monto = parseFloat(montoSobrante) || 0
     if (!monto || monto > saldoSobre) return
     if (destinoSobrante === 'metas' && !metaSeleccionada) return
+    if (destinoSobrante === 'inversiones' && !inversionSeleccionada) return
     setSaving(true)
     const hoy = fechaHoy()
 
     const meta = metaSeleccionada ? metasData.find(m => m.id === metaSeleccionada) : null
+    const inversion = inversionSeleccionada ? inversionesData.find(i => i.id === inversionSeleccionada) : null
+    const nombreDestino = meta?.nombre || inversion?.nombre || destinoSobrante
 
-    // Crear el sobre_movimiento (registra el origen del dinero)
+    // sobre_movimiento con meta_id / inversion_id para trazabilidad
     const { error } = await supabase.from('sobre_movimientos').insert([{
-      descripcion: `Sobrante → ${meta ? meta.nombre : destinoSobrante}`,
+      descripcion: `Sobrante → ${nombreDestino}`,
       monto, origen: 'sobre', destino: destinoSobrante,
       mes: filtroMes, año: filtroAño, fecha: hoy,
+      meta_id: meta?.id || null,
+      inversion_id: inversion?.id || null,
     }])
 
     if (error) { setSaving(false); toast('' + error.message); return }
 
-    // Si va a una meta específica, actualizar metas.actual directamente
-    // (NO creamos movimiento para evitar doble conteo en presupuesto)
     if (meta) {
       const nuevoActual = (meta.actual || 0) + monto
       const completada = nuevoActual >= meta.meta
@@ -270,22 +277,70 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
         actual: nuevoActual,
         ...(completada && { estado: 'completada' }),
       }).eq('id', meta.id)
+      await supabase.from('movimientos').insert([{
+        tipo: 'egreso', monto,
+        descripcion: `Sobrante sobre → ${meta.nombre}`,
+        categoria: 'ahorro', fecha: hoy,
+        quien: 'Ambos', meta_id: meta.id,
+      }])
       if (completada) toast(`¡Meta "${meta.nombre}" completada!`, 'success')
+    }
+
+    if (inversion) {
+      const nuevoCapital = (inversion.capital || 0) + monto
+      await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inversion.id)
+      await supabase.from('movimientos').insert([{
+        tipo: 'egreso', monto,
+        descripcion: `Sobrante sobre → ${inversion.nombre}`,
+        categoria: 'inversion', fecha: hoy,
+        quien: 'Ambos', inversion_id: inversion.id,
+      }])
     }
 
     setSaving(false)
     setModalSobrante(false)
     setMontoSobrante('')
     setMetaSeleccionada('')
+    setInversionSeleccionada('')
     cargarTodo()
   }
 
   async function handleEliminar(mov) {
     if (!confirm('¿Eliminar este movimiento?')) return
     if (mov._fuente === 'sobre') {
-      // Sobrante enviado desde el sobre — solo borrar de sobre_movimientos
+      // Verificar que el sobre_movimiento aún existe (evita doble ejecución si el usuario reintenta)
+      const { data: sobreExiste } = await supabase
+        .from('sobre_movimientos').select('id').eq('id', mov.id).maybeSingle()
+      if (!sobreExiste) { cargarTodo(); return }
+
+      if (mov.destino === 'metas' && mov.meta_id) {
+        const { data: metaData } = await supabase
+          .from('metas').select('actual').eq('id', mov.meta_id).single()
+        if (metaData) {
+          const nuevoActual = Math.max(0, (metaData.actual || 0) - parseFloat(mov.monto || 0))
+          const { error } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', mov.meta_id)
+          if (error) { toast('Error al actualizar la meta'); cargarTodo(); return }
+        }
+        const { data: movMeta } = await supabase.from('movimientos').select('id')
+          .eq('meta_id', mov.meta_id).eq('monto', mov.monto).eq('fecha', mov.fecha)
+          .like('descripcion', 'Sobrante sobre%').limit(1).maybeSingle()
+        if (movMeta) await supabase.from('movimientos').delete().eq('id', movMeta.id)
+      }
+      if (mov.destino === 'inversiones' && mov.inversion_id) {
+        const { data: invData } = await supabase
+          .from('inversiones').select('capital').eq('id', mov.inversion_id).single()
+        if (invData) {
+          const nuevoCapital = Math.max(0, (invData.capital || 0) - parseFloat(mov.monto || 0))
+          const { error } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', mov.inversion_id)
+          if (error) { toast('Error al actualizar la inversión'); cargarTodo(); return }
+        }
+        const { data: movInv } = await supabase.from('movimientos').select('id')
+          .eq('inversion_id', mov.inversion_id).eq('monto', mov.monto).eq('fecha', mov.fecha)
+          .like('descripcion', 'Sobrante sobre%').limit(1).maybeSingle()
+        if (movInv) await supabase.from('movimientos').delete().eq('id', movInv.id)
+      }
       await supabase.from('sobre_movimientos').delete().eq('id', mov.id)
-      setSobreMovs(prev => prev.filter(m => m.id !== mov.id))
+      cargarTodo()
     } else {
       // Gasto del sobre — borrar el movimiento
       await supabase.from('movimientos').delete().eq('id', mov.id)
@@ -651,7 +706,7 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
       </Modal>
 
       {/* ══ MODAL: SOBRANTE ═════════════════════════════════════════════════ */}
-      <Modal open={modalSobrante} onClose={() => { setModalSobrante(false); setMontoSobrante(''); setMetaSeleccionada('') }} title="Enviar Sobrante">
+      <Modal open={modalSobrante} onClose={() => { setModalSobrante(false); setMontoSobrante(''); setMetaSeleccionada(''); setInversionSeleccionada('') }} title="Enviar Sobrante">
         <div className="space-y-4">
           <div className="p-3 rounded-xl"
             style={{
@@ -714,13 +769,48 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
             </div>
           )}
 
+          {/* Selector de inversión cuando destino='inversiones' */}
+          {destinoSobrante === 'inversiones' && inversionesData.length > 0 && (
+            <div>
+              <label className="ff-label">¿A qué cartera?</label>
+              <div className="space-y-1.5 mt-1">
+                {inversionesData.map(inv => (
+                  <button key={inv.id} type="button"
+                    onClick={() => setInversionSeleccionada(inv.id)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all text-left"
+                    style={{
+                      borderColor: inversionSeleccionada === inv.id ? 'var(--accent-violet)' : 'var(--border-glass)',
+                      background: inversionSeleccionada === inv.id ? 'color-mix(in srgb, var(--accent-violet) 6%, transparent)' : 'var(--bg-secondary)',
+                    }}>
+                    <span className="text-base flex-shrink-0">{inv.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{inv.nombre}</p>
+                      <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Capital: {formatCurrency(inv.capital || 0)}</p>
+                    </div>
+                    {inversionSeleccionada === inv.id && (
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent-violet)' }} />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <button onClick={confirmarSobrante}
-            disabled={saving || !montoSobrante || parseFloat(montoSobrante) <= 0 || (destinoSobrante === 'metas' && !metaSeleccionada)}
+            disabled={
+              saving || !montoSobrante || parseFloat(montoSobrante) <= 0 ||
+              (destinoSobrante === 'metas' && !metaSeleccionada) ||
+              (destinoSobrante === 'inversiones' && !inversionSeleccionada)
+            }
             className="ff-btn-primary w-full flex items-center justify-center gap-2">
             {saving && <Loader2 size={14} className="animate-spin" />}
-            Mover a {destinoSobrante === 'metas' && metaSeleccionada
-              ? metasData.find(m => m.id === metaSeleccionada)?.nombre
-              : destinoSobrante}
+            {(() => {
+              if (destinoSobrante === 'metas' && metaSeleccionada)
+                return `Mover a ${metasData.find(m => m.id === metaSeleccionada)?.nombre}`
+              if (destinoSobrante === 'inversiones' && inversionSeleccionada)
+                return `Mover a ${inversionesData.find(i => i.id === inversionSeleccionada)?.nombre}`
+              return `Mover a ${destinoSobrante}`
+            })()}
           </button>
         </div>
       </Modal>

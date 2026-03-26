@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, Loader2, Trash2, Pencil, Pause, Play, Check, Target, TrendingUp, ChevronRight } from 'lucide-react'
+import { Plus, Minus, Loader2, Trash2, Pencil, Pause, Play, Check, Target, TrendingUp, ChevronRight, History } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
@@ -46,17 +46,33 @@ export default function MetasPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
+  const [traspasosDeMetas, setTraspasosDeMetas] = useState(0)
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || '#2D7A5F' })
   const [selectedMetaId, setSelectedMetaId] = useState(null)
   const [modalAporte, setModalAporte] = useState(null) // meta object
   const [montoAporte, setMontoAporte] = useState('')
+  const [modalRetiro, setModalRetiro] = useState(null) // meta object
+  const [montoRetiro, setMontoRetiro] = useState('')
+  const [modalHistorialMeta, setModalHistorialMeta] = useState(null) // meta object
+  const [historialAportes, setHistorialAportes] = useState([])
+  const [loadingHistorial, setLoadingHistorial] = useState(false)
 
   useEffect(() => {
     cargar()
     getPresupuestoMes().then(setPresupuesto)
+    cargarTraspasos()
   }, [])
+
+  async function cargarTraspasos() {
+    const now = new Date()
+    const mes = now.getMonth() + 1
+    const año = now.getFullYear()
+    const { data } = await supabase.from('sobre_movimientos').select('monto')
+      .eq('origen', 'metas').eq('mes', mes).eq('año', año)
+    setTraspasosDeMetas((data || []).reduce((s, m) => s + parseFloat(m.monto || 0), 0))
+  }
 
   async function cargar() {
     setLoading(true)
@@ -78,7 +94,7 @@ export default function MetasPage() {
     setError(null)
     const pctActual = parseFloat(form.pct_mensual) || 0
     const pctUsado = metas
-      .filter(m => m.id !== editingId && m.estado === 'activa')
+      .filter(m => m.id !== editingId && ['activa', 'pausada'].includes(m.estado))
       .reduce((s, m) => s + (m.pct_mensual || 0), 0)
 
     if (pctActual + pctUsado > 100) {
@@ -120,8 +136,8 @@ export default function MetasPage() {
   }
 
   function abrirModalAporte(meta) {
-    const autoMonto = presupuesto?.montoMetas && meta.pct_mensual
-      ? ((meta.pct_mensual / 100) * presupuesto.montoMetas).toFixed(2)
+    const autoMonto = montoMetasDisponible > 0 && meta.pct_mensual
+      ? ((meta.pct_mensual / 100) * montoMetasDisponible).toFixed(2)
       : ''
     setModalAporte(meta)
     setMontoAporte(autoMonto)
@@ -157,6 +173,68 @@ export default function MetasPage() {
     toast(completada ? `🎉 ¡Meta "${modalAporte.nombre}" completada!` : `Aporte de ${formatCurrency(monto)} registrado`, 'success')
   }
 
+  async function handleRetirarMeta(e) {
+    e.preventDefault()
+    const monto = parseFloat(montoRetiro)
+    if (!monto || monto <= 0 || !modalRetiro) return
+    if (monto > (modalRetiro.actual || 0)) { setError('No puedes retirar más de lo ahorrado'); return }
+    setSaving(true)
+
+    const nuevoActual = (modalRetiro.actual || 0) - monto
+    const necesitaReactivar = modalRetiro.estado === 'completada' && nuevoActual < modalRetiro.meta
+
+    const { error } = await supabase.from('metas').update({
+      actual: nuevoActual,
+      ...(necesitaReactivar && { estado: 'activa' }),
+    }).eq('id', modalRetiro.id)
+
+    if (error) { setError('Error al registrar el retiro'); setSaving(false); return }
+
+    await supabase.from('movimientos').insert([{
+      tipo: 'retiro', categoria: 'ahorro',
+      descripcion: `Retiro: ${modalRetiro.nombre}`,
+      monto, fecha: fechaHoy(), quien: 'Ambos', meta_id: modalRetiro.id,
+    }])
+
+    setMetas(prev => prev.map(m => m.id === modalRetiro.id
+      ? { ...m, actual: nuevoActual, ...(necesitaReactivar && { estado: 'activa' }) } : m
+    ))
+    setSaving(false)
+    setModalRetiro(null)
+    setMontoRetiro('')
+    toast(`Retiro de ${formatCurrency(monto)} registrado`, 'success')
+  }
+
+  async function cargarHistorialMeta(meta) {
+    setLoadingHistorial(true)
+    setModalHistorialMeta(meta)
+    const { data } = await supabase
+      .from('movimientos')
+      .select('id, monto, descripcion, fecha, tipo')
+      .eq('meta_id', meta.id)
+      .order('fecha', { ascending: false })
+    setHistorialAportes(data || [])
+    setLoadingHistorial(false)
+  }
+
+  async function handleDeleteAporteMeta(movId, monto) {
+    if (!confirm('¿Eliminar este aporte? Se restará del total ahorrado.')) return
+    const meta = modalHistorialMeta
+    if (!meta) return
+    const nuevoActual = Math.max(0, (meta.actual || 0) - monto)
+
+    const { error: errMeta } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
+    if (errMeta) { toast('Error al actualizar la meta', 'error'); return }
+
+    await supabase.from('movimientos').delete().eq('id', movId)
+
+    const updatedMeta = { ...meta, actual: nuevoActual }
+    setMetas(prev => prev.map(m => m.id === meta.id ? updatedMeta : m))
+    setModalHistorialMeta(updatedMeta)
+    setHistorialAportes(prev => prev.filter(a => a.id !== movId))
+    toast(`Aporte de ${formatCurrency(monto)} eliminado`, 'success')
+  }
+
   async function handleEstado(id, estado) {
     if (estado === 'completada') {
       const meta = metas.find(m => m.id === id)
@@ -174,8 +252,9 @@ export default function MetasPage() {
   const completadas = metas.filter(m => m.estado === 'completada')
   const totalAhorrado  = metas.reduce((s, m) => s + (m.actual || 0), 0)
   const totalObjetivo  = metas.reduce((s, m) => s + (m.meta || 0), 0)
-  const totalPctAsignado = activas.reduce((s, m) => s + (m.pct_mensual || 0), 0)
+  const totalPctAsignado = [...activas, ...pausadas].reduce((s, m) => s + (m.pct_mensual || 0), 0)
   const pctDisponible  = Math.max(0, 100 - totalPctAsignado)
+  const montoMetasDisponible = Math.max(0, (presupuesto?.montoMetas || 0) - traspasosDeMetas)
 
   const metasActivas = [...activas, ...pausadas]
 
@@ -227,17 +306,16 @@ export default function MetasPage() {
 
 {/* Caja 2 */}
 <div className="glass-card p-2 flex flex-col justify-center rounded-lg" style={{ height: 60 }}>
-  {/* Añadí rounded-lg aquí también */}
   <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Mensual</p>
   <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--accent-violet)' }}>
-    {presupuesto ? formatCurrency(presupuesto.montoMetas) : '—'}
+    {presupuesto ? formatCurrency(montoMetasDisponible) : '—'}
   </p>
   {pctDisponible > 0 && activas.length > 0 ? (
     <p className="text-[8px] mt-0.5 opacity-70" style={{ color: 'var(--text-muted)' }}>
       {pctDisponible}% libre
     </p>
   ) : (
-    <div className="h-[10px]" /> 
+    <div className="h-[10px]" />
   )}
 </div>
 </div>
@@ -303,11 +381,9 @@ export default function MetasPage() {
           {metasActivas.map((meta, i) => {
             const isSelected = selectedMetaId === meta.id
             const pct = Math.min(100, Math.round(((meta.actual || 0) / meta.meta) * 100))
-            const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0, presupuesto?.montoMetas || 0)
+            const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0, montoMetasDisponible)
             const isPausada = meta.estado === 'pausada'
-            const aporteMensual = presupuesto?.montoMetas
-              ? (meta.pct_mensual / 100) * presupuesto.montoMetas
-              : 0
+            const aporteMensual = (meta.pct_mensual / 100) * montoMetasDisponible
 
             return (
               <Card key={meta.id}
@@ -395,6 +471,19 @@ export default function MetasPage() {
                         Aportar {aporteMensual > 0 ? formatCurrency(aporteMensual) : ''}
                       </button>
                     )}
+                    {meta.estado === 'activa' && (meta.actual || 0) > 0 && (
+                      <button
+                        onClick={e => { e.stopPropagation(); setModalRetiro(meta); setMontoRetiro('') }}
+                        disabled={saving}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all"
+                        style={{
+                          background: 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
+                          color: 'var(--accent-rose)', border: 'none', cursor: 'pointer',
+                        }}>
+                        <Minus size={11} strokeWidth={2.5} />
+                        Retirar
+                      </button>
+                    )}
                     {meta.estado === 'activa' && (
                       <IconBtn onClick={e => { e.stopPropagation(); handleEstado(meta.id, 'pausada') }}
                         title="Pausar"
@@ -419,6 +508,12 @@ export default function MetasPage() {
                         <Check size={13} strokeWidth={2} />
                       </IconBtn>
                     )}
+                    <IconBtn onClick={e => { e.stopPropagation(); cargarHistorialMeta(meta) }}
+                      title="Historial de aportes"
+                      bg="color-mix(in srgb, var(--accent-terra) 10%, transparent)"
+                      color="var(--accent-terra)">
+                      <History size={12} />
+                    </IconBtn>
                     <IconBtn onClick={e => { e.stopPropagation(); prepareEdit(meta) }}
                       title="Editar"
                       bg="var(--bg-secondary)"
@@ -486,6 +581,111 @@ export default function MetasPage() {
         </div>
       )}
 
+      {/* MODAL HISTORIAL */}
+      <Modal open={!!modalHistorialMeta} onClose={() => { setModalHistorialMeta(null); setHistorialAportes([]) }}
+        title={`Historial · ${modalHistorialMeta?.nombre || ''}`}>
+        {loadingHistorial ? (
+          <div className="flex justify-center py-8">
+            <Loader2 size={18} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+          </div>
+        ) : historialAportes.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No hay aportes registrados aún</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-[9px] mb-3" style={{ color: 'var(--text-muted)' }}>
+              Al eliminar un aporte se restará del total ahorrado en esta meta.
+            </p>
+            {historialAportes.map(a => (
+              <div key={a.id}
+                className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    {a.descripcion || 'Aporte'}
+                  </p>
+                  <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {new Date(a.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--accent-green)' }}>
+                    +{formatCurrency(a.monto)}
+                  </p>
+                  <button
+                    onClick={() => handleDeleteAporteMeta(a.id, parseFloat(a.monto))}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg transition-all"
+                    style={{ background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)', color: 'var(--accent-rose)' }}>
+                    <Trash2 size={11} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+              <p className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>Total registrado</p>
+              <p className="text-[11px] font-semibold" style={{ color: 'var(--accent-green)' }}>
+                +{formatCurrency(historialAportes.reduce((s, a) => s + parseFloat(a.monto), 0))}
+              </p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL RETIRO */}
+      <Modal open={!!modalRetiro} onClose={() => { setModalRetiro(null); setMontoRetiro('') }}
+        title={`Retirar de ${modalRetiro?.nombre || ''}`} size="sm">
+        {modalRetiro && (
+          <form onSubmit={handleRetirarMeta} className="space-y-4">
+            <div className="rounded-xl px-4 py-3"
+              style={{ background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)' }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--accent-rose)' }}>
+                  {getFlagEmoji(modalRetiro.emoji)} {modalRetiro.nombre}
+                </span>
+                <span className="text-xs font-semibold" style={{ color: 'var(--accent-rose)' }}>
+                  Disponible: {formatCurrency(modalRetiro.actual || 0)}
+                </span>
+              </div>
+              <ProgressBar value={modalRetiro.actual || 0} max={modalRetiro.meta} color="var(--accent-rose)" />
+            </div>
+
+            <div>
+              <label className="ff-label">Monto a retirar</label>
+              <input className="ff-input" type="number" min="0.01" step="0.01"
+                max={modalRetiro.actual || 0} placeholder="0.00"
+                required autoFocus
+                value={montoRetiro}
+                onChange={e => setMontoRetiro(e.target.value)} />
+              <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                Máximo disponible: {formatCurrency(modalRetiro.actual || 0)}
+              </p>
+            </div>
+
+            {parseFloat(montoRetiro) > 0 && (
+              <div className="rounded-xl px-3 py-2.5 flex items-center justify-between"
+                style={{ background: 'color-mix(in srgb, var(--accent-rose) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-rose) 18%, transparent)' }}>
+                <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>Quedará en meta</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--accent-rose)' }}>
+                  {formatCurrency(Math.max(0, (modalRetiro.actual || 0) - parseFloat(montoRetiro)))}
+                </span>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={() => { setModalRetiro(null); setMontoRetiro('') }}
+                className="ff-btn-ghost flex-1">Cancelar</button>
+              <button type="submit" disabled={saving}
+                className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
+                style={{ background: 'var(--accent-rose)' }}>
+                {saving && <Loader2 size={14} className="animate-spin" />}
+                {saving ? 'Guardando...' : 'Confirmar retiro'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
       {/* MODAL APORTE */}
       <Modal open={!!modalAporte} onClose={() => { setModalAporte(null); setMontoAporte('') }}
         title={`Aportar a ${modalAporte?.nombre || ''}`} size="sm">
@@ -519,9 +719,9 @@ export default function MetasPage() {
                 required autoFocus
                 value={montoAporte}
                 onChange={e => setMontoAporte(e.target.value)} />
-              {presupuesto?.montoMetas > 0 && modalAporte.pct_mensual > 0 && (
+              {montoMetasDisponible > 0 && modalAporte.pct_mensual > 0 && (
                 <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Aporte automático sugerido: {formatCurrency((modalAporte.pct_mensual / 100) * presupuesto.montoMetas)}
+                  Aporte automático sugerido: {formatCurrency((modalAporte.pct_mensual / 100) * montoMetasDisponible)}
                 </p>
               )}
             </div>
@@ -584,12 +784,12 @@ export default function MetasPage() {
           {/* Indicador de disponibilidad */}
           {presupuesto && (() => {
             const pctUsado = metas
-              .filter(m => m.id !== editingId && m.estado === 'activa')
+              .filter(m => m.id !== editingId && ['activa', 'pausada'].includes(m.estado))
               .reduce((s, m) => s + (m.pct_mensual || 0), 0)
             const pctLibre = Math.max(0, 100 - pctUsado)
             const pctActual = parseFloat(form.pct_mensual) || 0
             const excede = pctActual > pctLibre
-            const montoActual = (pctActual / 100) * presupuesto.montoMetas
+            const montoActual = (pctActual / 100) * montoMetasDisponible
             const color = excede ? 'var(--accent-rose)' : 'var(--accent-green)'
 
             return (

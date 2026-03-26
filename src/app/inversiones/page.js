@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import {
-  Plus, Loader2, Trash2, Pencil,
+  Plus, Minus, Loader2, Trash2, Pencil,
   TrendingUp, Target, Wallet, Sparkles,
   AlertCircle, PlusCircle, History, Info,
   ChevronRight, SlidersHorizontal, X
@@ -83,6 +83,11 @@ function Tooltip4Pct({ colores }) {
   )
 }
 
+function fechaHoy() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function InversionesPage() {
@@ -96,6 +101,9 @@ export default function InversionesPage() {
   const [presupuesto, setPresupuesto] = useState(null)
   const [gastosMes, setGastosMes] = useState(0)
   const [aportesEsteMes, setAportesEsteMes] = useState(0)
+  const [traspasosDeInv, setTraspasosDeInv] = useState(0)
+  const [sobreMovsInv, setSobreMovsInv] = useState([])
+  const [detallePres, setDetallePres] = useState(false)
   const [modal, setModal] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [modalAporte, setModalAporte] = useState(false)
@@ -104,6 +112,11 @@ export default function InversionesPage() {
 
   // ── NUEVO: controla si el monto fue auto-rellenado por el sistema ─────────
   const [autoFilled, setAutoFilled] = useState(false)
+
+  // ── Retiro de capital ─────────────────────────────────────────────────────
+  const [modalRetiro, setModalRetiro] = useState(false)
+  const [formRetiro, setFormRetiro] = useState({ monto: '' })
+  const [savingRetiro, setSavingRetiro] = useState(false)
 
   // ── Historial de aportes ──────────────────────────────────────────────────
   const [modalHistorial, setModalHistorial] = useState(false)
@@ -223,18 +236,23 @@ export default function InversionesPage() {
     const año = now.getFullYear()
     const inicioMes = new Date(año, mes - 1, 1).toISOString().slice(0, 10)
     const inicioSig = new Date(año, mes, 1).toISOString().slice(0, 10)
-    const [{ data: movs }, { data: sobrantes }] = await Promise.all([
+    // Solo aportes directos del presupuesto de inversiones.
+    // Los sobrantes del sobre (descripcion 'Sobrante sobre →') vienen del bloque Estilo,
+    // no del presupuesto de inversiones, así que no cuentan como "comprometido".
+    const [{ data: movs }, { data: sobreMovs }] = await Promise.all([
       supabase.from('movimientos').select('monto')
         .eq('tipo', 'egreso').eq('categoria', 'inversion')
         .not('inversion_id', 'is', null)
+        .not('descripcion', 'like', 'Sobrante sobre%')
         .gte('fecha', inicioMes).lt('fecha', inicioSig),
-      supabase.from('sobre_movimientos').select('monto')
-        .eq('origen', 'sobre').eq('destino', 'inversiones')
-        .eq('mes', mes).eq('año', año),
+      supabase.from('sobre_movimientos').select('monto, fecha, origen, destino, descripcion')
+        .eq('mes', mes).eq('año', año)
+        .or('origen.eq.inversiones,and(origen.eq.sobre,destino.eq.inversiones)'),
     ])
-    const totalMovs = (movs || []).reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-    const totalSobrantes = (sobrantes || []).reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-    setAportesEsteMes(totalMovs + totalSobrantes)
+    setAportesEsteMes((movs || []).reduce((s, m) => s + parseFloat(m.monto || 0), 0))
+    const traspasos = (sobreMovs || []).filter(m => m.origen === 'inversiones')
+    setTraspasosDeInv(traspasos.reduce((s, m) => s + parseFloat(m.monto || 0), 0))
+    setSobreMovsInv(sobreMovs || [])
   }
 
   async function cargar() {
@@ -382,7 +400,7 @@ export default function InversionesPage() {
       categoria: 'inversion',
       monto,
       descripcion: formAporte.descripcion || `Aporte a ${selected.nombre}`,
-      fecha,
+      fecha, quien: 'Ambos',
       inversion_id: selected.id,
     }])
 
@@ -395,6 +413,33 @@ export default function InversionesPage() {
     setAutoFilled(false)
     cargarAportesEsteMes()
     toast(`Aporte de ${formatCurrency(monto)} registrado`, 'success')
+  }
+
+  async function handleRetirarInversion(e) {
+    e.preventDefault()
+    const monto = parseFloat(formRetiro.monto)
+    if (!monto || monto <= 0 || !selected) return
+    if (monto > (selected.capital || 0)) { setError('No puedes retirar más del capital disponible'); return }
+    setSavingRetiro(true)
+
+    const nuevoCapital = (selected.capital || 0) - monto
+    const { error: errInv } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', selected.id)
+    if (errInv) { setError(errInv.message); setSavingRetiro(false); return }
+
+    await supabase.from('movimientos').insert([{
+      tipo: 'retiro', categoria: 'inversion',
+      descripcion: `Retiro: ${selected.nombre}`,
+      monto, fecha: fechaHoy(), quien: 'Ambos',
+      inversion_id: selected.id,
+    }])
+
+    const updated = { ...selected, capital: nuevoCapital }
+    setInversiones(prev => prev.map(i => i.id === selected.id ? updated : i))
+    setSelected(updated)
+    setSavingRetiro(false)
+    setModalRetiro(false)
+    setFormRetiro({ monto: '' })
+    toast(`Retiro de ${formatCurrency(monto)} registrado`, 'success')
   }
 
   // ── MEMOS ─────────────────────────────────────────────────────────────────
@@ -519,61 +564,97 @@ export default function InversionesPage() {
       )}
 
       {/* Barra de presupuesto para inversiones */}
-      {presupuesto?.montoInversiones > 0 && (
-        <div className="glass-card p-5 mb-5 rounded-[32px] border border-[var(--border-glass)]"
-          style={{ background: 'var(--bg-card)', backdropFilter: 'blur(20px)' }}>
-          {(() => {
-            const presupuestado = presupuesto.montoInversiones
-            const comprometido = aportesEsteMes
-            const disponible = presupuestado - comprometido
-            const pct = Math.min(100, (comprometido / presupuestado) * 100)
-            const sobrePasado = comprometido > presupuestado
-
-            return (
-              <>
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>
-                    Presupuesto Inversiones
-                  </p>
-                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-                    style={{
-                      color: sobrePasado ? 'var(--accent-danger)' : 'var(--accent-green)',
-                      background: sobrePasado ? 'color-mix(in srgb, var(--accent-danger) 15%, transparent)' : 'color-mix(in srgb, var(--accent-green) 15%, transparent)'
-                    }}>
-                    {pct.toFixed(0)}% usado
-                  </span>
-                </div>
-                <div className="relative w-full h-1.5 rounded-full mb-6"
-                  style={{ background: 'var(--progress-track)' }}>
-                  <div className="h-full rounded-full transition-all duration-1000 ease-out"
-                    style={{
-                      width: `${pct}%`,
-                      background: sobrePasado ? 'var(--accent-danger)' : 'var(--accent-main)',
-                      boxShadow: `0 2px 8px ${sobrePasado ? 'color-mix(in srgb, var(--accent-danger) 30%, transparent)' : 'color-mix(in srgb, var(--accent-main) 30%, transparent)'}`
+      {presupuesto?.montoInversiones > 0 && (() => {
+        const presupuestado = presupuesto.montoInversiones
+        const comprometido = aportesEsteMes + traspasosDeInv
+        const disponible = presupuestado - comprometido
+        const pct = Math.min(100, (comprometido / presupuestado) * 100)
+        const sobrePasado = comprometido > presupuestado
+        const trackColor = sobrePasado ? colores.rose : colores.violet
+        const traspasos = sobreMovsInv.filter(m => m.origen === 'inversiones')
+        const sobrantes = sobreMovsInv.filter(m => m.origen === 'sobre')
+        const hayDetalle = sobreMovsInv.length > 0
+        return (
+          <div className="mb-5 rounded-2xl overflow-hidden"
+            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+            {/* Cabecera clickable */}
+            <button
+              onClick={() => hayDetalle && setDetallePres(p => !p)}
+              className="w-full px-4 py-3 text-left"
+              style={{ background: 'none', border: 'none', cursor: hayDetalle ? 'pointer' : 'default' }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5"
+                  style={{ color: 'var(--text-muted)' }}>
+                  Presupuesto mensual
+                  {hayDetalle && (
+                    <ChevronRight size={10} style={{
+                      color: 'var(--text-muted)',
+                      transform: detallePres ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s',
                     }} />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: 'Presupuesto', val: formatCurrency(presupuestado), color: 'var(--text-muted)' },
-                    { label: 'Comprometido', val: formatCurrency(comprometido), color: 'var(--accent-violet)' },
-                    { label: disponible >= 0 ? 'Disponible' : 'Excedido', val: formatCurrency(Math.abs(disponible)), color: sobrePasado ? 'var(--accent-danger)' : 'var(--accent-green)' },
-                  ].map((s, i) => (
-                    <div key={i} className="text-center">
-                      <p className="text-[9px] font-black uppercase tracking-[0.1em] mb-1 opacity-60"
-                        style={{ color: 'var(--text-muted)' }}>
-                        {s.label}
-                      </p>
-                      <p className="text-[12px] font-bold tracking-tight" style={{ color: s.color }}>
-                        {s.val}
-                      </p>
+                  )}
+                </span>
+                <span className="text-[11px] font-bold tabular-nums"
+                  style={{ color: sobrePasado ? colores.rose : colores.green }}>
+                  {sobrePasado ? '−' : ''}{formatCurrency(Math.abs(disponible))} {sobrePasado ? 'excedido' : 'libre'}
+                </span>
+              </div>
+              <div className="w-full h-1 rounded-full mb-1.5" style={{ background: 'var(--progress-track)' }}>
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${pct}%`, background: trackColor }} />
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                  {formatCurrency(comprometido)} usado
+                </span>
+                <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                  {formatCurrency(presupuestado)} total
+                </span>
+              </div>
+            </button>
+            {/* Detalle expandible — solo movimientos del sobre */}
+            {detallePres && hayDetalle && (
+              <div className="px-4 pb-3 space-y-1"
+                style={{ borderTop: '1px solid var(--border-glass)' }}>
+                <p className="text-[9px] font-semibold uppercase tracking-wider pt-2.5 mb-1.5"
+                  style={{ color: 'var(--text-muted)' }}>Movimientos del sobre</p>
+                {traspasos.map((m, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold"
+                        style={{ background: `color-mix(in srgb, ${colores.rose} 10%, transparent)`, color: colores.rose }}>
+                        usado en sobre
+                      </span>
+                      <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                        {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : ''}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </>
-            )
-          })()}
-        </div>
-      )}
+                    <span className="text-[9px] font-semibold tabular-nums" style={{ color: colores.rose }}>
+                      −{formatCurrency(m.monto)}
+                    </span>
+                  </div>
+                ))}
+                {sobrantes.map((m, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold"
+                        style={{ background: `color-mix(in srgb, ${colores.green} 10%, transparent)`, color: colores.green }}>
+                        sobrante del sobre
+                      </span>
+                      <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                        {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : ''}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-semibold tabular-nums" style={{ color: colores.green }}>
+                      +{formatCurrency(m.monto)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Panel de distribución por cartera */}
       {presupuesto?.montoInversiones > 0 && inversiones.length > 0 && (() => {
@@ -811,6 +892,17 @@ export default function InversionesPage() {
                     }}>
                     <PlusCircle size={13} />
                   </button>
+                  {(selected.capital || 0) > 0 && (
+                    <button onClick={() => { setModalRetiro(true); setFormRetiro({ monto: '' }) }}
+                      className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
+                      title="Retirar capital"
+                      style={{
+                        background: `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
+                        color: colores.rose,
+                      }}>
+                      <Minus size={13} />
+                    </button>
+                  )}
                   <button onClick={() => abrirEdicion(selected)}
                     className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
                     style={{
@@ -1264,6 +1356,60 @@ export default function InversionesPage() {
         </div>
       )}
 
+      {/* ── MODAL RETIRO ──────────────────────────────────────────────────── */}
+      <Modal
+        open={modalRetiro}
+        onClose={() => { setModalRetiro(false); setFormRetiro({ monto: '' }) }}
+        title={`Retirar capital · ${selected?.nombre || ''}`}
+        size="sm">
+        {selected && (
+          <form onSubmit={handleRetirarInversion} className="space-y-4">
+            <div className="rounded-xl px-4 py-3"
+              style={{ background: `color-mix(in srgb, ${colores.rose} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${colores.rose} 20%, transparent)` }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: colores.rose }}>
+                {selected.emoji} {selected.nombre}
+              </p>
+              <p className="text-sm font-semibold" style={{ color: colores.rose }}>
+                Capital disponible: {formatCurrency(selected.capital || 0)}
+              </p>
+            </div>
+
+            <div>
+              <label className="ff-label">Monto a retirar</label>
+              <input className="ff-input" type="number" min="0.01" step="0.01"
+                max={selected.capital || 0} placeholder="0.00"
+                required autoFocus
+                value={formRetiro.monto}
+                onChange={e => setFormRetiro(p => ({ ...p, monto: e.target.value }))} />
+              <p className="text-[10px] mt-1" style={{ color: colores.muted }}>
+                Máximo: {formatCurrency(selected.capital || 0)}
+              </p>
+            </div>
+
+            {parseFloat(formRetiro.monto) > 0 && (
+              <div className="rounded-xl px-3 py-2.5 flex items-center justify-between"
+                style={{ background: `color-mix(in srgb, ${colores.rose} 6%, transparent)`, border: `1px solid color-mix(in srgb, ${colores.rose} 18%, transparent)` }}>
+                <span className="text-[10px] font-semibold" style={{ color: colores.muted }}>Capital restante</span>
+                <span className="text-sm font-semibold" style={{ color: colores.rose }}>
+                  {formatCurrency(Math.max(0, (selected.capital || 0) - parseFloat(formRetiro.monto)))}
+                </span>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={() => { setModalRetiro(false); setFormRetiro({ monto: '' }) }}
+                className="ff-btn-ghost flex-1">Cancelar</button>
+              <button type="submit" disabled={savingRetiro}
+                className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
+                style={{ background: colores.rose }}>
+                {savingRetiro && <Loader2 size={14} className="animate-spin" />}
+                {savingRetiro ? 'Guardando...' : 'Confirmar retiro'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
       {/* ── MODAL HISTORIAL DE APORTES ─────────────────────────────────────── */}
       <Modal
         open={modalHistorial}
@@ -1534,24 +1680,53 @@ export default function InversionesPage() {
               <label className="ff-label">% presup mensual</label>
               <input className="ff-input" type="number" min="0" max="100" step="1" placeholder="Ej: 50"
                 value={form.pct_mensual} onChange={e => setForm(p => ({ ...p, pct_mensual: e.target.value }))} />
-              {parseFloat(form.pct_mensual) > 0 && presupuesto?.montoInversiones > 0 && (
-                <p className="text-[10px] mt-1 font-semibold" style={{ color: colores.violet }}>
-                  = {formatCurrency((parseFloat(form.pct_mensual) / 100) * presupuesto.montoInversiones)}/mes
-                </p>
-              )}
               {(() => {
                 const pctNuevo = parseFloat(form.pct_mensual) || 0
-                if (!pctNuevo) return null
                 const totalOtras = inversiones
                   .filter(i => i.id !== editandoId)
                   .reduce((s, i) => s + (i.pct_mensual || 0), 0)
+                const libreActual = 100 - totalOtras
+                const esUnica = inversiones.filter(i => i.id !== editandoId).length === 0
+
+                if (!pctNuevo) {
+                  // Sin input aún — mostrar % libre y sugerencia si es única
+                  return (
+                    <div className="mt-1.5 space-y-1">
+                      <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                        {libreActual}% disponible
+                        {presupuesto?.montoInversiones > 0 && ` · ${formatCurrency((libreActual / 100) * presupuesto.montoInversiones)}`}
+                      </p>
+                      {esUnica && (
+                        <p className="text-[9px] font-semibold" style={{ color: colores.violet }}>
+                          Es tu única cartera — puedes asignar el 100%
+                        </p>
+                      )}
+                    </div>
+                  )
+                }
+
                 const totalConEsta = totalOtras + pctNuevo
                 if (totalConEsta > 100) return (
-                  <p className="text-[9px] mt-1 font-semibold" style={{ color: colores.rose }}>
-                    Suma total: {totalConEsta}% · excede 100%
-                  </p>
+                  <div className="mt-1.5 space-y-0.5">
+                    <p className="text-[9px] font-semibold" style={{ color: colores.rose }}>
+                      Excede en {totalConEsta - 100}% · máximo disponible: {libreActual}%
+                    </p>
+                  </div>
                 )
-                return null
+                return (
+                  <div className="mt-1.5 space-y-0.5">
+                    {presupuesto?.montoInversiones > 0 && (
+                      <p className="text-[9px] font-semibold" style={{ color: colores.violet }}>
+                        = {formatCurrency((pctNuevo / 100) * presupuesto.montoInversiones)}/mes
+                      </p>
+                    )}
+                    {libreActual - pctNuevo > 0 && (
+                      <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                        Quedarán {libreActual - pctNuevo}% sin asignar
+                      </p>
+                    )}
+                  </div>
+                )
               })()}
             </div>
           </div>
