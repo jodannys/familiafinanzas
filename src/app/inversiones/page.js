@@ -59,7 +59,7 @@ function Tooltip4Pct({ colores }) {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-64 p-3 rounded-xl shadow-2xl text-left"
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-70 w-64 p-3 rounded-xl shadow-2xl text-left"
             style={{
               background: colores.card,
               border: `1px solid ${colores.border}`,
@@ -1319,7 +1319,7 @@ export default function InversionesPage() {
                 value={form.capital} onChange={e => setForm(p => ({ ...p, capital: e.target.value }))} />
             </div>
             <div>
-              <label className="ff-label">% del presupuesto mensual</label>
+              <label className="ff-label">% del presup mensual</label>
               <input className="ff-input" type="number" min="0" max="100" step="1" placeholder="Ej: 50"
                 value={form.pct_mensual} onChange={e => setForm(p => ({ ...p, pct_mensual: e.target.value }))} />
             </div>
@@ -1338,8 +1338,8 @@ export default function InversionesPage() {
             {/* Aporte real */}
             <div>
               <label className="ff-label flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full inline-block" style={{ background: colores.green }} />
-                Aporte real mensual (lo que realmente inviertes)
+                <span className="w-2 h-2 rounded-full inline-block"/>
+                 Aporte real mensual
               </label>
               <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
                 value={form.aporteReal}
@@ -1352,7 +1352,7 @@ export default function InversionesPage() {
             {/* Aporte hipotético */}
             <div>
               <label className="ff-label flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full inline-block border" style={{ borderColor: colores.muted }} />
+                <span className="w-2 h-2 rounded-full inline-block border"/>
                 Aporte hipotético para proyección
               </label>
               <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
