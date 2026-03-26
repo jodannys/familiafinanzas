@@ -1059,16 +1059,12 @@ export default function DeudasPage() {
                     <p className="font-semibold truncate text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {d.nombre}
                     </p>
-                    {d.descripcion && (
-                      <p className="text-[9px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        {d.descripcion}
-                      </p>
-                    )}
+                   
                     {/* ── FIX: mostrar deuda original y pendiente ── */}
                     {montoOriginal > 0 && (
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                          {esMeDeben ? 'Prestado' : 'Original'}: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(montoOriginal)}</span>
+                          {esMeDeben ? 'Prestado' : 'Total'}: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(montoOriginal)}</span>
                         </span>
                         {pagado > 0 && (
                           <>
