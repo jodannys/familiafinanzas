@@ -180,59 +180,52 @@ export default function Dashboard() {
   return (
     <AppShell>
 
-      {/* ── Header ── */}
-      <div className="mb-6 animate-in fade-in slide-in-from-left-4 duration-700">
-        {/* Fecha sutil: Unificamos el tamaño para evitar conflictos entre className y style */}
-        <p className="uppercase tracking-[0.25em] font-black mb-1 opacity-40"
-          style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
+      {/* ── Header Principal ── */}
+      <div className="mb-10 animate-in fade-in slide-in-from-left-6 duration-1000">
+
+        {/* Fecha: Muy minimalista y separada */}
+        <p className="uppercase tracking-[0.3em] font-black opacity-30 mb-3"
+          style={{ fontSize: '8px', color: 'var(--text-muted)' }}>
           {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
 
-        {/* Saludo: Bajamos a 24px-26px para que sea legible pero no invasivo */}
-        <h1
-          className="font-script tracking-tight"
+        {/* Saludo con fuente Sacramento */}
+        <h1 className="font-script tracking-normal"
           style={{
-            fontSize: '26px',
+            fontSize: '34px', // Sacramento necesita ser un poco más grande para leerse bien
             color: 'var(--text-primary)',
             fontWeight: 400,
-            lineHeight: 1,
-            marginTop: '2px' // Pequeño respiro con la fecha
-          }}
-        >
+            lineHeight: 1.1,
+            fontFamily: "'Sacramento', cursive" // Forzamos la fuente si la variable falla
+          }}>
           {saludoBase(nombre)}
         </h1>
+      </div>
 
-
-        {/* Strip patrimonio */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'En metas', val: totalAhorro, color: 'var(--accent-green)', Icon: Target, href: '/metas' },
-            { label: 'Invertido', val: totalInversiones, color: 'var(--accent-violet)', Icon: TrendingUp, href: '/inversiones' },
-            { label: 'Deudas', val: totalDeudas, color: 'var(--accent-rose)', Icon: CircleDollarSign, href: '/deudas' },
-          ].map(({ label, val, color, Icon, href }) => (
-            <Link key={label} href={href}
-              className="flex flex-col gap-1.5 p-3 rounded-2xl transition-all hover:scale-[1.02]"
-              style={{
-                background: `color-mix(in srgb, ${color} 7%, var(--bg-card))`,
-                border: `1px solid color-mix(in srgb, ${color} 18%, transparent)`,
-                textDecoration: 'none',
-              }}>
-              <div className="flex items-center gap-1">
-                <Icon size={9} style={{ color }} />
-                <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color }}>{label}</span>
-              </div>
-              <p
-                className="font-medium tracking-tight"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)'
-                }}
-              >
-                {formatCurrency(val)}
-              </p>
-            </Link>
-          ))}
-        </div>
+      {/* ── Strip de Patrimonio (Separado del saludo) ── */}
+      <div className="grid grid-cols-3 gap-2.5 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+        {[
+          { label: 'En metas', val: totalAhorro, color: 'var(--accent-green)', Icon: Target, href: '/metas' },
+          { label: 'Invertido', val: totalInversiones, color: 'var(--accent-violet)', Icon: TrendingUp, href: '/inversiones' },
+          { label: 'Deudas', val: totalDeudas, color: 'var(--accent-rose)', Icon: CircleDollarSign, href: '/deudas' },
+        ].map(({ label, val, color, Icon, href }) => (
+          <Link key={label} href={href}
+            className="flex flex-col gap-2 p-3.5 rounded-[24px] transition-all active:scale-95 border"
+            style={{
+              background: `color-mix(in srgb, ${color} 6%, var(--bg-card))`,
+              borderColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+              textDecoration: 'none',
+            }}>
+            <div className="flex items-center gap-1.5 opacity-60">
+              <Icon size={10} style={{ color }} />
+              <span style={{ fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color }}>{label}</span>
+            </div>
+            <p className="font-sans font-bold tracking-tighter"
+              style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+              {formatCurrency(val)}
+            </p>
+          </Link>
+        ))}
       </div>
 
       {/* ── Alertas deuda ── */}
