@@ -59,6 +59,18 @@ const CATS_EGRESO = [
 
 const SPECIAL_CATS = ['ahorro', 'inversion', 'deuda']
 
+function calcFechaPrimerPago(fechaCompra, diaPago) {
+  if (!diaPago) return fechaCompra
+  const [y, m, d] = fechaCompra.split('-').map(Number)
+  if (d < diaPago) {
+    return `${y}-${String(m).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
+  } else {
+    const nextM = m === 12 ? 1 : m + 1
+    const nextY = m === 12 ? y + 1 : y
+    return `${nextY}-${String(nextM).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
+  }
+}
+
 const METODOS_PAGO = [
   { id: 'efectivo', short: 'EF', label: 'Efectivo', color: 'var(--accent-green)' },
   { id: 'transferencia', short: 'TR', label: 'Transf.', color: 'var(--accent-blue)' },
@@ -78,7 +90,7 @@ function FABModal({ onClose }) {
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [perfilesTarj, setPerfilesTarj] = useState([])
   const [selectedPerfil, setSelectedPerfil] = useState(null)
-  const [numCuotas, setNumCuotas] = useState(1)
+  const [numCuotas, setNumCuotas] = useState('')
   const [loadingPerf, setLoadingPerf] = useState(false)
 
   useEffect(() => {
@@ -89,7 +101,11 @@ function FABModal({ onClose }) {
     supabase.from('perfiles_tarjetas')
       .select('id,nombre_tarjeta,banco,color,dia_pago,limite_credito')
       .eq('estado', 'activa')
-      .then(({ data }) => { setPerfilesTarj(data || []); setLoadingPerf(false) })
+      .then(({ data }) => {
+        setPerfilesTarj(data || [])
+        if (data?.length === 1) setSelectedPerfil(data[0])
+        setLoadingPerf(false)
+      })
   }, [metodoPago, tipo])
 
   useEffect(() => {
@@ -109,23 +125,43 @@ function FABModal({ onClose }) {
     if (!valor || valor <= 0) return
     const esTarjeta = tipo === 'egreso' && metodoPago === 'tarjeta_credito'
     if (esTarjeta && !selectedPerfil) { toast('Selecciona una tarjeta de crédito', 'warning'); return }
+    const cuotas = parseInt(numCuotas)
+    if (esTarjeta && (!cuotas || cuotas < 1)) { toast('Ingresa el número de cuotas', 'warning'); return }
     setSaving(true)
     const now = new Date()
     const hoy = now.toISOString().slice(0, 10)
     const catLabel = CATS_EGRESO.find(c => c.id === cat)?.label || cat
     const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : catLabel)
 
+    // Compra con TC: solo crear deuda, sin movimiento inmediato
+    if (esTarjeta && selectedPerfil) {
+      const cuotaMensual = parseFloat((valor / cuotas).toFixed(2))
+      await supabase.from('deudas').insert([{
+        tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳',
+        nombre: descFinal, categoria: cat,
+        capital: valor, monto: valor, pendiente: valor,
+        cuota: cuotaMensual, plazo_meses: cuotas, pagadas: 0,
+        estado: 'activa', perfil_tarjeta_id: selectedPerfil.id,
+        dia_pago: selectedPerfil.dia_pago || null,
+        fecha_primer_pago: calcFechaPrimerPago(hoy, selectedPerfil.dia_pago),
+        color: selectedPerfil.color || '#A44A3F',
+        tasa: 0, tasa_interes: 0,
+      }])
+      setSaving(false)
+      onClose()
+      window.location.reload()
+      return
+    }
+
     const { error } = await supabase.from('movimientos').insert([{
       tipo, monto: valor, descripcion: descFinal,
       categoria: tipo === 'ingreso' ? 'ingreso' : cat,
       fecha: hoy,
       metodo_pago: tipo === 'egreso' ? metodoPago : 'transferencia',
-      num_cuotas: esTarjeta ? numCuotas : null,
-      tarjeta_nombre: esTarjeta ? selectedPerfil.nombre_tarjeta : null,
     }])
     if (error) { toast('Error: ' + error.message); setSaving(false); return }
 
-    if (tipo === 'egreso' && selectedItem && !esTarjeta) {
+    if (tipo === 'egreso' && selectedItem) {
       if (cat === 'ahorro') {
         await supabase.from('metas').update({ actual: (selectedItem.actual || 0) + valor }).eq('id', selectedItem.id)
       } else if (cat === 'inversion') {
@@ -144,21 +180,6 @@ function FABModal({ onClose }) {
           estado: nuevoPendiente <= 0 ? 'pagada' : 'activa',
         }).eq('id', selectedItem.id)
       }
-    }
-
-    if (esTarjeta && selectedPerfil) {
-      const cuotaMensual = parseFloat((valor / numCuotas).toFixed(2))
-      await supabase.from('deudas').insert([{
-        tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳',
-        nombre: descFinal, categoria: cat,
-        capital: valor, monto: valor, pendiente: valor,
-        cuota: cuotaMensual, plazo_meses: numCuotas, pagadas: 0,
-        estado: 'activa', perfil_tarjeta_id: selectedPerfil.id,
-        dia_pago: selectedPerfil.dia_pago || null,
-        fecha_primer_pago: hoy,
-        color: selectedPerfil.color || '#A44A3F',
-        tasa: 0, tasa_interes: 0,
-      }])
     }
 
     setSaving(false)

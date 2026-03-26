@@ -239,12 +239,13 @@ export default function TarjetasPage() {
     const estaPagada = nuevoPendiente === 0
     const cuotaPagada = pagoDeuda.cuota > 0 && monto >= pagoDeuda.cuota * 0.9
 
-    const [{ error: errMov }, { error: errDeuda }] = await Promise.all([
+    const desc = formPago.descripcion || `Pago cuota: ${pagoDeuda.nombre}`
+    const [{ error: errDM }, { error: errDeuda }] = await Promise.all([
       supabase.from('deuda_movimientos').insert([{
         deuda_id: pagoDeuda.id,
         tipo: 'pago',
         monto,
-        descripcion: formPago.descripcion || 'Pago tarjeta',
+        descripcion: desc,
         fecha,
         mes: mesNum,
         año: añoNum,
@@ -256,11 +257,18 @@ export default function TarjetasPage() {
       }).eq('id', pagoDeuda.id),
     ])
 
-    if (errMov || errDeuda) {
+    if (errDM || errDeuda) {
       toast('Error al registrar el pago')
       setSavingPago(false)
       return
     }
+
+    // Registrar egreso real en movimientos (el dinero sale del bolsillo al pagar la cuota)
+    await supabase.from('movimientos').insert([{
+      tipo: 'egreso', monto, descripcion: desc,
+      categoria: 'deuda', fecha, quien: 'Ambos',
+      metodo_pago: 'transferencia',
+    }])
 
     // Actualizar estado local
     setDeudas(prev => prev.map(d => d.id === pagoDeuda.id

@@ -27,6 +27,17 @@ function fechaHoy() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+function calcFechaPrimerPago(fechaCompra, diaPago) {
+  if (!diaPago) return fechaCompra
+  const [y, m, d] = fechaCompra.split('-').map(Number)
+  if (d < diaPago) {
+    return `${y}-${String(m).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
+  } else {
+    const nextM = m === 12 ? 1 : m + 1
+    const nextY = m === 12 ? y + 1 : y
+    return `${nextY}-${String(nextM).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
+  }
+}
 export default function GastosPage() {
   const { theme } = useTheme()
   const themeColors = getThemeColors(theme)
@@ -48,7 +59,7 @@ export default function GastosPage() {
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [metodoPago, setMetodoPago] = useState('efectivo')
-  const [numCuotas, setNumCuotas] = useState(1)
+  const [numCuotas, setNumCuotas] = useState('')
   const [presupuesto, setPresupuesto] = useState(null)
   const [colores, setColores] = useState({})
   const [subcategorias, setSubcategorias] = useState([])
@@ -113,8 +124,11 @@ export default function GastosPage() {
     supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
     supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
-    supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, banco, color').eq('estado', 'activa')
-      .then(({ data }) => setTarjetasData(data || []))
+    supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, banco, color, dia_pago').eq('estado', 'activa')
+      .then(({ data }) => {
+        setTarjetasData(data || [])
+        if (data?.length === 1) setTarjetaSeleccionada(data[0].id)
+      })
     supabase.from('deudas').select('id, nombre, perfil_tarjeta_id, pendiente, color').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
       .then(({ data }) => {
         const map = {}
@@ -157,7 +171,7 @@ export default function GastosPage() {
     setMetaSeleccionada('')
     setDeudaSeleccionada('')
     setMetodoPago('efectivo')
-    setNumCuotas(1)
+    setNumCuotas('')
     setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys', subcategoria_id: '' })
   }
 
@@ -176,38 +190,34 @@ export default function GastosPage() {
         setSaving(false)
         return
       }
+      const cuotas = parseInt(numCuotas)
+      if (!cuotas || cuotas < 1) {
+        setError('Ingresa el número de cuotas')
+        setSaving(false)
+        return
+      }
       const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
       const subNombreTC = form.subcategoria_id ? subcategorias.find(s => s.id === form.subcategoria_id)?.nombre : null
       const descTC = form.descripcion.trim() || subNombreTC || 'Compra con tarjeta'
-      const cuotaMensual = parseFloat((monto / numCuotas).toFixed(2))
+      const cuotaMensual = parseFloat((monto / cuotas).toFixed(2))
 
-      // 1. Crear movimiento
-      const { data: dataMov, error: errMov } = await supabase.from('movimientos').insert([{
-        tipo: 'egreso', monto, descripcion: descTC,
-        categoria: form.categoria, fecha: form.fecha, quien: form.quien,
-        metodo_pago: 'tarjeta_credito',
-        num_cuotas: numCuotas,
-        tarjeta_nombre: tarjeta?.nombre_tarjeta || null,
-        ...(form.subcategoria_id && { subcategoria_id: form.subcategoria_id }),
-      }]).select()
-      if (errMov) { setError('Error: ' + errMov.message); setSaving(false); return }
-      if (dataMov?.[0]) setMovs(prev => [dataMov[0], ...prev])
-
-      // 2. Crear deuda en cuotas
-      await supabase.from('deudas').insert([{
+      // Solo crear la deuda — el movimiento se registra cuando se paga cada cuota
+      const { error: errDeuda } = await supabase.from('deudas').insert([{
         tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳',
         nombre: descTC, categoria: form.categoria,
         capital: monto, monto, pendiente: monto,
-        cuota: cuotaMensual, plazo_meses: numCuotas, pagadas: 0,
+        cuota: cuotaMensual, plazo_meses: cuotas, pagadas: 0,
         estado: 'activa', perfil_tarjeta_id: tarjetaSeleccionada,
         dia_pago: tarjeta?.dia_pago || null,
-        fecha_primer_pago: form.fecha,
+        fecha_primer_pago: calcFechaPrimerPago(form.fecha, tarjeta?.dia_pago),
         color: tarjeta?.color || '#A44A3F',
         tasa: 0, tasa_interes: 0,
       }])
+      if (errDeuda) { setError('Error: ' + errDeuda.message); setSaving(false); return }
 
       resetModal()
       setSaving(false)
+      toast(`Compra registrada · ${cuotas === 1 ? 'Pago único' : `${cuotas}x de ${formatCurrency(cuotaMensual)}`}`, 'success')
       return
     }
 
@@ -805,17 +815,20 @@ export default function GastosPage() {
                             inputMode="numeric"
                             min="1"
                             max="60"
+                            placeholder="—"
                             value={numCuotas}
-                            onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
+                            onChange={e => setNumCuotas(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1))}
                             className="ff-input text-center font-semibold"
                             style={{ width: 80, color: colores.rose }}
                           />
                           <p className="text-[10px] flex-1" style={{ color: colores.muted }}>
-                            {numCuotas === 1
-                              ? 'Contado · pago único · aparecerá en Deudas'
-                              : parseFloat(form.monto) > 0
-                                ? `${numCuotas}x de ${formatCurrency(parseFloat(form.monto) / numCuotas)} · aparecerá en Deudas`
-                                : `${numCuotas} cuotas`}
+                            {!numCuotas
+                              ? 'Ingresa el nº de cuotas'
+                              : parseInt(numCuotas) === 1
+                                ? 'Pago único · se paga desde Tarjetas'
+                                : parseFloat(form.monto) > 0
+                                  ? `${numCuotas}x de ${formatCurrency(parseFloat(form.monto) / parseInt(numCuotas))} · se paga desde Tarjetas`
+                                  : `${numCuotas} cuotas`}
                           </p>
                         </div>
                       </div>
