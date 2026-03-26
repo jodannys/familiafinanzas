@@ -453,6 +453,7 @@ export default function InversionesPage() {
 
   const TooltipConColores = (props) => <CustomTooltip {...props} colores={colores} />
 
+
   // ─── RENDER ──────────────────────────────────────────────────────────────────
 
   return (
@@ -1215,80 +1216,117 @@ export default function InversionesPage() {
       </Modal>
 
       {/* MODAL APORTE */}
-      <Modal
-        open={modalAporte}
-        onClose={() => { setModalAporte(false); setFormAporte({ monto: '', descripcion: '', fecha: '' }) }}
-        title="Agregar aporte">
-        <form onSubmit={handleAddAporte} className="space-y-4">
+<Modal
+  open={modalAporte}
+  onClose={() => { setModalAporte(false); setFormAporte({ monto: '', descripcion: '', fecha: '' }) }}
+  title="Agregar aporte">
+  <form onSubmit={handleAddAporte} className="space-y-4">
 
+    {/* Botón de sugerencia basado en pct_mensual */}
+    {(() => {
+      const sugerido = presupuesto?.montoInversiones > 0 && selected?.pct_mensual > 0
+        ? parseFloat(((presupuesto.montoInversiones * selected.pct_mensual) / 100).toFixed(2))
+        : null
+      if (!sugerido) return null
+      return (
+        <button type="button"
+          onClick={() => setFormAporte(p => ({ ...p, monto: sugerido.toString() }))}
+          className="w-full px-3 py-2.5 rounded-xl text-left border transition-all hover:scale-[1.01] active:scale-[0.98]"
+          style={{
+            background: `color-mix(in srgb, ${colores.violet} 8%, transparent)`,
+            borderColor: `color-mix(in srgb, ${colores.violet} 25%, transparent)`,
+          }}>
+          <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: colores.violet }}>
+            Sugerido según presupuesto ({selected.pct_mensual}%)
+          </p>
+          <p className="text-sm font-semibold" style={{ color: colores.violet }}>
+            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(sugerido)}
+          </p>
+        </button>
+      )
+    })()}
+
+    <div>
+      <label className="ff-label text-[10px] uppercase opacity-60">Monto a aportar</label>
+      <input className="ff-input text-lg font-bold" type="number" min="0.01" step="0.01" placeholder="0.00" required
+        autoFocus
+        value={formAporte.monto}
+        onChange={e => setFormAporte(p => ({ ...p, monto: e.target.value }))} 
+        style={{ color: parseFloat(formAporte.monto) > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}
+      />
+
+      {/* BARRA DE IMPACTO: Muestra cuánto del presupuesto total de inversiones se consume */}
+      {presupuesto?.montoInversiones > 0 && (
+        <div className="mt-3 p-3 rounded-2xl border bg-[var(--bg-secondary)]"
+          style={{ 
+            borderColor: (aportesEsteMes + (parseFloat(formAporte.monto) || 0)) > presupuesto.montoInversiones 
+              ? 'color-mix(in srgb, var(--accent-danger) 30%, transparent)' 
+              : 'var(--border-glass)' 
+          }}>
           {(() => {
-            const sugerido = presupuesto?.montoInversiones > 0 && selected?.pct_mensual > 0
-              ? parseFloat(((presupuesto.montoInversiones * selected.pct_mensual) / 100).toFixed(2))
-              : null
-            if (!sugerido) return null
+            const totalTrasAporte = aportesEsteMes + (parseFloat(formAporte.monto) || 0)
+            const pct = Math.min(100, (totalTrasAporte / presupuesto.montoInversiones) * 100)
+            const excede = totalTrasAporte > presupuesto.montoInversiones
             return (
-              <button type="button"
-                onClick={() => setFormAporte(p => ({ ...p, monto: sugerido.toString() }))}
-                className="w-full px-3 py-2.5 rounded-xl text-left border transition-all"
-                style={{
-                  background: `color-mix(in srgb, ${colores.violet} 8%, transparent)`,
-                  borderColor: `color-mix(in srgb, ${colores.violet} 25%, transparent)`,
-                }}>
-                <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: colores.violet }}>
-                  Sugerido según presupuesto ({selected.pct_mensual}%)
-                </p>
-                <p className="text-sm font-semibold" style={{ color: colores.violet }}>
-                  {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(sugerido)}
-                </p>
-              </button>
+              <>
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-[9px] font-black uppercase opacity-50">Uso Presupuesto Total</span>
+                  <span className={`text-[9px] font-bold ${excede ? 'text-[var(--accent-danger)]' : ''}`} style={{ color: !excede ? colores.green : '' }}>
+                    {pct.toFixed(0)}% {excede && '(Excedido)'}
+                  </span>
+                </div>
+                <div className="h-1 w-full bg-[var(--progress-track)] rounded-full overflow-hidden">
+                  <div className="h-full transition-all duration-500"
+                    style={{ 
+                      width: `${pct}%`, 
+                      background: excede ? 'var(--accent-danger)' : 'var(--accent-main)' 
+                    }} />
+                </div>
+              </>
             )
           })()}
+        </div>
+      )}
+    </div>
 
-          <div>
-            <label className="ff-label">Monto a aportar</label>
-            <input className="ff-input" type="number" min="0.01" step="0.01" placeholder="0.00" required
-              autoFocus
-              value={formAporte.monto}
-              onChange={e => setFormAporte(p => ({ ...p, monto: e.target.value }))} />
-          </div>
+    {/* Resumen de Capital Nuevo */}
+    {formAporte.monto > 0 && selected && (
+      <div className="px-3 py-2.5 rounded-xl text-[10px] font-semibold flex justify-between items-center"
+        style={{
+          background: `color-mix(in srgb, ${colores.green} 8%, transparent)`,
+          color: colores.green,
+          border: `1px solid color-mix(in srgb, ${colores.green} 20%, transparent)`,
+        }}>
+        <span className="opacity-70 uppercase font-black tracking-wider">Capital tras aporte:</span>
+        <span className="text-sm">{formatCurrency((selected.capital || 0) + (parseFloat(formAporte.monto) || 0))}</span>
+      </div>
+    )}
 
-          <div>
-            <label className="ff-label">Descripción (opcional)</label>
-            <input className="ff-input" placeholder="Ej: Aporte enero, bono, dividendo..."
-              value={formAporte.descripcion}
-              onChange={e => setFormAporte(p => ({ ...p, descripcion: e.target.value }))} />
-          </div>
+    <div>
+      <label className="ff-label text-[10px] uppercase opacity-60">Descripción (opcional)</label>
+      <input className="ff-input" placeholder="Ej: Aporte enero, bono, dividendo..."
+        value={formAporte.descripcion}
+        onChange={e => setFormAporte(p => ({ ...p, descripcion: e.target.value }))} />
+    </div>
 
-          <div>
-            <label className="ff-label">Fecha</label>
-            <input className="ff-input" type="date"
-              value={formAporte.fecha || new Date().toISOString().slice(0, 10)}
-              onChange={e => setFormAporte(p => ({ ...p, fecha: e.target.value }))} />
-          </div>
+    <div>
+      <label className="ff-label text-[10px] uppercase opacity-60">Fecha</label>
+      <input className="ff-input" type="date"
+        value={formAporte.fecha || new Date().toISOString().slice(0, 10)}
+        onChange={e => setFormAporte(p => ({ ...p, fecha: e.target.value }))} />
+    </div>
 
-          {formAporte.monto > 0 && selected && (
-            <div className="px-3 py-2.5 rounded-xl text-[10px] font-semibold"
-              style={{
-                background: `color-mix(in srgb, ${colores.green} 8%, transparent)`,
-                color: colores.green,
-                border: `1px solid color-mix(in srgb, ${colores.green} 20%, transparent)`,
-              }}>
-              Capital nuevo: {formatCurrency((selected.capital || 0) + (parseFloat(formAporte.monto) || 0))}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button type="button"
-              onClick={() => { setModalAporte(false); setFormAporte({ monto: '', descripcion: '', fecha: '' }) }}
-              className="ff-btn-ghost flex-1">Cancelar</button>
-            <button type="submit" disabled={savingAporte}
-              className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
-              {savingAporte && <Loader2 size={14} className="animate-spin" />}
-              {savingAporte ? 'Guardando...' : 'Registrar aporte'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+    <div className="flex gap-3 pt-2">
+      <button type="button"
+        onClick={() => { setModalAporte(false); setFormAporte({ monto: '', descripcion: '', fecha: '' }) }}
+        className="ff-btn-ghost flex-1">Cancelar</button>
+      <button type="submit" disabled={savingAporte}
+        className="ff-btn-primary flex-1 flex items-center justify-center gap-2 py-4">
+        {savingAporte ? <Loader2 size={16} className="animate-spin" /> : 'Confirmar'}
+      </button>
+    </div>
+  </form>
+</Modal>
 
       {/* MODAL CREAR / EDITAR */}
       <Modal
