@@ -226,6 +226,7 @@ export default function InversionesPage() {
     const [{ data: movs }, { data: sobrantes }] = await Promise.all([
       supabase.from('movimientos').select('monto')
         .eq('tipo', 'egreso').eq('categoria', 'inversion')
+        .not('inversion_id', 'is', null)
         .gte('fecha', inicioMes).lt('fecha', inicioSig),
       supabase.from('sobre_movimientos').select('monto')
         .eq('origen', 'sobre').eq('destino', 'inversiones')

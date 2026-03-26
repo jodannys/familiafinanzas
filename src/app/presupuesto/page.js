@@ -97,7 +97,7 @@ export default function PresupuestoPage() {
 
       // Aportes reales a inversiones este mes (movimientos + sobrantes de sobres)
       const totalMovsInv = (movsData || [])
-        .filter(m => m.tipo === 'egreso' && m.categoria === 'inversion')
+        .filter(m => m.tipo === 'egreso' && m.categoria === 'inversion' && m.inversion_id != null)
         .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
       const totalSobrantesInv = (sobreData || [])
         .filter(m => m.origen === 'sobre' && m.destino === 'inversiones')
@@ -150,6 +150,8 @@ export default function PresupuestoPage() {
   function gastadoReal(bloqueId) {
     const deMovimientos = movs
       .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
+      // Excluir movimientos inversion sin inversion_id (sobrantes mal creados por código antiguo)
+      .filter(m => m.categoria !== 'inversion' || m.inversion_id != null)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
     const deTraspasos = sobreMovs
