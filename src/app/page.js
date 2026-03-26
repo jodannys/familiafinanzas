@@ -184,15 +184,15 @@ export default function Dashboard() {
       <div className="mb-10 animate-in fade-in slide-in-from-left-6 duration-1000">
 
         {/* Fecha: Muy minimalista y separada */}
-        <p className="uppercase tracking-[0.3em] font-black opacity-30 mb-3"
-          style={{ fontSize: '8px', color: 'var(--text-muted)' }}>
+        <p className="uppercase tracking-[0.3em] font-black opacity-70 mb-3"
+          style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
           {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
 
         {/* Saludo con fuente Sacramento */}
         <h1 className="font-script tracking-normal"
           style={{
-            fontSize: '34px', // Sacramento necesita ser un poco más grande para leerse bien
+            fontSize: '30px', // Sacramento necesita ser un poco más grande para leerse bien
             color: 'var(--text-primary)',
             fontWeight: 400,
             lineHeight: 1.1,
