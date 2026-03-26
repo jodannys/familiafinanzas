@@ -5,6 +5,7 @@ import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Save } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import { formatCurrency } from '@/lib/utils'
 import { useTheme, getThemeColors } from '@/lib/themes'
 
@@ -138,12 +139,12 @@ export default function TarjetasPage() {
     const diaCorte = parseInt(form.dia_corte) || null
     const diaPago = parseInt(form.dia_pago) || null
     if (diaCorte !== null && (diaCorte < 1 || diaCorte > 31)) {
-      alert('El día de corte debe estar entre 1 y 31')
+      toast('El día de corte debe estar entre 1 y 31')
       setSaving(false)
       return
     }
     if (diaPago !== null && (diaPago < 1 || diaPago > 31)) {
-      alert('El día de pago debe estar entre 1 y 31')
+      toast('El día de pago debe estar entre 1 y 31')
       setSaving(false)
       return
     }
@@ -181,7 +182,7 @@ export default function TarjetasPage() {
     // BUG FIX: sólo actualizar estado local si la BD confirma el cambio
     const { error } = await supabase.from('perfiles_tarjetas').update({ estado: nuevoEstado }).eq('id', tarjeta.id)
     if (error) {
-      alert('Error al cambiar estado: ' + error.message)
+      toast('' + error.message)
       return
     }
     setTarjetas(prev => prev.map(t => t.id === tarjeta.id ? { ...t, estado: nuevoEstado } : t))
@@ -196,14 +197,14 @@ export default function TarjetasPage() {
       .eq('perfil_tarjeta_id', id)
 
     if (errDesvincular) {
-      alert('Error al desvincular deudas: ' + errDesvincular.message)
+      toast('' + errDesvincular.message)
       return
     }
 
     // BUG FIX: sólo borrar localmente si la BD confirma el borrado
     const { error } = await supabase.from('perfiles_tarjetas').delete().eq('id', id)
     if (error) {
-      alert('Error al eliminar la tarjeta: ' + error.message)
+      toast('' + error.message)
       return
     }
 
@@ -254,6 +255,7 @@ export default function TarjetasPage() {
     </button>
   </div>
 ) : (
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tarjetas.map((t) => {
             const isSelected = selectedId === t.id

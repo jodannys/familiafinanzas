@@ -27,11 +27,27 @@ const NOMBRES_CAT = {
   inversion: 'Inversión',
 }
 
-function saludoBase() {
+function saludoBase(nombre) {
   const h = new Date().getHours()
-  if (h < 12) return 'Buenos días'
-  if (h < 19) return 'Buenas tardes'
-  return 'Buenas noches'
+  let saludo = ''
+  let emoji = ''
+
+  if (h >= 6 && h < 12) {
+    saludo = 'buenos días'
+    emoji = '☕'
+  } else if (h >= 12 && h < 20) {
+    saludo = 'buenas tardes'
+    emoji = '☀️'
+  } else {
+    saludo = 'buenas noches'
+    emoji = (h >= 20 || h < 5) ? '🌙' : '✨'
+  }
+
+  // Si hay nombre, dice "Hola [Nombre], buenos días ☕"
+  // Si no, solo "Buenos días ☕"
+  return nombre
+    ? `Hola ${nombre}, ${saludo} ${emoji}`
+    : `${saludo.charAt(0).toUpperCase() + saludo.slice(1)} ${emoji}`
 }
 
 function diasHastaPago(diaPago) {
@@ -165,20 +181,27 @@ export default function Dashboard() {
     <AppShell>
 
       {/* ── Header ── */}
-      <div className="mb-7 animate-enter">
-        <p className="text-[5px] uppercase tracking-widest font-semibold mb-0.5" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+      <div className="mb-6 animate-in fade-in slide-in-from-left-4 duration-700">
+        {/* Fecha sutil: Unificamos el tamaño para evitar conflictos entre className y style */}
+        <p className="uppercase tracking-[0.25em] font-black mb-1 opacity-40"
+          style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
           {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
+
+        {/* Saludo: Bajamos a 24px-26px para que sea legible pero no invasivo */}
         <h1
-          className="font-serif text-1xl tracking-tight"
+          className="font-script tracking-tight"
           style={{
+            fontSize: '26px',
             color: 'var(--text-primary)',
             fontWeight: 400,
-            marginBottom: '20px'
+            lineHeight: 1,
+            marginTop: '2px' // Pequeño respiro con la fecha
           }}
         >
-          {nombre ? `Hola ${nombre}` : saludoBase()}
+          {saludoBase(nombre)}
         </h1>
+
 
         {/* Strip patrimonio */}
         <div className="grid grid-cols-3 gap-2">
@@ -213,78 +236,80 @@ export default function Dashboard() {
       </div>
 
       {/* ── Alertas deuda ── */}
-      {alertas.length > 0 && (
-        <div className="space-y-2 mb-7">
-          {alertas.map(d => {
-            const color = d.dias <= 3 ? 'var(--accent-rose)' : 'var(--accent-terra)'
-            return (
-              <div key={d.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                style={{
-                  background: `color-mix(in srgb, ${color} 7%, var(--bg-card))`,
-                  border: `1px solid color-mix(in srgb, ${color} 18%, transparent)`,
-                }}>
-                <span className="text-base flex-shrink-0">{d.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
-                  <p style={{ fontSize: 10, color }}>
-                    {d.dias === 0 ? '¡Vence hoy!' : `Vence en ${d.dias} día${d.dias !== 1 ? 's' : ''}`}
-                  </p>
+      {
+        alertas.length > 0 && (
+          <div className="space-y-2 mb-7">
+            {alertas.map(d => {
+              const color = d.dias <= 3 ? 'var(--accent-rose)' : 'var(--accent-terra)'
+              return (
+                <div key={d.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                  style={{
+                    background: `color-mix(in srgb, ${color} 7%, var(--bg-card))`,
+                    border: `1px solid color-mix(in srgb, ${color} 18%, transparent)`,
+                  }}>
+                  <span className="text-base flex-shrink-0">{d.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
+                    <p style={{ fontSize: 10, color }}>
+                      {d.dias === 0 ? '¡Vence hoy!' : `Vence en ${d.dias} día${d.dias !== 1 ? 's' : ''}`}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold flex-shrink-0" style={{ color }}>{formatCurrency(d.cuota)}</span>
                 </div>
-                <span className="text-sm font-semibold flex-shrink-0" style={{ color }}>{formatCurrency(d.cuota)}</span>
+              )
+            })}
+          </div>
+        )
+      }
+
+      {/* ── KPIs ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
+        {[
+          { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', Icon: ArrowUpRight, signo: '+', pct: 100 },
+          { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', Icon: ArrowDownRight, signo: '-', pct: pctGastos },
+          { label: 'Futuro', val: ahorroMes, col: 'var(--accent-gold)', Icon: Target, signo: '', pct: pctAhorro },
+          { label: 'Disponible', val: saldoLibre, col: saldoLibre >= 0 ? 'var(--accent-blue)' : 'var(--accent-danger)', Icon: Wallet, signo: '', pct: pctDisp },
+        ].map((k, i) => (
+          <div key={i} className="animate-enter"
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: 24,
+              padding: '18px 18px 14px',
+              minHeight: 118,
+              border: '1px solid var(--border-glass)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              animationDelay: `${i * 0.06}s`,
+            }}>
+
+            {/* Label e Icono */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-muted)' }}>
+                {k.label}
+              </span>
+              <div style={{
+                width: 26, height: 26, borderRadius: 9, flexShrink: 0,
+                background: `color-mix(in srgb, ${k.col} 14%, transparent)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <k.Icon size={12} style={{ color: k.col }} strokeWidth={2.5} />
               </div>
-            )
-          })}
-        </div>
-      )}
+            </div>
 
-     {/* ── KPIs ── */}
-<div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
-  {[
-    { label: 'Ingresos',   val: ingresosMes, col: 'var(--accent-green)',  Icon: ArrowUpRight,   signo: '+', pct: 100 },
-    { label: 'Gastos',     val: gastosMes,   col: 'var(--accent-rose)',   Icon: ArrowDownRight, signo: '-', pct: pctGastos },
-    { label: 'Futuro',     val: ahorroMes,   col: 'var(--accent-gold)',   Icon: Target,         signo: '',  pct: pctAhorro },
-    { label: 'Disponible', val: saldoLibre,  col: saldoLibre >= 0 ? 'var(--accent-blue)' : 'var(--accent-danger)', Icon: Wallet, signo: '', pct: pctDisp },
-  ].map((k, i) => (
-    <div key={i} className="animate-enter"
-      style={{
-        background: 'var(--bg-card)',
-        borderRadius: 24,
-        padding: '18px 18px 14px',
-        minHeight: 118,
-        border: '1px solid var(--border-glass)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        animationDelay: `${i * 0.06}s`,
-      }}>
-
-      {/* Label e Icono */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-muted)' }}>
-          {k.label}
-        </span>
-        <div style={{
-          width: 26, height: 26, borderRadius: 9, flexShrink: 0,
-          background: `color-mix(in srgb, ${k.col} 14%, transparent)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <k.Icon size={12} style={{ color: k.col }} strokeWidth={2.5} />
-        </div>
+            {/* Monto y barra */}
+            <div>
+              <p style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 8, color: k.col }}>
+                {k.signo && <span style={{ marginRight: 3, opacity: 0.5 }}>{k.signo}</span>}
+                {formatCurrency(Math.abs(k.val))}
+              </p>
+              <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${k.pct}%`, background: k.col, borderRadius: 999, transition: 'width 1s ease-out' }} />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-
-      {/* Monto y barra */}
-      <div>
-        <p style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 8, color: k.col }}>
-          {k.signo && <span style={{ marginRight: 3, opacity: 0.5 }}>{k.signo}</span>}
-          {formatCurrency(Math.abs(k.val))}
-        </p>
-        <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${k.pct}%`, background: k.col, borderRadius: 999, transition: 'width 1s ease-out' }} />
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
 
       {/* ── Agenda widget ── */}
       <div className="mb-7">
@@ -423,6 +448,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-    </AppShell>
+    </AppShell >
   )
 }

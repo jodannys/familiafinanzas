@@ -1,11 +1,53 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
-import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, LogOut, Check, CreditCard } from 'lucide-react'
+import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, LogOut, Check, CreditCard, AlertCircle, CheckCircle, Info } from 'lucide-react'
 import { supabase, signOut } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { toast } from '@/lib/toast'
+
+// ── Toast System ─────────────────────────────────────────────────────────────
+function ToastDisplay() {
+  const [toasts, setToasts] = useState([])
+
+  useEffect(() => {
+    function handler(e) {
+      const { msg, type } = e.detail
+      const id = Date.now() + Math.random()
+      setToasts(p => [...p, { id, msg, type }])
+      setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500)
+    }
+    window.addEventListener('ff-toast', handler)
+    return () => window.removeEventListener('ff-toast', handler)
+  }, [])
+
+  const COLORS = {
+    error:   { bg: 'color-mix(in srgb, var(--accent-rose)  12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-rose)  35%, transparent)', text: 'var(--accent-rose)',  Icon: AlertCircle },
+    success: { bg: 'color-mix(in srgb, var(--accent-green) 12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-green) 35%, transparent)', text: 'var(--accent-green)', Icon: CheckCircle },
+    warning: { bg: 'color-mix(in srgb, var(--accent-terra) 12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-terra) 35%, transparent)', text: 'var(--accent-terra)', Icon: Info },
+  }
+
+  if (!toasts.length) return null
+
+  return (
+    <div className="fixed top-4 left-0 right-0 z-[999] flex flex-col items-center gap-2 px-4 pointer-events-none"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {toasts.map(t => {
+        const c = COLORS[t.type] || COLORS.error
+        return (
+          <div key={t.id}
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg animate-enter pointer-events-auto"
+            style={{ background: c.bg, border: `1px solid ${c.border}`, maxWidth: 380, width: '100%' }}>
+            <c.Icon size={16} style={{ color: c.text, flexShrink: 0 }} />
+            <p className="text-xs font-semibold flex-1" style={{ color: c.text }}>{t.msg}</p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 const CATS_EGRESO = [
   { id: 'basicos', label: 'Necesidades', color: 'var(--accent-blue)' },
@@ -66,7 +108,7 @@ function FABModal({ onClose }) {
     const valor = parseFloat(monto)
     if (!valor || valor <= 0) return
     const esTarjeta = tipo === 'egreso' && metodoPago === 'tarjeta_credito'
-    if (esTarjeta && !selectedPerfil) { alert('Selecciona una tarjeta de crédito'); return }
+    if (esTarjeta && !selectedPerfil) { toast('Selecciona una tarjeta de crédito', 'warning'); return }
     setSaving(true)
     const now = new Date()
     const hoy = now.toISOString().slice(0, 10)
@@ -81,7 +123,7 @@ function FABModal({ onClose }) {
       num_cuotas: esTarjeta ? numCuotas : null,
       tarjeta_nombre: esTarjeta ? selectedPerfil.nombre_tarjeta : null,
     }])
-    if (error) { alert('Error: ' + error.message); setSaving(false); return }
+    if (error) { toast('Error: ' + error.message); setSaving(false); return }
 
     if (tipo === 'egreso' && selectedItem && !esTarjeta) {
       if (cat === 'ahorro') {
@@ -367,6 +409,7 @@ export default function AppShell({ children }) {
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
+      <ToastDisplay />
       <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]"><Sidebar /></div>
       <main className="flex-1 min-h-screen lg:ml-20 flex flex-col overflow-x-hidden">
 

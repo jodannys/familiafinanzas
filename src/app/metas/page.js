@@ -5,6 +5,7 @@ import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import { Plus, Loader2, Trash2, Pencil, Pause, Play, Check, Target, TrendingUp, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { useTheme, getThemeColors } from '@/lib/themes'
@@ -118,7 +119,7 @@ export default function MetasPage() {
 
   async function handleAgregarDinero(id, montoActual, nombreMeta, pctMeta) {
     if (!presupuesto || !presupuesto.montoMetas) {
-      alert('Primero define un presupuesto para el bloque de metas.')
+      toast('Primero define un presupuesto para el bloque de metas.')
       return
     }
     const metaObj = metas.find(m => m.id === id)
@@ -131,7 +132,7 @@ export default function MetasPage() {
     const maxDisponible = (100 - totalAsignadoOtras) / 100 * presupuesto.montoMetas
 
     if (montoAuto > maxDisponible) {
-      alert(`No puedes aportar más de ${formatCurrency(maxDisponible)}`)
+      toast(`No puedes aportar más de ${formatCurrency(maxDisponible)}`, 'warning')
       return
     }
     if (!confirm(`¿Aportar ${formatCurrency(montoAuto)} a "${nombreMeta}"?`)) return
@@ -156,7 +157,7 @@ export default function MetasPage() {
       ? { ...m, actual: nuevoMonto, ...(completada && { estado: 'completada' }) } : m
     ))
     setSaving(false)
-    if (completada) setTimeout(() => alert(`🎉 ¡Meta "${nombreMeta}" completada!`), 300)
+    if (completada) toast(`🎉 ¡Meta "${nombreMeta}" completada!`, 'success')
   }
 
   async function handleEstado(id, estado) {

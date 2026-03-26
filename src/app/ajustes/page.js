@@ -8,6 +8,7 @@ import {
   Target, TrendingUp, ArrowRight, User, Palette, Check
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import { getFlagEmoji } from '@/lib/utils'
 
@@ -101,7 +102,7 @@ export default function AjustesPage() {
       orden: categorias.filter(c => c.bloque === bloque).length,
     }]).select()
     setSaving(false)
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) { toast('' + error.message); return }
     setCategorias(prev => [...prev, data[0]])
     setFormCat({ nombre: '', color: themeColors[0] || '' })
     setAddingCatBloque(null)
@@ -116,7 +117,7 @@ export default function AjustesPage() {
       color: editandoCat.color,
     }).eq('id', cat.id)
     setSaving(false)
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) { toast('' + error.message); return }
     setCategorias(prev => prev.map(c =>
       c.id === cat.id ? { ...c, nombre: editandoCat.nombre.trim(), color: editandoCat.color } : c
     ))
@@ -126,7 +127,7 @@ export default function AjustesPage() {
   async function handleDeleteCat(id) {
     if (!confirm('¿Eliminar esta categoría y todas sus subcategorías?')) return
     const { error } = await supabase.from('categorias').delete().eq('id', id)
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) { toast('' + error.message); return }
     setCategorias(prev => prev.filter(c => c.id !== id))
     setSubcategorias(prev => prev.filter(s => s.categoria_id !== id))
   }
@@ -143,7 +144,7 @@ export default function AjustesPage() {
       orden: subcategorias.filter(s => s.categoria_id === categoriaId).length,
     }]).select()
     setSaving(false)
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) { toast('' + error.message); return }
     setSubcategorias(prev => [...prev, data[0]])
     setFormSub('')
     setFormSubTipo(null)
@@ -158,7 +159,7 @@ export default function AjustesPage() {
       tipo: editandoSub.tipo || null,
     }).eq('id', sub.id)
     setSaving(false)
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) { toast('' + error.message); return }
     setSubcategorias(prev => prev.map(s =>
       s.id === sub.id ? { ...s, nombre: editandoSub.nombre.trim(), tipo: editandoSub.tipo || null } : s
     ))
@@ -167,7 +168,7 @@ export default function AjustesPage() {
 
   async function handleDeleteSub(id) {
     const { error } = await supabase.from('subcategorias').delete().eq('id', id)
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) { toast('' + error.message); return }
     setSubcategorias(prev => prev.filter(s => s.id !== id))
   }
 
@@ -181,14 +182,14 @@ export default function AjustesPage() {
         nombre: formFuturo.trim(), emoji: '🎯', pct_mensual: 0, meta: 0, actual: 0, estado: 'activa',
       }]).select()
       setSaving(false)
-      if (error) { alert('Error: ' + error.message); return }
+      if (error) { toast('' + error.message); return }
       setMetas(prev => [...prev, data[0]])
     } else {
       const { data, error } = await supabase.from('inversiones').insert([{
         nombre: formFuturo.trim(), emoji: '📈', aporte: 0, capital: 0, tasa: 0,
       }]).select()
       setSaving(false)
-      if (error) { alert('Error: ' + error.message); return }
+      if (error) { toast('' + error.message); return }
       setInversiones(prev => [...prev, data[0]])
     }
     setFormFuturo('')
@@ -198,14 +199,14 @@ export default function AjustesPage() {
   async function handleDeleteMeta(id) {
     if (!confirm('¿Eliminar esta meta?')) return
     const { error } = await supabase.from('metas').delete().eq('id', id)
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) { toast('' + error.message); return }
     setMetas(prev => prev.filter(m => m.id !== id))
   }
 
   async function handleDeleteInversion(id) {
     if (!confirm('¿Eliminar esta inversión?')) return
     const { error } = await supabase.from('inversiones').delete().eq('id', id)
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) { toast('' + error.message); return }
     setInversiones(prev => prev.filter(i => i.id !== id))
   }
 

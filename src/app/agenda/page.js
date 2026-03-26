@@ -117,8 +117,9 @@ export default function AgendaPage() {
         if (currentIdx > endIdx) return []
       }
     }
+    if (!d.dia_pago) return []
     const diasMes = new Date(año, mes + 1, 0).getDate()
-    const dia = Math.min(d.dia_pago || 1, diasMes)
+    const dia = Math.min(d.dia_pago, diasMes)
     return [{
       id: `auto-${d.id}`,
       fecha: toFechaStr(año, mes, dia),

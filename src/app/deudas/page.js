@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors } from '@/lib/themes'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -180,9 +181,9 @@ export default function DeudasPage() {
 
   const defaultColor = () => themeColors[0] || 'var(--accent-green)'
 
-  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳', nombre: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: fechaHoy(), dia_pago: '', color: defaultColor(), telefono: '' })
-  const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', tipo: 'debo', emoji: '🏦', nombre: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor(), telefono: '' })
-  const makeFormCuota = () => ({ tipo_deuda: 'cuota', tipo: 'debo', emoji: '📅', nombre: '', categoria: 'deseo', deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor(), telefono: '' })
+  const makeFormTarjeta = () => ({ tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳', nombre: '', descripcion: '', categoria: 'deseo', tarjeta_id: '', limite: '', monto_compra: '', num_cuotas: '', fecha_operacion: fechaHoy(), dia_pago: '', color: defaultColor(), telefono: '' })
+  const makeFormPrestamo = () => ({ tipo_deuda: 'prestamo', tipo: 'debo', emoji: '🏦', nombre: '', descripcion: '', categoria: 'basicos', capital: '', tasa_interes: '', tiene_interes: false, plazo_meses: '', plazo_libre: false, fecha_primer_pago: '', dia_pago: '', color: defaultColor(), telefono: '' })
+  const makeFormCuota = () => ({ tipo_deuda: 'cuota', tipo: 'debo', emoji: '📅', nombre: '', descripcion: '', categoria: 'deseo', deuda_origen_id: '', monto: '', dia_pago: '', color: defaultColor(), telefono: '' })
 
   const [deudas, setDeudas] = useState([])
   const [movimientos, setMovimientos] = useState({})
@@ -279,6 +280,7 @@ export default function DeudasPage() {
     if (d.tipo_deuda === 'tarjeta') {
       setFormTarjeta({
         tipo_deuda: 'tarjeta', tipo: tipoDeudor, emoji: d.emoji || '💳', nombre: d.nombre || '',
+        descripcion: d.descripcion || '',
         categoria: d.categoria || 'deseo', tarjeta_id: d.perfil_tarjeta_id || '',
         limite: d.limite?.toString() || '', monto_compra: d.capital?.toString() || '',
         num_cuotas: d.plazo_meses?.toString() || '',
@@ -288,6 +290,7 @@ export default function DeudasPage() {
     } else if (d.tipo_deuda === 'prestamo') {
       setFormPrestamo({
         tipo_deuda: 'prestamo', tipo: tipoDeudor, emoji: d.emoji || '🏦', nombre: d.nombre || '',
+        descripcion: d.descripcion || '',
         categoria: d.categoria || 'basicos', capital: d.capital?.toString() || '',
         tasa_interes: (d.tasa_interes || d.tasa || 0).toString(),
         tiene_interes: (d.tasa_interes || d.tasa || 0) > 0,
@@ -298,6 +301,7 @@ export default function DeudasPage() {
     } else {
       setFormCuota({
         tipo_deuda: 'cuota', tipo: tipoDeudor, emoji: d.emoji || '📅', nombre: d.nombre || '',
+        descripcion: d.descripcion || '',
         categoria: d.categoria || 'deseo', monto: d.cuota?.toString() || '',
         dia_pago: d.dia_pago?.toString() || '', color: c, telefono: d.telefono || '',
       })
@@ -331,10 +335,16 @@ export default function DeudasPage() {
         }
       }
       const capital = parseFloat(f.monto_compra) || 0
+      if (!capital || capital <= 0) {
+        setError('El monto de la compra es obligatorio.')
+        setSaving(false)
+        return
+      }
       const meses = parseInt(f.num_cuotas) || 1
       const cuota = parseFloat((capital / meses).toFixed(2))
       payload = {
         tipo_deuda: 'tarjeta', tipo: f.tipo, emoji: f.emoji, nombre: f.nombre,
+        descripcion: f.descripcion || null,
         categoria: f.categoria, limite: parseFloat(f.limite) || 0,
         capital, monto: capital, pendiente: capital, cuota, plazo_meses: meses,
         perfil_tarjeta_id: f.tarjeta_id || null, tasa: 0, tasa_interes: 0,
@@ -345,11 +355,17 @@ export default function DeudasPage() {
     } else if (tipoSeleccionado === 'prestamo') {
       const f = formPrestamo
       const capital = parseFloat(f.capital) || 0
+      if (!capital || capital <= 0) {
+        setError('El capital del préstamo es obligatorio.')
+        setSaving(false)
+        return
+      }
       const tasa = f.tiene_interes ? (parseFloat(f.tasa_interes) || 0) : 0
       const meses = f.plazo_libre ? null : (parseInt(f.plazo_meses) || null)
       const cuota = meses ? parseFloat(calcularCuota(capital, tasa, meses).toFixed(2)) : 0
       payload = {
         tipo_deuda: 'prestamo', tipo: f.tipo, emoji: f.emoji, nombre: f.nombre,
+        descripcion: f.descripcion || null,
         categoria: f.categoria, capital, monto: capital, pendiente: capital,
         tasa, tasa_interes: tasa, plazo_meses: meses, cuota,
         fecha_primer_pago: f.fecha_primer_pago || null, dia_pago: parseInt(f.dia_pago) || null,
@@ -359,6 +375,11 @@ export default function DeudasPage() {
     } else {
       const f = formCuota
       const monto = parseFloat(f.monto) || 0
+      if (!monto || monto <= 0) {
+        setError('El monto de la cuota es obligatorio.')
+        setSaving(false)
+        return
+      }
       if (f.deuda_origen_id && !editandoId) {
         const deudaOrigen = deudas.find(d => d.id === f.deuda_origen_id)
         if (deudaOrigen) {
@@ -388,6 +409,7 @@ export default function DeudasPage() {
       }
       payload = {
         tipo_deuda: 'cuota', tipo: f.tipo, emoji: f.emoji, nombre: f.nombre,
+        descripcion: f.descripcion || null,
         categoria: f.categoria, cuota: monto, monto, capital: monto, pendiente: monto,
         dia_pago: parseInt(f.dia_pago) || null, color: f.color,
         estado: 'activa', pagadas: 0, tasa: 0, tasa_interes: 0,
@@ -486,10 +508,18 @@ export default function DeudasPage() {
 
       } else {
         nuevoPendiente = nuevoPendiente + monto
+        const nuevoMonto = (deuda.monto || 0) + monto
         await supabase.from('deudas').update({
           pendiente: nuevoPendiente,
+          monto: nuevoMonto,
           estado: 'activa',
         }).eq('id', modalMov)
+        setDeudas(prev => prev.map(d => d.id === modalMov
+          ? { ...d, pendiente: nuevoPendiente, monto: nuevoMonto, estado: 'activa' } : d))
+        setModalMov(null)
+        setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
+        setSaving(false)
+        return
       }
 
       setDeudas(prev => prev.map(d => d.id === modalMov
@@ -526,8 +556,8 @@ export default function DeudasPage() {
 
       const totalPagado = (todosMovs || []).filter(m => m.tipo === 'pago').reduce((s, m) => s + (m.monto || 0), 0)
       const totalCargos = (todosMovs || []).filter(m => m.tipo === 'cargo').reduce((s, m) => s + (m.monto || 0), 0)
-      const montoOriginal = deuda.monto || 0
-      const nuevoPendiente = Math.max(0, montoOriginal - totalPagado + totalCargos)
+      const nuevoMonto = (deuda.capital || 0) + totalCargos
+      const nuevoPendiente = Math.max(0, nuevoMonto - totalPagado)
       const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
       if (editandoMov.tipo === 'pago') {
@@ -542,7 +572,7 @@ export default function DeudasPage() {
       }
 
       await supabase.from('deudas').update({
-        pendiente: nuevoPendiente, estado: nuevoEstado,
+        pendiente: nuevoPendiente, monto: nuevoMonto, estado: nuevoEstado,
       }).eq('id', deuda.id)
 
       await cargar()
@@ -585,6 +615,15 @@ export default function DeudasPage() {
       }
     } else {
       nuevoPendiente = Math.max(0, nuevoPendiente - mov.monto)
+      const nuevoMonto = Math.max(deuda.capital || 0, (deuda.monto || 0) - mov.monto)
+      const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
+      if (error) { setError(error.message); return }
+      const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+      await supabase.from('deudas').update({
+        pendiente: nuevoPendiente, monto: nuevoMonto, estado: nuevoEstado
+      }).eq('id', mov.deuda_id)
+      await cargar()
+      return
     }
 
     const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
@@ -612,7 +651,7 @@ export default function DeudasPage() {
       if (tablaVisible === id) setTablaVisible(null)
       await cargar()
     } catch (err) {
-      console.error(err); alert(err.message)
+      toast(err.message)
     } finally { setSaving(false) }
   }
 
@@ -973,6 +1012,11 @@ export default function DeudasPage() {
                     <p className="font-semibold truncate text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {d.nombre}
                     </p>
+                    {d.descripcion && (
+                      <p className="text-[9px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        {d.descripcion}
+                      </p>
+                    )}
                     {/* ── FIX: mostrar deuda original y pendiente ── */}
                     {montoOriginal > 0 && (
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -1114,7 +1158,7 @@ export default function DeudasPage() {
                       <IconBtn
                         onClick={() => {
                           setModalMov(d.id)
-                          setFormMov({ tipo: 'cargo', descripcion: 'Nuevo cargo', monto: '', fecha: fechaHoy() })
+                          setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
                         }}
                         title="Registrar cargo"
                         bg="color-mix(in srgb, var(--accent-rose) 10%, transparent)"
@@ -1535,6 +1579,12 @@ export default function DeudasPage() {
                     onChange={e => setFormTarjeta(p => ({ ...p, nombre: e.target.value }))} />
                 </div>
               </div>
+              <div>
+                <label className="ff-label">Descripción (opcional)</label>
+                <input className="ff-input" placeholder="Ej: Motivo, detalles, acuerdo..."
+                  value={formTarjeta.descripcion}
+                  onChange={e => setFormTarjeta(p => ({ ...p, descripcion: e.target.value }))} />
+              </div>
               <CategoriaToggle value={formTarjeta.categoria} onChange={v => setFormTarjeta(p => ({ ...p, categoria: v }))} />
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1589,10 +1639,16 @@ export default function DeudasPage() {
                 </div>
                 <div className="col-span-3">
                   <label className="ff-label">Nombre del préstamo</label>
-                  <input className="ff-input" required placeholder="Ej: Préstamo coche..."
+                  <input className="ff-input" required placeholder="Ej: Préstamo Juan..."
                     value={formPrestamo.nombre}
                     onChange={e => setFormPrestamo(p => ({ ...p, nombre: e.target.value }))} />
                 </div>
+              </div>
+              <div>
+                <label className="ff-label">Descripción (opcional)</label>
+                <input className="ff-input" placeholder="Ej: Motivo salud, para renovar casa..."
+                  value={formPrestamo.descripcion}
+                  onChange={e => setFormPrestamo(p => ({ ...p, descripcion: e.target.value }))} />
               </div>
               {formPrestamo.tipo !== 'medeben' && (
                 <CategoriaToggle value={formPrestamo.categoria} onChange={v => setFormPrestamo(p => ({ ...p, categoria: v }))} />
@@ -1759,6 +1815,12 @@ export default function DeudasPage() {
                     onChange={e => setFormCuota(p => ({ ...p, nombre: e.target.value }))} />
                 </div>
               </div>
+              <div>
+                <label className="ff-label">Descripción (opcional)</label>
+                <input className="ff-input" placeholder="Ej: Detalles del acuerdo..."
+                  value={formCuota.descripcion}
+                  onChange={e => setFormCuota(p => ({ ...p, descripcion: e.target.value }))} />
+              </div>
               <CategoriaToggle value={formCuota.categoria} onChange={v => setFormCuota(p => ({ ...p, categoria: v }))} />
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1858,23 +1920,23 @@ export default function DeudasPage() {
                 onChange={e => setFormMov(p => ({ ...p, fecha: e.target.value }))} />
             </div>
           </div>
-          <div className="flex gap-3 pt-2 justify-end">
+          <div className="flex gap-3 pt-6">
             <button type="button"
               onClick={() => {
                 setModalMov(null)
                 setEditandoMov(null)
                 setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
               }}
-              className="ff-btn-ghost px-4 py-2 text-xs">
+              className="ff-btn-ghost flex-1">
               Cancelar
             </button>
             <button type="submit" disabled={saving}
-              className="ff-btn-primary flex items-center justify-center gap-2 px-4 py-2 text-xs"
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
               style={{
                 background: formMov.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
               }}>
               {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? 'Guardando...' : editandoMov ? 'Guardar cambios' : formMov.tipo === 'pago' ? 'Confirmar Pago' : 'Registrar Cargo'}
+              {saving ? 'Guardando...' : editandoMov ? 'Guardar cambios' : formMov.tipo === 'pago' ? 'Confirmar' : 'Registrar'}
             </button>
           </div>
         </form>

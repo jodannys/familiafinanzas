@@ -6,6 +6,7 @@ import Modal from '@/components/ui/Modal'
 import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import { useTheme, getThemeColors } from '@/lib/themes'
 
@@ -381,7 +382,7 @@ export default function GastosPage() {
       // BUG FIX: borrar movimientos PRIMERO (tiene FK a deuda_movimientos)
       // Si se borra deuda_movimientos antes, la FK violation impide la operación
       const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
-      if (error) { alert('Error al borrar: ' + error.message); return }
+      if (error) { toast('' + error.message); return }
       setMovs(prev => prev.filter(m => m.id !== movimiento.id))
 
       // Ahora sí borrar deuda_movimientos (ya sin referencias en movimientos)

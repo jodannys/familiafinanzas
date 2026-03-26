@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 
 const BLOQUES_META = [
   { id: 'necesidades', nombre: 'Necesidades', icon: Home, color: 'var(--accent-blue)', pct: 50, descripcion: 'Gastos obligatorios del mes' },
@@ -174,7 +175,7 @@ export default function PresupuestoPage() {
       ),
     ])
     setSaving(false)
-    if (results.some(r => r.error)) { alert('Error al guardar'); return }
+    if (results.some(r => r.error)) { toast('Error al guardar'); return }
     setBloques(borradores)
     setSub({ metas: parseInt(subBorrador.metas) || 0, inversiones: parseInt(subBorrador.inversiones) || 0 })
     setBorradores(null)

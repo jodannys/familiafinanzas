@@ -8,6 +8,7 @@ import {
   Calendar, X, ArrowDownRight, CreditCard
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import Modal from '@/components/ui/Modal'
@@ -185,7 +186,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
     if (!gastoTemp) return
     const saldoOrigen = getSaldo(origenTraspaso)
     if (saldoOrigen < gastoTemp.monto) {
-      alert('No hay saldo suficiente en el origen seleccionado')
+      toast('No hay saldo suficiente en el origen seleccionado')
       return
     }
     setSaving(true)
@@ -201,7 +202,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
 
     if (movError) {
       setSaving(false)
-      alert('Error al registrar el gasto: ' + movError.message)
+      toast('' + movError.message)
       return
     }
 
@@ -218,7 +219,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
         await supabase.from('movimientos').delete().eq('id', movData[0].id)
       }
       setSaving(false)
-      alert('Error al registrar el traspaso. La operación fue revertida.')
+      toast('Error al registrar el traspaso. La operación fue revertida.')
       return
     }
 
@@ -244,7 +245,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
 
     setSaving(false)
     if (error) {
-      alert('Error al registrar el sobrante: ' + error.message)
+      toast('' + error.message)
       return
     }
     setModalSobrante(false)
