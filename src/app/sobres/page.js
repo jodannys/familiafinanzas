@@ -211,6 +211,7 @@ const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
     const { error: sobreError } = await supabase.from('sobre_movimientos').insert([{
       descripcion: `Traspaso desde ${origenTraspaso} → Sobre`,
       monto: gastoTemp.monto, origen: origenTraspaso,
+      destino: 'sobre',
       mes: filtroMes, año: filtroAño, fecha: hoy,
     }])
 
