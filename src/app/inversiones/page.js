@@ -936,7 +936,7 @@ export default function InversionesPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Capital inicial (€)</label>
-              <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
+              <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
                 value={form.capital} onChange={e => setForm(p => ({ ...p, capital: e.target.value }))} />
             </div>
             <div>
