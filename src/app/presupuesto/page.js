@@ -145,7 +145,9 @@ export default function PresupuestoPage() {
   }
 
   // ── Gasto real por bloque ─────────────────────────────────────────────────
+  // El sobre pertenece al bloque estilo → sobrantes enviados desde el sobre reducen estilo
   const DESTINO_BLOQUE = { metas: 'futuro', inversiones: 'futuro' }
+  const SOBRE_BLOQUE = 'estilo' // el sobre vive dentro del bloque estilo
 
   function gastadoReal(bloqueId) {
     const deMovimientos = movs
@@ -158,12 +160,19 @@ export default function PresupuestoPage() {
       .filter(m => ORIGEN_BLOQUE[m.origen] === bloqueId && parseFloat(m.monto) > 0)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
-    // Sobrantes enviados desde el sobre hacia metas/inversiones (destino en este bloque)
+    // Sobrantes enviados desde el sobre hacia metas/inversiones (cuentan en futuro)
     const deSobrantes = sobreMovs
       .filter(m => m.origen === 'sobre' && DESTINO_BLOQUE[m.destino] === bloqueId)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
-    return deMovimientos + deTraspasos + deSobrantes
+    // Sobrantes enviados DESDE el sobre se descuentan del bloque estilo (el sobre pertenece a estilo)
+    const deSobrantesDelSobre = bloqueId === SOBRE_BLOQUE
+      ? sobreMovs
+        .filter(m => m.origen === 'sobre')
+        .reduce((s, m) => s + parseFloat(m.monto), 0)
+      : 0
+
+    return deMovimientos + deTraspasos + deSobrantes + deSobrantesDelSobre
   }
 
   // ── Edición de porcentajes ────────────────────────────────────────────────
