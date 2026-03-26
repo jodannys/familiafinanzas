@@ -1432,7 +1432,7 @@ export default function InversionesPage() {
                 value={form.capital} onChange={e => setForm(p => ({ ...p, capital: e.target.value }))} />
             </div>
             <div>
-              <label className="ff-label">% del presup mensual</label>
+              <label className="ff-label">% presup mensual</label>
               <input className="ff-input" type="number" min="0" max="100" step="1" placeholder="Ej: 50"
                 value={form.pct_mensual} onChange={e => setForm(p => ({ ...p, pct_mensual: e.target.value }))} />
             </div>
