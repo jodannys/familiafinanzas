@@ -702,7 +702,15 @@ export default function DeudasPage() {
 
   const totalDebo = deboActivas.reduce((s, d) => s + (d.pendiente || 0), 0)
   const totalMeDeben = meDebenActivas.reduce((s, d) => s + (d.pendiente || 0), 0)
-  const cuotasMes = deboActivas.reduce((s, d) => s + (d.cuota || 0), 0)
+  const cuotasMes = deboActivas
+    .filter(d => {
+      if (!d.fecha_primer_pago) return true
+      const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+      const proxPago = new Date(d.fecha_primer_pago + 'T12:00:00')
+      proxPago.setMonth(proxPago.getMonth() + (d.pagadas || 0))
+      return proxPago.getMonth() === hoy.getMonth() && proxPago.getFullYear() === hoy.getFullYear()
+    })
+    .reduce((s, d) => s + (d.cuota || 0), 0)
   const vencenProximo = activas.filter(d => { const dias = diasHastaPago(d); return dias !== null && dias <= 7 }).length
 
   // ─── CALENDARIO ───────────────────────────────────────────────────────────
