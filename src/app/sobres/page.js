@@ -251,20 +251,6 @@ const sobranteAInv = sobreMovs
       return
     }
 
-    // Crear movimiento real para que inversiones/metas lo cuenten
-    if (destinoSobrante === 'inversiones') {
-      await supabase.from('movimientos').insert([{
-        tipo: 'egreso', categoria: 'inversion',
-        descripcion: `Sobrante sobre → Inversiones`,
-        monto, fecha: hoy, quien: 'Ambos',
-      }])
-    } else if (destinoSobrante === 'metas') {
-      await supabase.from('movimientos').insert([{
-        tipo: 'egreso', categoria: 'ahorro',
-        descripcion: `Sobrante sobre → Metas`,
-        monto, fecha: hoy, quien: 'Ambos',
-      }])
-    }
     setModalSobrante(false)
     setMontoSobrante('')
     cargarTodo()

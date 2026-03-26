@@ -219,13 +219,21 @@ export default function InversionesPage() {
 
   async function cargarAportesEsteMes() {
     const now = new Date()
-    const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
-    const inicioSig = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().slice(0, 10)
-    const { data } = await supabase
-      .from('movimientos').select('monto')
-      .eq('tipo', 'egreso').eq('categoria', 'inversion')
-      .gte('fecha', inicioMes).lt('fecha', inicioSig)
-    setAportesEsteMes((data || []).reduce((s, m) => s + parseFloat(m.monto || 0), 0))
+    const mes = now.getMonth() + 1
+    const año = now.getFullYear()
+    const inicioMes = new Date(año, mes - 1, 1).toISOString().slice(0, 10)
+    const inicioSig = new Date(año, mes, 1).toISOString().slice(0, 10)
+    const [{ data: movs }, { data: sobrantes }] = await Promise.all([
+      supabase.from('movimientos').select('monto')
+        .eq('tipo', 'egreso').eq('categoria', 'inversion')
+        .gte('fecha', inicioMes).lt('fecha', inicioSig),
+      supabase.from('sobre_movimientos').select('monto')
+        .eq('origen', 'sobre').eq('destino', 'inversiones')
+        .eq('mes', mes).eq('año', año),
+    ])
+    const totalMovs = (movs || []).reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+    const totalSobrantes = (sobrantes || []).reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+    setAportesEsteMes(totalMovs + totalSobrantes)
   }
 
   async function cargar() {
@@ -565,6 +573,96 @@ export default function InversionesPage() {
           })()}
         </div>
       )}
+
+      {/* Panel de distribución por cartera */}
+      {presupuesto?.montoInversiones > 0 && inversiones.length > 0 && (() => {
+        const totalPct = inversiones.reduce((s, i) => s + (i.pct_mensual || 0), 0)
+        const librePct = 100 - totalPct
+        const sobreasignado = totalPct > 100
+        return (
+          <div className="mb-5 rounded-[24px] overflow-hidden"
+            style={{
+              border: `1px solid ${sobreasignado
+                ? `color-mix(in srgb, ${colores.rose} 35%, transparent)`
+                : 'color-mix(in srgb, var(--accent-violet) 20%, transparent)'}`,
+            }}>
+            {/* Cabecera */}
+            <div className="flex items-center justify-between px-4 py-3"
+              style={{ background: `color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))` }}>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                Distribución por cartera
+              </p>
+              {sobreasignado ? (
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1"
+                  style={{ color: colores.rose, background: `color-mix(in srgb, ${colores.rose} 12%, transparent)` }}>
+                  <AlertCircle size={9} /> {totalPct}% · excede 100%
+                </span>
+              ) : (
+                <span className="text-[9px] font-semibold" style={{ color: 'var(--accent-violet)' }}>
+                  {totalPct}% asignado
+                </span>
+              )}
+            </div>
+
+            {/* Fila por cartera */}
+            <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+              {inversiones.map(inv => {
+                const euros = ((inv.pct_mensual || 0) / 100) * presupuesto.montoInversiones
+                return (
+                  <div key={inv.id} className="flex items-center gap-3 px-4 py-2.5"
+                    style={{ background: 'var(--bg-card)' }}>
+                    <span className="text-base flex-shrink-0">{inv.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                        {inv.nombre}
+                      </p>
+                      {/* Mini barra proporcional */}
+                      <div className="mt-1 h-1 rounded-full overflow-hidden w-full" style={{ background: 'var(--progress-track)' }}>
+                        <div className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(100, (inv.pct_mensual || 0))}%`,
+                            background: inv.color,
+                          }} />
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-bold" style={{ color: inv.color }}>
+                        {inv.pct_mensual > 0 ? `${inv.pct_mensual}%` : '—'}
+                      </p>
+                      {inv.pct_mensual > 0 && (
+                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                          {formatCurrency(euros)}/mes
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Pie: sin asignar o alerta */}
+            <div className="flex items-center justify-between px-4 py-2.5"
+              style={{ background: 'var(--bg-secondary)', borderTop: `1px solid var(--border-glass)` }}>
+              {sobreasignado ? (
+                <p className="text-[9px] font-semibold w-full text-center" style={{ color: colores.rose }}>
+                  Reduce los porcentajes para que no superen 100%
+                </p>
+              ) : (
+                <>
+                  <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                    {librePct > 0 ? `${librePct}% sin asignar` : 'Todo asignado'}
+                  </span>
+                  {librePct > 0 && (
+                    <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                      {formatCurrency((librePct / 100) * presupuesto.montoInversiones)}/mes libre
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Stats globales */}
       <div className="grid grid-cols-2 gap-2 mb-6">
@@ -1435,6 +1533,25 @@ export default function InversionesPage() {
               <label className="ff-label">% presup mensual</label>
               <input className="ff-input" type="number" min="0" max="100" step="1" placeholder="Ej: 50"
                 value={form.pct_mensual} onChange={e => setForm(p => ({ ...p, pct_mensual: e.target.value }))} />
+              {parseFloat(form.pct_mensual) > 0 && presupuesto?.montoInversiones > 0 && (
+                <p className="text-[10px] mt-1 font-semibold" style={{ color: colores.violet }}>
+                  = {formatCurrency((parseFloat(form.pct_mensual) / 100) * presupuesto.montoInversiones)}/mes
+                </p>
+              )}
+              {(() => {
+                const pctNuevo = parseFloat(form.pct_mensual) || 0
+                if (!pctNuevo) return null
+                const totalOtras = inversiones
+                  .filter(i => i.id !== editandoId)
+                  .reduce((s, i) => s + (i.pct_mensual || 0), 0)
+                const totalConEsta = totalOtras + pctNuevo
+                if (totalConEsta > 100) return (
+                  <p className="text-[9px] mt-1 font-semibold" style={{ color: colores.rose }}>
+                    Suma total: {totalConEsta}% · excede 100%
+                  </p>
+                )
+                return null
+              })()}
             </div>
           </div>
 

@@ -46,6 +46,7 @@ export default function PresupuestoPage() {
   const [montosCats, setMontosCats] = useState({})
   const [metas, setMetas] = useState([])
   const [inversiones, setInversiones] = useState([])
+  const [aportesInvEsteMes, setAportesInvEsteMes] = useState(0)
   const [deudas, setDeudas] = useState([])
   const [deudaMovs, setDeudaMovs] = useState([])
 
@@ -82,7 +83,7 @@ export default function PresupuestoPage() {
         supabase.from('subcategorias').select('*').order('orden').order('nombre'),
         supabase.from('presupuesto_cats').select('*').eq('mes', mes).eq('año', año),
         supabase.from('metas').select('id, nombre, emoji, pct_mensual, meta, actual, estado, color').order('created_at'),
-        supabase.from('inversiones').select('id, nombre, emoji, aporte, color').order('created_at'),
+        supabase.from('inversiones').select('id, nombre, emoji, aporte, pct_mensual, color').order('created_at'),
         supabase.from('deudas').select('id, nombre, emoji, cuota, pendiente, estado, tipo, dia_pago').eq('estado', 'activa').neq('tipo', 'medeben'),
         supabase.from('deuda_movimientos').select('deuda_id, tipo, monto, mes, año').eq('mes', mes).eq('año', año),
       ])
@@ -93,6 +94,15 @@ export default function PresupuestoPage() {
       setSubcategoriasCfg(subsData || [])
       setMetas(metasData || [])
       setInversiones(invData || [])
+
+      // Aportes reales a inversiones este mes (movimientos + sobrantes de sobres)
+      const totalMovsInv = (movsData || [])
+        .filter(m => m.tipo === 'egreso' && m.categoria === 'inversion')
+        .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+      const totalSobrantesInv = (sobreData || [])
+        .filter(m => m.origen === 'sobre' && m.destino === 'inversiones')
+        .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+      setAportesInvEsteMes(totalMovsInv + totalSobrantesInv)
       setDeudas(deudasData || [])
       setDeudaMovs(deudaMovsData || [])
 
@@ -135,6 +145,8 @@ export default function PresupuestoPage() {
   }
 
   // ── Gasto real por bloque ─────────────────────────────────────────────────
+  const DESTINO_BLOQUE = { metas: 'futuro', inversiones: 'futuro' }
+
   function gastadoReal(bloqueId) {
     const deMovimientos = movs
       .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
@@ -144,7 +156,12 @@ export default function PresupuestoPage() {
       .filter(m => ORIGEN_BLOQUE[m.origen] === bloqueId && parseFloat(m.monto) > 0)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
-    return deMovimientos + deTraspasos
+    // Sobrantes enviados desde el sobre hacia metas/inversiones (destino en este bloque)
+    const deSobrantes = sobreMovs
+      .filter(m => m.origen === 'sobre' && DESTINO_BLOQUE[m.destino] === bloqueId)
+      .reduce((s, m) => s + parseFloat(m.monto), 0)
+
+    return deMovimientos + deTraspasos + deSobrantes
   }
 
   // ── Edición de porcentajes ────────────────────────────────────────────────
@@ -960,9 +977,7 @@ export default function PresupuestoPage() {
                             </div>
                             <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
                               {inversiones.map(inv => {
-                                const porcentajeUsado = montoInversiones > 0
-                                  ? Math.min(100, (parseFloat(inv.aporte) / montoInversiones) * 100)
-                                  : 0
+                                const invMensual = ((inv.pct_mensual || 0) / 100) * montoInversiones
                                 return (
                                   <div key={inv.id} className="px-3 py-2.5">
                                     <div className="flex items-center gap-2.5">
@@ -971,37 +986,47 @@ export default function PresupuestoPage() {
                                         <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
                                           {inv.nombre}
                                         </p>
+                                        {inv.pct_mensual > 0 && (
+                                          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                            {inv.pct_mensual}% del presup. inversiones
+                                          </p>
+                                        )}
                                       </div>
-                                      {inv.aporte > 0 && (
+                                      {ingresoNum > 0 && inv.pct_mensual > 0 && (
                                         <span className="text-xs font-semibold flex-shrink-0"
                                           style={{ color: 'var(--accent-violet)' }}>
-                                          {formatCurrency(inv.aporte)}/mes
+                                          {formatCurrency(invMensual)}/mes
                                         </span>
                                       )}
                                     </div>
                                   </div>
                                 )
                               })}
-                              {/* Total aportes vs presupuesto */}
-                              {ingresoNum > 0 && (() => {
-                                const totalAporte = inversiones.reduce((s, i) => s + (parseFloat(i.aporte) || 0), 0)
-                                const diff = montoInversiones - totalAporte
-                                const pctUsado = montoInversiones > 0 ? Math.min(100, (totalAporte / montoInversiones) * 100) : 0
+                              {/* Total aportado real vs presupuesto */}
+                              {(() => {
+                                const totalPctInv = inversiones.reduce((s, i) => s + (i.pct_mensual || 0), 0)
+                                const libre = 100 - totalPctInv
+                                const pctUsado = montoInversiones > 0 ? Math.min(100, (aportesInvEsteMes / montoInversiones) * 100) : 0
+                                const diff = montoInversiones - aportesInvEsteMes
                                 return (
                                   <div className="px-3 py-2" style={{ background: 'var(--bg-secondary)' }}>
                                     <div className="flex items-center justify-between mb-1">
                                       <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                                        Total aportes vs presupuesto
+                                        {totalPctInv}% asignado · {libre > 0 ? `${libre}% libre` : 'Completo'}
                                       </span>
-                                      <span className="text-[10px] font-semibold"
-                                        style={{ color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                                        {formatCurrency(totalAporte)} / {formatCurrency(montoInversiones)}
-                                      </span>
+                                      {ingresoNum > 0 && (
+                                        <span className="text-[10px] font-semibold"
+                                          style={{ color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                                          {formatCurrency(aportesInvEsteMes)} aportado / {formatCurrency(montoInversiones)}
+                                        </span>
+                                      )}
                                     </div>
-                                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
-                                      <div className="h-full rounded-full transition-all"
-                                        style={{ width: `${pctUsado}%`, background: pctUsado > 100 ? 'var(--accent-rose)' : 'var(--accent-violet)' }} />
-                                    </div>
+                                    {ingresoNum > 0 && (
+                                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                                        <div className="h-full rounded-full transition-all"
+                                          style={{ width: `${pctUsado}%`, background: pctUsado > 100 ? 'var(--accent-rose)' : 'var(--accent-violet)' }} />
+                                      </div>
+                                    )}
                                   </div>
                                 )
                               })()}
