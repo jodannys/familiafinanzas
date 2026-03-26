@@ -110,19 +110,25 @@ const saldoBasicos = (montoBasicos || 0) - gastadoBasicos - traspasosBasicos
 
 const traspasosMetas = sobreMovs.filter(m => m.origen === 'metas')
   .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-// FIX 3: sumar sobrantes recibidos en metas
 const sobranteAMetas = sobreMovs
   .filter(m => m.origen === 'sobre' && m.destino === 'metas')
   .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-const saldoMetas = (montoMetas || 0) - traspasosMetas + sobranteAMetas
+// Incluir aportes reales a metas este mes para no sobrestimar el saldo disponible
+const gastadoMetas = movsMes
+  .filter(m => m.tipo === 'egreso' && m.categoria === 'ahorro')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+const saldoMetas = (montoMetas || 0) - gastadoMetas - traspasosMetas + sobranteAMetas
 
 const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones')
   .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-// FIX 3: sumar sobrantes recibidos en inversiones
 const sobranteAInv = sobreMovs
   .filter(m => m.origen === 'sobre' && m.destino === 'inversiones')
   .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-  const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
+// Incluir aportes reales a inversiones este mes
+const gastadoInv = movsMes
+  .filter(m => m.tipo === 'egreso' && m.categoria === 'inversion')
+  .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteAInv
 
   function getSaldo(origen) {
     if (origen === 'basicos') return saldoBasicos || 0
@@ -259,17 +265,41 @@ const sobranteAInv = sobreMovs
   async function handleEliminar(mov) {
     if (!confirm('¿Eliminar este movimiento?')) return
     if (mov._fuente === 'sobre') {
+      // Sobrante enviado desde el sobre — solo borrar de sobre_movimientos
       await supabase.from('sobre_movimientos').delete().eq('id', mov.id)
       setSobreMovs(prev => prev.filter(m => m.id !== mov.id))
     } else {
+      // Gasto del sobre — borrar el movimiento
       await supabase.from('movimientos').delete().eq('id', mov.id)
+      // Si este gasto vino con un traspaso, borrarlo también (eliminación atómica)
+      if (mov._traspaso) {
+        await supabase.from('sobre_movimientos').delete().eq('id', mov._traspaso.id)
+      }
       cargarTodo()
     }
   }
 
+  // Mapa de traspasos entrantes al sobre indexados por fecha+monto para enlazarlos con su gasto
+  const traspasosAlSobreMap = {}
+  sobreMovs
+    .filter(m => ['basicos', 'metas', 'inversiones'].includes(m.origen))
+    .forEach(m => {
+      const key = `${m.fecha}_${parseFloat(m.monto)}`
+      if (!traspasosAlSobreMap[key]) traspasosAlSobreMap[key] = m
+    })
+
   const movsFiltrados = [
-    ...movsMes.filter(m => m.tipo === 'egreso' && m.categoria === 'deseo').map(m => ({ ...m, _fuente: 'mov', _label: 'Sobre' })),
-    ...sobreMovs.map(m => ({ ...m, _fuente: 'sobre', _label: `Traspaso · ${m.origen}` })),
+    // Gastos del sobre (movimientos categoria='deseo'), enriquecidos con el traspaso si lo tienen
+    ...movsMes
+      .filter(m => m.tipo === 'egreso' && m.categoria === 'deseo')
+      .map(m => {
+        const key = `${m.fecha}_${parseFloat(m.monto)}`
+        return { ...m, _fuente: 'mov', _label: 'Gasto sobre', _traspaso: traspasosAlSobreMap[key] || null }
+      }),
+    // Solo sobrantes enviados DESDE el sobre (origen='sobre') — los traspasos entrantes se muestran via el gasto
+    ...sobreMovs
+      .filter(m => m.origen === 'sobre')
+      .map(m => ({ ...m, _fuente: 'sobre', _label: `Enviado a ${m.destino}` })),
   ].filter(m => {
     const q = busqueda.toLowerCase()
     return m.descripcion?.toLowerCase().includes(q) || m.quien?.toLowerCase().includes(q)
@@ -442,6 +472,12 @@ const sobranteAInv = sobreMovs
                           style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                           {m._label}
                         </span>
+                        {m._traspaso && (
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                            style={{ background: 'color-mix(in srgb, var(--accent-violet) 10%, transparent)', color: 'var(--accent-violet)' }}>
+                            desde {m._traspaso.origen}
+                          </span>
+                        )}
                         <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
                           {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES') : '—'}
                         </span>
