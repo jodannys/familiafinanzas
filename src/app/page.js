@@ -171,7 +171,7 @@ export default function Dashboard() {
   // Patrimonio
   const totalAhorro = useMemo(() => metas.reduce((s, m) => s + (m.actual || 0), 0), [metas])
   const totalInversiones = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
-  const totalDeudas = useMemo(() => deudas.reduce((s, d) => s + (d.cuota || 0), 0), [deudas])
+  const totalDeudas = useMemo(() => deudas.reduce((s, d) => s + (d.pendiente || 0), 0), [deudas])
 
   const pctGastos = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes / ingresosMes) * 100)) : 0
   const pctAhorro = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes / ingresosMes) * 100)) : 0
