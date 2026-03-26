@@ -46,6 +46,8 @@ export default function SobrePage() {
   const [origenTraspaso, setOrigenTraspaso] = useState('basicos')
   const [destinoSobrante, setDestinoSobrante] = useState('metas')
   const [montoSobrante, setMontoSobrante] = useState('')
+  const [metasData, setMetasData] = useState([])
+  const [metaSeleccionada, setMetaSeleccionada] = useState('')
 
   useEffect(() => { cargarTodo() }, [filtroMes, filtroAño])
 
@@ -56,16 +58,18 @@ export default function SobrePage() {
     const fechaFin = `${filtroAño}-${String(filtroMes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
 
     try {
-      const [pres, { data: sobre }, { data: movs }, { data: tarjetas }] = await Promise.all([
+      const [pres, { data: sobre }, { data: movs }, { data: tarjetas }, { data: metas }] = await Promise.all([
         getPresupuestoMes(filtroMes, filtroAño),
         supabase.from('sobre_movimientos').select('*').eq('mes', filtroMes).eq('año', filtroAño).order('created_at', { ascending: false }),
         supabase.from('movimientos').select('*').gte('fecha', fechaInicio).lte('fecha', fechaFin),
         supabase.from('deudas').select('id, nombre, emoji, pendiente').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa'),
+        supabase.from('metas').select('id, nombre, emoji, meta, actual, estado').eq('estado', 'activa').order('created_at'),
       ])
       setPresupuesto(pres)
       setSobreMovs(sobre || [])
       setMovsMes(movs || [])
       setTarjetasData(tarjetas || [])
+      setMetasData(metas || [])
     } catch (err) {
       console.error('Error al cargar:', err)
     } finally {
@@ -242,23 +246,37 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
   async function confirmarSobrante() {
     const monto = parseFloat(montoSobrante) || 0
     if (!monto || monto > saldoSobre) return
+    if (destinoSobrante === 'metas' && !metaSeleccionada) return
     setSaving(true)
     const hoy = fechaHoy()
 
+    const meta = metaSeleccionada ? metasData.find(m => m.id === metaSeleccionada) : null
+
+    // Crear el sobre_movimiento (registra el origen del dinero)
     const { error } = await supabase.from('sobre_movimientos').insert([{
-      descripcion: `Sobrante → ${destinoSobrante}`,
+      descripcion: `Sobrante → ${meta ? meta.nombre : destinoSobrante}`,
       monto, origen: 'sobre', destino: destinoSobrante,
       mes: filtroMes, año: filtroAño, fecha: hoy,
     }])
 
-    setSaving(false)
-    if (error) {
-      toast('' + error.message)
-      return
+    if (error) { setSaving(false); toast('' + error.message); return }
+
+    // Si va a una meta específica, actualizar metas.actual directamente
+    // (NO creamos movimiento para evitar doble conteo en presupuesto)
+    if (meta) {
+      const nuevoActual = (meta.actual || 0) + monto
+      const completada = nuevoActual >= meta.meta
+      await supabase.from('metas').update({
+        actual: nuevoActual,
+        ...(completada && { estado: 'completada' }),
+      }).eq('id', meta.id)
+      if (completada) toast(`¡Meta "${meta.nombre}" completada!`, 'success')
     }
 
+    setSaving(false)
     setModalSobrante(false)
     setMontoSobrante('')
+    setMetaSeleccionada('')
     cargarTodo()
   }
 
@@ -633,7 +651,7 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
       </Modal>
 
       {/* ══ MODAL: SOBRANTE ═════════════════════════════════════════════════ */}
-      <Modal open={modalSobrante} onClose={() => setModalSobrante(false)} title="Enviar Sobrante">
+      <Modal open={modalSobrante} onClose={() => { setModalSobrante(false); setMontoSobrante(''); setMetaSeleccionada('') }} title="Enviar Sobrante">
         <div className="space-y-4">
           <div className="p-3 rounded-xl"
             style={{
@@ -654,7 +672,7 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
 
           <div className="grid grid-cols-2 gap-2">
             {['metas', 'inversiones'].map(dest => (
-              <button key={dest} onClick={() => setDestinoSobrante(dest)}
+              <button key={dest} onClick={() => { setDestinoSobrante(dest); setMetaSeleccionada('') }}
                 className="p-3 rounded-xl border-2 text-[10px] font-semibold uppercase transition-all"
                 style={{
                   borderColor: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--border-glass)',
@@ -666,11 +684,43 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
             ))}
           </div>
 
+          {/* Selector de meta cuando destino='metas' */}
+          {destinoSobrante === 'metas' && metasData.length > 0 && (
+            <div>
+              <label className="ff-label">¿A qué meta?</label>
+              <div className="space-y-1.5 mt-1">
+                {metasData.map(m => {
+                  const pct = Math.min(100, Math.round(((m.actual || 0) / m.meta) * 100))
+                  return (
+                    <button key={m.id} type="button"
+                      onClick={() => setMetaSeleccionada(m.id)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all text-left"
+                      style={{
+                        borderColor: metaSeleccionada === m.id ? 'var(--accent-green)' : 'var(--border-glass)',
+                        background: metaSeleccionada === m.id ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)' : 'var(--bg-secondary)',
+                      }}>
+                      <span className="text-base flex-shrink-0">{m.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{m.nombre}</p>
+                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{pct}% completada</p>
+                      </div>
+                      {metaSeleccionada === m.id && (
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent-green)' }} />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <button onClick={confirmarSobrante}
-            disabled={saving || !montoSobrante || parseFloat(montoSobrante) <= 0}
+            disabled={saving || !montoSobrante || parseFloat(montoSobrante) <= 0 || (destinoSobrante === 'metas' && !metaSeleccionada)}
             className="ff-btn-primary w-full flex items-center justify-center gap-2">
             {saving && <Loader2 size={14} className="animate-spin" />}
-            Mover a {destinoSobrante}
+            Mover a {destinoSobrante === 'metas' && metaSeleccionada
+              ? metasData.find(m => m.id === metaSeleccionada)?.nombre
+              : destinoSobrante}
           </button>
         </div>
       </Modal>
