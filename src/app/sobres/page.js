@@ -96,7 +96,7 @@ const sobranteDesdeElSobre = sobreMovs
 
 // FIX 1: el sobrante ya está en gastadoSobre (via movimientos categoria:deseo),
 // así que lo restamos para no descontarlo doble
-const saldoSobre = (montoEstilo || 0) - gastadoSobre + traspasosAlSobre + sobranteDesdeElSobre
+const saldoSobre = (montoEstilo || 0) - gastadoSobre + traspasosAlSobre - sobranteDesdeElSobre
 
 // FIX 2: barra de progreso usa el límite real (monto + traspasos entrantes)
 const limiteReal = montoEstilo + traspasosAlSobre
@@ -122,7 +122,7 @@ const traspasosInv = sobreMovs.filter(m => m.origen === 'inversiones')
 const sobranteAInv = sobreMovs
   .filter(m => m.origen === 'sobre' && m.destino === 'inversiones')
   .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
+  const saldoInversiones = (montoInv || 0) - traspasosInv + sobranteAInv
 
   function getSaldo(origen) {
     if (origen === 'basicos') return saldoBasicos || 0
