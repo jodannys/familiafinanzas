@@ -1515,13 +1515,25 @@ export default function DeudasPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {movsOrdenados.length === 0 ? (
-                              <tr>
-                                <td colSpan={4} className="px-2 py-3 text-center italic" style={{ color: 'var(--text-muted)' }}>
-                                  Sin movimientos aún
-                                </td>
-                              </tr>
-                            ) : movsOrdenados.map(m => (
+                            {/* Fila de creación de la deuda */}
+                            <tr>
+                              <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                {new Date(d.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' })}
+                              </td>
+                              <td className="px-2 py-1.5" style={{ color: 'var(--text-secondary)' }}>
+                                {d.descripcion || d.nombre}
+                              </td>
+                              <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-rose)' }}>
+                                +{formatCurrency(d.capital || d.monto || 0)}
+                              </td>
+                              <td className="px-2 py-1.5 text-center">
+                                <span className="px-1.5 py-0.5 rounded-full font-semibold"
+                                  style={{ background: 'color-mix(in srgb, var(--text-muted) 12%, transparent)', color: 'var(--text-muted)' }}>
+                                  Origen
+                                </span>
+                              </td>
+                            </tr>
+                            {movsOrdenados.map(m => (
                               <tr key={m.id}>
                                 <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
                                   {m.fecha ? new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
