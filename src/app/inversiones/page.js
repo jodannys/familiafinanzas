@@ -102,6 +102,9 @@ export default function InversionesPage() {
   const [formAporte, setFormAporte] = useState({ monto: '', descripcion: '', fecha: '' })
   const [savingAporte, setSavingAporte] = useState(false)
 
+  // ── NUEVO: controla si el monto fue auto-rellenado por el sistema ─────────
+  const [autoFilled, setAutoFilled] = useState(false)
+
   // ── Historial de aportes ──────────────────────────────────────────────────
   const [modalHistorial, setModalHistorial] = useState(false)
   const [historialAportes, setHistorialAportes] = useState([])
@@ -119,8 +122,8 @@ export default function InversionesPage() {
   })
   const [form, setForm] = useState({
     nombre: '', emoji: '📈', capital: '',
-    aporteReal: '',         // ← NUEVO: aporte real mensual (tracker)
-    aporte: '',             // ← aporte hipotético solo para proyección
+    aporteReal: '',
+    aporte: '',
     tasa: '', anos: '10', color: '', bola_nieve: true, pct_mensual: '',
   })
 
@@ -172,6 +175,25 @@ export default function InversionesPage() {
     }
   }, [selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── SMART-FILL: auto-rellenar monto al abrir el modal ─────────────────────
+  // Regla: pct_mensual de la cartera aplicado sobre presupuesto.montoInversiones
+  useEffect(() => {
+    if (!modalAporte) {
+      // Al cerrar, limpiar estado para no contaminar la siguiente apertura
+      setAutoFilled(false)
+      return
+    }
+    const pct = selected?.pct_mensual
+    const base = presupuesto?.montoInversiones
+    if (pct > 0 && base > 0) {
+      const sugerido = parseFloat(((base * pct) / 100).toFixed(2))
+      if (!isNaN(sugerido) && sugerido > 0) {
+        setFormAporte(p => ({ ...p, monto: sugerido.toString() }))
+        setAutoFilled(true)
+      }
+    }
+  }, [modalAporte]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function cargarGastosMes() {
     const now = new Date()
     const año = now.getFullYear()
@@ -217,7 +239,6 @@ export default function InversionesPage() {
     setLoading(false)
   }
 
-  // ── Cargar historial de aportes de una cartera ────────────────────────────
   async function cargarHistorial(inversionId) {
     setLoadingHistorial(true)
     const { data, error } = await supabase
@@ -257,8 +278,8 @@ export default function InversionesPage() {
       nombre: form.nombre,
       emoji: form.emoji,
       capital: parseFloat(form.capital) || 0,
-      aporte_real: parseFloat(form.aporteReal) || 0,  // ← aporte real mensual
-      aporte: parseFloat(form.aporte) || 0,            // ← hipotético para proyección
+      aporte_real: parseFloat(form.aporteReal) || 0,
+      aporte: parseFloat(form.aporte) || 0,
       tasa: parseFloat(form.tasa) || 0,
       anos: parseInt(form.anos) || 10,
       color: form.color,
@@ -362,6 +383,7 @@ export default function InversionesPage() {
     setSavingAporte(false)
     setModalAporte(false)
     setFormAporte({ monto: '', descripcion: '', fecha: '' })
+    setAutoFilled(false)
     cargarAportesEsteMes()
     toast(`Aporte de ${formatCurrency(monto)} registrado`, 'success')
   }
@@ -380,7 +402,6 @@ export default function InversionesPage() {
       : null
     , [selected])
 
-  // Cálculo del simulador (escenario hipotético)
   const calcSim = useMemo(() => {
     if (!selected) return null
     const changed = simAporte !== (selected.aporte || 0) ||
@@ -399,7 +420,6 @@ export default function InversionesPage() {
   const historyData = useMemo(() => {
     const base = calc?.history?.filter(d => d?.year != null) || []
     if (!calcSim) return base
-    // Merge simulador
     const simMap = {}
     calcSim.history?.forEach(d => { if (d?.year != null) simMap[d.year] = d.balance })
     return base.map(d => ({ ...d, simBalance: simMap[d.year] ?? null }))
@@ -453,6 +473,12 @@ export default function InversionesPage() {
 
   const TooltipConColores = (props) => <CustomTooltip {...props} colores={colores} />
 
+  // ─── Helpers internos ─────────────────────────────────────────────────────
+
+  /** Formatea con la misma moneda en todo el modal */
+  function fmt(n) {
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n)
+  }
 
   // ─── RENDER ──────────────────────────────────────────────────────────────────
 
@@ -580,7 +606,7 @@ export default function InversionesPage() {
       ) : (
         <div className="space-y-4">
 
-          {/* ── SELECTOR DE CARTERAS — lista vertical con mini-stats ── */}
+          {/* Selector de carteras */}
           <div className="space-y-2">
             {inversiones.length > 1 && (
               <p className="text-[9px] font-semibold uppercase ml-1" style={{ color: colores.muted }}>
@@ -608,13 +634,11 @@ export default function InversionesPage() {
                       : `1px solid ${colores.border}`,
                   }}>
 
-                  {/* Emoji + dot */}
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                     style={{ background: `${inv.color}18` }}>
                     {inv.emoji}
                   </div>
 
-                  {/* Nombre + subtítulo */}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold truncate leading-tight"
                       style={{ color: isActive ? inv.color : 'var(--text-primary)' }}>
@@ -625,7 +649,6 @@ export default function InversionesPage() {
                     </p>
                   </div>
 
-                  {/* Mini-stats */}
                   <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                     <p className="text-xs font-semibold" style={{ color: isActive ? inv.color : 'var(--text-primary)' }}>
                       {formatCurrency(inv.capital)}
@@ -651,7 +674,6 @@ export default function InversionesPage() {
           {selected && calc && (
             <Card className="animate-enter" style={{ padding: '16px' }}>
 
-              {/* Cabecera */}
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
@@ -672,7 +694,6 @@ export default function InversionesPage() {
                   </div>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">
-                  {/* Historial */}
                   <button onClick={() => { cargarHistorial(selected.id); setModalHistorial(true) }}
                     className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
                     title="Ver historial de aportes"
@@ -751,7 +772,7 @@ export default function InversionesPage() {
                 </span>
               </div>
 
-              {/* ── SIMULADOR in-place ─────────────────────────────────── */}
+              {/* Simulador in-place */}
               <div className="mb-4">
                 <button
                   onClick={() => setShowSimulador(s => !s)}
@@ -782,12 +803,10 @@ export default function InversionesPage() {
                       background: `color-mix(in srgb, ${colores.violet} 5%, transparent)`,
                       border: `1px solid color-mix(in srgb, ${colores.violet} 15%, transparent)`,
                     }}>
-                    {/* Nota aclaratoria */}
                     <p className="text-[9px] font-semibold" style={{ color: colores.muted }}>
                       Ajusta los parámetros sin modificar tu cartera real. Verás el impacto en el gráfico.
                     </p>
 
-                    {/* Slider aporte */}
                     <div>
                       <div className="flex justify-between mb-1">
                         <label className="text-[10px] font-semibold" style={{ color: colores.muted }}>
@@ -809,7 +828,6 @@ export default function InversionesPage() {
                       </div>
                     </div>
 
-                    {/* Slider tasa */}
                     <div>
                       <div className="flex justify-between mb-1">
                         <label className="text-[10px] font-semibold" style={{ color: colores.muted }}>
@@ -831,7 +849,6 @@ export default function InversionesPage() {
                       </div>
                     </div>
 
-                    {/* Slider años */}
                     <div>
                       <div className="flex justify-between mb-1">
                         <label className="text-[10px] font-semibold" style={{ color: colores.muted }}>
@@ -853,7 +870,6 @@ export default function InversionesPage() {
                       </div>
                     </div>
 
-                    {/* Comparativa de resultados */}
                     {calcSim && (
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         <div className="p-2 rounded-xl text-center"
@@ -882,7 +898,6 @@ export default function InversionesPage() {
                       </div>
                     )}
 
-                    {/* Reset */}
                     <button
                       onClick={() => {
                         setSimAporte(selected.aporte || 0)
@@ -990,7 +1005,7 @@ export default function InversionesPage() {
                 </div>
               )}
 
-              {/* Regla del 4% — con tooltip explicativo */}
+              {/* Regla del 4% */}
               <div className="p-3 rounded-xl"
                 style={{
                   background: `color-mix(in srgb, ${colores.green} 6%, transparent)`,
@@ -1201,7 +1216,6 @@ export default function InversionesPage() {
                 </div>
               </div>
             ))}
-            {/* Total */}
             <div className="flex items-center justify-between pt-2 border-t"
               style={{ borderColor: 'var(--border-glass)' }}>
               <p className="text-[9px] font-semibold" style={{ color: colores.muted }}>
@@ -1215,118 +1229,181 @@ export default function InversionesPage() {
         )}
       </Modal>
 
-      {/* MODAL APORTE */}
-<Modal
-  open={modalAporte}
-  onClose={() => { setModalAporte(false); setFormAporte({ monto: '', descripcion: '', fecha: '' }) }}
-  title="Agregar aporte">
-  <form onSubmit={handleAddAporte} className="space-y-4">
+      {/* ── MODAL APORTE (MEJORADO) ────────────────────────────────────────── */}
+      <Modal
+        open={modalAporte}
+        onClose={() => {
+          setModalAporte(false)
+          setFormAporte({ monto: '', descripcion: '', fecha: '' })
+          setAutoFilled(false)
+        }}
+        title="Agregar aporte">
+        <form onSubmit={handleAddAporte} className="space-y-4">
 
-    {/* Botón de sugerencia basado en pct_mensual */}
-    {(() => {
-      const sugerido = presupuesto?.montoInversiones > 0 && selected?.pct_mensual > 0
-        ? parseFloat(((presupuesto.montoInversiones * selected.pct_mensual) / 100).toFixed(2))
-        : null
-      if (!sugerido) return null
-      return (
-        <button type="button"
-          onClick={() => setFormAporte(p => ({ ...p, monto: sugerido.toString() }))}
-          className="w-full px-3 py-2.5 rounded-xl text-left border transition-all hover:scale-[1.01] active:scale-[0.98]"
-          style={{
-            background: `color-mix(in srgb, ${colores.violet} 8%, transparent)`,
-            borderColor: `color-mix(in srgb, ${colores.violet} 25%, transparent)`,
-          }}>
-          <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: colores.violet }}>
-            Sugerido según presupuesto ({selected.pct_mensual}%)
-          </p>
-          <p className="text-sm font-semibold" style={{ color: colores.violet }}>
-            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(sugerido)}
-          </p>
-        </button>
-      )
-    })()}
+          {/* ── 1. Campo de monto con smart-fill ── */}
+          <div>
+            {/* Label dinámico: indica cuándo es una sugerencia automática */}
+            <label className="ff-label text-[10px] uppercase opacity-60">
+              {autoFilled && selected?.pct_mensual > 0
+                ? `Monto sugerido (${selected.pct_mensual}% del plan mensual)`
+                : 'Monto a aportar'}
+            </label>
 
-    <div>
-      <label className="ff-label text-[10px] uppercase opacity-60">Monto a aportar</label>
-      <input className="ff-input text-lg font-bold" type="number" min="0.01" step="0.01" placeholder="0.00" required
-        autoFocus
-        value={formAporte.monto}
-        onChange={e => setFormAporte(p => ({ ...p, monto: e.target.value }))} 
-        style={{ color: parseFloat(formAporte.monto) > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}
-      />
+            <input
+              className="ff-input text-lg font-bold"
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required
+              autoFocus
+              value={formAporte.monto}
+              onChange={e => {
+                setFormAporte(p => ({ ...p, monto: e.target.value }))
+                // Si el usuario edita manualmente, ya no es auto-fill
+                setAutoFilled(false)
+              }}
+              style={{
+                color: parseFloat(formAporte.monto) > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
+                // Fondo sutil del color de la cartera cuando es sugerencia del sistema
+                background: autoFilled
+                  ? `color-mix(in srgb, ${selected?.color || colores.violet} 8%, var(--bg-secondary))`
+                  : undefined,
+                borderColor: autoFilled
+                  ? `color-mix(in srgb, ${selected?.color || colores.violet} 30%, transparent)`
+                  : undefined,
+                transition: 'background 0.3s, border-color 0.3s',
+              }}
+            />
 
-      {/* BARRA DE IMPACTO: Muestra cuánto del presupuesto total de inversiones se consume */}
-      {presupuesto?.montoInversiones > 0 && (
-        <div className="mt-3 p-3 rounded-2xl border bg-[var(--bg-secondary)]"
-          style={{ 
-            borderColor: (aportesEsteMes + (parseFloat(formAporte.monto) || 0)) > presupuesto.montoInversiones 
-              ? 'color-mix(in srgb, var(--accent-danger) 30%, transparent)' 
-              : 'var(--border-glass)' 
-          }}>
-          {(() => {
-            const totalTrasAporte = aportesEsteMes + (parseFloat(formAporte.monto) || 0)
-            const pct = Math.min(100, (totalTrasAporte / presupuesto.montoInversiones) * 100)
-            const excede = totalTrasAporte > presupuesto.montoInversiones
+            {/* Indicador de sugerencia automática */}
+            {autoFilled && (
+              <p className="text-[9px] mt-1 font-semibold flex items-center gap-1"
+                style={{ color: selected?.color || colores.violet }}>
+                <Sparkles size={9} />
+                Calculado automáticamente · edita si necesitas otro importe
+              </p>
+            )}
+
+            {/* ── 2. Visualizador de impacto en presupuesto ── */}
+            {presupuesto?.montoInversiones > 0 && (
+              <div className="mt-3 p-3 rounded-2xl border transition-colors duration-300"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  borderColor: (() => {
+                    const total = aportesEsteMes + (parseFloat(formAporte.monto) || 0)
+                    return total > presupuesto.montoInversiones
+                      ? `color-mix(in srgb, var(--accent-danger) 35%, transparent)`
+                      : 'var(--border-glass)'
+                  })(),
+                }}>
+                {(() => {
+                  const montoInput = parseFloat(formAporte.monto) || 0
+                  const totalTrasAporte = aportesEsteMes + montoInput
+                  const presupuestado = presupuesto.montoInversiones
+                  const pct = Math.min(100, (totalTrasAporte / presupuestado) * 100)
+                  const excede = totalTrasAporte > presupuestado
+                  const diferencia = Math.abs(presupuestado - totalTrasAporte)
+                  const colorBarra = excede ? 'var(--accent-danger)' : (selected?.color || colores.violet || 'var(--accent-violet)')
+
+                  return (
+                    <>
+                      <div className="flex justify-between mb-1.5">
+                        <span className="text-[9px] font-black uppercase tracking-widest"
+                          style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+                          Uso presupuesto inversiones
+                        </span>
+                        <span className="text-[9px] font-bold" style={{ color: colorBarra }}>
+                          {pct.toFixed(0)}%{excede ? ' · Excedido' : ''}
+                        </span>
+                      </div>
+
+                      {/* Barra dinámica */}
+                      <div className="h-1 w-full rounded-full overflow-hidden mb-2"
+                        style={{ background: 'var(--progress-track)' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: colorBarra }} />
+                      </div>
+
+                      {/* Indicador textual: disponible o excedido */}
+                      <p className="text-[9px] font-semibold" style={{ color: colorBarra }}>
+                        {excede
+                          ? `Excedido por ${fmt(diferencia)}`
+                          : `Te quedan ${fmt(diferencia)} disponibles este mes`}
+                      </p>
+                    </>
+                  )
+                })()}
+              </div>
+            )}
+          </div>
+
+          {/* ── 3. Preview capital nuevo con Sparkles si acerca a meta ── */}
+          {parseFloat(formAporte.monto) > 0 && selected && (() => {
+            const montoInput = parseFloat(formAporte.monto) || 0
+            const nuevoCapital = (selected.capital || 0) + montoInput
+            // Acerca a meta si hay metaLibertad y el nuevo capital aumenta el % de progreso
+            const acercaMeta = metaLibertad && totalProyectado > 0 && montoInput > 0
             return (
-              <>
-                <div className="flex justify-between mb-1.5">
-                  <span className="text-[9px] font-black uppercase opacity-50">Uso Presupuesto Total</span>
-                  <span className={`text-[9px] font-bold ${excede ? 'text-[var(--accent-danger)]' : ''}`} style={{ color: !excede ? colores.green : '' }}>
-                    {pct.toFixed(0)}% {excede && '(Excedido)'}
-                  </span>
-                </div>
-                <div className="h-1 w-full bg-[var(--progress-track)] rounded-full overflow-hidden">
-                  <div className="h-full transition-all duration-500"
-                    style={{ 
-                      width: `${pct}%`, 
-                      background: excede ? 'var(--accent-danger)' : 'var(--accent-main)' 
-                    }} />
-                </div>
-              </>
+              <div className="px-3 py-2.5 rounded-xl text-[10px] font-semibold flex justify-between items-center"
+                style={{
+                  background: `color-mix(in srgb, ${colores.green} 8%, transparent)`,
+                  color: colores.green,
+                  border: `1px solid color-mix(in srgb, ${colores.green} 20%, transparent)`,
+                }}>
+                <span className="opacity-70 uppercase font-black tracking-wider flex items-center gap-1">
+                  {acercaMeta && <Sparkles size={10} />}
+                  Capital tras aporte:
+                </span>
+                <span className="text-sm">{formatCurrency(nuevoCapital)}</span>
+              </div>
             )
           })()}
-        </div>
-      )}
-    </div>
 
-    {/* Resumen de Capital Nuevo */}
-    {formAporte.monto > 0 && selected && (
-      <div className="px-3 py-2.5 rounded-xl text-[10px] font-semibold flex justify-between items-center"
-        style={{
-          background: `color-mix(in srgb, ${colores.green} 8%, transparent)`,
-          color: colores.green,
-          border: `1px solid color-mix(in srgb, ${colores.green} 20%, transparent)`,
-        }}>
-        <span className="opacity-70 uppercase font-black tracking-wider">Capital tras aporte:</span>
-        <span className="text-sm">{formatCurrency((selected.capital || 0) + (parseFloat(formAporte.monto) || 0))}</span>
-      </div>
-    )}
+          {/* Descripción */}
+          <div>
+            <label className="ff-label text-[10px] uppercase opacity-60">Descripción (opcional)</label>
+            <input
+              className="ff-input"
+              placeholder="Ej: Aporte enero, bono, dividendo..."
+              value={formAporte.descripcion}
+              onChange={e => setFormAporte(p => ({ ...p, descripcion: e.target.value }))}
+            />
+          </div>
 
-    <div>
-      <label className="ff-label text-[10px] uppercase opacity-60">Descripción (opcional)</label>
-      <input className="ff-input" placeholder="Ej: Aporte enero, bono, dividendo..."
-        value={formAporte.descripcion}
-        onChange={e => setFormAporte(p => ({ ...p, descripcion: e.target.value }))} />
-    </div>
+          {/* Fecha */}
+          <div>
+            <label className="ff-label text-[10px] uppercase opacity-60">Fecha</label>
+            <input
+              className="ff-input"
+              type="date"
+              value={formAporte.fecha || new Date().toISOString().slice(0, 10)}
+              onChange={e => setFormAporte(p => ({ ...p, fecha: e.target.value }))}
+            />
+          </div>
 
-    <div>
-      <label className="ff-label text-[10px] uppercase opacity-60">Fecha</label>
-      <input className="ff-input" type="date"
-        value={formAporte.fecha || new Date().toISOString().slice(0, 10)}
-        onChange={e => setFormAporte(p => ({ ...p, fecha: e.target.value }))} />
-    </div>
-
-    <div className="flex gap-3 pt-2">
-      <button type="button"
-        onClick={() => { setModalAporte(false); setFormAporte({ monto: '', descripcion: '', fecha: '' }) }}
-        className="ff-btn-ghost flex-1">Cancelar</button>
-      <button type="submit" disabled={savingAporte}
-        className="ff-btn-primary flex-1 flex items-center justify-center gap-2 py-4">
-        {savingAporte ? <Loader2 size={16} className="animate-spin" /> : 'Confirmar'}
-      </button>
-    </div>
-  </form>
-</Modal>
+          {/* Acciones */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setModalAporte(false)
+                setFormAporte({ monto: '', descripcion: '', fecha: '' })
+                setAutoFilled(false)
+              }}
+              className="ff-btn-ghost flex-1">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={savingAporte}
+              className="ff-btn-primary flex-1 flex items-center justify-center gap-2 py-4">
+              {savingAporte ? <Loader2 size={16} className="animate-spin" /> : 'Confirmar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* MODAL CREAR / EDITAR */}
       <Modal
@@ -1335,7 +1412,6 @@ export default function InversionesPage() {
         title={editandoId ? 'Editar Cartera' : 'Nueva Cartera'}>
         <form onSubmit={handleSave} className="space-y-4">
 
-          {/* Emoji + Nombre */}
           <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="ff-label">Emoji</label>
@@ -1349,7 +1425,6 @@ export default function InversionesPage() {
             </div>
           </div>
 
-          {/* Capital + % presupuesto */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Capital inicial (€)</label>
@@ -1363,7 +1438,6 @@ export default function InversionesPage() {
             </div>
           </div>
 
-          {/* ── CAMPOS SEPARADOS: real vs proyección ── */}
           <div className="p-3 rounded-xl space-y-3"
             style={{
               background: 'var(--bg-secondary)',
@@ -1373,11 +1447,10 @@ export default function InversionesPage() {
               Aportes mensuales
             </p>
 
-            {/* Aporte real */}
             <div>
               <label className="ff-label flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full inline-block"/>
-                 Aporte real mensual
+                <span className="w-2 h-2 rounded-full inline-block" />
+                Aporte real mensual
               </label>
               <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
                 value={form.aporteReal}
@@ -1387,10 +1460,9 @@ export default function InversionesPage() {
               </p>
             </div>
 
-            {/* Aporte hipotético */}
             <div>
               <label className="ff-label flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full inline-block border"/>
+                <span className="w-2 h-2 rounded-full inline-block border" />
                 Aporte hipotético para proyección
               </label>
               <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
@@ -1402,7 +1474,6 @@ export default function InversionesPage() {
             </div>
           </div>
 
-          {/* Tasa + Años */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Tasa anual (%)</label>
@@ -1416,7 +1487,6 @@ export default function InversionesPage() {
             </div>
           </div>
 
-          {/* Preview */}
           {calcPreview && (
             <div className="px-3 py-2.5 rounded-xl text-[10px] font-semibold"
               style={{
@@ -1435,7 +1505,6 @@ export default function InversionesPage() {
             </div>
           )}
 
-          {/* Toggle Bola de Nieve */}
           <div>
             <label className="ff-label">Estrategia de interés</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
@@ -1463,7 +1532,6 @@ export default function InversionesPage() {
             </div>
           </div>
 
-          {/* Picker de color */}
           <div>
             <label className="ff-label">Color de la cartera</label>
             <div className="flex gap-2 mt-1 flex-wrap">
