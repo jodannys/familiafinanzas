@@ -27,10 +27,11 @@ function fechaHoy() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
-function calcFechaPrimerPago(fechaCompra, diaPago) {
+function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
   if (!diaPago) return fechaCompra
   const [y, m, d] = fechaCompra.split('-').map(Number)
-  if (d < diaPago) {
+  const corte = diaCorte || diaPago
+  if (d <= corte) {
     return `${y}-${String(m).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
   } else {
     const nextM = m === 12 ? 1 : m + 1
@@ -124,7 +125,7 @@ export default function GastosPage() {
     supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => setMetasData(data || []))
     supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
     supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
-    supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, banco, color, dia_pago').eq('estado', 'activa')
+    supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, banco, color, dia_pago, dia_corte').eq('estado', 'activa')
       .then(({ data }) => {
         setTarjetasData(data || [])
         if (data?.length === 1) setTarjetaSeleccionada(data[0].id)
@@ -209,7 +210,7 @@ export default function GastosPage() {
         cuota: cuotaMensual, plazo_meses: cuotas, pagadas: 0,
         estado: 'activa', perfil_tarjeta_id: tarjetaSeleccionada,
         dia_pago: tarjeta?.dia_pago || null,
-        fecha_primer_pago: calcFechaPrimerPago(form.fecha, tarjeta?.dia_pago),
+        fecha_primer_pago: calcFechaPrimerPago(form.fecha, tarjeta?.dia_pago, tarjeta?.dia_corte),
         color: tarjeta?.color || '#A44A3F',
         tasa: 0, tasa_interes: 0,
       }])

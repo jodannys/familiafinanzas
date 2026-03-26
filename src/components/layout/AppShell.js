@@ -59,10 +59,11 @@ const CATS_EGRESO = [
 
 const SPECIAL_CATS = ['ahorro', 'inversion', 'deuda']
 
-function calcFechaPrimerPago(fechaCompra, diaPago) {
+function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
   if (!diaPago) return fechaCompra
   const [y, m, d] = fechaCompra.split('-').map(Number)
-  if (d < diaPago) {
+  const corte = diaCorte || diaPago
+  if (d <= corte) {
     return `${y}-${String(m).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
   } else {
     const nextM = m === 12 ? 1 : m + 1
@@ -99,7 +100,7 @@ function FABModal({ onClose }) {
     }
     setLoadingPerf(true)
     supabase.from('perfiles_tarjetas')
-      .select('id,nombre_tarjeta,banco,color,dia_pago,limite_credito')
+      .select('id,nombre_tarjeta,banco,color,dia_pago,dia_corte,limite_credito')
       .eq('estado', 'activa')
       .then(({ data }) => {
         setPerfilesTarj(data || [])
@@ -143,7 +144,7 @@ function FABModal({ onClose }) {
         cuota: cuotaMensual, plazo_meses: cuotas, pagadas: 0,
         estado: 'activa', perfil_tarjeta_id: selectedPerfil.id,
         dia_pago: selectedPerfil.dia_pago || null,
-        fecha_primer_pago: calcFechaPrimerPago(hoy, selectedPerfil.dia_pago),
+        fecha_primer_pago: calcFechaPrimerPago(hoy, selectedPerfil.dia_pago, selectedPerfil.dia_corte),
         color: selectedPerfil.color || '#A44A3F',
         tasa: 0, tasa_interes: 0,
       }])
