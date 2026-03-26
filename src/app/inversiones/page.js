@@ -53,6 +53,7 @@ export default function InversionesPage() {
   const [error, setError] = useState(null)
   const [presupuesto, setPresupuesto] = useState(null)
   const [gastosMes, setGastosMes] = useState(0)
+  const [aportesEsteMes, setAportesEsteMes] = useState(0)
   const [modal, setModal] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [modalAporte, setModalAporte] = useState(false)
@@ -64,7 +65,7 @@ export default function InversionesPage() {
   })
   const [form, setForm] = useState({
     nombre: '', emoji: '📈', capital: '', aporte: '',
-    tasa: '', anos: '10', color: '', bola_nieve: true,
+    tasa: '', anos: '10', color: '', bola_nieve: true, pct_mensual: '',
   })
 
   // ── Colores del tema (CSS vars para Recharts y estilos inline) ────────────
@@ -105,6 +106,7 @@ export default function InversionesPage() {
     cargar()
     getPresupuestoMes().then(setPresupuesto)
     cargarGastosMes()
+    cargarAportesEsteMes()
   }, [])
 
   // FIX 1: índice de mes corregido a 1-12 + FIX 3: incluye deuda
@@ -131,6 +133,17 @@ export default function InversionesPage() {
     setGastosMes(total)
   }
 
+  async function cargarAportesEsteMes() {
+    const now = new Date()
+    const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+    const inicioSig = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().slice(0, 10)
+    const { data } = await supabase
+      .from('movimientos').select('monto')
+      .eq('tipo', 'egreso').eq('categoria', 'inversion')
+      .gte('fecha', inicioMes).lt('fecha', inicioSig)
+    setAportesEsteMes((data || []).reduce((s, m) => s + parseFloat(m.monto || 0), 0))
+  }
+
   async function cargar() {
     setLoading(true)
     const { data, error } = await supabase.from('inversiones').select('*').order('created_at')
@@ -155,6 +168,7 @@ export default function InversionesPage() {
       anos: parseInt(form.anos) || 10,
       color: form.color,
       bola_nieve: form.bola_nieve,
+      pct_mensual: parseFloat(form.pct_mensual) || 0,
     }
 
     if (editandoId) {
@@ -172,12 +186,12 @@ export default function InversionesPage() {
     setSaving(false)
     setModal(false)
     setEditandoId(null)
-    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: themeColors[0] || '', bola_nieve: true })
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: themeColors[0] || '', bola_nieve: true, pct_mensual: '' })
   }
 
   function abrirNuevo() {
     setEditandoId(null)
-    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: themeColors[0] || '', bola_nieve: true })
+    setForm({ nombre: '', emoji: '📈', capital: '', aporte: '', tasa: '', anos: '10', color: themeColors[0] || '', bola_nieve: true, pct_mensual: '' })
     setModal(true)
   }
 
@@ -192,6 +206,7 @@ export default function InversionesPage() {
       anos: inv.anos?.toString() || '10',
       color: inv.color || themeColors[0] || '',
       bola_nieve: inv.bola_nieve !== false,
+      pct_mensual: inv.pct_mensual?.toString() || '',
     })
     setModal(true)
   }
@@ -254,6 +269,7 @@ export default function InversionesPage() {
     setSavingAporte(false)
     setModalAporte(false)
     setFormAporte({ monto: '', descripcion: '', fecha: '' })
+    cargarAportesEsteMes()
     toast(`Aporte de ${formatCurrency(monto)} registrado`, 'success')
   }
 
@@ -366,7 +382,7 @@ export default function InversionesPage() {
     
     {(() => {
       const presupuestado = presupuesto.montoInversiones
-      const comprometido = totalAportes
+      const comprometido = aportesEsteMes
       const disponible = presupuestado - comprometido
       const pct = Math.min(100, (comprometido / presupuestado) * 100)
       const sobrePasado = comprometido > presupuestado
@@ -424,10 +440,10 @@ export default function InversionesPage() {
       {/* Stats globales */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {[
-          { label: 'Capital total', value: formatCurrency(totalCapital), color: colores.green },
-          { label: 'Aportes / mes', value: formatCurrency(totalAportes), color: colores.terra },
-          { label: 'Ganancia por interés', value: formatCurrency(gananciaInteres), color: colores.blue },
-          { label: 'Total proyectado', value: formatCurrency(totalProyectado), color: colores.violet },
+          { label: 'Capital real', value: formatCurrency(totalCapital), color: colores.green },
+          { label: 'Aportado este mes', value: formatCurrency(aportesEsteMes), color: colores.terra },
+          { label: '★ Ganancia estimada', value: formatCurrency(gananciaInteres), color: colores.blue },
+          { label: '★ Total proyectado', value: formatCurrency(totalProyectado), color: colores.violet },
         ].map((s, i) => (
           <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.05}s` }}>
             <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
@@ -826,6 +842,29 @@ export default function InversionesPage() {
         title="Agregar aporte">
         <form onSubmit={handleAddAporte} className="space-y-4">
 
+          {(() => {
+            const sugerido = presupuesto?.montoInversiones > 0 && selected?.pct_mensual > 0
+              ? parseFloat(((presupuesto.montoInversiones * selected.pct_mensual) / 100).toFixed(2))
+              : null
+            if (!sugerido) return null
+            return (
+              <button type="button"
+                onClick={() => setFormAporte(p => ({ ...p, monto: sugerido.toString() }))}
+                className="w-full px-3 py-2.5 rounded-xl text-left border transition-all"
+                style={{
+                  background: `color-mix(in srgb, ${colores.violet} 8%, transparent)`,
+                  borderColor: `color-mix(in srgb, ${colores.violet} 25%, transparent)`,
+                }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: colores.violet }}>
+                  Sugerido según presupuesto ({selected.pct_mensual}%)
+                </p>
+                <p className="text-sm font-semibold" style={{ color: colores.violet }}>
+                  {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(sugerido)}
+                </p>
+              </button>
+            )
+          })()}
+
           <div>
             <label className="ff-label">Monto a aportar</label>
             <input className="ff-input" type="number" min="0.01" step="0.01" placeholder="0.00" required
@@ -901,10 +940,20 @@ export default function InversionesPage() {
                 value={form.capital} onChange={e => setForm(p => ({ ...p, capital: e.target.value }))} />
             </div>
             <div>
-              <label className="ff-label">Aporte mensual (€)</label>
-              <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
-                value={form.aporte} onChange={e => setForm(p => ({ ...p, aporte: e.target.value }))} />
+              <label className="ff-label">% del presupuesto mensual</label>
+              <input className="ff-input" type="number" min="0" max="100" step="1" placeholder="Ej: 50"
+                value={form.pct_mensual} onChange={e => setForm(p => ({ ...p, pct_mensual: e.target.value }))} />
             </div>
+          </div>
+
+          {/* Aporte para proyección */}
+          <div>
+            <label className="ff-label">Aporte mensual estimado (solo para proyección)</label>
+            <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
+              value={form.aporte} onChange={e => setForm(p => ({ ...p, aporte: e.target.value }))} />
+            <p className="text-[9px] mt-1 ml-1" style={{ color: colores.muted }}>
+              Este valor solo se usa en el gráfico de interés compuesto, no afecta el presupuesto real.
+            </p>
           </div>
 
           {/* Tasa + Años */}
