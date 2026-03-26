@@ -25,10 +25,20 @@ function fechaHoy() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
-function diasHastaPago(diaPago) {
-  if (!diaPago) return null
-  const hoy = new Date().getDate()
-  return diaPago >= hoy ? diaPago - hoy : 30 - hoy + diaPago
+function diasHastaPago(d) {
+  if (!d?.dia_pago) return null
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+  let fechaPago
+  if (d.fecha_primer_pago) {
+    const base = new Date(d.fecha_primer_pago + 'T12:00:00')
+    fechaPago = new Date(base)
+    fechaPago.setMonth(fechaPago.getMonth() + (d.pagadas || 0))
+  } else {
+    const diaHoy = hoy.getDate()
+    fechaPago = new Date(hoy.getFullYear(), hoy.getMonth() + (d.dia_pago < diaHoy ? 1 : 0), d.dia_pago)
+  }
+  fechaPago.setHours(0, 0, 0, 0)
+  return Math.ceil((fechaPago - hoy) / (1000 * 60 * 60 * 24))
 }
 
 function urgenciaColor(dias) {
@@ -693,7 +703,7 @@ export default function DeudasPage() {
   const totalDebo = deboActivas.reduce((s, d) => s + (d.pendiente || 0), 0)
   const totalMeDeben = meDebenActivas.reduce((s, d) => s + (d.pendiente || 0), 0)
   const cuotasMes = deboActivas.reduce((s, d) => s + (d.cuota || 0), 0)
-  const vencenProximo = activas.filter(d => { const dias = diasHastaPago(d.dia_pago); return dias !== null && dias <= 7 }).length
+  const vencenProximo = activas.filter(d => { const dias = diasHastaPago(d); return dias !== null && dias <= 7 }).length
 
   // ─── CALENDARIO ───────────────────────────────────────────────────────────
 
@@ -979,7 +989,7 @@ export default function DeudasPage() {
               ? Math.ceil((new Date(d.fecha_vencimiento) - new Date()) / (1000 * 60 * 60 * 24))
               : null
             const cfg = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
-            const dias = diasHastaPago(d.dia_pago)
+            const dias = diasHastaPago(d)
             const urgencia = urgenciaColor(dias)
             const isExp = expandido === d.id
             const isTabla = tablaVisible === d.id

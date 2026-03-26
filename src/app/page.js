@@ -50,12 +50,20 @@ function saludoBase(nombre) {
     : `${saludo.charAt(0).toUpperCase() + saludo.slice(1)} ${emoji}`
 }
 
-function diasHastaPago(diaPago) {
-  if (!diaPago) return null
-  const hoy = new Date().getDate()
-  if (diaPago >= hoy) return diaPago - hoy
-  const ultimoDiaMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-  return (ultimoDiaMes - hoy) + diaPago
+function diasHastaPago(d) {
+  if (!d?.dia_pago) return null
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+  let fechaPago
+  if (d.fecha_primer_pago) {
+    const base = new Date(d.fecha_primer_pago + 'T12:00:00')
+    fechaPago = new Date(base)
+    fechaPago.setMonth(fechaPago.getMonth() + (d.pagadas || 0))
+  } else {
+    const diaHoy = hoy.getDate()
+    fechaPago = new Date(hoy.getFullYear(), hoy.getMonth() + (d.dia_pago < diaHoy ? 1 : 0), d.dia_pago)
+  }
+  fechaPago.setHours(0, 0, 0, 0)
+  return Math.ceil((fechaPago - hoy) / (1000 * 60 * 60 * 24))
 }
 
 export default function Dashboard() {
@@ -155,7 +163,7 @@ export default function Dashboard() {
 
   const alertas = useMemo(() =>
     deudas
-      .map(d => ({ ...d, dias: diasHastaPago(d.dia_pago) }))
+      .map(d => ({ ...d, dias: diasHastaPago(d) }))
       .filter(d => d.dias !== null && d.dias <= 7 && !deudasPagadas.has(d.id))
       .sort((a, b) => a.dias - b.dias)
     , [deudas, deudasPagadas])
