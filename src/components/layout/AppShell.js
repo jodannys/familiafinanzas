@@ -97,7 +97,6 @@ export function FABModal({ onClose }) {
   const [selectedSubcat,     setSelectedSubcat]      = useState(null)
   const [subcatPresupuesto,  setSubcatPresupuesto]   = useState({})
   const [montoMetasDisp,     setMontoMetasDisp]      = useState(0)
-  const [tipoIngreso,        setTipoIngreso]         = useState(null)
 
   useEffect(() => {
     getPresupuestoMes().then(p => setMontoMetasDisp(p?.montoMetas || 0))
@@ -107,7 +106,7 @@ export function FABModal({ onClose }) {
   function handleTipo(t) {
     setTipo(t); setCat(null); setCatDB(null); setSelectedItem(null)
     setMetodoPago('efectivo'); setNumCuotas(1); setSelectedPerfil(null)
-    setMonto(''); setTipoIngreso(null)
+    setMonto('')
   }
 
   // Limpiar monto + sub-estado al cambiar categoría
@@ -195,8 +194,7 @@ export function FABModal({ onClose }) {
     }
     setSaving(true)
     const [fechaYear, fechaMes] = fecha.split('-').map(Number)
-    const tipoIngresoLabel = TIPOS_INGRESO.find(t => t.id === tipoIngreso)?.label
-    const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : (tipoIngresoLabel || catLabel))
+    const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : catLabel)
 
     if (esTarjeta && selectedPerfil) {
       const cuotaMensual = parseFloat((valor / cuotas).toFixed(2))
