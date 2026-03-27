@@ -953,11 +953,7 @@ export default function AjustesPage() {
                               {(inv.pct_mensual > 0) && (
                                 <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-violet)' }}>{inv.pct_mensual}%</span>
                               )}
-                              {inv.aporte > 0 && (
-                                <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-violet)' }}>
-                                  +{inv.aporte}/mes
-                                </span>
-                              )}
+                              
                               <button onClick={() => setEditandoInversion({ id: inv.id, nombre: inv.nombre, emoji: inv.emoji || '📈', aporte: inv.aporte?.toString() || '0', pct_mensual: inv.pct_mensual?.toString() || '0' })}
                                 style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
                                 <Edit3 size={11} />
