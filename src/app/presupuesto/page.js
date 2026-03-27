@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import {
   Home, Sparkles, Sprout, CheckCircle, Edit3, Save, X,
-  Loader2, AlertTriangle, List, LayoutGrid, ArrowRight, Target, TrendingUp, CircleDollarSign
+  Loader2, AlertTriangle, List, LayoutGrid, ArrowRight, Target, TrendingUp, CircleDollarSign, Copy
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -49,6 +49,7 @@ export default function PresupuestoPage() {
   const [aportesInvEsteMes, setAportesInvEsteMes] = useState(0)
   const [deudas, setDeudas] = useState([])
   const [deudaMovs, setDeudaMovs] = useState([])
+  const [copiando, setCopiando] = useState(false)
 
   const now = new Date()
   const mes = now.getMonth() + 1
@@ -144,6 +145,29 @@ export default function PresupuestoPage() {
       { onConflict: 'subcategoria_id,mes,año' }
     )
     if (!error) setMontosCats(prev => ({ ...prev, [subcategoriaId]: valor }))
+  }
+
+  // ── Copiar presupuesto del mes anterior ───────────────────────────────────
+  async function copiarMesAnterior() {
+    setCopiando(true)
+    const mesPrev = mes === 1 ? 12 : mes - 1
+    const añoPrev = mes === 1 ? año - 1 : año
+    const { data, error } = await supabase.from('presupuesto_cats')
+      .select('subcategoria_id, monto').eq('mes', mesPrev).eq('año', añoPrev)
+    if (error || !data?.length) {
+      toast('No hay presupuesto guardado del mes anterior')
+      setCopiando(false)
+      return
+    }
+    const nuevos = data.map(({ subcategoria_id, monto }) => ({ subcategoria_id, mes, año, monto }))
+    const { error: upsertErr } = await supabase.from('presupuesto_cats')
+      .upsert(nuevos, { onConflict: 'subcategoria_id,mes,año' })
+    if (upsertErr) { toast('Error al copiar: ' + upsertErr.message); setCopiando(false); return }
+    const map = {}
+    data.forEach(p => { map[p.subcategoria_id] = parseFloat(p.monto) })
+    setMontosCats(map)
+    toast('Presupuesto copiado del mes anterior', 'success')
+    setCopiando(false)
   }
 
   // ── Gasto real por bloque ─────────────────────────────────────────────────
@@ -263,16 +287,27 @@ export default function PresupuestoPage() {
           </p>
         </div>
         {!editando && (
-          <button
-            onClick={iniciarEdicion}
-            className="ff-btn-ghost flex items-center gap-1.5"
-            style={{ padding: '4px 8px' }}
-          >
-            <Edit3 size={11} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">
-              Distribución
-            </span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={copiarMesAnterior}
+              disabled={copiando}
+              className="ff-btn-ghost flex items-center gap-1.5"
+              style={{ padding: '4px 8px' }}
+            >
+              {copiando ? <Loader2 size={11} className="animate-spin" /> : <Copy size={11} />}
+              <span className="text-[10px] font-bold uppercase tracking-wider">Copiar</span>
+            </button>
+            <button
+              onClick={iniciarEdicion}
+              className="ff-btn-ghost flex items-center gap-1.5"
+              style={{ padding: '4px 8px' }}
+            >
+              <Edit3 size={11} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                Distribución
+              </span>
+            </button>
+          </div>
         )}
       </div>
 

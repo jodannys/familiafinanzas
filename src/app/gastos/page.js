@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard, Minus } from 'lucide-react'
+import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard, Minus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
@@ -78,6 +78,8 @@ export default function GastosPage() {
   ]
   const CUOTAS_OPCIONES = [1, 3, 6, 9, 12, 18, 24, 36]
   const [hayMas, setHayMas] = useState(false)
+  const [visMes, setVisMes] = useState(new Date().getMonth() + 1)
+  const [visAño, setVisAño] = useState(new Date().getFullYear())
   const LIMITE_INICIAL = 100
 
   const now = new Date()
@@ -118,7 +120,6 @@ export default function GastosPage() {
   useEffect(() => {
     let activo = true
     getPresupuestoMes().then(d => { if (activo) setPresupuesto(d) })
-    cargarMovimientos()
     cargarPresupuesto()
     supabase.from('categorias').select('*').order('bloque').order('nombre').then(({ data }) => { if (activo) setCategoriasCfg(data || []) })
     supabase.from('subcategorias').select('*').order('orden').order('nombre').then(({ data }) => { if (activo) setSubcategorias(data || []) })
@@ -149,11 +150,20 @@ export default function GastosPage() {
     return () => { activo = false }
   }, [])
 
-  async function cargarMovimientos(cargarTodos = false) {
+  useEffect(() => {
+    cargarMovimientos(false, visMes, visAño)
+  }, [visMes, visAño])
+
+  async function cargarMovimientos(cargarTodos = false, mesV, añoV) {
+    const m = mesV ?? visMes
+    const a = añoV ?? visAño
+    const fechaInicio = `${a}-${String(m).padStart(2, '0')}-01`
+    const fechaFin = new Date(a, m, 0).toISOString().slice(0, 10)
     setLoading(true)
     setError(null)
-    // BUG FIX: paginación — carga los últimos LIMITE_INICIAL registros por defecto
-    const query = supabase.from('movimientos').select('*').order('fecha', { ascending: false }).order('created_at', { ascending: false })
+    const query = supabase.from('movimientos').select('*')
+      .gte('fecha', fechaInicio).lte('fecha', fechaFin)
+      .order('fecha', { ascending: false }).order('created_at', { ascending: false })
     const { data, error } = cargarTodos ? await query : await query.limit(LIMITE_INICIAL + 1)
     if (error) {
       setError('Error al cargar movimientos: ' + error.message)
@@ -473,7 +483,7 @@ export default function GastosPage() {
   const movsMes = movs.filter(m => {
     if (!m.fecha) return false
     const [year, month] = m.fecha.split('-').map(Number)
-    return month - 1 === now.getMonth() && year === now.getFullYear()
+    return month === visMes && year === visAño
   })
   // FIX 4: separar gastos corrientes de ahorro/inversión igual que el dashboard
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
@@ -500,6 +510,22 @@ export default function GastosPage() {
             <div>
               <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
               <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Registro</h1>
+              <div className="flex items-center gap-1 mt-1.5">
+                <button
+                  onClick={() => { if (visMes === 1) { setVisMes(12); setVisAño(v => v - 1) } else setVisMes(v => v - 1) }}
+                  style={{ padding: '2px 5px', borderRadius: 7, background: 'var(--bg-secondary)', color: colores.muted, border: 'none', cursor: 'pointer', display: 'flex' }}>
+                  <ChevronLeft size={13} />
+                </button>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', minWidth: 72, textAlign: 'center' }}>
+                  {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][visMes-1]} {visAño}
+                </span>
+                <button
+                  onClick={() => { if (visMes === 12) { setVisMes(1); setVisAño(v => v + 1) } else setVisMes(v => v + 1) }}
+                  disabled={visMes === mes && visAño === año}
+                  style={{ padding: '2px 5px', borderRadius: 7, background: 'var(--bg-secondary)', color: visMes === mes && visAño === año ? colores.border : colores.muted, border: 'none', cursor: visMes === mes && visAño === año ? 'default' : 'pointer', display: 'flex' }}>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
             </div>
             <button onClick={() => setModal(true)} className="ff-btn-primary flex items-center justify-center gap-2"
               style={{ background: colores.main }}>

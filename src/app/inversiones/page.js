@@ -368,7 +368,11 @@ export default function InversionesPage() {
       .from('inversiones').update({ capital: nuevoCapital }).eq('id', selected.id)
     if (errInv) { toast('Error al actualizar capital', 'error'); return }
 
-    await supabase.from('movimientos').delete().eq('id', movId)
+    const { error: errMov } = await supabase.from('movimientos').delete().eq('id', movId)
+    if (errMov) {
+      await supabase.from('inversiones').update({ capital: selected.capital }).eq('id', selected.id)
+      toast('Error al eliminar el aporte', 'error'); return
+    }
 
     const updated = { ...selected, capital: nuevoCapital }
     setInversiones(prev => prev.map(i => i.id === selected.id ? updated : i))
