@@ -159,10 +159,17 @@ export default function MetasPage() {
 
     if (metaError) { setError('Error al actualizar la meta'); setSaving(false); return }
 
-    await supabase.from('movimientos').insert([{
+    const { error: movError } = await supabase.from('movimientos').insert([{
       tipo: 'egreso', monto, descripcion: `Aporte: ${modalAporte.nombre}`,
       categoria: 'ahorro', fecha: fechaHoy(), quien: 'Ambos', meta_id: modalAporte.id,
     }])
+    if (movError) {
+      // Revertir la meta si el movimiento falló
+      await supabase.from('metas').update({ actual: modalAporte.actual || 0, estado: modalAporte.estado }).eq('id', modalAporte.id)
+      setError('Error al registrar el aporte')
+      setSaving(false)
+      return
+    }
 
     setMetas(prev => prev.map(m => m.id === modalAporte.id
       ? { ...m, actual: nuevoActual, ...(completada && { estado: 'completada' }) } : m
@@ -190,11 +197,18 @@ export default function MetasPage() {
 
     if (error) { setError('Error al registrar el retiro'); setSaving(false); return }
 
-    await supabase.from('movimientos').insert([{
+    const { error: movRetiroError } = await supabase.from('movimientos').insert([{
       tipo: 'retiro', categoria: 'ahorro',
       descripcion: `Retiro: ${modalRetiro.nombre}`,
       monto, fecha: fechaHoy(), quien: 'Ambos', meta_id: modalRetiro.id,
     }])
+    if (movRetiroError) {
+      // Revertir la meta si el movimiento falló
+      await supabase.from('metas').update({ actual: modalRetiro.actual || 0, estado: modalRetiro.estado }).eq('id', modalRetiro.id)
+      setError('Error al registrar el retiro')
+      setSaving(false)
+      return
+    }
 
     setMetas(prev => prev.map(m => m.id === modalRetiro.id
       ? { ...m, actual: nuevoActual, ...(necesitaReactivar && { estado: 'activa' }) } : m
@@ -226,7 +240,13 @@ export default function MetasPage() {
     const { error: errMeta } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
     if (errMeta) { toast('Error al actualizar la meta', 'error'); return }
 
-    await supabase.from('movimientos').delete().eq('id', movId)
+    const { error: errMov } = await supabase.from('movimientos').delete().eq('id', movId)
+    if (errMov) {
+      // Revertir la meta si el delete falló
+      await supabase.from('metas').update({ actual: meta.actual || 0 }).eq('id', meta.id)
+      toast('Error al eliminar el aporte', 'error')
+      return
+    }
 
     const updatedMeta = { ...meta, actual: nuevoActual }
     setMetas(prev => prev.map(m => m.id === meta.id ? updatedMeta : m))
@@ -239,7 +259,7 @@ export default function MetasPage() {
     if (estado === 'completada') {
       const meta = metas.find(m => m.id === id)
       if (meta && (meta.actual || 0) < meta.meta) {
-        const pct = Math.round(((meta.actual || 0) / meta.meta) * 100)
+        const pct = meta.meta > 0 ? Math.round(((meta.actual || 0) / meta.meta) * 100) : 0
         if (!confirm(`Solo tiene ${pct}% completado. ¿Marcarla como completada?`)) return
       }
     }
@@ -380,7 +400,7 @@ export default function MetasPage() {
         <div className="space-y-2">
           {metasActivas.map((meta, i) => {
             const isSelected = selectedMetaId === meta.id
-            const pct = Math.min(100, Math.round(((meta.actual || 0) / meta.meta) * 100))
+            const pct = meta.meta > 0 ? Math.min(100, Math.round(((meta.actual || 0) / meta.meta) * 100)) : 0
             const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0, montoMetasDisponible)
             const isPausada = meta.estado === 'pausada'
             const aporteMensual = (meta.pct_mensual / 100) * montoMetasDisponible
@@ -625,7 +645,7 @@ export default function MetasPage() {
             <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--border-glass)' }}>
               <p className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>Total registrado</p>
               <p className="text-[11px] font-semibold" style={{ color: 'var(--accent-green)' }}>
-                +{formatCurrency(historialAportes.reduce((s, a) => s + parseFloat(a.monto), 0))}
+                +{formatCurrency(historialAportes.reduce((s, a) => s + (parseFloat(a.monto) || 0), 0))}
               </p>
             </div>
           </div>

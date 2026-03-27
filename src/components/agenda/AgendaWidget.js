@@ -22,6 +22,7 @@ export default function AgendaWidget() {
   const [eventos, setEventos] = useState([])
 
   useEffect(() => {
+    let activo = true
     async function cargar() {
       const hoy = new Date()
       const hoyStr = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`
@@ -70,9 +71,10 @@ export default function AgendaWidget() {
         .sort((a, b) => a.fecha.localeCompare(b.fecha))
         .slice(0, 5)
 
-      setEventos(todos)
+      if (activo) setEventos(todos)
     }
     cargar()
+    return () => { activo = false }
   }, [])
 
   return (

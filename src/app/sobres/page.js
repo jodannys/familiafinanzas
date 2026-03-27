@@ -655,7 +655,7 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
       </Modal>
 
       {/* ══ MODAL: TRASPASO ═════════════════════════════════════════════════ */}
-      <Modal open={modalTraspaso} onClose={() => setModalTraspaso(false)} title="¡Sobre Vacío!">
+      <Modal open={modalTraspaso} onClose={() => { setModalTraspaso(false); setGastoTemp(null) }} title="¡Sobre Vacío!">
         <div className="space-y-4">
           <div className="p-3 rounded-xl flex items-center gap-2"
             style={{
@@ -727,7 +727,7 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
 
           <div className="grid grid-cols-2 gap-2">
             {['metas', 'inversiones'].map(dest => (
-              <button key={dest} onClick={() => { setDestinoSobrante(dest); setMetaSeleccionada('') }}
+              <button key={dest} onClick={() => { setDestinoSobrante(dest); setMetaSeleccionada(''); setInversionSeleccionada('') }}
                 className="p-3 rounded-xl border-2 text-[10px] font-semibold uppercase transition-all"
                 style={{
                   borderColor: destinoSobrante === dest ? 'var(--accent-green)' : 'var(--border-glass)',
@@ -806,9 +806,9 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
             {saving && <Loader2 size={14} className="animate-spin" />}
             {(() => {
               if (destinoSobrante === 'metas' && metaSeleccionada)
-                return `Mover a ${metasData.find(m => m.id === metaSeleccionada)?.nombre}`
+                return `Mover a ${metasData.find(m => m.id === metaSeleccionada)?.nombre || 'Meta'}`
               if (destinoSobrante === 'inversiones' && inversionSeleccionada)
-                return `Mover a ${inversionesData.find(i => i.id === inversionSeleccionada)?.nombre}`
+                return `Mover a ${inversionesData.find(i => i.id === inversionSeleccionada)?.nombre || 'Inversión'}`
               return `Mover a ${destinoSobrante}`
             })()}
           </button>

@@ -33,11 +33,18 @@ function diasHastaPago(d) {
   let fechaPago
   if (d.fecha_primer_pago) {
     const base = new Date(d.fecha_primer_pago + 'T12:00:00')
-    fechaPago = new Date(base)
-    fechaPago.setMonth(fechaPago.getMonth() + (d.pagadas || 0))
+    const targetMonth = base.getMonth() + (d.pagadas || 0)
+    const targetYear = base.getFullYear() + Math.floor(targetMonth / 12)
+    const targetMonthNorm = ((targetMonth % 12) + 12) % 12
+    const lastDay = new Date(targetYear, targetMonthNorm + 1, 0).getDate()
+    fechaPago = new Date(targetYear, targetMonthNorm, Math.min(base.getDate(), lastDay))
   } else {
     const diaHoy = hoy.getDate()
-    fechaPago = new Date(hoy.getFullYear(), hoy.getMonth() + (d.dia_pago < diaHoy ? 1 : 0), d.dia_pago)
+    const offsetMes = d.dia_pago < diaHoy ? 1 : 0
+    const targetYear = hoy.getFullYear() + (hoy.getMonth() + offsetMes > 11 ? 1 : 0)
+    const targetMonth = (hoy.getMonth() + offsetMes + 12) % 12
+    const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate()
+    fechaPago = new Date(targetYear, targetMonth, Math.min(d.dia_pago, lastDay))
   }
   fechaPago.setHours(0, 0, 0, 0)
   return Math.ceil((fechaPago - hoy) / (1000 * 60 * 60 * 24))
@@ -90,10 +97,9 @@ function generarTablaAmortizacion(deuda, movs = []) {
   const rows = []
 
   for (let i = 0; i < meses; i++) {
-    const f = new Date(fechaBase)
-    f.setMonth(f.getMonth() + i)
-    const mesNum = f.getMonth() + 1
-    const añoNum = f.getFullYear()
+    const targetMonth = fechaBase.getMonth() + i
+    const añoNum = fechaBase.getFullYear() + Math.floor(targetMonth / 12)
+    const mesNum = ((targetMonth % 12) + 12) % 12 + 1
 
     // Interés sobre el saldo REAL acumulado (no teórico)
     const interes = tieneInteres ? parseFloat((saldo * tasaMensual).toFixed(2)) : 0
@@ -428,22 +434,25 @@ export default function DeudasPage() {
           const nuevoPendiente = Math.max(0, (deudaOrigen.pendiente || 0) - monto)
           const nuevosPagados = (deudaOrigen.pagadas || 0) + 1
           const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-          const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
+          const { data: dmData, error: dmErr } = await supabase.from('deuda_movimientos').insert([{
             deuda_id: f.deuda_origen_id, tipo: 'pago',
             descripcion: f.nombre || `Cuota ${deudaOrigen.nombre}`,
             monto, fecha: fechaHoy(), mes, año,
           }]).select()
+          if (dmErr) { setError(dmErr.message); setSaving(false); return }
           const tipoMov = deudaOrigen.tipo === 'medeben' ? 'ingreso' : 'egreso'
-          await supabase.from('movimientos').insert([{
+          const { error: movErr } = await supabase.from('movimientos').insert([{
             tipo: tipoMov, categoria: 'deuda',
             descripcion: f.nombre || `Pago letra: ${deudaOrigen.nombre}`,
             monto, fecha: fechaHoy(), quien: 'Ambos',
             deuda_id: f.deuda_origen_id,
             deuda_movimiento_id: dmData?.[0]?.id || null,
           }])
-          await supabase.from('deudas').update({
+          if (movErr) console.error('Error al registrar movimiento general:', movErr.message)
+          const { error: updErr } = await supabase.from('deudas').update({
             pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
           }).eq('id', f.deuda_origen_id)
+          if (updErr) { setError(updErr.message); setSaving(false); return }
           setDeudas(prev => prev.map(d => d.id === f.deuda_origen_id
             ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
         }
@@ -466,6 +475,7 @@ export default function DeudasPage() {
       const { error } = await supabase.from('deudas').insert([payload])
       if (error) { setError(error.message); setSaving(false); return }
     }
+    toast(editandoId ? 'Deuda actualizada' : 'Deuda registrada', 'success')
     setSaving(false); setModalDeuda(false); setEditandoId(null)
     await cargar()
   }
@@ -479,14 +489,16 @@ export default function DeudasPage() {
     const nuevosPagados = (deuda.pagadas || 0) + 1
     const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
-    const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
+    const { data: dmData, error: dmError } = await supabase.from('deuda_movimientos').insert([{
       deuda_id: deuda.id, tipo: 'pago',
       descripcion: `Cuota mensual: ${deuda.nombre}`,
       monto, fecha: hoy, mes, año,
     }]).select()
 
+    if (dmError) { setError(dmError.message); setSaving(false); return }
+
     const tipoMov = deuda.tipo === 'medeben' ? 'ingreso' : 'egreso'
-    await supabase.from('movimientos').insert([{
+    const { error: movError } = await supabase.from('movimientos').insert([{
       tipo: tipoMov, categoria: 'deuda',
       descripcion: deuda.tipo === 'medeben'
         ? `Cobro deuda: ${deuda.nombre}`
@@ -495,10 +507,13 @@ export default function DeudasPage() {
       deuda_id: deuda.id,
       deuda_movimiento_id: dmData?.[0]?.id || null,
     }])
+    if (movError) console.error('Error al registrar movimiento general:', movError.message)
 
-    await supabase.from('deudas').update({
+    const { error: deudaError } = await supabase.from('deudas').update({
       pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
     }).eq('id', deuda.id)
+
+    if (deudaError) { setError(deudaError.message); setSaving(false); return }
 
     setDeudas(prev => prev.map(d => d.id === deuda.id
       ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
@@ -506,6 +521,7 @@ export default function DeudasPage() {
       ...prev,
       [deuda.id]: [...(prev[deuda.id] || []), { ...dmData?.[0], tipo: 'pago', monto, fecha: hoy, mes, año, descripcion: `Cuota mensual: ${deuda.nombre}` }]
     }))
+    toast(nuevoEstado === 'pagada' ? `¡${deuda.nombre} saldada! 🎉` : 'Pago registrado', 'success')
     setSaving(false)
   }
 
@@ -532,7 +548,7 @@ export default function DeudasPage() {
         nuevosPagados++
 
         const tipoMov = deuda.tipo === 'medeben' ? 'ingreso' : 'egreso'
-        await supabase.from('movimientos').insert([{
+        const { error: movGenError } = await supabase.from('movimientos').insert([{
           tipo: tipoMov, categoria: 'deuda',
           descripcion: deuda.tipo === 'medeben'
             ? `Cobro deuda: ${deuda.nombre}`
@@ -541,12 +557,14 @@ export default function DeudasPage() {
           deuda_id: deuda.id,
           deuda_movimiento_id: data[0]?.id || null,
         }])
+        if (movGenError) console.error('Error al registrar movimiento general:', movGenError.message)
 
-        await supabase.from('deudas').update({
+        const { error: updateError } = await supabase.from('deudas').update({
           pendiente: nuevoPendiente,
           pagadas: nuevosPagados,
           estado: nuevoPendiente <= 0 ? 'pagada' : 'activa',
         }).eq('id', modalMov)
+        if (updateError) { setError(updateError.message); setSaving(false); return }
 
       } else {
         nuevoPendiente = nuevoPendiente + monto
@@ -569,6 +587,7 @@ export default function DeudasPage() {
           ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados,
           estado: nuevoPendiente <= 0 ? 'pagada' : 'activa'
         } : d))
+      toast('Pago registrado', 'success')
       setModalMov(null)
       setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
     }
@@ -664,6 +683,7 @@ export default function DeudasPage() {
       await supabase.from('deudas').update({
         pendiente: nuevoPendiente, monto: nuevoMonto, estado: nuevoEstado
       }).eq('id', mov.deuda_id)
+      toast('Movimiento eliminado', 'success')
       await cargar()
       return
     }
@@ -676,6 +696,7 @@ export default function DeudasPage() {
       pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
     }).eq('id', mov.deuda_id)
 
+    toast('Movimiento eliminado', 'success')
     await cargar()
   }
 
@@ -691,6 +712,7 @@ export default function DeudasPage() {
       if (cardActiva === id) setCardActiva(null)
       if (expandido === id) setExpandido(null)
       if (tablaVisible === id) setTablaVisible(null)
+      toast('Deuda eliminada', 'success')
       await cargar()
     } catch (err) {
       toast(err.message)
@@ -709,8 +731,12 @@ export default function DeudasPage() {
     .filter(d => {
       if (!d.fecha_primer_pago) return true
       const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
-      const proxPago = new Date(d.fecha_primer_pago + 'T12:00:00')
-      proxPago.setMonth(proxPago.getMonth() + (d.pagadas || 0))
+      const base2 = new Date(d.fecha_primer_pago + 'T12:00:00')
+      const tm = base2.getMonth() + (d.pagadas || 0)
+      const ty = base2.getFullYear() + Math.floor(tm / 12)
+      const tmn = ((tm % 12) + 12) % 12
+      const ld = new Date(ty, tmn + 1, 0).getDate()
+      const proxPago = new Date(ty, tmn, Math.min(base2.getDate(), ld))
       return proxPago.getMonth() === hoy.getMonth() && proxPago.getFullYear() === hoy.getFullYear()
     })
     .reduce((s, d) => s + (d.cuota || 0), 0)

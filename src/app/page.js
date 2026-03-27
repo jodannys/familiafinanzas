@@ -58,11 +58,18 @@ function diasHastaPago(d) {
   let fechaPago
   if (d.fecha_primer_pago) {
     const base = new Date(d.fecha_primer_pago + 'T12:00:00')
-    fechaPago = new Date(base)
-    fechaPago.setMonth(fechaPago.getMonth() + (d.pagadas || 0))
+    const targetMonth = base.getMonth() + (d.pagadas || 0)
+    const targetYear = base.getFullYear() + Math.floor(targetMonth / 12)
+    const targetMonthNorm = ((targetMonth % 12) + 12) % 12
+    const lastDay = new Date(targetYear, targetMonthNorm + 1, 0).getDate()
+    fechaPago = new Date(targetYear, targetMonthNorm, Math.min(base.getDate(), lastDay))
   } else {
     const diaHoy = hoy.getDate()
-    fechaPago = new Date(hoy.getFullYear(), hoy.getMonth() + (d.dia_pago < diaHoy ? 1 : 0), d.dia_pago)
+    const offsetMes = d.dia_pago < diaHoy ? 1 : 0
+    const targetYear = hoy.getFullYear() + (hoy.getMonth() + offsetMes > 11 ? 1 : 0)
+    const targetMonth = (hoy.getMonth() + offsetMes + 12) % 12
+    const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate()
+    fechaPago = new Date(targetYear, targetMonth, Math.min(d.dia_pago, lastDay))
   }
   fechaPago.setHours(0, 0, 0, 0)
   return Math.ceil((fechaPago - hoy) / (1000 * 60 * 60 * 24))

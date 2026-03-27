@@ -7,6 +7,7 @@ import {
   Check, CalendarDays, List, Bell, CreditCard, Target, StickyNote, Sun,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import { formatCurrency } from '@/lib/utils'
 
@@ -117,9 +118,8 @@ export default function AgendaPage() {
         if (currentIdx > endIdx) return []
       }
     }
-    if (!d.dia_pago) return []
     const diasMes = new Date(año, mes + 1, 0).getDate()
-    const dia = Math.min(d.dia_pago, diasMes)
+    const dia = Math.min(d.dia_pago || 1, diasMes)
     return [{
       id: `auto-${d.id}`,
       fecha: toFechaStr(año, mes, dia),
@@ -261,12 +261,13 @@ export default function AgendaPage() {
     const payload = { titulo: form.titulo, fecha: form.fecha, tipo: form.tipo, color: form.color }
     if (editingNota) {
       const { error } = await supabase.from('agenda_notas').update(payload).eq('id', editingNota.id)
-      if (!error) { setNotas(prev => prev.map(n => n.id === editingNota.id ? { ...n, ...payload } : n)); cerrarModal() }
+      if (error) { toast('Error al guardar el evento'); } else { setNotas(prev => prev.map(n => n.id === editingNota.id ? { ...n, ...payload } : n)); toast('Evento actualizado', 'success'); cerrarModal() }
     } else {
       const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) { setSaving(false); return }
       const { data, error } = await supabase.from('agenda_notas')
         .insert([{ ...payload, completado: false, user_id: session.user.id }]).select()
-      if (!error) { setNotas(prev => [...prev, data[0]]); cerrarModal() }
+      if (error) { toast('Error al guardar el evento'); } else { setNotas(prev => [...prev, data[0]]); toast('Evento guardado', 'success'); cerrarModal() }
     }
     setSaving(false)
   }
@@ -275,13 +276,16 @@ export default function AgendaPage() {
     if (nota._auto) return
     const v = !nota.completado
     setNotas(prev => prev.map(n => n.id === nota.id ? { ...n, completado: v } : n))
-    await supabase.from('agenda_notas').update({ completado: v }).eq('id', nota.id)
+    const { error } = await supabase.from('agenda_notas').update({ completado: v }).eq('id', nota.id)
+    if (error) setNotas(prev => prev.map(n => n.id === nota.id ? { ...n, completado: !v } : n))
   }
 
   async function handleDelete(nota) {
     if (nota._auto) return
-    await supabase.from('agenda_notas').delete().eq('id', nota.id)
+    const { error } = await supabase.from('agenda_notas').delete().eq('id', nota.id)
+    if (error) { toast('Error al eliminar el evento'); return }
     setNotas(prev => prev.filter(n => n.id !== nota.id))
+    toast('Evento eliminado', 'success')
   }
 
   function cerrarModal() { setModal(false); setEditingNota(null) }

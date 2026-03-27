@@ -68,20 +68,30 @@ export default function AjustesPage() {
   async function handleGuardarNombre() {
     if (!nombrePerfil.trim()) return
     setSavingNombre(true)
-    await supabase.auth.updateUser({ data: { nombre: nombrePerfil.trim() } })
+    const { error } = await supabase.auth.updateUser({ data: { nombre: nombrePerfil.trim() } })
     setSavingNombre(false)
+    if (error) { toast('Error al guardar nombre: ' + error.message); return }
     setEditNombre(false)
   }
 
   async function cargar() {
     setLoading(true)
     try {
-      const [{ data: cats }, { data: subs }, { data: metasData }, { data: invData }] = await Promise.all([
+      const [
+        { data: cats, error: e1 },
+        { data: subs, error: e2 },
+        { data: metasData, error: e3 },
+        { data: invData, error: e4 },
+      ] = await Promise.all([
         supabase.from('categorias').select('*').order('bloque').order('orden').order('nombre'),
         supabase.from('subcategorias').select('*').order('orden').order('nombre'),
         supabase.from('metas').select('id, nombre, emoji, pct_mensual').order('created_at'),
         supabase.from('inversiones').select('id, nombre, emoji, aporte, pct_mensual').order('created_at'),
       ])
+      if (e1) console.error('Error cargando categorías:', e1.message)
+      if (e2) console.error('Error cargando subcategorías:', e2.message)
+      if (e3) console.error('Error cargando metas:', e3.message)
+      if (e4) console.error('Error cargando inversiones:', e4.message)
       setCategorias(cats || [])
       setSubcategorias(subs || [])
       setMetas(metasData || [])
@@ -129,6 +139,8 @@ export default function AjustesPage() {
 
   async function handleDeleteCat(id) {
     if (!confirm('¿Eliminar esta categoría y todas sus subcategorías?')) return
+    const { error: subError } = await supabase.from('subcategorias').delete().eq('categoria_id', id)
+    if (subError) { toast('Error al eliminar subcategorías: ' + subError.message); return }
     const { error } = await supabase.from('categorias').delete().eq('id', id)
     if (error) { toast('' + error.message); return }
     setCategorias(prev => prev.filter(c => c.id !== id))

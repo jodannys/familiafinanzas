@@ -9,7 +9,9 @@
       "Bash(npx next:*)",
       "Bash(sed \"s/.*from\\(''''//\")",
       "Bash(sed \"s/''''$//\")",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find . -name *.js -type f)",
+      "Read(//c/Users/jodan/OneDrive/**)"
     ]
   }
 }

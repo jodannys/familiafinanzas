@@ -267,8 +267,8 @@ export default function GastosPage() {
       const meta = metasData.find(m => m.id === metaId)
       if (meta) {
         const nuevoActual = (meta.actual || 0) + monto
-        await supabase.from('metas').update({ actual: nuevoActual }).eq('id', metaId)
-        setMetasData(prev => prev.map(m => m.id === metaId ? { ...m, actual: nuevoActual } : m))
+        const { error: metaErr } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', metaId)
+        if (!metaErr) setMetasData(prev => prev.map(m => m.id === metaId ? { ...m, actual: nuevoActual } : m))
       }
       setMetaSeleccionada('')
     }
@@ -278,8 +278,8 @@ export default function GastosPage() {
       const inv = inversionesData.find(i => i.id === invId)
       if (inv) {
         const nuevoCapital = (inv.capital || 0) + monto
-        await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', invId)
-        setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i))
+        const { error: invErr } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', invId)
+        if (!invErr) setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i))
       }
       setMetaSeleccionada('')
     }
@@ -421,6 +421,7 @@ export default function GastosPage() {
       }
     } catch (err) {
       console.error('Error en borrado:', err)
+      toast('Error al eliminar el movimiento')
     }
   }
 
