@@ -1,15 +1,629 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  Loader2, X, Plus, ArrowUpRight, ArrowDownRight,
+  Check, CreditCard, AlertCircle, CheckCircle, Info,
+  Banknote, Smartphone, Building2, Wallet, LogOut,
+} from 'lucide-react'
+import { supabase, signOut } from '@/lib/supabase'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
-import { Loader2, X, Plus, ArrowUpRight, ArrowDownRight, LogOut, Check, CreditCard, AlertCircle, CheckCircle, Info } from 'lucide-react'
-import { supabase, signOut } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
+import CustomSelect from '@/components/ui/CustomSelect'
 
-// ── Toast System ─────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const CATS_EGRESO = [
+  { id: 'basicos',   label: 'Básicos',        color: 'var(--accent-blue)'   },
+  { id: 'deseo',     label: 'Estilo de vida', color: 'var(--accent-violet)' },
+  { id: 'ahorro',    label: 'Ahorro',         color: 'var(--accent-green)'  },
+  { id: 'inversion', label: 'Inversión',      color: 'var(--accent-gold)'   },
+  { id: 'deuda',     label: 'Deuda',          color: 'var(--accent-rose)'   },
+]
+
+const SPECIAL_CATS = ['ahorro', 'inversion', 'deuda']
+const CAT_BLOQUE   = { basicos: 'necesidades', deuda: 'necesidades', deseo: 'estilo', ahorro: 'futuro', inversion: 'futuro' }
+
+const METODOS_PAGO = [
+  { id: 'efectivo',        label: 'Efectivo',  Icon: Banknote,  color: 'var(--accent-green)'  },
+  { id: 'transferencia',   label: 'Transf.',   Icon: Smartphone, color: 'var(--accent-blue)'  },
+  { id: 'debito',          label: 'Débito',    Icon: Building2,  color: 'var(--accent-violet)' },
+  { id: 'tarjeta_credito', label: 'T. Crédito', Icon: CreditCard, color: 'var(--accent-rose)' },
+]
+
+function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
+  if (!diaPago) return fechaCompra
+  const [y, m, d] = fechaCompra.split('-').map(Number)
+  const corte = diaCorte || diaPago
+  if (d <= corte) {
+    return `${y}-${String(m).padStart(2,'0')}-${String(diaPago).padStart(2,'0')}`
+  }
+  const nextM = m === 12 ? 1 : m + 1
+  const nextY = m === 12 ? y + 1 : y
+  return `${nextY}-${String(nextM).padStart(2,'0')}-${String(diaPago).padStart(2,'0')}`
+}
+
+// ── Sección con etiqueta ──────────────────────────────────────────────────────
+
+function Section({ label, children }) {
+  return (
+    <div>
+      <p style={{
+        fontSize: 9, fontWeight: 900, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: 'var(--text-muted)',
+        marginBottom: 6, paddingLeft: 2,
+      }}>{label}</p>
+      {children}
+    </div>
+  )
+}
+
+// ── Divisor ───────────────────────────────────────────────────────────────────
+
+function Divider() {
+  return <div style={{ height: '1px', background: 'var(--border-glass)', margin: '2px 0' }} />
+}
+
+// ── FABModal ──────────────────────────────────────────────────────────────────
+
+
+export function FABModal({ onClose }) {
+  const router = useRouter()
+  const [tipo,               setTipo]               = useState('egreso')
+  const [monto,              setMonto]               = useState('')
+  const [cat,                setCat]                 = useState(null)
+  const [catDB,              setCatDB]               = useState(null)
+  const [catDBList,          setCatDBList]           = useState([])
+  const [loadingCatDB,       setLoadingCatDB]        = useState(false)
+  const [desc,               setDesc]                = useState('')
+  const [saving,             setSaving]              = useState(false)
+  const [items,              setItems]               = useState([])
+  const [selectedItem,       setSelectedItem]        = useState(null)
+  const [loadingItems,       setLoadingItems]        = useState(false)
+  const [metodoPago,         setMetodoPago]          = useState('efectivo')
+  const [perfilesTarj,       setPerfilesTarj]        = useState([])
+  const [selectedPerfil,     setSelectedPerfil]      = useState(null)
+  const [numCuotas,          setNumCuotas]           = useState(1)
+  const [loadingPerf,        setLoadingPerf]         = useState(false)
+  const [fecha,              setFecha]               = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  })
+  const [quien,              setQuien]               = useState('Jodannys')
+  const [subcats,            setSubcats]             = useState([])
+  const [selectedSubcat,     setSelectedSubcat]      = useState(null)
+  const [subcatPresupuesto,  setSubcatPresupuesto]   = useState({})
+  const [montoMetasDisp,     setMontoMetasDisp]      = useState(0)
+  const [tipoIngreso,        setTipoIngreso]         = useState(null)
+
+  useEffect(() => {
+    getPresupuestoMes().then(p => setMontoMetasDisp(p?.montoMetas || 0))
+  }, [])
+
+  // Limpiar monto + items al cambiar tipo
+  function handleTipo(t) {
+    setTipo(t); setCat(null); setCatDB(null); setSelectedItem(null)
+    setMetodoPago('efectivo'); setNumCuotas(1); setSelectedPerfil(null)
+    setMonto(''); setTipoIngreso(null)
+  }
+
+  // Limpiar monto + sub-estado al cambiar categoría
+  function handleCat(id) {
+    const nuevo = cat === id ? null : id
+    setCat(nuevo); setCatDB(null); setSelectedItem(null)
+    setSelectedSubcat(null); setMonto('')  // ← limpia monto
+  }
+
+  // Perfiles de tarjeta
+  useEffect(() => {
+    if (metodoPago !== 'tarjeta_credito' || tipo !== 'egreso' || !cat) {
+      setPerfilesTarj([]); setSelectedPerfil(null); return
+    }
+    setLoadingPerf(true)
+    supabase.from('perfiles_tarjetas')
+      .select('id,nombre_tarjeta,banco,color,dia_pago,dia_corte,limite_credito')
+      .eq('estado', 'activa')
+      .then(({ data }) => {
+        setPerfilesTarj(data || [])
+        if (data?.length === 1) setSelectedPerfil(data[0])
+      })
+      .finally(() => setLoadingPerf(false))
+  }, [metodoPago, tipo, cat])
+
+  // Categorías BD
+  useEffect(() => {
+    setCatDB(null); setSelectedItem(null); setSubcats([]); setSelectedSubcat(null)
+    if (!cat || SPECIAL_CATS.includes(cat)) { setCatDBList([]); return }
+    const bloque = CAT_BLOQUE[cat]
+    if (!bloque) { setCatDBList([]); return }
+    setLoadingCatDB(true)
+    supabase.from('categorias').select('id,nombre,color').eq('bloque', bloque)
+      .order('orden').order('nombre')
+      .then(({ data }) => { setCatDBList(data || []) })
+      .finally(() => setLoadingCatDB(false))
+  }, [cat])
+
+  // Items especiales
+  useEffect(() => {
+    setSelectedItem(null)
+    if (!cat || !SPECIAL_CATS.includes(cat) || tipo !== 'egreso') { setItems([]); return }
+    setLoadingItems(true)
+    const q =
+      cat === 'ahorro'     ? supabase.from('metas').select('id,nombre,emoji,meta,actual,pct_mensual').eq('estado','activa')
+      : cat === 'inversion' ? supabase.from('inversiones').select('id,nombre,emoji,capital,aporte')
+      : supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas')
+          .eq('estado','activa').neq('tipo','medeben').neq('tipo_deuda','tarjeta')
+    q.then(({ data }) => { setItems(data || []) })
+      .finally(() => setLoadingItems(false))
+  }, [cat, tipo])
+
+  // Subcategorías + presupuesto del mes
+  useEffect(() => {
+    if (!catDB) { setSubcats([]); setSelectedSubcat(null); setSubcatPresupuesto({}); return }
+    const now = new Date()
+    const mes = now.getMonth() + 1
+    const año = now.getFullYear()
+    setSubcats([])
+    Promise.all([
+      supabase.from('subcategorias').select('id,nombre').eq('categoria_id', catDB.id).order('orden').order('nombre'),
+      supabase.from('presupuesto_cats').select('subcategoria_id,monto').eq('mes', mes).eq('año', año),
+    ]).then(([{ data: subsData }, { data: presData }]) => {
+      setSubcats(subsData || [])
+      setSelectedSubcat(null)
+      const presMap = {}
+      ;(presData || []).forEach(p => { presMap[p.subcategoria_id] = parseFloat(p.monto) })
+      setSubcatPresupuesto(presMap)
+    })
+  }, [catDB])
+
+  // ── Guardar ─────────────────────────────────────────────────────────────────
+  async function guardar() {
+    if (saving) return
+    const valor = parseFloat(monto)
+    if (!valor || valor <= 0) return
+    const esTarjeta = tipo === 'egreso' && metodoPago === 'tarjeta_credito'
+    if (esTarjeta && !selectedPerfil) { toast('Selecciona una tarjeta de crédito', 'warning'); return }
+    const cuotas = parseInt(numCuotas)
+    if (esTarjeta && (!cuotas || cuotas < 1)) { toast('Ingresa el número de cuotas', 'warning'); return }
+    const catFinal = tipo === 'ingreso' ? 'ingreso' : (cat || 'basicos')
+    const catLabel = tipo === 'ingreso' ? 'Ingreso' : (catDB?.nombre || CATS_EGRESO.find(c => c.id === catFinal)?.label || catFinal)
+    if (catFinal === 'deuda' && selectedItem && valor > selectedItem.pendiente) {
+      toast(`El monto supera el pendiente (${formatCurrency(selectedItem.pendiente)})`, 'warning'); return
+    }
+    setSaving(true)
+    const [fechaYear, fechaMes] = fecha.split('-').map(Number)
+    const tipoIngresoLabel = TIPOS_INGRESO.find(t => t.id === tipoIngreso)?.label
+    const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : (tipoIngresoLabel || catLabel))
+
+    if (esTarjeta && selectedPerfil) {
+      const cuotaMensual = parseFloat((valor / cuotas).toFixed(2))
+      const { error: tcError } = await supabase.from('deudas').insert([{
+        tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳',
+        nombre: descFinal, categoria: cat,
+        capital: valor, monto: valor, pendiente: valor,
+        cuota: cuotaMensual, plazo_meses: cuotas, pagadas: 0,
+        estado: 'activa', perfil_tarjeta_id: selectedPerfil.id,
+        dia_pago: selectedPerfil.dia_pago || null,
+        fecha_primer_pago: calcFechaPrimerPago(fecha, selectedPerfil.dia_pago, selectedPerfil.dia_corte),
+        color: selectedPerfil.color || '#A44A3F', tasa: 0, tasa_interes: 0,
+      }])
+      setSaving(false)
+      if (tcError) { toast('Error al registrar la compra: ' + tcError.message); return }
+      toast(`Compra registrada · ${cuotas === 1 ? 'Pago único' : `${cuotas}x de ${formatCurrency(cuotaMensual)}`}`, 'success')
+      onClose(); router.refresh(); return
+    }
+
+    const { data: movData, error } = await supabase.from('movimientos').insert([{
+      tipo, monto: valor, descripcion: descFinal,
+      categoria: tipo === 'ingreso' ? 'ingreso' : catFinal,
+      fecha,
+      metodo_pago: tipo === 'egreso' ? metodoPago : 'transferencia',
+      quien,
+      ...(selectedSubcat && { subcategoria_id: selectedSubcat.id }),
+      ...(tipo === 'egreso' && catFinal === 'deuda' && selectedItem && { deuda_id: selectedItem.id }),
+    }]).select()
+    if (error) { toast('Error: ' + error.message); setSaving(false); return }
+
+    if (tipo === 'egreso' && selectedItem) {
+      if (catFinal === 'ahorro') {
+        const { error: e } = await supabase.from('metas').update({ actual: (selectedItem.actual || 0) + valor }).eq('id', selectedItem.id)
+        if (e) { toast('Error al actualizar la meta: ' + e.message); setSaving(false); return }
+      } else if (catFinal === 'inversion') {
+        const { error: e } = await supabase.from('inversiones').update({ capital: (selectedItem.capital || 0) + valor }).eq('id', selectedItem.id)
+        if (e) { toast('Error al actualizar la inversión: ' + e.message); setSaving(false); return }
+      } else if (catFinal === 'deuda') {
+        const { data: dmData, error: dmErr } = await supabase.from('deuda_movimientos').insert([{
+          deuda_id: selectedItem.id, tipo: 'pago',
+          descripcion: descFinal || `Pago ${selectedItem.nombre}`,
+          monto: valor, fecha, mes: fechaMes, año: fechaYear,
+        }]).select()
+        if (dmErr) { toast('Error al registrar el pago: ' + dmErr.message); setSaving(false); return }
+        if (dmData?.[0]?.id && movData?.[0]?.id) {
+          await supabase.from('movimientos').update({ deuda_movimiento_id: dmData[0].id }).eq('id', movData[0].id)
+        }
+        const nuevoPendiente = Math.max(0, parseFloat(selectedItem.pendiente || 0) - valor)
+        const { error: deudaErr } = await supabase.from('deudas').update({
+          pendiente: nuevoPendiente, pagadas: (selectedItem.pagadas || 0) + 1,
+          estado: nuevoPendiente <= 0 ? 'pagada' : 'activa',
+        }).eq('id', selectedItem.id)
+        if (deudaErr) { toast('Error al actualizar la deuda: ' + deudaErr.message); setSaving(false); return }
+      }
+    }
+
+    toast(tipo === 'ingreso' ? 'Ingreso registrado' : 'Gasto registrado', 'success')
+    setSaving(false); onClose(); router.refresh()
+  }
+
+  // ── Colores dinámicos ────────────────────────────────────────────────────────
+  const catInfo    = cat ? CATS_EGRESO.find(c => c.id === cat) : null
+  const accentColor = tipo === 'ingreso' ? 'var(--accent-green)' : (catInfo?.color || 'var(--accent-main)')
+  const montoValido = parseFloat(monto) > 0
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        className="fixed inset-0 z-[110]"
+        style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)' }}
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <div
+        className="fixed z-[120] flex flex-col"
+        style={{
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'min(92vw, 440px)',
+          maxHeight: '88vh',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-glass)',
+          borderRadius: 28,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.28)',
+          paddingBottom: 8,
+        }}
+      >
+
+        {/* ── Header ── */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '34px 1fr 34px',
+          alignItems: 'center', gap: 8,
+          padding: '14px 16px 14px', borderBottom: '1px solid var(--border-glass)',
+        }}>
+          <div />
+          <div style={{ display: 'flex', gap: 4, padding: '3px', borderRadius: 16,
+            background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
+            {[
+              { id: 'egreso',  label: 'Gasto',   Icon: ArrowDownRight, color: 'var(--accent-rose)'  },
+              { id: 'ingreso', label: 'Ingreso',  Icon: ArrowUpRight,   color: 'var(--accent-green)' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => handleTipo(t.id)}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '9px 0', borderRadius: 12, border: 'none', cursor: 'pointer',
+                  background: tipo === t.id
+                    ? `color-mix(in srgb, ${t.color} 15%, var(--bg-card))`
+                    : 'transparent',
+                  color: tipo === t.id ? t.color : 'var(--text-muted)',
+                  fontWeight: 700, fontSize: 13,
+                  boxShadow: tipo === t.id ? '0 2px 8px rgba(0,0,0,0.10)' : 'none',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <t.Icon size={15} strokeWidth={2.5} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 34, height: 34, borderRadius: '50%', border: 'none', cursor: 'pointer',
+              background: 'var(--bg-secondary)', color: 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        {/* ── Monto — hero prominente ── */}
+        <div style={{
+          padding: '18px 20px 14px',
+          borderBottom: '1px solid var(--border-glass)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+        }}>
+          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
+            textTransform: 'uppercase', color: accentColor, opacity: 0.7, margin: 0 }}>
+            {tipo === 'ingreso' ? 'Ingreso' : (catInfo?.label || 'Importe')}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 22, fontWeight: 400, color: accentColor, opacity: 0.5, fontFamily: 'var(--font-serif, serif)' }}>€</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={monto}
+              onChange={e => setMonto(e.target.value)}
+              style={{
+                background: 'transparent', border: 'none', outline: 'none',
+                fontSize: 48, fontWeight: 700, color: accentColor,
+                width: 200, textAlign: 'center', fontFamily: 'var(--font-serif, serif)',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* ── Cuerpo scrollable ── */}
+        <div className="no-scrollbar" style={{ overflowY: 'auto', flex: 1, padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* SECCIÓN: Categoría (solo gasto) */}
+          {tipo === 'egreso' && (
+            <Section label="Categoría">
+              <CustomSelect
+                value={cat || ''}
+                onChange={id => { setMonto(''); handleCat(id) }}
+                options={CATS_EGRESO.map(c => ({ id: c.id, label: c.label }))}
+                placeholder="— Seleccionar categoría —"
+              />
+            </Section>
+          )}
+
+          {/* SECCIÓN: Categoría BD + Subcategoría */}
+          {tipo === 'egreso' && cat && !SPECIAL_CATS.includes(cat) && (
+            <Section label="Categoría">
+              {loadingCatDB ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 10 }}>
+                  <Loader2 size={14} className="animate-spin" style={{ opacity: 0.3 }} />
+                </div>
+              ) : catDBList.length === 0 ? null : (
+                <CustomSelect
+                  value={catDB?.id || ''}
+                  onChange={id => setCatDB(catDBList.find(c => c.id === id) || null)}
+                  options={catDBList.map(c => ({ id: c.id, label: c.nombre }))}
+                  placeholder="— Seleccionar categoría —"
+                  color={catInfo?.color}
+                />
+              )}
+
+              {/* Subcategorías */}
+              {subcats.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <CustomSelect
+                    value={selectedSubcat?.id || ''}
+                    onChange={id => {
+                      const sub = subcats.find(s => s.id === id) || null
+                      setSelectedSubcat(sub)
+                      if (sub && subcatPresupuesto[sub.id] > 0) setMonto(subcatPresupuesto[sub.id].toString())
+                    }}
+                    options={subcats.map(s => ({
+                      id: s.id,
+                      label: s.nombre,
+                      sub: subcatPresupuesto[s.id] > 0 ? formatCurrency(subcatPresupuesto[s.id]) : undefined,
+                    }))}
+                    placeholder="— Subcategoría (opcional) —"
+                    color={catInfo?.color}
+                  />
+                </div>
+              )}
+            </Section>
+          )}
+
+          {/* SECCIÓN: Items especiales */}
+          {tipo === 'egreso' && cat && SPECIAL_CATS.includes(cat) && (loadingItems || items.length > 0) && (
+            <Section label={cat === 'ahorro' ? 'Meta' : cat === 'inversion' ? 'Inversión' : 'Deuda'}>
+              {loadingItems ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 10 }}>
+                  <Loader2 size={14} className="animate-spin" style={{ opacity: 0.3 }} />
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {items.map(item => {
+                    const isSel = selectedItem?.id === item.id
+                    const color = cat === 'ahorro' ? 'var(--accent-green)' : cat === 'inversion' ? 'var(--accent-violet)' : 'var(--accent-rose)'
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedItem(isSel ? null : item)
+                          if (!isSel) {
+                            if      (cat === 'deuda'     && item.cuota > 0)                       setMonto(item.cuota.toString())
+                            else if (cat === 'inversion' && item.aporte > 0)                       setMonto(item.aporte.toString())
+                            else if (cat === 'ahorro'    && item.pct_mensual > 0 && montoMetasDisp > 0)
+                              setMonto(parseFloat(((item.pct_mensual / 100) * montoMetasDisp).toFixed(2)).toString())
+                          } else {
+                            setMonto('') // limpiar si se deselecciona
+                          }
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '9px 12px', borderRadius: 12, cursor: 'pointer',
+                          background: isSel ? `color-mix(in srgb, ${color} 8%, var(--bg-card))` : 'var(--bg-secondary)',
+                          border: `1px solid ${isSel ? color : 'transparent'}`,
+                          transition: 'all 0.12s', textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ fontSize: 16 }}>{item.emoji}</span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>{item.nombre}</p>
+                          <p style={{ margin: 0, fontSize: 9, color: 'var(--text-muted)' }}>
+                            {cat === 'deuda'
+                              ? `Pendiente: ${formatCurrency(item.pendiente)}`
+                              : cat === 'inversion'
+                                ? `Capital: ${formatCurrency(item.capital || 0)}`
+                                : item.pct_mensual > 0 && montoMetasDisp > 0
+                                  ? `Aporte: ${formatCurrency((item.pct_mensual / 100) * montoMetasDisp)}`
+                                  : `Meta: ${formatCurrency(item.meta || 0)}`}
+                          </p>
+                        </div>
+                        {isSel && <Check size={12} style={{ color, flexShrink: 0 }} />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </Section>
+          )}
+
+          {tipo === 'egreso' && <Divider />}
+
+          {/* SECCIÓN: Detalles (fecha, quién, método) */}
+          <Section label="Detalles">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+              {/* Solo fecha */}
+              <input
+                type="date"
+                value={fecha}
+                onChange={e => setFecha(e.target.value)}
+                className="ff-input"
+                style={{ fontSize: 11, padding: '7px 10px', borderRadius: 10, width: '100%' }}
+              />
+
+              {/* Método de pago (solo gasto) */}
+              {tipo === 'egreso' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+                  {METODOS_PAGO.map(m => {
+                    const sel = metodoPago === m.id
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => { setMetodoPago(m.id); setSelectedPerfil(null); setNumCuotas(1) }}
+                        style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                          padding: '8px 4px', borderRadius: 12, cursor: 'pointer',
+                          background: sel ? `color-mix(in srgb, ${m.color} 10%, var(--bg-card))` : 'var(--bg-secondary)',
+                          border: `1px solid ${sel ? m.color : 'var(--border-glass)'}`,
+                          color: sel ? m.color : 'var(--text-muted)',
+                          transition: 'all 0.12s',
+                        }}
+                      >
+                        <m.Icon size={14} strokeWidth={2} />
+                        <span style={{ fontSize: 9, fontWeight: 700 }}>{m.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Tarjetas de crédito */}
+              {tipo === 'egreso' && metodoPago === 'tarjeta_credito' && (loadingPerf || perfilesTarj.length > 0) && (
+                <div style={{
+                  padding: '10px 12px', borderRadius: 14,
+                  background: 'var(--bg-secondary)', border: '1px dashed var(--border-glass)',
+                  display: 'flex', flexDirection: 'column', gap: 6,
+                }}>
+                  {loadingPerf ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: 8 }}>
+                      <Loader2 size={14} className="animate-spin" style={{ opacity: 0.3 }} />
+                    </div>
+                  ) : perfilesTarj.length === 0 ? null : perfilesTarj.map(t => {
+                    const isSel = selectedPerfil?.id === t.id
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedPerfil(isSel ? null : t)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+                          background: isSel ? 'var(--bg-card)' : 'transparent',
+                          border: `1px solid ${isSel ? 'var(--accent-rose)' : 'transparent'}`,
+                        }}
+                      >
+                        <CreditCard size={13} style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-muted)' }} />
+                        <div style={{ flex: 1, textAlign: 'left' }}>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700 }}>{t.nombre_tarjeta}</p>
+                          <p style={{ margin: 0, fontSize: 9, opacity: 0.4 }}>{t.banco || 'Tarjeta'}</p>
+                        </div>
+                        {isSel && <Check size={12} style={{ color: 'var(--accent-rose)' }} />}
+                      </button>
+                    )
+                  })}
+                  {selectedPerfil && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      paddingTop: 8, borderTop: '1px solid var(--border-glass)',
+                    }}>
+                      <p style={{ margin: 0, fontSize: 9, fontWeight: 800, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Cuotas</p>
+                      <input
+                        type="number" min="1" value={numCuotas}
+                        onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
+                        style={{
+                          width: 44, textAlign: 'center', fontWeight: 700, fontSize: 13,
+                          background: 'var(--bg-card)', border: '1px solid var(--border-glass)',
+                          borderRadius: 8, padding: '3px 0', color: 'var(--accent-rose)',
+                        }}
+                      />
+                      <p style={{ margin: 0, fontSize: 10, opacity: 0.6 }}>
+                        {numCuotas > 1
+                          ? `${numCuotas}x ${formatCurrency(parseFloat(monto || 0) / numCuotas)}`
+                          : 'Pago único'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Section>
+
+          {/* SECCIÓN: Descripción */}
+          <Section label={tipo === 'ingreso' ? 'Descripción' : 'Nota (opcional)'}>
+            <input
+              type="text"
+              placeholder={tipo === 'ingreso' ? 'Ej: Sueldo, Freelance…' : 'Añade una descripción…'}
+              value={desc}
+              onChange={e => setDesc(e.target.value)}
+              className="ff-input"
+              style={{ width: '100%', fontSize: 12, padding: '9px 12px', borderRadius: 10 }}
+            />
+          </Section>
+
+          {/* ── Botón guardar ── */}
+          <button
+            onClick={guardar}
+            disabled={!montoValido || saving}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 16, border: 'none', cursor: montoValido ? 'pointer' : 'default',
+              background: !montoValido ? 'var(--bg-secondary)'
+                : tipo === 'ingreso' ? 'var(--accent-green)' : accentColor,
+              color: !montoValido ? 'var(--text-muted)' : '#fff',
+              fontWeight: 800, fontSize: 13,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'all 0.15s', opacity: saving ? 0.7 : 1,
+            }}
+          >
+            {saving ? (
+              <Loader2 size={17} className="animate-spin" />
+            ) : (
+              <>
+                {tipo === 'egreso' && metodoPago === 'tarjeta_credito'
+                  ? <CreditCard size={15} />
+                  : <Plus size={15} />}
+                <span>
+                  {tipo === 'egreso' && metodoPago === 'tarjeta_credito'
+                    ? 'Registrar en cuotas'
+                    : tipo === 'ingreso'
+                      ? 'Confirmar ingreso'
+                      : 'Confirmar gasto'}
+                </span>
+              </>
+            )}
+          </button>
+
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── Toast System ──────────────────────────────────────────────────────────────
+
 function ToastDisplay() {
   const [toasts, setToasts] = useState([])
 
@@ -23,8 +637,6 @@ function ToastDisplay() {
     window.addEventListener('ff-toast', handler)
     return () => window.removeEventListener('ff-toast', handler)
   }, [])
-
-  // ... resto del componente ToastDisplay (COLORS, return, etc.)
 
   const COLORS = {
     error:   { bg: 'color-mix(in srgb, var(--accent-rose)  12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-rose)  35%, transparent)', text: 'var(--accent-rose)',  Icon: AlertCircle },
@@ -52,498 +664,21 @@ function ToastDisplay() {
   )
 }
 
-const CATS_EGRESO = [
-  { id: 'basicos', label: 'Básicos', color: 'var(--accent-blue)' },
-  { id: 'deseo', label: 'Estilo de vida', color: 'var(--accent-violet)' },
-  { id: 'ahorro', label: 'Ahorro', color: 'var(--accent-green)' },
-  { id: 'inversion', label: 'Inversión', color: 'var(--accent-gold)' },
-  { id: 'deuda', label: 'Deuda', color: 'var(--accent-rose)' },
-]
-
-const SPECIAL_CATS = ['ahorro', 'inversion', 'deuda']
-
-function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
-  if (!diaPago) return fechaCompra
-  const [y, m, d] = fechaCompra.split('-').map(Number)
-  const corte = diaCorte || diaPago
-  if (d <= corte) {
-    return `${y}-${String(m).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
-  } else {
-    const nextM = m === 12 ? 1 : m + 1
-    const nextY = m === 12 ? y + 1 : y
-    return `${nextY}-${String(nextM).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
-  }
-}
-
-const METODOS_PAGO = [
-  { id: 'efectivo', short: 'EF', label: 'Efectivo', color: 'var(--accent-green)' },
-  { id: 'transferencia', short: 'TR', label: 'Transf.', color: 'var(--accent-blue)' },
-  { id: 'debito', short: 'DB', label: 'Débito', color: 'var(--accent-violet)' },
-  { id: 'tarjeta_credito', short: 'TC', label: 'T. Crédito', color: 'var(--accent-rose)' },
-]
-
-const CAT_BLOQUE = { basicos: 'necesidades', deuda: 'necesidades', deseo: 'estilo', ahorro: 'futuro', inversion: 'futuro' }
-
-function FABModal({ onClose }) {
-  const [step, setStep] = useState(1)
-  const [tipo, setTipo] = useState('egreso')
-  const [monto, setMonto] = useState('')
-  const [cat, setCat] = useState(null)
-  const [desc, setDesc] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [items, setItems] = useState([])
-  const [selectedItem, setSelectedItem] = useState(null)
-  const [loadingItems, setLoadingItems] = useState(false)
-  const [metodoPago, setMetodoPago] = useState('efectivo')
-  const [perfilesTarj, setPerfilesTarj] = useState([])
-  const [selectedPerfil, setSelectedPerfil] = useState(null)
-  const [numCuotas, setNumCuotas] = useState('')
-  const [loadingPerf, setLoadingPerf] = useState(false)
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10))
-  const [quien, setQuien] = useState('Jodannys')
-  const [subcats, setSubcats] = useState([])
-  const [selectedSubcat, setSelectedSubcat] = useState(null)
-  const [montoMetasDisponible, setMontoMetasDisponible] = useState(0)
-
-  useEffect(() => {
-    if (metodoPago !== 'tarjeta_credito' || tipo !== 'egreso' || !cat) {
-      setPerfilesTarj([]); setSelectedPerfil(null); return
-    }
-    setLoadingPerf(true)
-    supabase.from('perfiles_tarjetas')
-      .select('id,nombre_tarjeta,banco,color,dia_pago,dia_corte,limite_credito')
-      .eq('estado', 'activa')
-      .then(({ data }) => {
-        setPerfilesTarj(data || [])
-        if (data?.length === 1) setSelectedPerfil(data[0])
-        setLoadingPerf(false)
-      })
-  }, [metodoPago, tipo])
-
- // DENTRO DE FABModal
-useEffect(() => {
-  // 1. LIMPIEZA AUTOMÁTICA
-  setMonto('') 
-  setSelectedItem(null)
-
-  // 2. Lógica de carga para categorías especiales
-  if (!cat || !SPECIAL_CATS.includes(cat) || tipo !== 'egreso') {
-    setItems([])
-    return
-  }
-
-  setLoadingItems(true)
-  
-  const fetchItems =
-    cat === 'ahorro' ? supabase.from('metas').select('id,nombre,emoji,meta,actual,pct_mensual').eq('estado', 'activa')
-      : cat === 'inversion' ? supabase.from('inversiones').select('id,nombre,emoji,capital,aporte')
-        : supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas').eq('estado', 'activa').neq('tipo', 'medeben').neq('tipo_deuda', 'tarjeta')
-
-  if (cat === 'ahorro') {
-    Promise.all([fetchItems, getPresupuestoMes()]).then(([{ data }, presupuesto]) => {
-      setItems(data || [])
-      setMontoMetasDisponible(presupuesto?.montoMetas || 0)
-      setLoadingItems(false)
-    })
-  } else {
-    fetchItems.then(({ data }) => { 
-      setItems(data || [])
-      setLoadingItems(false) 
-    })
-  }
-}, [cat, tipo]) // Este trigger asegura que al cambiar de pestaña el monto se borre
-
-  // ── ESTE ES EL USEEFFECT OPTIMIZADO PARA LAS SUBCATEGORÍAS ──
-  useEffect(() => {
-    if (tipo !== 'egreso' || !cat || SPECIAL_CATS.includes(cat)) {
-      setSubcats([]); setSelectedSubcat(null); return
-    }
-    
-    supabase.from('subcategorias')
-      .select('id,nombre')
-      .eq('categoria_id', cat)
-      .order('orden')
-      .order('nombre')
-      .then(({ data }) => {
-        setSubcats(data || [])
-        setSelectedSubcat(null)
-      })
-  }, [cat, tipo])
-
-  async function guardar() {
-    const valor = parseFloat(monto)
-    if (!valor || valor <= 0) return
-    const esTarjeta = tipo === 'egreso' && metodoPago === 'tarjeta_credito'
-    if (esTarjeta && !selectedPerfil) { toast('Selecciona una tarjeta de crédito', 'warning'); return }
-    const cuotas = parseInt(numCuotas)
-    if (esTarjeta && (!cuotas || cuotas < 1)) { toast('Ingresa el número de cuotas', 'warning'); return }
-    setSaving(true)
-    const catFinal = cat || 'basicos'
-    const catLabel = CATS_EGRESO.find(c => c.id === catFinal)?.label || catFinal
-    const [fechaYear, fechaMes] = fecha.split('-').map(Number)
-    const descFinal = desc.trim() || (selectedItem ? selectedItem.nombre : catLabel)
-
-    // Compra con TC: solo crear deuda, sin movimiento inmediato
-    if (esTarjeta && selectedPerfil) {
-      const cuotaMensual = parseFloat((valor / cuotas).toFixed(2))
-      const { error: tcError } = await supabase.from('deudas').insert([{
-        tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳',
-        nombre: descFinal, categoria: cat,
-        capital: valor, monto: valor, pendiente: valor,
-        cuota: cuotaMensual, plazo_meses: cuotas, pagadas: 0,
-        estado: 'activa', perfil_tarjeta_id: selectedPerfil.id,
-        dia_pago: selectedPerfil.dia_pago || null,
-        fecha_primer_pago: calcFechaPrimerPago(fecha, selectedPerfil.dia_pago, selectedPerfil.dia_corte),
-        color: selectedPerfil.color || '#A44A3F',
-        tasa: 0, tasa_interes: 0,
-      }])
-      setSaving(false)
-      if (tcError) { toast('Error al registrar la compra: ' + tcError.message); return }
-      toast(`Compra registrada · ${cuotas === 1 ? 'Pago único' : `${cuotas}x de ${formatCurrency(cuotaMensual)}`}`, 'success')
-      onClose()
-      window.location.reload()
-      return
-    }
-
-    const { data: movData, error } = await supabase.from('movimientos').insert([{
-      tipo, monto: valor, descripcion: descFinal,
-      categoria: tipo === 'ingreso' ? 'ingreso' : catFinal,
-      fecha,
-      metodo_pago: tipo === 'egreso' ? metodoPago : 'transferencia',
-      quien,
-      ...(selectedSubcat && { subcategoria_id: selectedSubcat.id }),
-      ...(tipo === 'egreso' && catFinal === 'deuda' && selectedItem && { deuda_id: selectedItem.id }),
-    }]).select()
-    if (error) { toast('Error: ' + error.message); setSaving(false); return }
-
-    if (tipo === 'egreso' && selectedItem) {
-      if (catFinal === 'ahorro') {
-        const { error: metaErr } = await supabase.from('metas').update({ actual: (selectedItem.actual || 0) + valor }).eq('id', selectedItem.id)
-        if (metaErr) { toast('Error al actualizar la meta: ' + metaErr.message); setSaving(false); return }
-      } else if (catFinal === 'inversion') {
-        const { error: invErr } = await supabase.from('inversiones').update({ capital: (selectedItem.capital || 0) + valor }).eq('id', selectedItem.id)
-        if (invErr) { toast('Error al actualizar la inversión: ' + invErr.message); setSaving(false); return }
-      } else if (catFinal === 'deuda') {
-        const { data: dmData, error: dmErr } = await supabase.from('deuda_movimientos').insert([{
-          deuda_id: selectedItem.id, tipo: 'pago',
-          descripcion: descFinal || `Pago ${selectedItem.nombre}`,
-          monto: valor, fecha,
-          mes: fechaMes, año: fechaYear,
-        }]).select()
-        if (dmErr) { toast('Error al registrar el pago: ' + dmErr.message); setSaving(false); return }
-        // Vincular deuda_movimiento_id al movimiento para poder revertir limpiamente
-        if (dmData?.[0]?.id && movData?.[0]?.id) {
-          await supabase.from('movimientos')
-            .update({ deuda_movimiento_id: dmData[0].id })
-            .eq('id', movData[0].id)
-        }
-        const nuevoPendiente = Math.max(0, parseFloat(selectedItem.pendiente || 0) - valor)
-        const { error: deudaErr } = await supabase.from('deudas').update({
-          pendiente: nuevoPendiente,
-          pagadas: (selectedItem.pagadas || 0) + 1,
-          estado: nuevoPendiente <= 0 ? 'pagada' : 'activa',
-        }).eq('id', selectedItem.id)
-        if (deudaErr) { toast('Error al actualizar la deuda: ' + deudaErr.message); setSaving(false); return }
-      }
-    }
-
-    toast(tipo === 'ingreso' ? 'Ingreso registrado' : 'Gasto registrado', 'success')
-    setSaving(false)
-    onClose()
-    window.location.reload()
-  }
-
-  const catInfo = cat ? CATS_EGRESO.find(c => c.id === cat) : null
-
-  return (
-    <>
-      <div className="fixed inset-0 z-[110]"
-        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' }}
-        onClick={onClose} />
-
-      <div className="fixed bottom-0 left-0 right-0 z-[120] rounded-t-[32px] flex flex-col shadow-2xl overflow-hidden"
-        style={{
-          background: 'var(--bg-card)',
-          backdropFilter: 'blur(32px)',
-          WebkitBackdropFilter: 'blur(32px)',
-          border: '1px solid var(--border-glass)',
-          borderBottom: 'none',
-          maxHeight: '92vh',
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
-        }}>
-
-        {/* Handle superior */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full opacity-20" style={{ background: 'var(--text-primary)' }} />
-        </div>
-
-        {/* Cabecera */}
-        <div className="px-6 pb-4 flex items-center justify-between shrink-0">
-          <div className="flex flex-col">
-            {step === 1 ? (
-              <>
-                <p className="font-script text-[32px] mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>Registrar</p>
-                <p className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-black" style={{ marginLeft: '2px' }}>¿Qué tipo de movimiento?</p>
-              </>
-            ) : (
-              <div className="flex items-center gap-3">
-                <button onClick={() => setStep(1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90"
-                  style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', border: 'none', fontSize: 18 }}>
-                  ‹
-                </button>
-                <div>
-                  <p className="font-script text-[28px]" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>
-                    {tipo === 'ingreso' ? 'Ingreso' : catInfo?.label || 'Gasto'}
-                  </p>
-                  <p className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-black" style={{ marginLeft: '2px' }}>Detalle del movimiento</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
-            style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', border: 'none' }}>
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* ── PASO 1: Tipo + Categoría ── */}
-        {step === 1 && (
-          <div className="px-6 pb-4 space-y-5 overflow-y-auto flex-1 no-scrollbar">
-
-            {/* Selector Gasto / Ingreso */}
-            <div className="flex p-1 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
-              {[
-                { id: 'egreso', label: 'Gasto', icon: ArrowDownRight, color: 'var(--accent-rose)' },
-                { id: 'ingreso', label: 'Ingreso', icon: ArrowUpRight, color: 'var(--accent-green)' },
-              ].map(t => (
-                <button key={t.id}
-                  onClick={() => { setTipo(t.id); setCat(null); setSelectedItem(null); setMetodoPago('efectivo'); setNumCuotas(1); setSelectedPerfil(null); if (t.id === 'ingreso') setStep(2) }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[12px] font-bold text-[13px] transition-all"
-                  style={{
-                    background: tipo === t.id ? 'var(--bg-card)' : 'transparent',
-                    color: tipo === t.id ? t.color : 'var(--text-muted)',
-                    boxShadow: tipo === t.id ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
-                  }}>
-                  <t.icon size={14} strokeWidth={2.5} /> {t.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Categorías grandes (solo gasto) */}
-            {tipo === 'egreso' && (
-              <div className="space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 px-1">Categoría</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {CATS_EGRESO.map(c => (
-                    <button key={c.id}
-                      onClick={() => { setCat(c.id); setSelectedItem(null); setSelectedSubcat(null); setStep(2) }}
-                      className="flex items-center gap-4 px-4 py-3.5 rounded-2xl font-bold text-[13px] transition-all active:scale-[0.98] border"
-                      style={{
-                        background: 'var(--bg-secondary)',
-                        color: 'var(--text-primary)',
-                        borderColor: 'var(--border-glass)',
-                      }}>
-                      <span className="w-3 h-3 rounded-full shrink-0" style={{ background: c.color }} />
-                      <span className="flex-1 text-left">{c.label}</span>
-                      <span className="opacity-30 text-base">›</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </div>
-        )}
-
-        {/* ── PASO 2: Detalles ── */}
-        {step === 2 && (
-          <div className="px-6 space-y-4 pt-1 overflow-y-auto flex-1 no-scrollbar pb-2">
-
-            {/* Monto */}
-            <div className="flex items-center justify-center gap-2 py-4">
-              <span className="text-3xl font-serif opacity-25">€</span>
-              <input type="number" inputMode="decimal" placeholder="0.00" value={monto} onChange={e => setMonto(e.target.value)}
-                autoFocus className="bg-transparent border-none outline-none text-5xl font-serif font-bold text-center"
-                style={{ color: tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-primary)', width: 220 }} />
-            </div>
-
-            {/* Subcategorías */}
-            {tipo === 'egreso' && subcats.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {subcats.map(s => (
-                  <button key={s.id} onClick={() => setSelectedSubcat(selectedSubcat?.id === s.id ? null : s)}
-                    className="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border"
-                    style={{
-                      background: selectedSubcat?.id === s.id ? 'var(--accent-main)' : 'transparent',
-                      color: selectedSubcat?.id === s.id ? 'white' : 'var(--text-muted)',
-                      borderColor: selectedSubcat?.id === s.id ? 'transparent' : 'var(--border-glass)',
-                    }}>{s.nombre}</button>
-                ))}
-              </div>
-            )}
-
-            {/* Vínculo a Metas/Inversiones/Deudas */}
-            {tipo === 'egreso' && cat && SPECIAL_CATS.includes(cat) && (loadingItems || items.length > 0) && (
-              <div className="space-y-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 px-0.5">{cat === 'ahorro' ? 'Meta' : cat === 'inversion' ? 'Inversión' : 'Deuda'}</p>
-                {loadingItems ? (
-                  <div className="flex justify-center py-3"><Loader2 size={16} className="animate-spin opacity-30" /></div>
-                ) : (
-                  <div className="grid gap-1.5">
-                    {items.map(item => {
-                      const isSelected = selectedItem?.id === item.id
-                      const color = cat === 'ahorro' ? 'var(--accent-green)' : cat === 'inversion' ? 'var(--accent-violet)' : 'var(--accent-rose)'
-                      return (
-                        <button key={item.id}
-                          onClick={() => {
-                            setSelectedItem(isSelected ? null : item)
-                            if (!isSelected) {
-                              if (cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString())
-                              else if (cat === 'inversion' && item.aporte > 0) setMonto(item.aporte.toString())
-                              else if (cat === 'ahorro' && item.pct_mensual > 0 && montoMetasDisponible > 0) {
-                                const aporte = parseFloat(((item.pct_mensual / 100) * montoMetasDisponible).toFixed(2))
-                                setMonto(aporte.toString())
-                              }
-                            }
-                          }}
-                          className="w-full flex items-center gap-3 p-2.5 rounded-xl transition-all border"
-                          style={{
-                            background: isSelected ? 'var(--bg-card)' : 'transparent',
-                            borderColor: isSelected ? color : 'var(--border-glass)'
-                          }}>
-                          <span className="text-sm">{item.emoji}</span>
-                          <div className="flex-1 text-left">
-                            <p className="text-[11px] font-bold">{item.nombre}</p>
-                            <p className="text-[9px] opacity-40">{cat === 'deuda' ? `Pendiente: ${formatCurrency(item.pendiente)}` : cat === 'inversion' ? `Capital: ${formatCurrency(item.capital || 0)}` : item.pct_mensual > 0 && montoMetasDisponible > 0 ? `Aporte: ${formatCurrency((item.pct_mensual / 100) * montoMetasDisponible)}/mes` : `Meta: ${formatCurrency(item.meta || 0)}`}</p>
-                          </div>
-                          {isSelected && <Check size={14} style={{ color }} />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Fila: Fecha · Quién · Método */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-                className="ff-input !py-2 !text-[11px] !rounded-xl" style={{ flex: '1 1 120px' }} />
-              <div className="flex p-0.5 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)', flex: '1 1 100px' }}>
-                {['Jodannys', 'Ambos'].map(q => (
-                  <button key={q} onClick={() => setQuien(q)}
-                    className="flex-1 py-1.5 rounded-[10px] text-[10px] font-bold transition-all"
-                    style={{
-                      background: quien === q ? 'var(--bg-card)' : 'transparent',
-                      color: quien === q ? 'var(--accent-main)' : 'var(--text-muted)',
-                    }}>{q}</button>
-                ))}
-              </div>
-            </div>
-
-            {/* Métodos de Pago */}
-            {tipo === 'egreso' && (
-              <>
-                <div className="grid grid-cols-4 gap-2">
-                  {METODOS_PAGO.map(m => {
-                    const sel = metodoPago === m.id
-                    return (
-                      <button key={m.id} onClick={() => { setMetodoPago(m.id); setSelectedPerfil(null); setNumCuotas(1) }}
-                        className="py-2 rounded-xl text-[10px] font-black transition-all border"
-                        style={{
-                          background: sel ? 'var(--bg-card)' : 'transparent',
-                          color: sel ? m.color : 'var(--text-muted)',
-                          borderColor: sel ? m.color : 'var(--border-glass)'
-                        }}>{m.short}</button>
-                    )
-                  })}
-                </div>
-
-                {metodoPago === 'tarjeta_credito' && (
-                  <div className="p-3 rounded-2xl space-y-2 border border-dashed" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-glass)' }}>
-                    {loadingPerf ? (
-                      <div className="flex justify-center py-2"><Loader2 size={16} className="animate-spin opacity-30" /></div>
-                    ) : perfilesTarj.length === 0 ? (
-                      <p className="text-[10px] text-center opacity-40 py-2">Sin tarjetas · Ve a Deudas → Mis Tarjetas</p>
-                    ) : perfilesTarj.map(t => {
-                        const isSel = selectedPerfil?.id === t.id
-                        return (
-                          <button key={t.id} onClick={() => setSelectedPerfil(isSel ? null : t)}
-                            className="w-full flex items-center gap-3 p-2.5 rounded-xl transition-all"
-                            style={{ background: isSel ? 'var(--bg-card)' : 'transparent', border: isSel ? '1px solid var(--accent-rose)' : '1px solid transparent' }}>
-                            <CreditCard size={14} style={{ color: isSel ? 'var(--accent-rose)' : 'var(--text-muted)' }} />
-                            <div className="flex-1 text-left">
-                              <p className="text-[11px] font-bold">{t.nombre_tarjeta}</p>
-                              <p className="text-[9px] opacity-40">{t.banco || 'Tarjeta'}</p>
-                            </div>
-                            {isSel && <Check size={14} className="text-[var(--accent-rose)]" />}
-                          </button>
-                        )
-                      })}
-                    {selectedPerfil && (
-                      <div className="flex items-center gap-3 pt-2 px-1 border-t border-white/5">
-                        <p className="text-[9px] font-bold opacity-40">CUOTAS:</p>
-                        <input type="number" min="1" value={numCuotas} onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="bg-black/10 rounded-lg text-center font-bold text-xs p-1" style={{ width: 45, color: 'var(--accent-rose)', border: 'none' }} />
-                        <p className="text-[9px] opacity-60 font-medium">{numCuotas > 1 ? `${numCuotas}x ${formatCurrency(parseFloat(monto || 0) / numCuotas)}` : 'Pago único'}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Descripción */}
-            <input type="text" placeholder="Descripción (opcional)..." value={desc} onChange={e => setDesc(e.target.value)}
-              className="ff-input !py-2.5 !text-xs !rounded-xl w-full" />
-
-            {/* Botón Guardar */}
-            <button
-              onClick={guardar}
-              disabled={!monto || parseFloat(monto) <= 0 || saving}
-              className="w-full py-4 rounded-2xl font-bold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-[0.97] shadow-xl"
-              style={{
-                background: (!monto || parseFloat(monto) <= 0)
-                  ? 'var(--bg-secondary)'
-                  : tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--accent-main)',
-                color: (!monto || parseFloat(monto) <= 0) ? 'var(--text-muted)' : '#fff',
-              }}>
-              {saving ? <Loader2 size={18} className="animate-spin" /> : (
-                <>
-                  {tipo === 'egreso' && metodoPago === 'tarjeta_credito' ? <CreditCard size={16} /> : <Plus size={16} />}
-                  <span>{tipo === 'egreso' && metodoPago === 'tarjeta_credito' ? 'Registrar en cuotas' : tipo === 'ingreso' ? 'Confirmar Ingreso' : 'Confirmar Gasto'}</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-    </>
-  )
-}
+// ── AppShell ──────────────────────────────────────────────────────────────────
 
 export default function AppShell({ children }) {
   const [fabOpen, setFabOpen] = useState(false)
   const [authReady, setAuthReady] = useState(false)
-  const [navigating, setNavigating] = useState(false)
-  const pathname = usePathname()
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) router.replace('/login')
-      else setAuthReady(true)
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!session) router.replace('/login')
+        else setAuthReady(true)
+      })
+      .catch(() => router.replace('/login'))
   }, [])
-
-  useEffect(() => {
-    setNavigating(true)
-    const t = setTimeout(() => setNavigating(false), 400)
-    return () => clearTimeout(t)
-  }, [pathname])
 
   async function handleLogout() {
     await signOut()
@@ -565,15 +700,17 @@ export default function AppShell({ children }) {
         {/* Header móvil */}
         <div className="lg:hidden sticky top-0 z-50 w-full" style={{
           background: 'color-mix(in srgb, var(--bg-primary) 75%, transparent)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
+          backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
         }}>
-          <div className="flex items-center justify-between px-5 py-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
+          <div className="flex items-center justify-between px-5 py-4"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
             <div className="flex items-center gap-2">
               <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
               <span className="font-script text-[25px]" style={{ color: 'var(--text-primary)' }}>Familia Quintero</span>
             </div>
-            <button onClick={handleLogout} className="text-[var(--text-muted)] active:scale-90 transition-transform"><LogOut size={18} /></button>
+            <button onClick={handleLogout} className="text-[var(--text-muted)] active:scale-90 transition-transform">
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
 

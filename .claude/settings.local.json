@@ -11,7 +11,8 @@
       "Bash(sed \"s/''''$//\")",
       "Bash(npx tsc:*)",
       "Bash(find . -name *.js -type f)",
-      "Read(//c/Users/jodan/OneDrive/**)"
+      "Read(//c/Users/jodan/OneDrive/**)",
+      "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas/src -type f \\\\\\(-name *.js -o -name *.ts -o -name *.jsx -o -name *.tsx \\\\\\))"
     ]
   }
 }

@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import { useTheme, getThemeColors } from '@/lib/themes'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 const CATS = [
   { value: 'basicos', label: 'Básicos' },
@@ -65,6 +66,7 @@ export default function GastosPage() {
   const [colores, setColores] = useState({})
   const [subcategorias, setSubcategorias] = useState([])
   const [categoriasCfg, setCategoriasCfg] = useState([])
+  const [subcatPresupuesto, setSubcatPresupuesto] = useState({})
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
     categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys',
@@ -123,6 +125,13 @@ export default function GastosPage() {
     cargarPresupuesto()
     supabase.from('categorias').select('*').order('bloque').order('nombre').then(({ data }) => { if (activo) setCategoriasCfg(data || []) })
     supabase.from('subcategorias').select('*').order('orden').order('nombre').then(({ data }) => { if (activo) setSubcategorias(data || []) })
+    supabase.from('presupuesto_cats').select('subcategoria_id,monto').eq('mes', mes).eq('año', año)
+      .then(({ data }) => {
+        if (!activo) return
+        const map = {}
+        ;(data || []).forEach(p => { map[p.subcategoria_id] = parseFloat(p.monto) })
+        setSubcatPresupuesto(map)
+      })
     supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => { if (activo) setMetasData(data || []) })
     supabase.from('inversiones').select('id, nombre, capital, aporte, pct_mensual').then(({ data }) => { if (activo) setInversionesData(data || []) })
     supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => { if (activo) setDeudasData(data || []) })
@@ -130,7 +139,6 @@ export default function GastosPage() {
       .then(({ data }) => {
         if (!activo) return
         setTarjetasData(data || [])
-        if (data?.length === 1) setTarjetaSeleccionada(data[0].id)
       })
     supabase.from('deudas').select('id, nombre, perfil_tarjeta_id, pendiente, color').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
       .then(({ data }) => {
@@ -183,6 +191,7 @@ export default function GastosPage() {
 
   async function handleAdd(e) {
     e.preventDefault()
+    if (saving) return
     const monto = parseFloat(form.monto)
     if (!monto || monto <= 0) return
     setSaving(true)
@@ -482,7 +491,7 @@ export default function GastosPage() {
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
     .filter(m => !search || m.descripcion.toLowerCase().includes(search.toLowerCase()))
 
-  const usandoTarjeta = form.tipo === 'egreso' && tarjetaSeleccionada
+  const usandoTarjeta = form.tipo === 'egreso' && metodoPago === 'tarjeta_credito' && tarjetaSeleccionada
 
   return (
     <AppShell>
@@ -726,20 +735,26 @@ export default function GastosPage() {
               {form.tipo === 'egreso' && (
                 <div className="space-y-1">
                   <label className="ff-label">Categoría</label>
-                  <select className="ff-input h-12 text-sm" value={form.categoria}
-                    onChange={e => { setForm({ ...form, categoria: e.target.value }); setTarjetaSeleccionada('') }}>
-                    {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.categoria}
+                    onChange={id => { setForm({ ...form, categoria: id || 'basicos', subcategoria_id: '' }); setTarjetaSeleccionada('') }}
+                    options={CATS.map(c => ({ id: c.value, label: c.label }))}
+                    placeholder="— Categoría —"
+                  />
                 </div>
               )}
               <div className="space-y-1">
                 <label className="ff-label">¿Quién?</label>
-                <select className="ff-input h-12 text-sm" value={form.quien}
-                  onChange={e => setForm({ ...form, quien: e.target.value })}>
-                  <option value="Jodannys">Jodannys</option>
-                  <option value="Rolando">Rolando</option>
-                  <option value="Ambos">Ambos</option>
-                </select>
+                <CustomSelect
+                  value={form.quien}
+                  onChange={id => setForm({ ...form, quien: id || 'Jodannys' })}
+                  options={[
+                    { id: 'Jodannys', label: 'Jodannys' },
+                    { id: 'Rolando', label: 'Rolando' },
+                    { id: 'Ambos', label: 'Ambos' },
+                  ]}
+                  placeholder="— Quién —"
+                />
               </div>
             </div>
 
@@ -749,27 +764,35 @@ export default function GastosPage() {
               const catsDisp = categoriasCfg.filter(c => c.bloque === bloqueActual)
               const subsDisp = subcategorias.filter(s => catsDisp.some(c => c.id === s.categoria_id))
               if (subsDisp.length === 0) return null
+              const opcionesSubcat = catsDisp.flatMap(cat => {
+                const subsGrupo = subcategorias.filter(s => s.categoria_id === cat.id)
+                if (subsGrupo.length === 0) return []
+                return [
+                  { id: `h-${cat.id}`, label: cat.nombre, header: true },
+                  ...subsGrupo.map(sub => ({
+                    id: sub.id,
+                    label: sub.nombre,
+                    sub: subcatPresupuesto[sub.id] > 0 ? formatCurrency(subcatPresupuesto[sub.id]) : undefined,
+                  })),
+                ]
+              })
               return (
                 <div className="space-y-1 animate-enter">
                   <label className="ff-label">Subcategoría (opcional)</label>
-                  <select className="ff-input h-12 text-sm" value={form.subcategoria_id}
-                    onChange={e => {
-                      const sub = subcategorias.find(s => s.id === e.target.value)
-                      setForm(prev => ({ ...prev, subcategoria_id: e.target.value, descripcion: sub ? sub.nombre : prev.descripcion }))
-                    }}>
-                    <option value="">— Sin subcategoría —</option>
-                    {catsDisp.map(cat => {
-                      const subsGrupo = subcategorias.filter(s => s.categoria_id === cat.id)
-                      if (subsGrupo.length === 0) return null
-                      return (
-                        <optgroup key={cat.id} label={cat.nombre}>
-                          {subsGrupo.map(sub => (
-                            <option key={sub.id} value={sub.id}>{sub.nombre}</option>
-                          ))}
-                        </optgroup>
-                      )
-                    })}
-                  </select>
+                  <CustomSelect
+                    value={form.subcategoria_id}
+                    onChange={id => {
+                      const sub = subcategorias.find(s => s.id === id)
+                      setForm(prev => ({
+                        ...prev,
+                        subcategoria_id: id || '',
+                        descripcion: sub ? sub.nombre : prev.descripcion,
+                        ...(id && subcatPresupuesto[id] > 0 ? { monto: subcatPresupuesto[id].toString() } : {}),
+                      }))
+                    }}
+                    options={opcionesSubcat}
+                    placeholder="— Sin subcategoría —"
+                  />
                 </div>
               )
             })()}
@@ -784,7 +807,11 @@ export default function GastosPage() {
                     const c = m.color || 'var(--text-muted)'
                     return (
                       <button type="button" key={m.id}
-                        onClick={() => { setMetodoPago(m.id); setTarjetaSeleccionada(''); setNumCuotas(1) }}
+                        onClick={() => {
+                          setMetodoPago(m.id)
+                          setTarjetaSeleccionada(m.id === 'tarjeta_credito' && tarjetasData.length === 1 ? tarjetasData[0].id : '')
+                          setNumCuotas(1)
+                        }}
                         className="py-2 rounded-xl text-[10px] font-semibold transition-all"
                         style={{
                           background: sel ? `color-mix(in srgb, ${c} 15%, transparent)` : 'var(--bg-secondary)',
@@ -905,19 +932,21 @@ export default function GastosPage() {
                   {deudasPrestamo.length > 0 && (
                     <div className="space-y-1">
                       <label className="ff-label">¿Qué deuda pagas?</label>
-                      <select className="ff-input h-12 text-sm" value={deudaSeleccionada}
-                        onChange={e => {
-                          setDeudaSeleccionada(e.target.value)
-                          const d = deudasPrestamo.find(d => d.id === e.target.value)
+                      <CustomSelect
+                        value={deudaSeleccionada}
+                        onChange={id => {
+                          setDeudaSeleccionada(id || '')
+                          const d = deudasPrestamo.find(d => d.id === id)
                           if (d) setForm(prev => ({ ...prev, descripcion: `Pago ${d.nombre}`, monto: (d.cuota || d.pendiente || '').toString() }))
-                        }}>
-                        <option value="">— Seleccionar deuda —</option>
-                        {deudasPrestamo.map(d => (
-                          <option key={d.id} value={d.id}>
-                            {d.nombre} · Pendiente {formatCurrency(d.pendiente)}
-                          </option>
-                        ))}
-                      </select>
+                        }}
+                        options={deudasPrestamo.map(d => ({
+                          id: d.id,
+                          label: d.nombre,
+                          sub: formatCurrency(d.pendiente),
+                        }))}
+                        placeholder="— Seleccionar deuda —"
+                        color="var(--accent-rose)"
+                      />
                     </div>
                   )}
                   {hayTarjetas && (
