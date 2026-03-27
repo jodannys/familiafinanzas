@@ -522,7 +522,7 @@ export default function GastosPage() {
                 <button
                   onClick={() => { if (visMes === 12) { setVisMes(1); setVisAño(v => v + 1) } else setVisMes(v => v + 1) }}
                   disabled={visMes === mes && visAño === año}
-                  style={{ padding: '2px 5px', borderRadius: 7, background: 'var(--bg-secondary)', color: visMes === mes && visAño === año ? colores.border : colores.muted, border: 'none', cursor: visMes === mes && visAño === año ? 'default' : 'pointer', display: 'flex' }}>
+                  style={{ padding: '2px 5px', color: visMes === mes && visAño === año ? colores.border : colores.muted, border: 'none', cursor: visMes === mes && visAño === año ? 'default' : 'pointer', display: 'flex' }}>
                   <ChevronRight size={13} />
                 </button>
               </div>
