@@ -551,7 +551,7 @@ export function FABModal({ onClose }) {
                       <p style={{ margin: 0, fontSize: 9, fontWeight: 800, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Cuotas</p>
                       <input
                         type="number" min="1" value={numCuotas}
-                        onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={e => setNumCuotas(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1))}
                         style={{
                           width: 44, textAlign: 'center', fontWeight: 700, fontSize: 13,
                           background: 'var(--bg-card)', border: '1px solid var(--border-glass)',
@@ -559,7 +559,7 @@ export function FABModal({ onClose }) {
                         }}
                       />
                       <p style={{ margin: 0, fontSize: 10, opacity: 0.6 }}>
-                        {numCuotas > 1
+                        {(numCuotas || 1) > 1
                           ? `${numCuotas}x ${formatCurrency(parseFloat(monto || 0) / numCuotas)}`
                           : 'Pago único'}
                       </p>

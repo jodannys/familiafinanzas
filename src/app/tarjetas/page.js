@@ -219,6 +219,15 @@ export default function TarjetasPage() {
     if (selectedId === id) setSelectedId(null)
   }
 
+  async function handleDeleteDeuda(e, deuda) {
+    e.stopPropagation()
+    if (!confirm(`¿Eliminar "${deuda.nombre}"? Se borrarán también sus pagos registrados.`)) return
+    await supabase.from('deuda_movimientos').delete().eq('deuda_id', deuda.id)
+    const { error } = await supabase.from('deudas').delete().eq('id', deuda.id)
+    if (error) { toast('' + error.message); return }
+    setDeudas(prev => prev.filter(d => d.id !== deuda.id))
+  }
+
   function abrirPago(e, deuda) {
     e.stopPropagation()
     setPagoDeuda(deuda)
@@ -501,18 +510,29 @@ export default function TarjetasPage() {
                                   Último: {new Date(pagos[0].fecha + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · {formatCurrency(pagos[0].monto)}
                                 </p>
                               ) : <span />}
-                              {!esPagada && (
+                              <div className="flex items-center gap-1 flex-shrink-0">
                                 <button
-                                  onClick={e => abrirPago(e, deuda)}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-semibold flex-shrink-0"
+                                  onClick={e => handleDeleteDeuda(e, deuda)}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-semibold"
                                   style={{
-                                    background: `color-mix(in srgb, ${t.color} 12%, transparent)`,
-                                    color: t.color,
+                                    background: 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
+                                    color: 'var(--accent-rose)',
                                   }}>
-                                  <DollarSign size={9} />
-                                  Pagar
+                                  <Trash2 size={9} />
                                 </button>
-                              )}
+                                {!esPagada && (
+                                  <button
+                                    onClick={e => abrirPago(e, deuda)}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-semibold"
+                                    style={{
+                                      background: `color-mix(in srgb, ${t.color} 12%, transparent)`,
+                                      color: t.color,
+                                    }}>
+                                    <DollarSign size={9} />
+                                    Pagar
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         )
@@ -595,7 +615,7 @@ export default function TarjetasPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ff-label">Nombre de la tarjeta</label>
+              <label className="ff-label">Nom. Tarjeta</label>
               <input className="ff-input" required placeholder="Ej: Visa Oro"
                 value={form.nombre_tarjeta}
                 onChange={e => setForm(p => ({ ...p, nombre_tarjeta: e.target.value }))} />
