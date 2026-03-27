@@ -513,7 +513,7 @@ export default function GastosPage() {
               <div className="flex items-center gap-1 mt-1.5">
                 <button
                   onClick={() => { if (visMes === 1) { setVisMes(12); setVisAño(v => v - 1) } else setVisMes(v => v - 1) }}
-                  style={{ padding: '2px 5px', borderRadius: 7, background: 'var(--bg-secondary)', color: colores.muted, border: 'none', cursor: 'pointer', display: 'flex' }}>
+                  style={{ padding: '2px 5px', color: colores.muted, border: 'none', cursor: 'pointer', display: 'flex' }}>
                   <ChevronLeft size={13} />
                 </button>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', minWidth: 72, textAlign: 'center' }}>
