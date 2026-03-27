@@ -80,7 +80,7 @@ export default function AjustesPage() {
         supabase.from('categorias').select('*').order('bloque').order('orden').order('nombre'),
         supabase.from('subcategorias').select('*').order('orden').order('nombre'),
         supabase.from('metas').select('id, nombre, emoji, pct_mensual').order('created_at'),
-        supabase.from('inversiones').select('id, nombre, emoji, aporte').order('created_at'),
+        supabase.from('inversiones').select('id, nombre, emoji, aporte, pct_mensual').order('created_at'),
       ])
       setCategorias(cats || [])
       setSubcategorias(subs || [])
@@ -189,7 +189,7 @@ export default function AjustesPage() {
       setMetas(prev => [...prev, data[0]])
     } else {
       const { data, error } = await supabase.from('inversiones').insert([{
-        nombre: formFuturo.trim(), emoji: '📈', aporte: 0, capital: 0, tasa: 0,
+        nombre: formFuturo.trim(), emoji: '📈', aporte: 0, pct_mensual: 0, capital: 0, tasa: 0,
       }]).select()
       setSaving(false)
       if (error) { toast('' + error.message); return }
@@ -241,11 +241,12 @@ export default function AjustesPage() {
       nombre: editandoInversion.nombre.trim(),
       emoji: editandoInversion.emoji || '📈',
       aporte: parseFloat(editandoInversion.aporte) || 0,
+      pct_mensual: parseFloat(editandoInversion.pct_mensual) || 0,
     }).eq('id', inv.id)
     setSaving(false)
     if (error) { toast('' + error.message); return }
     setInversiones(prev => prev.map(i => i.id === inv.id
-      ? { ...i, nombre: editandoInversion.nombre.trim(), emoji: editandoInversion.emoji || '📈', aporte: parseFloat(editandoInversion.aporte) || 0 }
+      ? { ...i, nombre: editandoInversion.nombre.trim(), emoji: editandoInversion.emoji || '📈', aporte: parseFloat(editandoInversion.aporte) || 0, pct_mensual: parseFloat(editandoInversion.pct_mensual) || 0 }
       : i
     ))
     setEditandoInversion(null)
@@ -924,6 +925,12 @@ export default function AjustesPage() {
                                 onChange={e => setEditandoInversion(p => ({ ...p, nombre: e.target.value }))}
                                 onKeyDown={e => e.key === 'Enter' && handleSaveInversion(inv)} />
                               <div className="flex items-center gap-1">
+                                <input className="ff-input w-14 text-xs py-1 text-center" type="number" min="0" max="100"
+                                  value={editandoInversion.pct_mensual}
+                                  onChange={e => setEditandoInversion(p => ({ ...p, pct_mensual: e.target.value }))} />
+                                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>%</span>
+                              </div>
+                              <div className="flex items-center gap-1">
                                 <input className="ff-input w-16 text-xs py-1 text-center" type="number" min="0" step="0.01"
                                   placeholder="0"
                                   value={editandoInversion.aporte}
@@ -943,12 +950,15 @@ export default function AjustesPage() {
                             <div className="flex items-center gap-2 px-3 py-2">
                               <span className="text-sm">{getFlagEmoji(inv.emoji)}</span>
                               <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inv.nombre}</span>
+                              {(inv.pct_mensual > 0) && (
+                                <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-violet)' }}>{inv.pct_mensual}%</span>
+                              )}
                               {inv.aporte > 0 && (
                                 <span className="text-[10px] font-semibold" style={{ color: 'var(--accent-violet)' }}>
                                   +{inv.aporte}/mes
                                 </span>
                               )}
-                              <button onClick={() => setEditandoInversion({ id: inv.id, nombre: inv.nombre, emoji: inv.emoji || '📈', aporte: inv.aporte?.toString() || '0' })}
+                              <button onClick={() => setEditandoInversion({ id: inv.id, nombre: inv.nombre, emoji: inv.emoji || '📈', aporte: inv.aporte?.toString() || '0', pct_mensual: inv.pct_mensual?.toString() || '0' })}
                                 style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
                                 <Edit3 size={11} />
                               </button>

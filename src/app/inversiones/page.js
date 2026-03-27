@@ -68,13 +68,13 @@ function Tooltip4Pct({ colores }) {
               Regla del 4% · Trinity Study
             </p>
             <p className="text-[10px] leading-relaxed" style={{ color: colores.muted }}>
-              Basada en estudios históricos del mercado (1926–1995), concluye que
-              puedes retirar el <strong>4% de tu cartera al año</strong> durante al menos 30 años
-              sin quedarte sin dinero, asumiendo una cartera diversificada de acciones y bonos.
+              Puedes empezar a retirar cuando tu cartera valga <strong>tus gastos anuales multiplicados por 25</strong>.
+              Ej: si gastas $1.000/mes → necesitas $300.000 invertidos ($12.000 × 25).
+              Desde ese momento, retiras el 4% fijo del capital inicial cada año y la cartera
+              dura al menos 30 años con ~95% de probabilidad histórica.
             </p>
             <p className="text-[10px] mt-2 leading-relaxed" style={{ color: colores.muted }}>
-              ⚠️ No es una garantía. El rendimiento pasado no predice el futuro.
-              Úsalo como referencia, no como plan definitivo.
+              ⚠️ Solo aplica a carteras diversificadas (acciones + bonos). No garantiza el futuro.
             </p>
           </div>
         </>
@@ -86,6 +86,78 @@ function Tooltip4Pct({ colores }) {
 function fechaHoy() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// ─── Modal de ayuda del módulo ────────────────────────────────────────────────
+function ModuleInfoModal({ open, onClose, colores }) {
+  const secciones = [
+    {
+      emoji: '📂',
+      titulo: 'Carteras de inversión',
+      texto: 'Cada cartera es un vehículo de inversión (ETF, fondo, cuenta, etc.). Define su capital actual, el aporte mensual planeado y la tasa anual de crecimiento esperada.',
+    },
+    {
+      emoji: '📈',
+      titulo: 'Proyección con interés compuesto',
+      texto: 'El gráfico muestra cómo crecería tu cartera año a año reinvirtiendo las ganancias (efecto bola de nieve). La línea sólida es el balance proyectado; la discontinua, lo que habrías aportado tú.',
+    },
+    {
+      emoji: '🏦',
+      titulo: 'Regla del 4%',
+      texto: 'Estima cuánto podrías retirar anualmente de forma sostenible sin agotar la cartera en 30 años. Sirve de referencia para saber cuándo podrías vivir de tus inversiones.',
+    },
+    {
+      emoji: '🔢',
+      titulo: 'Vista "Todas las carteras"',
+      texto: 'Con más de una cartera, el chip "Todas" suma capitales, proyecciones y gráfico de todas al mismo tiempo para una vista global de tu patrimonio.',
+    },
+    {
+      emoji: '💸',
+      titulo: 'Registrar un aporte',
+      texto: 'Toca el botón "+" en el detalle de una cartera para registrar cuánto aportaste realmente este mes. Si configuraste un % mensual en Ajustes, el monto se auto-rellena.',
+    },
+    {
+      emoji: '🎛️',
+      titulo: 'Simulador',
+      texto: 'Ajusta el aporte, la tasa y los años para explorar distintos escenarios futuros sin modificar los datos reales de la cartera.',
+    },
+    {
+      emoji: '⚙️',
+      titulo: '% mensual en presupuesto',
+      texto: 'En Ajustes → Inversiones puedes asignar qué porcentaje del presupuesto de inversiones va a cada cartera. Eso calcula el aporte sugerido automáticamente al registrar.',
+    },
+  ]
+
+  return (
+    <Modal open={open} onClose={onClose} title="Cómo usar Inversiones">
+      <p className="text-xs leading-relaxed mb-5" style={{ color: colores.muted }}>
+        Este módulo proyecta el crecimiento de tus inversiones con interés compuesto y te ayuda a visualizar cuándo podrías alcanzar la libertad financiera.
+      </p>
+      <div className="flex flex-col gap-5">
+        {secciones.map(s => (
+          <div key={s.titulo} className="flex gap-3 items-start">
+            <span className="text-base flex-shrink-0 mt-0.5">{s.emoji}</span>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-wider mb-1" style={{ color: 'var(--text-primary)' }}>
+                {s.titulo}
+              </p>
+              <p className="text-[11px] leading-relaxed" style={{ color: colores.muted }}>
+                {s.texto}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-6 px-4 py-3 rounded-xl text-[10px] leading-relaxed text-center"
+        style={{
+          background: `color-mix(in srgb, ${colores.violet} 8%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${colores.violet} 20%, transparent)`,
+          color: colores.muted,
+        }}>
+        ⚠️ Las proyecciones son estimaciones basadas en tasas constantes. El rendimiento real puede variar. No constituyen asesoramiento financiero.
+      </div>
+    </Modal>
+  )
 }
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
@@ -107,8 +179,11 @@ export default function InversionesPage() {
   const [modal, setModal] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [modalAporte, setModalAporte] = useState(false)
-  const [formAporte, setFormAporte] = useState({ monto: '', descripcion: '', fecha: '' })
+  const [formAporte, setFormAporte] = useState({ monto: '', descripcion: '', fecha: fechaHoy() })
   const [savingAporte, setSavingAporte] = useState(false)
+
+  // ── Info modal ────────────────────────────────────────────────────────────
+  const [showInfo, setShowInfo] = useState(false)
 
   // ── NUEVO: controla si el monto fue auto-rellenado por el sistema ─────────
   const [autoFilled, setAutoFilled] = useState(false)
@@ -127,7 +202,7 @@ export default function InversionesPage() {
   const [showSimulador, setShowSimulador] = useState(false)
   const [simAporte, setSimAporte] = useState(0)
   const [simTasa, setSimTasa] = useState(0)
-  const [simAnos, setSimAnos] = useState(0)
+  const [simAnos, setSimAnos] = useState(10)
 
   const [colores, setColores] = useState({
     green: '', rose: '', blue: '', terra: '', violet: '',
@@ -186,7 +261,7 @@ export default function InversionesPage() {
       setSimTasa(selected.tasa || 0)
       setSimAnos(selected.anos || 10)
     }
-  }, [selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selected?.id, selected?.aporte, selected?.tasa, selected?.anos]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── SMART-FILL: auto-rellenar monto al abrir el modal ─────────────────────
   // Regla: pct_mensual de la cartera aplicado sobre presupuesto.montoInversiones
@@ -196,6 +271,8 @@ export default function InversionesPage() {
       setAutoFilled(false)
       return
     }
+    // Siempre inicializar fecha con hoy al abrir
+    setFormAporte(p => ({ ...p, fecha: fechaHoy() }))
     const pct = selected?.pct_mensual
     const base = presupuesto?.montoInversiones
     if (pct > 0 && base > 0) {
@@ -205,29 +282,33 @@ export default function InversionesPage() {
         setAutoFilled(true)
       }
     }
-  }, [modalAporte]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [modalAporte, presupuesto?.montoInversiones, selected?.pct_mensual]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function cargarGastosMes() {
     const now = new Date()
-    const año = now.getFullYear()
-    const mes = now.getMonth() + 1
-    const inicioMes = new Date(año, mes - 1, 1).toISOString().slice(0, 10)
-    const inicioSiguiente = new Date(año, mes, 1).toISOString().slice(0, 10)
+    // Usamos solo meses completos (excluye el mes en curso, que está incompleto)
+    const inicioMesActual = new Date(now.getFullYear(), now.getMonth(), 1)
+    const inicio3Meses = new Date(now.getFullYear(), now.getMonth() - 3, 1)
 
     const { data, error } = await supabase
       .from('movimientos')
-      .select('monto, categoria')
+      .select('monto, categoria, fecha')
       .eq('tipo', 'egreso')
-      .gte('fecha', inicioMes)
-      .lt('fecha', inicioSiguiente)
+      .in('categoria', ['basicos', 'deseo']) // excluye deuda (gasto temporal)
+      .gte('fecha', inicio3Meses.toISOString().slice(0, 10))
+      .lt('fecha', inicioMesActual.toISOString().slice(0, 10))
 
     if (error) { console.error(error); return }
 
-    const total = (data || [])
-      .filter(m => ['basicos', 'deseo', 'deuda'].includes((m.categoria || '').toLowerCase()))
-      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-
-    setGastosMes(total)
+    // Agrupar por mes y promediar
+    const porMes = {}
+    ;(data || []).forEach(m => {
+      const key = m.fecha.slice(0, 7) // 'YYYY-MM'
+      porMes[key] = (porMes[key] || 0) + parseFloat(m.monto || 0)
+    })
+    const meses = Object.values(porMes)
+    if (!meses.length) return
+    setGastosMes(meses.reduce((s, v) => s + v, 0) / meses.length)
   }
 
   async function cargarAportesEsteMes() {
@@ -409,7 +490,7 @@ export default function InversionesPage() {
     setSelected(updated)
     setSavingAporte(false)
     setModalAporte(false)
-    setFormAporte({ monto: '', descripcion: '', fecha: '' })
+    setFormAporte({ monto: '', descripcion: '', fecha: fechaHoy() })
     setAutoFilled(false)
     cargarAportesEsteMes()
     toast(`Aporte de ${formatCurrency(monto)} registrado`, 'success')
@@ -492,11 +573,38 @@ export default function InversionesPage() {
     }))
     , [inversiones])
 
+  const combinedHistory = useMemo(() => {
+    if (!calcsPorInversion.length) return []
+    const maxYear = Math.max(...inversiones.map(i => i.anos || 10))
+    const result = []
+    for (let y = 0; y <= maxYear; y++) {
+      let balance = 0
+      let contributed = 0
+      calcsPorInversion.forEach(({ calc: c, id }) => {
+        const inv = inversiones.find(i => i.id === id)
+        const cap = inv?.anos || 10
+        const entry = c?.history?.find(h => h.year === Math.min(y, cap))
+        if (entry) { balance += entry.balance; contributed += entry.contributed }
+      })
+      result.push({ year: y, balance, contributed })
+    }
+    return result
+  }, [calcsPorInversion, inversiones])
+
   const totalCapital = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
   const totalAportes = useMemo(() => inversiones.reduce((s, i) => s + (i.aporte || 0), 0), [inversiones])
   const totalProyectado = useMemo(() =>
     calcsPorInversion.reduce((s, { calc: c }) => s + (c?.finalBalance || 0), 0)
     , [calcsPorInversion])
+
+  // Horizonte común: todas las carteras proyectadas al año más lejano entre ellas
+  const maxAnosCarteras = useMemo(() =>
+    inversiones.length ? Math.max(...inversiones.map(i => i.anos || 10)) : 10
+    , [inversiones])
+  // Balance combinado al horizonte común (para libertad financiera — misma unidad de tiempo)
+  const totalProyectadoCombinado = useMemo(() =>
+    combinedHistory[combinedHistory.length - 1]?.balance || 0
+    , [combinedHistory])
 
   const gananciaInteres = useMemo(() =>
     inversiones.reduce((s, inv, idx) => {
@@ -541,15 +649,33 @@ export default function InversionesPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
-          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
+        <div className="min-w-0 flex items-center gap-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: colores.muted }}>Módulo</p>
+            <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Inversiones</h1>
+          </div>
+          <button
+            onClick={() => setShowInfo(true)}
+            className="flex-shrink-0 flex items-center justify-center rounded-full transition-all"
+            style={{
+              width: 28, height: 28,
+              background: `color-mix(in srgb, ${colores.violet} 12%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${colores.violet} 25%, transparent)`,
+              color: colores.violet,
+            }}
+            aria-label="Cómo usar este módulo"
+          >
+            <Info size={13} />
+          </button>
         </div>
         <button onClick={abrirNuevo} className="ff-btn-primary flex items-center gap-2 flex-shrink-0">
           <Plus size={16} strokeWidth={3} />
           <span className="hidden sm:inline text-sm font-semibold">Nueva cartera</span>
         </button>
       </div>
+
+      {/* Modal de ayuda */}
+      <ModuleInfoModal open={showInfo} onClose={() => setShowInfo(false)} colores={colores} />
 
       {/* Error */}
       {error && (
@@ -789,9 +915,25 @@ export default function InversionesPage() {
           {/* Selector de carteras */}
           <div className="space-y-2">
             {inversiones.length > 1 && (
-              <p className="text-[9px] font-semibold uppercase ml-1" style={{ color: colores.muted }}>
-                Todas las carteras
-              </p>
+              <div className="flex items-center gap-2 ml-1">
+                <p className="text-[9px] font-semibold uppercase flex-1" style={{ color: colores.muted }}>
+                  Carteras
+                </p>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="px-3 py-1 rounded-xl text-[10px] font-bold transition-all"
+                  style={{
+                    background: selected === null
+                      ? `color-mix(in srgb, ${colores.violet} 15%, var(--bg-card))`
+                      : 'var(--bg-secondary)',
+                    color: selected === null ? colores.violet : colores.muted,
+                    border: selected === null
+                      ? `1.5px solid color-mix(in srgb, ${colores.violet} 35%, transparent)`
+                      : `1px solid ${colores.border}`,
+                  }}>
+                  Todas
+                </button>
+              </div>
             )}
             {inversiones.map(inv => {
               const c = calcsPorInversion.find(x => x.id === inv.id)?.calc
@@ -844,11 +986,146 @@ export default function InversionesPage() {
                     )}
                   </div>
 
-                  <ChevronRight size={12} style={{ color: colores.muted, flexShrink: 0 }} />
                 </button>
               )
             })}
           </div>
+
+          {/* ── Vista combinada: Todas las carteras ── */}
+          {selected === null && inversiones.length > 0 && (
+            <Card className="animate-enter" style={{ padding: '16px' }}>
+
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `color-mix(in srgb, ${colores.violet} 12%, transparent)` }}>
+                  <TrendingUp size={20} style={{ color: colores.violet }} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    Todas las carteras
+                  </p>
+                  <p className="text-[10px] mt-0.5" style={{ color: colores.muted }}>
+                    {inversiones.length} cartera{inversiones.length !== 1 ? 's' : ''} · {formatCurrency(totalAportes)}/mes
+                  </p>
+                </div>
+              </div>
+
+              {/* KPIs */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { label: 'Capital total',   value: formatCurrency(totalCapital),    color: colores.blue   },
+                  { label: 'Proyectado',       value: formatCurrency(totalProyectado), color: colores.violet },
+                  { label: 'Ganancias netas',  value: formatCurrency(gananciaInteres), color: colores.terra  },
+                ].map((k, i) => (
+                  <div key={i} className="p-2.5 rounded-xl text-center"
+                    style={{
+                      background: `color-mix(in srgb, ${k.color} 8%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${k.color} 20%, transparent)`,
+                    }}>
+                    <p className="text-[8px] font-semibold uppercase mb-1" style={{ color: k.color }}>{k.label}</p>
+                    <p className="text-sm font-semibold" style={{ color: k.color, letterSpacing: '-0.02em' }}>{k.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Gráfico combinado */}
+              {combinedHistory.length > 1 && (
+                <div className="mb-4">
+                  <p className="text-[9px] font-semibold uppercase mb-2 ml-1" style={{ color: colores.muted }}>
+                    Proyección combinada
+                  </p>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <AreaChart data={combinedHistory} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="cgBalance" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={colores.violet} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={colores.violet} stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="cgContrib" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={colores.blue} stopOpacity={0.2} />
+                          <stop offset="95%" stopColor={colores.blue} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={colores.border} />
+                      <XAxis dataKey="year" tick={{ fontSize: 9, fill: colores.muted }}
+                        tickFormatter={y => `${y}a`} />
+                      <YAxis tick={{ fontSize: 9, fill: colores.muted }} width={52}
+                        tickFormatter={v => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                      <Tooltip content={<TooltipConColores />} />
+                      <Area type="monotone" dataKey="contributed" name="contributed"
+                        stroke={colores.blue} strokeWidth={1.5} fill="url(#cgContrib)" strokeDasharray="4 4" />
+                      <Area type="monotone" dataKey="balance" name="balance"
+                        stroke={colores.violet} strokeWidth={2} fill="url(#cgBalance)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Regla del 4% global */}
+              <div className="p-3 rounded-xl mb-4"
+                style={{
+                  background: `color-mix(in srgb, ${colores.green} 6%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${colores.green} 15%, transparent)`,
+                }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={11} style={{ color: colores.green, flexShrink: 0 }} />
+                  <p className="text-[9px] font-semibold uppercase" style={{ color: colores.green }}>
+                    Retiro mensual sostenible (Regla del 4%)
+                  </p>
+                  <Tooltip4Pct colores={colores} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] mb-0.5" style={{ color: colores.muted }}>Hoy</p>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                      {formatCurrency(totalCapital * 0.04 / 12)}<span className="text-[9px] font-medium opacity-60 ml-1">/mes</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] mb-0.5" style={{ color: colores.muted }}>En {maxAnosCarteras}a (proyectado)</p>
+                    <p className="text-sm font-semibold" style={{ color: colores.green, letterSpacing: '-0.02em' }}>
+                      {formatCurrency(totalProyectadoCombinado * 0.04 / 12)}<span className="text-[9px] font-medium opacity-60 ml-1">/mes</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desglose por cartera — clicable para seleccionar */}
+              <div className="space-y-1.5">
+                <p className="text-[9px] font-semibold uppercase mb-2" style={{ color: colores.muted }}>
+                  Desglose por cartera
+                </p>
+                {inversiones.map(inv => {
+                  const c = calcsPorInversion.find(x => x.id === inv.id)?.calc
+                  return (
+                    <button key={inv.id} onClick={() => setSelected(inv)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left"
+                      style={{ background: 'var(--bg-secondary)', border: `1px solid ${colores.border}` }}>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                        style={{ background: `${inv.color}18` }}>
+                        {inv.emoji}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                          {inv.nombre}
+                        </p>
+                        <p className="text-[9px]" style={{ color: colores.muted }}>
+                          {formatCurrency(inv.capital)} real · {inv.tasa}% · {inv.anos}a
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs font-semibold" style={{ color: inv.color }}>
+                          {formatCurrency(c?.finalBalance || 0)}
+                        </p>
+                        <p className="text-[9px]" style={{ color: colores.muted }}>proyectado</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </Card>
+          )}
 
           {/* Detalle cartera seleccionada */}
           {selected && calc && (
@@ -942,6 +1219,53 @@ export default function InversionesPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Aporte planeado vs real */}
+              {(selected.aporte_real > 0) && (() => {
+                const planeado = selected.aporte || 0
+                const real = selected.aporte_real || 0
+                const pct = planeado > 0 ? Math.min(140, Math.round((real / planeado) * 100)) : 100
+                const cumple = real >= planeado
+                const color = cumple ? colores.green : colores.rose
+                return (
+                  <div className="mb-4 px-3 py-2.5 rounded-xl"
+                    style={{ background: 'var(--bg-secondary)', border: `1px solid ${colores.border}` }}>
+                    <p className="text-[9px] font-semibold uppercase mb-2" style={{ color: colores.muted }}>
+                      Aporte mensual
+                    </p>
+                    <div className="flex items-end justify-between mb-2">
+                      <div>
+                        <p className="text-[9px] mb-0.5" style={{ color: colores.muted }}>Planeado</p>
+                        <p className="text-xs font-semibold" style={{ color: colores.blue }}>
+                          {formatCurrency(planeado)}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[9px] mb-0.5" style={{ color: colores.muted }}>Diferencia</p>
+                        <p className="text-xs font-semibold" style={{ color }}>
+                          {real >= planeado ? '+' : ''}{formatCurrency(real - planeado)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] mb-0.5" style={{ color: colores.muted }}>Real</p>
+                        <p className="text-xs font-semibold" style={{ color }}>
+                          {formatCurrency(real)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${Math.min(100, pct)}%`, background: color }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-[9px]" style={{ color: colores.muted }}>0</span>
+                      <span className="text-[9px] font-semibold" style={{ color }}>
+                        {pct}% del objetivo
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Multiplicador */}
               <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
@@ -1202,18 +1526,28 @@ export default function InversionesPage() {
                   background: `color-mix(in srgb, ${colores.green} 6%, transparent)`,
                   border: `1px solid color-mix(in srgb, ${colores.green} 15%, transparent)`,
                 }}>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-2">
                   <Sparkles size={11} style={{ color: colores.green, flexShrink: 0 }} />
                   <p className="text-[9px] font-semibold uppercase" style={{ color: colores.green }}>
                     Retiro mensual sostenible (Regla del 4%)
                   </p>
                   <Tooltip4Pct colores={colores} />
                 </div>
-                <p className="text-base font-semibold" style={{ color: colores.green, letterSpacing: '-0.02em' }}>
-                  {formatCurrency(calc.finalBalance * 0.04 / 12)}
-                  <span className="text-[10px] font-semibold opacity-60 ml-1">/mes estimado</span>
-                </p>
-                <p className="text-[9px] mt-1" style={{ color: colores.muted }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] mb-0.5" style={{ color: colores.muted }}>Hoy</p>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                      {formatCurrency(selected.capital * 0.04 / 12)}<span className="text-[9px] font-medium opacity-60 ml-1">/mes</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] mb-0.5" style={{ color: colores.muted }}>En {selected.anos}a (proyectado)</p>
+                    <p className="text-sm font-semibold" style={{ color: colores.green, letterSpacing: '-0.02em' }}>
+                      {formatCurrency(calc.finalBalance * 0.04 / 12)}<span className="text-[9px] font-medium opacity-60 ml-1">/mes</span>
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[9px] mt-2" style={{ color: colores.muted }}>
                   Basado en historial bursátil. No garantiza rendimientos futuros.
                 </p>
               </div>
@@ -1221,7 +1555,7 @@ export default function InversionesPage() {
           )}
 
           {/* Meta libertad financiera */}
-          {metaLibertad && totalProyectado > 0 && (
+          {metaLibertad && totalProyectadoCombinado > 0 && (
             <Card className="animate-enter" style={{ padding: '14px 16px', animationDelay: '0.1s' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -1231,12 +1565,12 @@ export default function InversionesPage() {
                   </p>
                 </div>
                 <p className="text-[10px] font-semibold" style={{ color: colores.green }}>
-                  {Math.min(100, (totalProyectado / metaLibertad) * 100).toFixed(1)}%
+                  {Math.min(100, (totalProyectadoCombinado / metaLibertad) * 100).toFixed(1)}%
                 </p>
               </div>
 
               <ProgressBar
-                value={Math.min(totalProyectado, metaLibertad)}
+                value={Math.min(totalProyectadoCombinado, metaLibertad)}
                 max={metaLibertad}
                 color={colores.green}
               />
@@ -1244,8 +1578,8 @@ export default function InversionesPage() {
               <div className="mt-3 space-y-1.5">
                 {[
                   { label: 'Capital actual total', val: formatCurrency(totalCapital), color: 'var(--text-primary)' },
-                  { label: 'Proyectado (suma de carteras)', val: formatCurrency(totalProyectado), color: colores.green },
-                  { label: 'Meta (gastos × 12 × 25)', val: formatCurrency(metaLibertad), color: 'var(--text-muted)' },
+                  { label: `Proyectado en ${maxAnosCarteras}a (horizonte común)`, val: formatCurrency(totalProyectadoCombinado), color: colores.green },
+                  { label: 'Meta (prom. 3 meses × 12 × 25)', val: formatCurrency(metaLibertad), color: 'var(--text-muted)' },
                 ].map(({ label, val, color }) => (
                   <div key={label} className="flex items-center justify-between">
                     <p className="text-[9px]" style={{ color: colores.muted }}>{label}</p>
@@ -1254,13 +1588,13 @@ export default function InversionesPage() {
                 ))}
               </div>
 
-              {totalProyectado < metaLibertad && (
+              {totalProyectadoCombinado < metaLibertad && (
                 <>
                   <div className="my-2 border-t" style={{ borderColor: 'var(--border-glass)' }} />
                   <div className="flex items-center justify-between">
                     <p className="text-[9px]" style={{ color: colores.muted }}>Te faltan</p>
                     <p className="text-[11px] font-semibold" style={{ color: colores.rose }}>
-                      {formatCurrency(metaLibertad - totalProyectado)}
+                      {formatCurrency(metaLibertad - totalProyectadoCombinado)}
                     </p>
                   </div>
                   {totalAportes > 0 && (() => {
@@ -1268,7 +1602,7 @@ export default function InversionesPage() {
                     const capitalTotal = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
                     const tasaAnual = capitalTotal > 0 ? tasaPonderada / capitalTotal : 0
                     const r = tasaAnual / 100 / 12
-                    const PV = totalProyectado
+                    const PV = totalCapital
                     const PMT = totalAportes
                     const FV = metaLibertad
                     let mesesEstimados
@@ -1277,9 +1611,9 @@ export default function InversionesPage() {
                       const den = Math.log(1 + r)
                       mesesEstimados = num > 0 && den > 0 ? Math.ceil(num / den) : null
                     } else {
-                      mesesEstimados = Math.ceil((FV - PV) / PMT)
+                      mesesEstimados = PMT > 0 ? Math.ceil((FV - PV) / PMT) : null
                     }
-                    if (!mesesEstimados || mesesEstimados <= 0) return null
+                    if (!mesesEstimados || mesesEstimados <= 0 || !isFinite(mesesEstimados)) return null
                     const años = Math.floor(mesesEstimados / 12)
                     const meses = mesesEstimados % 12
                     return (
@@ -1479,7 +1813,7 @@ export default function InversionesPage() {
         open={modalAporte}
         onClose={() => {
           setModalAporte(false)
-          setFormAporte({ monto: '', descripcion: '', fecha: '' })
+          setFormAporte({ monto: '', descripcion: '', fecha: fechaHoy() })
           setAutoFilled(false)
         }}
         title="Agregar aporte">
@@ -1634,7 +1968,7 @@ export default function InversionesPage() {
               type="button"
               onClick={() => {
                 setModalAporte(false)
-                setFormAporte({ monto: '', descripcion: '', fecha: '' })
+                setFormAporte({ monto: '', descripcion: '', fecha: fechaHoy() })
                 setAutoFilled(false)
               }}
               className="ff-btn-ghost flex-1">

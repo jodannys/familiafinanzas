@@ -28,12 +28,24 @@ export async function getPresupuestoMes(mesParam = null, añoParam = null) {
     const pctEstilo      = (bloquesData || []).find(b => b.bloque === 'estilo')?.pct      || 20
     const pctNecesidades = (bloquesData || []).find(b => b.bloque === 'necesidades')?.pct || 50
 
-    const montoFuturo      = ingresoReal * (pctFuturo / 100)
-    const montoEstilo      = ingresoReal * (pctEstilo / 100)
-    const montoNecesidades = ingresoReal * (pctNecesidades / 100)
+    // Normalizar bloques principales para que siempre sumen exactamente 100%
+    const totalBloques = pctFuturo + pctEstilo + pctNecesidades
+    const factorBloques = totalBloques > 0 ? 100 / totalBloques : 1
+    const pctFuturoN      = pctFuturo      * factorBloques
+    const pctEstiloN      = pctEstilo      * factorBloques
+    const pctNecesidadesN = pctNecesidades * factorBloques
+
+    const montoFuturo      = ingresoReal * (pctFuturoN / 100)
+    const montoEstilo      = ingresoReal * (pctEstiloN / 100)
+    const montoNecesidades = ingresoReal * (pctNecesidadesN / 100)
 
     const pctMetas       = (subData || []).find(s => s.categoria === 'metas')?.pct       || 60
     const pctInversiones = (subData || []).find(s => s.categoria === 'inversiones')?.pct || 40
+    // Normalizar sub-porcentajes de futuro para que también sumen 100%
+    const totalSub = pctMetas + pctInversiones
+    const factorSub = totalSub > 0 ? 100 / totalSub : 1
+    const pctMetasN       = pctMetas       * factorSub
+    const pctInversionesN = pctInversiones * factorSub
 
     return {
       total:            ingresoReal,
@@ -41,13 +53,13 @@ export async function getPresupuestoMes(mesParam = null, añoParam = null) {
       montoFuturo,
       montoEstilo,
       montoNecesidades,
-      montoMetas:       montoFuturo * (pctMetas / 100),
-      montoInversiones: montoFuturo * (pctInversiones / 100),
-      pctFuturo,
-      pctEstilo,
-      pctNecesidades,
-      pctMetas,
-      pctInversiones,
+      montoMetas:       montoFuturo * (pctMetasN / 100),
+      montoInversiones: montoFuturo * (pctInversionesN / 100),
+      pctFuturo:      pctFuturoN,
+      pctEstilo:      pctEstiloN,
+      pctNecesidades: pctNecesidadesN,
+      pctMetas:       pctMetasN,
+      pctInversiones: pctInversionesN,
       // FIX 2: indicar si se usaron valores por defecto
       usandoDefaults: !bloquesData?.length,
     }

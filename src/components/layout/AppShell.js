@@ -154,12 +154,13 @@ function FABModal({ onClose }) {
       return
     }
 
-    const { error } = await supabase.from('movimientos').insert([{
+    const { data: movData, error } = await supabase.from('movimientos').insert([{
       tipo, monto: valor, descripcion: descFinal,
       categoria: tipo === 'ingreso' ? 'ingreso' : cat,
       fecha: hoy,
       metodo_pago: tipo === 'egreso' ? metodoPago : 'transferencia',
-    }])
+      ...(tipo === 'egreso' && cat === 'deuda' && selectedItem && { deuda_id: selectedItem.id }),
+    }]).select()
     if (error) { toast('Error: ' + error.message); setSaving(false); return }
 
     if (tipo === 'egreso' && selectedItem) {
@@ -168,12 +169,18 @@ function FABModal({ onClose }) {
       } else if (cat === 'inversion') {
         await supabase.from('inversiones').update({ capital: (selectedItem.capital || 0) + valor }).eq('id', selectedItem.id)
       } else if (cat === 'deuda') {
-        await supabase.from('deuda_movimientos').insert([{
+        const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
           deuda_id: selectedItem.id, tipo: 'pago',
           descripcion: descFinal || `Pago ${selectedItem.nombre}`,
           monto: valor, fecha: hoy,
           mes: now.getMonth() + 1, año: now.getFullYear(),
-        }])
+        }]).select()
+        // Vincular deuda_movimiento_id al movimiento para poder revertir limpiamente
+        if (dmData?.[0]?.id && movData?.[0]?.id) {
+          await supabase.from('movimientos')
+            .update({ deuda_movimiento_id: dmData[0].id })
+            .eq('id', movData[0].id)
+        }
         const nuevoPendiente = Math.max(0, parseFloat(selectedItem.pendiente || 0) - valor)
         await supabase.from('deudas').update({
           pendiente: nuevoPendiente,

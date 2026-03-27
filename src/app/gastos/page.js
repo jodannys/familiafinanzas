@@ -117,27 +117,31 @@ export default function GastosPage() {
   }
 
   useEffect(() => {
-    getPresupuestoMes().then(setPresupuesto)
+    let activo = true
+    getPresupuestoMes().then(d => { if (activo) setPresupuesto(d) })
     cargarMovimientos()
     cargarPresupuesto()
-    supabase.from('categorias').select('*').order('bloque').order('nombre').then(({ data }) => setCategoriasCfg(data || []))
-    supabase.from('subcategorias').select('*').order('orden').order('nombre').then(({ data }) => setSubcategorias(data || []))
-    supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => setMetasData(data || []))
-    supabase.from('inversiones').select('id, nombre, capital, aporte').then(({ data }) => setInversionesData(data || []))
-    supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => setDeudasData(data || []))
+    supabase.from('categorias').select('*').order('bloque').order('nombre').then(({ data }) => { if (activo) setCategoriasCfg(data || []) })
+    supabase.from('subcategorias').select('*').order('orden').order('nombre').then(({ data }) => { if (activo) setSubcategorias(data || []) })
+    supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => { if (activo) setMetasData(data || []) })
+    supabase.from('inversiones').select('id, nombre, capital, aporte, pct_mensual').then(({ data }) => { if (activo) setInversionesData(data || []) })
+    supabase.from('deudas').select('id, nombre, pendiente, cuota, pagadas, tipo_deuda').eq('estado', 'activa').then(({ data }) => { if (activo) setDeudasData(data || []) })
     supabase.from('perfiles_tarjetas').select('id, nombre_tarjeta, banco, color, dia_pago, dia_corte').eq('estado', 'activa')
       .then(({ data }) => {
+        if (!activo) return
         setTarjetasData(data || [])
         if (data?.length === 1) setTarjetaSeleccionada(data[0].id)
       })
     supabase.from('deudas').select('id, nombre, perfil_tarjeta_id, pendiente, color').eq('tipo_deuda', 'tarjeta').eq('estado', 'activa')
       .then(({ data }) => {
+        if (!activo) return
         const map = {}
         // Primero mapear los que tienen perfil_tarjeta_id
         ;(data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
         // Para tarjetas de perfiles sin deuda asociada, guardar un fallback genérico
         setTarjetaDeudasMap(map)
       })
+    return () => { activo = false }
   }, [])
 
   async function cargarMovimientos(cargarTodos = false) {
@@ -401,14 +405,19 @@ export default function GastosPage() {
       if (movimiento.categoria === 'deuda' && deudaMovimientoId) {
         await supabase.from('deuda_movimientos').delete().eq('id', deudaMovimientoId)
       } else if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
-        // fallback legacy sin deuda_movimiento_id
-        await supabase.from('deuda_movimientos')
-          .delete()
+        // fallback legacy: SELECT primero para obtener el ID exacto, luego DELETE por ID
+        // (Supabase no soporta .limit() en DELETE — borraría todos los matches)
+        const { data: dmRows } = await supabase
+          .from('deuda_movimientos')
+          .select('id')
           .eq('deuda_id', movimiento.deuda_id)
           .eq('tipo', 'pago')
           .eq('monto', movimiento.monto)
           .eq('fecha', movimiento.fecha)
           .limit(1)
+        if (dmRows?.[0]?.id) {
+          await supabase.from('deuda_movimientos').delete().eq('id', dmRows[0].id)
+        }
       }
     } catch (err) {
       console.error('Error en borrado:', err)
@@ -439,11 +448,15 @@ export default function GastosPage() {
       }))
     }
 
-    if (form.categoria === 'inversion') return inversionesData.map(i => ({
-      id: `inv_${i.id}`, nombre: i.nombre, monto: i.aporte || 0,
-      sub: `Capital: ${formatCurrency(i.capital || 0)}`,
-      pct: null, color: colores.violet, emoji: '📈',
-    }))
+    if (form.categoria === 'inversion') {
+      const montoInversiones = presupuesto?.montoInversiones || 0
+      return inversionesData.map(i => ({
+        id: `inv_${i.id}`, nombre: i.nombre,
+        monto: i.pct_mensual > 0 ? Math.round((i.pct_mensual / 100) * montoInversiones) : (i.aporte || 0),
+        sub: `Capital: ${formatCurrency(i.capital || 0)}`,
+        pct: null, color: colores.violet, emoji: '📈',
+      }))
+    }
 
     return presItems
       .filter(i => i.bloque === CAT_BLOQUE[form.categoria])

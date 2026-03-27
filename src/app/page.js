@@ -52,6 +52,8 @@ function saludoBase(nombre) {
 
 function diasHastaPago(d) {
   if (!d?.dia_pago) return null
+  // Si ya se completaron todas las cuotas, no hay próximo pago
+  if (d.plazo_meses && (d.pagadas || 0) >= d.plazo_meses) return null
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
   let fechaPago
   if (d.fecha_primer_pago) {

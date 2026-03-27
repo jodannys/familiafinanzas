@@ -27,6 +27,8 @@ function fechaHoy() {
 }
 function diasHastaPago(d) {
   if (!d?.dia_pago) return null
+  // Si ya se completaron todas las cuotas, no hay próximo pago
+  if (d.plazo_meses && (d.pagadas || 0) >= d.plazo_meses) return null
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
   let fechaPago
   if (d.fecha_primer_pago) {
@@ -97,7 +99,8 @@ function generarTablaAmortizacion(deuda, movs = []) {
     const interes = tieneInteres ? parseFloat((saldo * tasaMensual).toFixed(2)) : 0
 
     const pagoReal = movs.find(m => m.tipo === 'pago' && m.mes === mesNum && m.año === añoNum)
-    const montoPagado = pagoReal ? parseFloat(pagoReal.monto || 0) : null
+    const _montoRaw = pagoReal ? parseFloat(pagoReal.monto) : null
+    const montoPagado = _montoRaw !== null ? (isNaN(_montoRaw) ? 0 : _montoRaw) : null
 
     let capitalAbonado
     if (montoPagado !== null) {
