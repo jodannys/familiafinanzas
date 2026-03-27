@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
+import CustomSelect from '@/components/ui/CustomSelect'
 import {
   Wallet, Plus, Loader2, Trash2,
   AlertTriangle, TrendingUp, Sprout, Search,
@@ -401,21 +402,21 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
           <div className="flex items-center gap-2 mt-1.5 text-[10px] font-semibold uppercase tracking-widest"
             style={{ color: 'var(--text-muted)' }}>
             <Calendar size={11} />
-            <select value={filtroMes} onChange={e => setFiltroMes(Number(e.target.value))}
-              className="bg-transparent outline-none cursor-pointer"
-              style={{ color: 'var(--text-muted)' }}>
-              {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
-              ))}
-            </select>
+            <div style={{ width: 72 }}>
+              <CustomSelect
+                value={String(filtroMes)}
+                onChange={v => { if (v) setFiltroMes(Number(v)) }}
+                options={['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].map((m, i) => ({ id: String(i + 1), label: m }))}
+              />
+            </div>
             <span>/</span>
-            <select value={filtroAño} onChange={e => setFiltroAño(Number(e.target.value))}
-              className="bg-transparent outline-none cursor-pointer"
-              style={{ color: 'var(--text-muted)' }}>
-              {Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - 1 + i).map(a => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
+            <div style={{ width: 80 }}>
+              <CustomSelect
+                value={String(filtroAño)}
+                onChange={v => { if (v) setFiltroAño(Number(v)) }}
+                options={Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - 1 + i).map(a => ({ id: String(a), label: String(a) }))}
+              />
+            </div>
           </div>
         </div>
         <button onClick={() => setModal(true)}
@@ -588,14 +589,12 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
                 style={{ color: 'var(--text-muted)' }}>
                 <CreditCard size={11} /> ¿Pagado con tarjeta? (opcional)
               </label>
-              <select className="ff-input" style={{ height: 44, fontSize: 13 }}
+              <CustomSelect
                 value={tarjetaSeleccionada}
-                onChange={e => setTarjetaSeleccionada(e.target.value)}>
-                <option value="">— No, pago directo —</option>
-                {tarjetasData.map(t => (
-                  <option key={t.id} value={t.id}>{t.emoji} {t.nombre}</option>
-                ))}
-              </select>
+                onChange={v => setTarjetaSeleccionada(v || '')}
+                options={tarjetasData.map(t => ({ id: t.id, label: `${t.emoji} ${t.nombre}` }))}
+                placeholder="— No, pago directo —"
+              />
               {usandoTarjeta && (
                 <div className="px-3 py-2 rounded-xl text-[10px] font-semibold"
                   style={{ background: 'color-mix(in srgb, var(--accent-violet) 8%, transparent)', color: 'var(--accent-violet)', border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
@@ -629,12 +628,16 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
           {!usandoTarjeta && (
             <div>
               <label className="ff-label">¿Quién?</label>
-              <select className="ff-input" style={{ height: 44, fontSize: 13 }}
-                value={form.quien} onChange={e => setForm({ ...form, quien: e.target.value })}>
-                <option value="Jodannys">Jodannys</option>
-                <option value="Rolando">Rolando</option>
-                <option value="Ambos">Ambos</option>
-              </select>
+              <CustomSelect
+                value={form.quien}
+                onChange={v => setForm({ ...form, quien: v || 'Jodannys' })}
+                options={[
+                  { id: 'Jodannys', label: 'Jodannys' },
+                  { id: 'Rolando',  label: 'Rolando'  },
+                  { id: 'Ambos',    label: 'Ambos'    },
+                ]}
+                placeholder="— ¿Quién? —"
+              />
             </div>
           )}
 

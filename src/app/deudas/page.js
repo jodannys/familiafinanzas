@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
+import CustomSelect from '@/components/ui/CustomSelect'
 import {
   Plus, Loader2, Trash2, CreditCard, Landmark,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Pencil, MessageCircle,
@@ -1872,10 +1873,9 @@ export default function DeudasPage() {
               {deudas.filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada').length > 0 && (
                 <div>
                   <label className="ff-label">Traer cuota de una deuda existente (opcional)</label>
-                  <select className="ff-input"
+                  <CustomSelect
                     value={formCuota.deuda_origen_id}
-                    onChange={e => {
-                      const id = e.target.value
+                    onChange={id => {
                       const d = deudas.find(x => x.id === id)
                       if (d) {
                         setFormCuota(p => ({
@@ -1888,14 +1888,13 @@ export default function DeudasPage() {
                       } else {
                         setFormCuota(p => ({ ...p, deuda_origen_id: '' }))
                       }
-                    }}>
-                    <option value="">— Rellenar manualmente —</option>
-                    {deudas.filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada').map(d => (
-                      <option key={d.id} value={d.id}>
-                        {d.emoji} {d.nombre} · {d.cuota > 0 ? `${formatCurrency(d.cuota)}/mes` : `Pendiente ${formatCurrency(d.pendiente)}`}
-                      </option>
-                    ))}
-                  </select>
+                    }}
+                    options={deudas.filter(d => d.tipo_deuda !== 'cuota' && d.estado !== 'pagada').map(d => ({
+                      id: d.id,
+                      label: `${d.emoji} ${d.nombre} · ${d.cuota > 0 ? `${formatCurrency(d.cuota)}/mes` : `Pendiente ${formatCurrency(d.pendiente)}`}`,
+                    }))}
+                    placeholder="— Rellenar manualmente —"
+                  />
                 </div>
               )}
               <div className="grid grid-cols-4 gap-3">
