@@ -41,9 +41,6 @@ function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
   }
 }
 export default function GastosPage() {
-  const { theme } = useTheme()
-  const themeColors = getThemeColors(theme)
-
   const [movs, setMovs] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -200,13 +197,13 @@ export default function GastosPage() {
     // ── Tarjeta de crédito (nuevo flujo con cuotas) ───────────────────────────
     if (metodoPago === 'tarjeta_credito' && form.tipo === 'egreso') {
       if (!tarjetaSeleccionada) {
-        setError('Selecciona una tarjeta de crédito')
+        toast('Selecciona una tarjeta de crédito', 'warning')
         setSaving(false)
         return
       }
       const cuotas = parseInt(numCuotas)
       if (!cuotas || cuotas < 1) {
-        setError('Ingresa el número de cuotas')
+        toast('Ingresa el número de cuotas', 'warning')
         setSaving(false)
         return
       }
