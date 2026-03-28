@@ -29,7 +29,7 @@ function CustomTooltip({ active, payload, label, colores }) {
       border:        `1px solid ${colores.tooltipBorder}`,
       borderRadius:  16,
       padding:       '12px 16px',
-      boxShadow:     '0 8px 32px rgba(0,0,0,0.12)',
+      boxShadow:     'var(--shadow-md)',
       backdropFilter: 'blur(12px)',
     }}>
       <p style={{
@@ -95,7 +95,7 @@ export function FinanceChart({ data = [] }) {
         backdropFilter:       'blur(40px)',
         WebkitBackdropFilter: 'blur(40px)',
         border:               `1px solid ${colores.borderColor || 'var(--border-glass)'}`,
-        boxShadow:            '0 2px 24px rgba(0,0,0,0.06)',
+        boxShadow:            'var(--shadow-sm)',
       }}
     >
       {/* Header */}

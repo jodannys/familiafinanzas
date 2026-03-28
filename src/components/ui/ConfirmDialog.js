@@ -45,7 +45,7 @@ export default function ConfirmDialog({ open, message, onConfirm, onCancel, labe
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       <div
         className="absolute inset-0"
-        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+        style={{ background: 'color-mix(in srgb, var(--bg-dark-card), transparent 50%)', backdropFilter: 'blur(4px)' }}
         onClick={onCancel}
       />
       <div
@@ -55,7 +55,7 @@ export default function ConfirmDialog({ open, message, onConfirm, onCancel, labe
           border: '1px solid var(--border-glass)',
           borderRadius: 20,
           padding: '28px 24px 24px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+          boxShadow: 'var(--shadow-xl)',
         }}
       >
         {/* Icono */}
@@ -92,7 +92,7 @@ export default function ConfirmDialog({ open, message, onConfirm, onCancel, labe
             onClick={onConfirm}
             style={{
               flex: 1, padding: '11px 0', borderRadius: 12, border: 'none',
-              background: 'var(--accent-rose)', color: '#fff',
+              background: 'var(--accent-rose)', color: 'var(--text-on-dark)',
               fontSize: 13, fontWeight: 700, cursor: 'pointer',
             }}
           >

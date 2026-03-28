@@ -39,6 +39,15 @@
   /* Geometría */
   --radius-xl:       32px;
   --border-glass:    rgba(255, 255, 255, 0.4);
+
+  /* Texto sobre fondos oscuros/acentuados */
+  --text-on-dark:    rgba(255,255,255,0.95);
+
+  /* Sistema de sombras adaptadas al tema */
+  --shadow-sm:  0 1px 4px color-mix(in srgb, var(--bg-dark-card), transparent 88%);
+  --shadow-md:  0 4px 16px color-mix(in srgb, var(--bg-dark-card), transparent 82%);
+  --shadow-lg:  0 8px 32px color-mix(in srgb, var(--bg-dark-card), transparent 75%);
+  --shadow-xl:  0 16px 48px color-mix(in srgb, var(--bg-dark-card), transparent 68%);
 }
 
 /* ── Reset & Base ─────────────────────────────────────────────────────────── */
@@ -114,27 +123,27 @@ h1, h2, h3{
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-xl);
   padding: 24px;
-  box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--bg-dark-card), transparent 85%);
+  box-shadow: var(--shadow-md);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
 }
 
 .glass-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 24px 48px -12px color-mix(in srgb, var(--bg-dark-card), transparent 75%);
+  box-shadow: var(--shadow-xl);
 }
 
 .dark-card {
   background: var(--bg-dark-card);
-  color: #FFFFFF;
+  color: var(--text-on-dark);
   border-radius: var(--radius-xl);
   padding: 24px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ── Botones Estilo Editorial ─────────────────────────────────────────────── */
 
 .ff-btn-primary, .ff-btn-terra {
-  color: #FFFFFF;
+  color: var(--text-on-dark);
   font-weight: 800;
   padding: 12px 28px;
   border-radius: 999px;
@@ -221,7 +230,7 @@ h1, h2, h3{
   background: var(--bg-dark-card);
   border-radius: var(--radius-xl);
   padding: 24px;
-  color: #FFFFFF;
+  color: var(--text-on-dark);
 }
 
 @keyframes enter {

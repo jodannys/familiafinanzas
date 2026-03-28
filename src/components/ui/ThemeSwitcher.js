@@ -57,7 +57,7 @@ export default function ThemeSwitcher() {
               background: 'var(--bg-card)',
               border: '1px solid var(--border-glass)',
               borderRadius: 20,
-              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+              boxShadow: 'var(--shadow-md)',
               zIndex: 101,
               padding: 6,
               backdropFilter: 'blur(12px)',

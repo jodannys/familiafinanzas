@@ -273,7 +273,7 @@ export function FABModal({ onClose }) {
       {/* Overlay */}
       <div
         className="fixed inset-0 z-[110]"
-        style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)' }}
+        style={{ background: 'color-mix(in srgb, var(--bg-dark-card), transparent 55%)', backdropFilter: 'blur(6px)' }}
         onClick={onClose}
       />
 
@@ -288,7 +288,7 @@ export function FABModal({ onClose }) {
           background: 'var(--bg-card)',
           border: '1px solid var(--border-glass)',
           borderRadius: 28,
-          boxShadow: '0 24px 64px rgba(0,0,0,0.28)',
+          boxShadow: 'var(--shadow-xl)',
           paddingBottom: 8,
         }}
       >
@@ -317,7 +317,7 @@ export function FABModal({ onClose }) {
                     : 'transparent',
                   color: tipo === t.id ? t.color : 'var(--text-muted)',
                   fontWeight: 700, fontSize: 13,
-                  boxShadow: tipo === t.id ? '0 2px 8px rgba(0,0,0,0.10)' : 'none',
+                  boxShadow: tipo === t.id ? 'var(--shadow-sm)' : 'none',
                   transition: 'all 0.15s',
                 }}
               >

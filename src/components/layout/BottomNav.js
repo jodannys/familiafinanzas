@@ -49,7 +49,7 @@ export default function BottomNav({ onFABClick }) {
         <>
           {/* Overlay original con blur */}
           <div className="lg:hidden fixed inset-0 z-[90]"
-            style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
+            style={{ background: 'color-mix(in srgb, var(--bg-dark-card), transparent 55%)', backdropFilter: 'blur(4px)' }}
             onClick={() => setShowMore(false)} />
 
           {/* Menú de Módulos original (Redondeado y con estilo Glassmorphism) */}
@@ -144,7 +144,7 @@ export default function BottomNav({ onFABClick }) {
                 width: 60,
                 height: 60,
                 background: 'var(--accent-main)',
-                color: 'white',
+                color: 'var(--text-on-dark)',
                 border: '4px solid var(--bg-card)', // Crea ese efecto de recorte limpio
                 boxShadow: 'none', // Quitamos el brillo
                 cursor: 'pointer',

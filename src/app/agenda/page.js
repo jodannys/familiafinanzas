@@ -332,7 +332,7 @@ export default function AgendaPage() {
                   width: 32, height: 32, border: 'none', cursor: 'pointer',
                   background: vista === id ? 'var(--bg-card)' : 'transparent',
                   color: vista === id ? 'var(--text-primary)' : 'var(--text-muted)',
-                  boxShadow: vista === id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  boxShadow: vista === id ? 'var(--shadow-sm)' : 'none',
                 }}>
                 <Icon size={15} />
               </button>
@@ -625,7 +625,7 @@ export default function AgendaPage() {
                         width: 34, height: 34,
                         background: esHoy ? 'var(--accent-green)' : 'color-mix(in srgb, var(--text-muted) 10%, transparent)',
                       }}>
-                      <span style={{ fontSize: 14, fontWeight: 900, color: esHoy ? '#fff' : 'var(--text-primary)', lineHeight: 1 }}>
+                      <span style={{ fontSize: 14, fontWeight: 900, color: esHoy ? 'var(--text-on-dark)' : 'var(--text-primary)', lineHeight: 1 }}>
                         {cd}
                       </span>
                     </div>

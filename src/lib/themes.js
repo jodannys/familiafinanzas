@@ -29,9 +29,10 @@ export const THEMES = {
     '--text-primary': '#1A1410',
     '--text-secondary': '#6A5C50',
     '--text-muted': '#9A8778',
+    '--text-on-dark': 'rgba(255,255,255,0.95)',
   }
 },
-  
+
   ocean: {
     name: 'Ocean Slate',
     themeColor: '#D6EEF5',
@@ -59,6 +60,7 @@ export const THEMES = {
       '--text-muted': '#5C7A90',
       '--sidebar-bg': '#EAF6FA',
       '--sidebar-border': 'rgba(8,130,168,0.14)',
+      '--text-on-dark': 'rgba(255,255,255,0.95)',
     }
   },
   forest: {
@@ -88,6 +90,7 @@ export const THEMES = {
       '--text-muted': '#486240',
       '--sidebar-bg': '#0E1608',
       '--sidebar-border': 'rgba(90, 158, 66, 0.16)',
+      '--text-on-dark': 'rgba(255,255,255,0.95)',
     }
   },
   carbon: {
@@ -117,6 +120,7 @@ export const THEMES = {
       '--text-muted': '#525252',
       '--sidebar-bg': '#0A0A0A',
       '--sidebar-border': '#1A1A1A',
+      '--text-on-dark': 'rgba(255,255,255,0.95)',
     }
   },
   dusk: {
@@ -146,6 +150,7 @@ export const THEMES = {
       '--text-muted':    '#6C7086',
       '--sidebar-bg':    '#181825',
       '--sidebar-border':'rgba(205, 214, 244, 0.08)',
+      '--text-on-dark':  '#1E1E2E',
     }
   },
 
@@ -177,6 +182,7 @@ export const THEMES = {
       '--text-muted': '#A08090',
       '--sidebar-bg': '#FAF0F2',
       '--sidebar-border': 'rgba(192, 88, 120, 0.16)',
+      '--text-on-dark': 'rgba(255,255,255,0.95)',
     }
   },
 }

@@ -52,7 +52,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
       <div
         className="absolute inset-0"
         style={{
-          background: 'rgba(44,32,22,0.45)',
+          background: 'color-mix(in srgb, var(--bg-dark-card), transparent 55%)',
           backdropFilter: 'blur(4px)',
           animation: closing ? 'overlay-out 0.2s ease forwards' : 'overlay-in 0.3s ease forwards',
         }}
@@ -65,7 +65,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
         style={{
           background:   'var(--bg-card)',
           border:       '1px solid var(--border-glass)',
-          boxShadow:    '0 -4px 40px rgba(100,70,30,0.15)',
+          boxShadow:    'var(--shadow-xl)',
           borderRadius: '20px',
           maxHeight:    '92dvh',
           display:      'flex',

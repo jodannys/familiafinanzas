@@ -811,7 +811,7 @@ export default function GastosPage() {
                   style={{
                     background: form.tipo === t ? colores.card : 'transparent',
                     color: form.tipo === t ? 'var(--text-primary)' : colores.muted,
-                    boxShadow: form.tipo === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    boxShadow: form.tipo === t ? 'var(--shadow-sm)' : 'none',
                   }}>
                   {t}
                 </button>

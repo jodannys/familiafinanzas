@@ -51,7 +51,7 @@ export default function MetasPage() {
   const [traspasosDeMetas, setTraspasosDeMetas] = useState(0)
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || '#2D7A5F' })
+  const [form, setForm] = useState({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || 'var(--accent-green)' })
   const [selectedMetaId, setSelectedMetaId] = useState(null)
   const [modalAporte, setModalAporte] = useState(null) // meta object
   const [montoAporte, setMontoAporte] = useState('')
@@ -127,7 +127,7 @@ export default function MetasPage() {
     setModal(false)
     setEditingId(null)
     setError(null)
-    setForm({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || '#2D7A5F' })
+    setForm({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || 'var(--accent-green)' })
   }
 
   function handleDelete(id) {

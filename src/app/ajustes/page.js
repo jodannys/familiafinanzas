@@ -372,7 +372,7 @@ export default function AjustesPage() {
                 />
                 <button onClick={handleGuardarNombre} disabled={savingNombre}
                   className="px-3 py-2 rounded-xl text-xs font-semibold"
-                  style={{ background: 'var(--accent-green)', color: 'white', border: 'none', cursor: 'pointer' }}>
+                  style={{ background: 'var(--accent-green)', color: 'var(--text-on-dark)', border: 'none', cursor: 'pointer' }}>
                   {savingNombre ? <Loader2 size={12} className="animate-spin" /> : <Save size={13} />}
                 </button>
                 <button onClick={() => setEditNombre(false)}

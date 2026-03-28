@@ -1304,8 +1304,8 @@ export default function DeudasPage() {
                           window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
                         }}
                         title="Notificar por WhatsApp"
-                        bg="color-mix(in srgb, #25D366 12%, transparent)"
-                        color="#25D366">
+                        bg="color-mix(in srgb, var(--accent-green) 12%, transparent)"
+                        color="var(--accent-green)">
                         <MessageCircle size={12} />
                       </IconBtn>
                     )}
@@ -2017,7 +2017,7 @@ export default function DeudasPage() {
                       style={{
                         background: formMov.tipo === t.v ? 'var(--bg-card)' : 'transparent',
                         color: formMov.tipo === t.v ? 'var(--text-primary)' : 'var(--text-muted)',
-                        boxShadow: formMov.tipo === t.v ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        boxShadow: formMov.tipo === t.v ? 'var(--shadow-sm)' : 'none',
                       }}>
                       {t.l}
                     </button>
