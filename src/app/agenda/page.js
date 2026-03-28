@@ -90,36 +90,59 @@ export default function AgendaPage() {
 
   const hoyStr = toFechaStr(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
 
-  useEffect(() => { cargar() }, [año, mes])
+  // FIX #6: deudas solo se cargan una vez al montar — no cambian al navegar de mes
+  useEffect(() => { cargarDeudas() }, [])
+  useEffect(() => { cargarNotas() }, [año, mes])
 
-  async function cargar() {
+  async function cargarDeudas() {
+    const { data: dd } = await supabase
+      .from('deudas')
+      .select('id,nombre,emoji,dia_pago,cuota,color,fecha_primer_pago,plazo_meses,created_at')
+      .eq('estado', 'activa')
+    setDeudasData(dd || [])
+  }
+
+  async function cargarNotas() {
     setLoading(true)
     const diasMes = new Date(año, mes + 1, 0).getDate()
     const desde = `${año}-${pad(mes + 1)}-01`
     const hasta = `${año}-${pad(mes + 1)}-${pad(diasMes)}`
-    const [{ data: nd }, { data: dd }] = await Promise.all([
-      supabase.from('agenda_notas').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha'),
-      supabase.from('deudas').select('id,nombre,emoji,dia_pago,cuota,color,fecha_primer_pago,plazo_meses').eq('estado', 'activa'),
-    ])
+    const { data: nd } = await supabase
+      .from('agenda_notas').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha')
     setNotas(nd || [])
-    setDeudasData(dd || [])
     setLoading(false)
   }
 
+  // Mantener compatibilidad: cargar recarga ambas fuentes (usado al guardar/eliminar notas)
+  function cargar() { cargarDeudas(); cargarNotas() }
+
   // Eventos automáticos desde deudas (no se guardan en BD)
   const eventosDeudas = (deudasData || []).flatMap(d => {
+    // FIX #1a: ignorar deudas sin día de pago configurado (evita pagos el día 1 por defecto)
+    if (!d.dia_pago) return []
+
     if (d.fecha_primer_pago) {
       const [fpAño, fpMes] = d.fecha_primer_pago.split('-').map(Number)
       const currentIdx = año * 12 + mes
       const startIdx = fpAño * 12 + (fpMes - 1)
+      // FIX #1b: no mostrar meses anteriores al inicio de la deuda
       if (currentIdx < startIdx) return []
       if (d.plazo_meses) {
         const endIdx = startIdx + d.plazo_meses - 1
         if (currentIdx > endIdx) return []
       }
+    } else {
+      // FIX #1c: deudas sin fecha_primer_pago solo se muestran desde su mes de creación
+      if (d.created_at) {
+        const creada = new Date(d.created_at)
+        const creadaIdx = creada.getFullYear() * 12 + creada.getMonth()
+        const currentIdx = año * 12 + mes
+        if (currentIdx < creadaIdx) return []
+      }
     }
+
     const diasMes = new Date(año, mes + 1, 0).getDate()
-    const dia = Math.min(d.dia_pago || 1, diasMes)
+    const dia = Math.min(d.dia_pago, diasMes)
     return [{
       id: `auto-${d.id}`,
       fecha: toFechaStr(año, mes, dia),

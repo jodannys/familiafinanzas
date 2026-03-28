@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
+import { useQuien } from '@/lib/useQuien'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import CustomSelect from '@/components/ui/CustomSelect'
 
@@ -41,6 +42,7 @@ function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
   }
 }
 export default function GastosPage() {
+  const { opcionesQuien, defaultQuien } = useQuien()
   const [movs, setMovs] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -66,9 +68,14 @@ export default function GastosPage() {
   const [subcatPresupuesto, setSubcatPresupuesto] = useState({})
   const [form, setForm] = useState({
     tipo: 'egreso', monto: '', descripcion: '',
-    categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys',
+    categoria: 'basicos', fecha: fechaHoy(), quien: 'Ambos',
     subcategoria_id: '',
   })
+
+  // Sincronizar quien inicial cuando carga el hook
+  useEffect(() => {
+    if (defaultQuien) setForm(f => ({ ...f, quien: f.quien === 'Ambos' ? defaultQuien : f.quien }))
+  }, [defaultQuien])
 
   const METODOS_PAGO = [
     { id: 'efectivo',        short: 'EF', label: 'Efectivo',   color: colores.green  },
@@ -192,7 +199,7 @@ export default function GastosPage() {
     setDeudaSeleccionada('')
     setMetodoPago('efectivo')
     setNumCuotas('')
-    setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: fechaHoy(), quien: 'Jodannys', subcategoria_id: '' })
+    setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: fechaHoy(), quien: defaultQuien, subcategoria_id: '' })
   }
 
 
@@ -770,12 +777,8 @@ export default function GastosPage() {
                 <label className="ff-label">¿Quién?</label>
                 <CustomSelect
                   value={form.quien}
-                  onChange={id => setForm({ ...form, quien: id || 'Jodannys' })}
-                  options={[
-                    { id: 'Jodannys', label: 'Jodannys' },
-                    { id: 'Rolando', label: 'Rolando' },
-                    { id: 'Ambos', label: 'Ambos' },
-                  ]}
+                  onChange={id => setForm({ ...form, quien: id || defaultQuien })}
+                  options={opcionesQuien}
                   placeholder="— Quién —"
                 />
               </div>

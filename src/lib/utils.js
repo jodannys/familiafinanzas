@@ -36,7 +36,7 @@ export function calculateCompoundInterest({ principal, monthlyContribution, annu
   const mc = parseFloat(monthlyContribution) || 0
   const r  = (parseFloat(annualRate) || 0) / 100
 
-  // FIX 3: garantizar años positivos y al menos 1
+  // garantizar años positivos y al menos 1
   const y  = Math.max(1, parseInt(years) || 10)
 
   let currentBalance   = p
@@ -50,17 +50,19 @@ export function calculateCompoundInterest({ principal, monthlyContribution, annu
     let interestForYear = 0
 
     if (compound) {
-      // FIX 2: saltarse el loop si tasa es 0
       if (r === 0) {
         currentBalance += yearlyContribution
       } else {
+        // FIX #5: fórmula cerrada exacta para evitar acumulación de error flotante
+        // FV = P*(1+rm)^12 + mc*((1+rm)^12 - 1)/rm   donde rm = r/12
+        const rm = r / 12
         const balanceAtStart = currentBalance
-        for (let m = 0; m < 12; m++) {
-          const interestThisMonth = currentBalance * (r / 12)
-          currentBalance  += interestThisMonth + mc
-          totalInterest   += interestThisMonth
-        }
+        const factor = Math.pow(1 + rm, 12)
+        const balanceFromPrincipal = currentBalance * factor
+        const balanceFromContribs  = mc * (factor - 1) / rm
+        currentBalance = balanceFromPrincipal + balanceFromContribs
         interestForYear = currentBalance - balanceAtStart - yearlyContribution
+        totalInterest  += interestForYear
       }
     } else {
       const interestThisYear = (totalContributed + (yearlyContribution / 2)) * r

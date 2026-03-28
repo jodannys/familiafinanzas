@@ -370,6 +370,7 @@ export default function DeudasPage() {
 
   async function handleSaveDeuda(e) {
     e.preventDefault()
+    if (saving) return
     setSaving(true)
     let payload = {}
 
@@ -482,6 +483,7 @@ export default function DeudasPage() {
   }
 
   async function handleMarcarPagada(deuda) {
+    if (saving) return
     const monto = deuda.cuota || deuda.pendiente || 0
     if (!monto) return
     setSaving(true)
@@ -528,7 +530,7 @@ export default function DeudasPage() {
 
   async function handleAddMov(e) {
     e.preventDefault()
-    if (!modalMov) return
+    if (saving || !modalMov) return
     setSaving(true)
     const monto = parseFloat(formMov.monto)
     const deuda = deudas.find(d => d.id === modalMov)
@@ -597,7 +599,7 @@ export default function DeudasPage() {
 
   async function handleEditMov(e) {
     e.preventDefault()
-    if (!editandoMov) return
+    if (saving || !editandoMov) return
     setSaving(true)
 
     const montoNuevo = parseFloat(formMov.monto)

@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import CustomSelect from '@/components/ui/CustomSelect'
+import { useQuien } from '@/lib/useQuien'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -92,7 +93,13 @@ export function FABModal({ onClose }) {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   })
-  const [quien,              setQuien]               = useState('Jodannys')
+  const { opcionesQuien, defaultQuien } = useQuien()
+  const [quien,              setQuien]               = useState('Ambos')
+
+  // Sincronizar quien con el default cuando carga el hook
+  useEffect(() => {
+    if (defaultQuien) setQuien(q => q === 'Ambos' ? defaultQuien : q)
+  }, [defaultQuien])
   const [subcats,            setSubcats]             = useState([])
   const [selectedSubcat,     setSelectedSubcat]      = useState(null)
   const [subcatPresupuesto,  setSubcatPresupuesto]   = useState({})
@@ -483,6 +490,16 @@ export function FABModal({ onClose }) {
                 className="ff-input"
                 style={{ fontSize: 11, padding: '7px 10px', borderRadius: 10, width: '100%' }}
               />
+
+              {/* ¿Quién? (dinámico desde perfiles_familia) */}
+              {opcionesQuien.length > 1 && (
+                <CustomSelect
+                  value={quien}
+                  onChange={v => setQuien(v || defaultQuien)}
+                  options={opcionesQuien}
+                  placeholder="— ¿Quién? —"
+                />
+              )}
 
               {/* Método de pago (solo gasto) */}
               {tipo === 'egreso' && (

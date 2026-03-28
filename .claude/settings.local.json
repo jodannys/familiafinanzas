@@ -12,7 +12,10 @@
       "Bash(npx tsc:*)",
       "Bash(find . -name *.js -type f)",
       "Read(//c/Users/jodan/OneDrive/**)",
-      "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas/src -type f \\\\\\(-name *.js -o -name *.ts -o -name *.jsx -o -name *.tsx \\\\\\))"
+      "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas/src -type f \\\\\\(-name *.js -o -name *.ts -o -name *.jsx -o -name *.tsx \\\\\\))",
+      "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas -type f -name *migration* -o -name *schema* -o -name *seed*)",
+      "Bash(xargs wc:*)",
+      "Bash(ls -la /c/Users/jodan/OneDrive/Escritorio/familiafinanzas/.env*)"
     ]
   }
 }

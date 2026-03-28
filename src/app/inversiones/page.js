@@ -465,6 +465,7 @@ export default function InversionesPage() {
 
   async function handleAddAporte(e) {
     e.preventDefault()
+    if (savingAporte) return
     const monto = parseFloat(formAporte.monto)
     if (!monto || monto <= 0) return
     setSavingAporte(true)

@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
+import { useQuien } from '@/lib/useQuien'
 import Modal from '@/components/ui/Modal'
 
 // ── FIX FECHAS: usa fecha local para evitar desfase UTC ──────────────────────
@@ -27,6 +28,7 @@ const ORIGENES = [
 ]
 
 export default function SobrePage() {
+  const { opcionesQuien, defaultQuien } = useQuien()
   const [presupuesto, setPresupuesto] = useState(null)
   const [sobreMovs, setSobreMovs] = useState([])
   const [movsMes, setMovsMes] = useState([])
@@ -43,6 +45,11 @@ export default function SobrePage() {
   const [modalSobrante, setModalSobrante] = useState(false)
   const [gastoTemp, setGastoTemp] = useState(null)
   const [form, setForm] = useState({ descripcion: '', monto: '', quien: 'Ambos' })
+
+  // Sincronizar quien inicial cuando carga el hook
+  useEffect(() => {
+    if (defaultQuien) setForm(f => ({ ...f, quien: f.quien === 'Ambos' ? defaultQuien : f.quien }))
+  }, [defaultQuien])
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [origenTraspaso, setOrigenTraspaso] = useState('basicos')
   const [destinoSobrante, setDestinoSobrante] = useState('metas')
@@ -150,11 +157,12 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
   function resetModal() {
     setModal(false)
     setTarjetaSeleccionada('')
-    setForm({ descripcion: '', monto: '', quien: 'Ambos' })
+    setForm({ descripcion: '', monto: '', quien: defaultQuien })
   }
 
   async function handleGasto(e) {
     e.preventDefault()
+    if (saving) return
     const monto = parseFloat(form.monto) || 0
     if (!monto || !form.descripcion) return
 
@@ -199,7 +207,7 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
   }
 
   async function confirmarTraspaso() {
-    if (!gastoTemp) return
+    if (saving || !gastoTemp) return
     const saldoOrigen = getSaldo(origenTraspaso)
     if (saldoOrigen < gastoTemp.monto) {
       toast('No hay saldo suficiente en el origen seleccionado')
@@ -231,9 +239,16 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
     }])
 
     if (sobreError) {
-      // BUG FIX: rollback — borrar el movimiento si el traspaso falló
+      // Rollback: borrar el movimiento si el traspaso falló
       if (movData?.[0]?.id) {
-        await supabase.from('movimientos').delete().eq('id', movData[0].id)
+        const { error: rollbackError } = await supabase
+          .from('movimientos').delete().eq('id', movData[0].id)
+        if (rollbackError) {
+          // El rollback también falló — avisar al usuario para que limpie manualmente
+          toast('⚠️ Error crítico: el gasto quedó registrado pero el traspaso no. Revisa tus movimientos y elimina el duplicado.')
+          setSaving(false)
+          return
+        }
       }
       setSaving(false)
       toast('Error al registrar el traspaso. La operación fue revertida.')
@@ -243,12 +258,13 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
     setSaving(false)
     setModalTraspaso(false)
     setGastoTemp(null)
-    setForm({ descripcion: '', monto: '', quien: 'Ambos' })
+    setForm({ descripcion: '', monto: '', quien: defaultQuien })
     setTarjetaSeleccionada('')
     cargarTodo()
   }
 
   async function confirmarSobrante() {
+    if (saving) return
     const monto = parseFloat(montoSobrante) || 0
     if (!monto || monto > saldoSobre) return
     if (destinoSobrante === 'metas' && !metaSeleccionada) return
@@ -260,42 +276,76 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
     const inversion = inversionSeleccionada ? inversionesData.find(i => i.id === inversionSeleccionada) : null
     const nombreDestino = meta?.nombre || inversion?.nombre || destinoSobrante
 
-    // sobre_movimiento con meta_id / inversion_id para trazabilidad
-    const { error } = await supabase.from('sobre_movimientos').insert([{
+    // Paso 1: sobre_movimiento con meta_id / inversion_id para trazabilidad
+    const { data: sobreData, error: sobreErr } = await supabase.from('sobre_movimientos').insert([{
       descripcion: `Sobrante → ${nombreDestino}`,
       monto, origen: 'sobre', destino: destinoSobrante,
       mes: filtroMes, año: filtroAño, fecha: hoy,
       meta_id: meta?.id || null,
       inversion_id: inversion?.id || null,
-    }])
+    }]).select()
 
-    if (error) { setSaving(false); toast('' + error.message); return }
+    if (sobreErr) { setSaving(false); toast('' + sobreErr.message); return }
+    const sobreId = sobreData?.[0]?.id
 
     if (meta) {
       const nuevoActual = (meta.actual || 0) + monto
       const completada = nuevoActual >= meta.meta
-      await supabase.from('metas').update({
+
+      // Paso 2: actualizar meta
+      const { error: metaErr } = await supabase.from('metas').update({
         actual: nuevoActual,
         ...(completada && { estado: 'completada' }),
       }).eq('id', meta.id)
-      await supabase.from('movimientos').insert([{
+
+      if (metaErr) {
+        // Rollback paso 1
+        if (sobreId) await supabase.from('sobre_movimientos').delete().eq('id', sobreId)
+        setSaving(false); toast('Error al actualizar la meta. Operación revertida.'); return
+      }
+
+      // Paso 3: registrar movimiento contable
+      const { error: movErr } = await supabase.from('movimientos').insert([{
         tipo: 'egreso', monto,
         descripcion: `Sobrante sobre → ${meta.nombre}`,
         categoria: 'ahorro', fecha: hoy,
         quien: 'Ambos', meta_id: meta.id,
       }])
+
+      if (movErr) {
+        // Rollback pasos 1 y 2
+        await supabase.from('metas').update({ actual: meta.actual, estado: meta.estado }).eq('id', meta.id)
+        if (sobreId) await supabase.from('sobre_movimientos').delete().eq('id', sobreId)
+        setSaving(false); toast('Error al registrar el movimiento. Operación revertida.'); return
+      }
+
       if (completada) toast(`¡Meta "${meta.nombre}" completada!`, 'success')
     }
 
     if (inversion) {
       const nuevoCapital = (inversion.capital || 0) + monto
-      await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inversion.id)
-      await supabase.from('movimientos').insert([{
+
+      // Paso 2: actualizar inversión
+      const { error: invErr } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inversion.id)
+
+      if (invErr) {
+        if (sobreId) await supabase.from('sobre_movimientos').delete().eq('id', sobreId)
+        setSaving(false); toast('Error al actualizar la inversión. Operación revertida.'); return
+      }
+
+      // Paso 3: registrar movimiento contable
+      const { error: movErr } = await supabase.from('movimientos').insert([{
         tipo: 'egreso', monto,
         descripcion: `Sobrante sobre → ${inversion.nombre}`,
         categoria: 'inversion', fecha: hoy,
         quien: 'Ambos', inversion_id: inversion.id,
       }])
+
+      if (movErr) {
+        await supabase.from('inversiones').update({ capital: inversion.capital }).eq('id', inversion.id)
+        if (sobreId) await supabase.from('sobre_movimientos').delete().eq('id', sobreId)
+        setSaving(false); toast('Error al registrar el movimiento. Operación revertida.'); return
+      }
     }
 
     setSaving(false)
@@ -630,12 +680,8 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
               <label className="ff-label">¿Quién?</label>
               <CustomSelect
                 value={form.quien}
-                onChange={v => setForm({ ...form, quien: v || 'Jodannys' })}
-                options={[
-                  { id: 'Jodannys', label: 'Jodannys' },
-                  { id: 'Rolando',  label: 'Rolando'  },
-                  { id: 'Ambos',    label: 'Ambos'    },
-                ]}
+                onChange={v => setForm({ ...form, quien: v || defaultQuien })}
+                options={opcionesQuien}
                 placeholder="— ¿Quién? —"
               />
             </div>

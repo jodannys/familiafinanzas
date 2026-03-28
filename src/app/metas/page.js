@@ -145,6 +145,7 @@ export default function MetasPage() {
 
   async function handleAgregarDinero(e) {
     e.preventDefault()
+    if (saving) return
     const monto = parseFloat(montoAporte)
     if (!monto || monto <= 0 || !modalAporte) return
     setSaving(true)
@@ -182,6 +183,7 @@ export default function MetasPage() {
 
   async function handleRetirarMeta(e) {
     e.preventDefault()
+    if (saving) return
     const monto = parseFloat(montoRetiro)
     if (!monto || monto <= 0 || !modalRetiro) return
     if (monto > (modalRetiro.actual || 0)) { setError('No puedes retirar más de lo ahorrado'); return }

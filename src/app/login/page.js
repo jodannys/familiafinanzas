@@ -80,10 +80,20 @@ function LoginContent() {
     e.preventDefault()
     if (!nombre.trim()) return
     setLoading(true); setError('')
-    const { error } = await supabase.auth.updateUser({ data: { nombre: nombre.trim() } })
+    const nombreFinal = nombre.trim()
+
+    // 1. Guardar nombre en user_metadata de Supabase Auth
+    const { error } = await supabase.auth.updateUser({ data: { nombre: nombreFinal } })
+    if (error) { setError('Error al guardar el perfil'); setLoading(false); return }
+
+    // 2. Sincronizar en perfiles_familia para que useQuien lo detecte automáticamente
+    await supabase.from('perfiles_familia').upsert(
+      { nombre: nombreFinal },
+      { onConflict: 'nombre', ignoreDuplicates: true }
+    )
+
     setLoading(false)
-    if (error) setError('Error al guardar el perfil')
-    else router.replace('/')
+    router.replace('/')
   }
 
   if (checking) return (
