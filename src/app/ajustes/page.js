@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import { getFlagEmoji } from '@/lib/utils'
+import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 
 const BLOQUES = [
   { id: 'necesidades', nombre: 'Necesidades', color: 'var(--accent-blue)', Icon: Home },
@@ -57,6 +58,8 @@ export default function AjustesPage() {
   const [bloqueCollapsed, setBloqueCollapsed] = useState({})
   const [hoveredCat, setHoveredCat] = useState(null)
   const [showTemas, setShowTemas] = useState(false)
+
+  const { confirmProps, showConfirm } = useConfirm()
 
   useEffect(() => {
     cargar()
@@ -137,14 +140,15 @@ export default function AjustesPage() {
     setEditandoCat(null)
   }
 
-  async function handleDeleteCat(id) {
-    if (!confirm('¿Eliminar esta categoría y todas sus subcategorías?')) return
-    const { error: subError } = await supabase.from('subcategorias').delete().eq('categoria_id', id)
-    if (subError) { toast('Error al eliminar subcategorías: ' + subError.message); return }
-    const { error } = await supabase.from('categorias').delete().eq('id', id)
-    if (error) { toast('' + error.message); return }
-    setCategorias(prev => prev.filter(c => c.id !== id))
-    setSubcategorias(prev => prev.filter(s => s.categoria_id !== id))
+  function handleDeleteCat(id) {
+    showConfirm('¿Eliminar esta categoría y todas sus subcategorías?', async () => {
+      const { error: subError } = await supabase.from('subcategorias').delete().eq('categoria_id', id)
+      if (subError) { toast('Error al eliminar subcategorías: ' + subError.message); return }
+      const { error } = await supabase.from('categorias').delete().eq('id', id)
+      if (error) { toast('' + error.message); return }
+      setCategorias(prev => prev.filter(c => c.id !== id))
+      setSubcategorias(prev => prev.filter(s => s.categoria_id !== id))
+    })
   }
 
   // ── SUBCATEGORÍAS ─────────────────────────────────────────────────────────
@@ -211,18 +215,20 @@ export default function AjustesPage() {
     setAddingFuturoTipo(null)
   }
 
-  async function handleDeleteMeta(id) {
-    if (!confirm('¿Eliminar esta meta?')) return
-    const { error } = await supabase.from('metas').delete().eq('id', id)
-    if (error) { toast('' + error.message); return }
-    setMetas(prev => prev.filter(m => m.id !== id))
+  function handleDeleteMeta(id) {
+    showConfirm('¿Eliminar esta meta?', async () => {
+      const { error } = await supabase.from('metas').delete().eq('id', id)
+      if (error) { toast('' + error.message); return }
+      setMetas(prev => prev.filter(m => m.id !== id))
+    })
   }
 
-  async function handleDeleteInversion(id) {
-    if (!confirm('¿Eliminar esta inversión?')) return
-    const { error } = await supabase.from('inversiones').delete().eq('id', id)
-    if (error) { toast('' + error.message); return }
-    setInversiones(prev => prev.filter(i => i.id !== id))
+  function handleDeleteInversion(id) {
+    showConfirm('¿Eliminar esta inversión?', async () => {
+      const { error } = await supabase.from('inversiones').delete().eq('id', id)
+      if (error) { toast('' + error.message); return }
+      setInversiones(prev => prev.filter(i => i.id !== id))
+    })
   }
 
   // ── EDITAR METAS ──────────────────────────────────────────────────────────
@@ -1008,6 +1014,7 @@ export default function AjustesPage() {
 
         </div>
       )}
+      <ConfirmDialog {...confirmProps} />
     </AppShell>
   )
 }

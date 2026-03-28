@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
+import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 import CustomSelect from '@/components/ui/CustomSelect'
 import {
   Plus, Loader2, Trash2, CreditCard, Landmark,
@@ -255,6 +256,8 @@ export default function DeudasPage() {
   const [formTarjeta, setFormTarjeta] = useState(makeFormTarjeta)
   const [formPrestamo, setFormPrestamo] = useState(makeFormPrestamo)
   const [formCuota, setFormCuota] = useState(makeFormCuota)
+
+  const { confirmProps, showConfirm } = useConfirm()
 
   const [calView, setCalView] = useState(() => { const d = new Date(); return { month: d.getMonth(), year: d.getFullYear() } })
   const [selectedDay, setSelectedDay] = useState(null)
@@ -647,79 +650,81 @@ export default function DeudasPage() {
     setSaving(false)
   }
 
-  async function handleDeleteMov(mov) {
-    if (!confirm('¿Eliminar este movimiento y revertir el pendiente?')) return
-    const deuda = deudas.find(d => d.id === mov.deuda_id)
-    if (!deuda) return
+  function handleDeleteMov(mov) {
+    showConfirm('¿Eliminar este movimiento y revertir el pendiente?', async () => {
+      const deuda = deudas.find(d => d.id === mov.deuda_id)
+      if (!deuda) return
 
-    let nuevoPendiente = deuda.pendiente || 0
-    let nuevosPagados = deuda.pagadas || 0
+      let nuevoPendiente = deuda.pendiente || 0
+      let nuevosPagados = deuda.pagadas || 0
 
-    if (mov.tipo === 'pago') {
-      nuevoPendiente = Math.min(
-        deuda.monto || (nuevoPendiente + mov.monto),
-        nuevoPendiente + mov.monto
-      )
-      nuevosPagados = Math.max(0, nuevosPagados - 1)
+      if (mov.tipo === 'pago') {
+        nuevoPendiente = Math.min(
+          deuda.monto || (nuevoPendiente + mov.monto),
+          nuevoPendiente + mov.monto
+        )
+        nuevosPagados = Math.max(0, nuevosPagados - 1)
 
-      const { data: movGeneralData } = await supabase
-        .from('movimientos')
-        .select('id')
-        .eq('deuda_movimiento_id', mov.id)
-        .limit(1)
-
-      if (movGeneralData?.[0]?.id) {
-        await supabase.from('movimientos').delete().eq('id', movGeneralData[0].id)
-      } else {
-        await supabase.from('movimientos').delete()
-          .eq('categoria', 'deuda')
-          .eq('monto', mov.monto)
-          .eq('deuda_id', mov.deuda_id)
+        const { data: movGeneralData } = await supabase
+          .from('movimientos')
+          .select('id')
+          .eq('deuda_movimiento_id', mov.id)
           .limit(1)
+
+        if (movGeneralData?.[0]?.id) {
+          await supabase.from('movimientos').delete().eq('id', movGeneralData[0].id)
+        } else {
+          await supabase.from('movimientos').delete()
+            .eq('categoria', 'deuda')
+            .eq('monto', mov.monto)
+            .eq('deuda_id', mov.deuda_id)
+            .limit(1)
+        }
+      } else {
+        nuevoPendiente = Math.max(0, nuevoPendiente - mov.monto)
+        const nuevoMonto = Math.max(deuda.capital || 0, (deuda.monto || 0) - mov.monto)
+        const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
+        if (error) { setError(error.message); return }
+        const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+        await supabase.from('deudas').update({
+          pendiente: nuevoPendiente, monto: nuevoMonto, estado: nuevoEstado
+        }).eq('id', mov.deuda_id)
+        toast('Movimiento eliminado', 'success')
+        await cargar()
+        return
       }
-    } else {
-      nuevoPendiente = Math.max(0, nuevoPendiente - mov.monto)
-      const nuevoMonto = Math.max(deuda.capital || 0, (deuda.monto || 0) - mov.monto)
+
       const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
       if (error) { setError(error.message); return }
+
       const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
       await supabase.from('deudas').update({
-        pendiente: nuevoPendiente, monto: nuevoMonto, estado: nuevoEstado
+        pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
       }).eq('id', mov.deuda_id)
+
       toast('Movimiento eliminado', 'success')
       await cargar()
-      return
-    }
-
-    const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
-    if (error) { setError(error.message); return }
-
-    const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-    await supabase.from('deudas').update({
-      pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
-    }).eq('id', mov.deuda_id)
-
-    toast('Movimiento eliminado', 'success')
-    await cargar()
+    })
   }
 
-  async function handleDeleteDeuda(id) {
-    if (!confirm('¿Estás seguro de eliminar esta deuda y todos sus registros asociados?')) return
-    setSaving(true)
-    try {
-      await supabase.from('movimientos').delete().eq('deuda_id', id)
-      const { error: err1 } = await supabase.from('deuda_movimientos').delete().eq('deuda_id', id)
-      if (err1) throw new Error('Error al borrar movimientos de deuda: ' + err1.message)
-      const { error: err2 } = await supabase.from('deudas').delete().eq('id', id)
-      if (err2) throw new Error('Error al borrar la deuda: ' + err2.message)
-      if (cardActiva === id) setCardActiva(null)
-      if (expandido === id) setExpandido(null)
-      if (tablaVisible === id) setTablaVisible(null)
-      toast('Deuda eliminada', 'success')
-      await cargar()
-    } catch (err) {
-      toast(err.message)
-    } finally { setSaving(false) }
+  function handleDeleteDeuda(id) {
+    showConfirm('¿Estás seguro de eliminar esta deuda y todos sus registros asociados?', async () => {
+      setSaving(true)
+      try {
+        await supabase.from('movimientos').delete().eq('deuda_id', id)
+        const { error: err1 } = await supabase.from('deuda_movimientos').delete().eq('deuda_id', id)
+        if (err1) throw new Error('Error al borrar movimientos de deuda: ' + err1.message)
+        const { error: err2 } = await supabase.from('deudas').delete().eq('id', id)
+        if (err2) throw new Error('Error al borrar la deuda: ' + err2.message)
+        if (cardActiva === id) setCardActiva(null)
+        if (expandido === id) setExpandido(null)
+        if (tablaVisible === id) setTablaVisible(null)
+        toast('Deuda eliminada', 'success')
+        await cargar()
+      } catch (err) {
+        toast(err.message)
+      } finally { setSaving(false) }
+    })
   }
 
   // ─── Estadísticas ──────────────────────────────────────────────────────────
@@ -2061,6 +2066,7 @@ export default function DeudasPage() {
           </Modal>
         )
       })()}
+      <ConfirmDialog {...confirmProps} />
     </AppShell>
   )
 }

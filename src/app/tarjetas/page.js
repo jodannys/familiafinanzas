@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
+import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Save, AlertTriangle, DollarSign } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
@@ -41,6 +42,8 @@ export default function TarjetasPage() {
     nombre_tarjeta: '', banco: '', limite_credito: '',
     dia_corte: '', dia_pago: '', estado: 'activa', color: '',
   })
+
+  const { confirmProps, showConfirm } = useConfirm()
 
   // Inicializar color y resetear si el tema cambia
   useEffect(() => {
@@ -192,40 +195,41 @@ export default function TarjetasPage() {
     setTarjetas(prev => prev.map(t => t.id === tarjeta.id ? { ...t, estado: nuevoEstado } : t))
   }
 
-  async function handleDelete(id) {
-    if (!confirm('¿Eliminar esta tarjeta? Las compras a plazos asociadas quedarán sin perfil.')) return
+  function handleDelete(id) {
+    showConfirm('¿Eliminar esta tarjeta? Las compras a plazos asociadas quedarán sin perfil.', async () => {
+      // Desvincular deudas primero
+      const { error: errDesvincular } = await supabase.from('deudas')
+        .update({ perfil_tarjeta_id: null })
+        .eq('perfil_tarjeta_id', id)
 
-    // Desvincular deudas primero
-    const { error: errDesvincular } = await supabase.from('deudas')
-      .update({ perfil_tarjeta_id: null })
-      .eq('perfil_tarjeta_id', id)
+      if (errDesvincular) {
+        toast('' + errDesvincular.message)
+        return
+      }
 
-    if (errDesvincular) {
-      toast('' + errDesvincular.message)
-      return
-    }
+      // BUG FIX: sólo borrar localmente si la BD confirma el borrado
+      const { error } = await supabase.from('perfiles_tarjetas').delete().eq('id', id)
+      if (error) {
+        toast('' + error.message)
+        return
+      }
 
-    // BUG FIX: sólo borrar localmente si la BD confirma el borrado
-    const { error } = await supabase.from('perfiles_tarjetas').delete().eq('id', id)
-    if (error) {
-      toast('' + error.message)
-      return
-    }
-
-    setTarjetas(prev => prev.filter(t => t.id !== id))
-    setDeudas(prev => prev.map(d =>
-      d.perfil_tarjeta_id === id ? { ...d, perfil_tarjeta_id: null } : d
-    ))
-    if (selectedId === id) setSelectedId(null)
+      setTarjetas(prev => prev.filter(t => t.id !== id))
+      setDeudas(prev => prev.map(d =>
+        d.perfil_tarjeta_id === id ? { ...d, perfil_tarjeta_id: null } : d
+      ))
+      if (selectedId === id) setSelectedId(null)
+    })
   }
 
-  async function handleDeleteDeuda(e, deuda) {
+  function handleDeleteDeuda(e, deuda) {
     e.stopPropagation()
-    if (!confirm(`¿Eliminar "${deuda.nombre}"? Se borrarán también sus pagos registrados.`)) return
-    await supabase.from('deuda_movimientos').delete().eq('deuda_id', deuda.id)
-    const { error } = await supabase.from('deudas').delete().eq('id', deuda.id)
-    if (error) { toast('' + error.message); return }
-    setDeudas(prev => prev.filter(d => d.id !== deuda.id))
+    showConfirm(`¿Eliminar "${deuda.nombre}"? Se borrarán también sus pagos registrados.`, async () => {
+      await supabase.from('deuda_movimientos').delete().eq('deuda_id', deuda.id)
+      const { error } = await supabase.from('deudas').delete().eq('id', deuda.id)
+      if (error) { toast('' + error.message); return }
+      setDeudas(prev => prev.filter(d => d.id !== deuda.id))
+    })
   }
 
   function abrirPago(e, deuda) {
@@ -693,6 +697,7 @@ export default function TarjetasPage() {
           </div>
         </form>
       </Modal>
+      <ConfirmDialog {...confirmProps} />
     </AppShell>
   )
 }

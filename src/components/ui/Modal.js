@@ -1,25 +1,41 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 export default function Modal({ open, onClose, title, children, size = 'md' }) {
+  const [visible, setVisible] = useState(false)
+  const [closing, setClosing] = useState(false)
+
+  // Sync open → visible, with leave animation on close
+  useEffect(() => {
+    if (open) {
+      setClosing(false)
+      setVisible(true)
+    } else if (visible) {
+      setClosing(true)
+      const t = setTimeout(() => {
+        setClosing(false)
+        setVisible(false)
+      }, 200)
+      return () => clearTimeout(t)
+    }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : ''
+    document.body.style.overflow = visible ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [open])
+  }, [visible])
 
   useEffect(() => {
-    // FIX 2: verificar que onClose existe antes de llamarlo
-    if (!open || !onClose) return
+    if (!visible || !onClose) return
     const handleEsc = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
-  }, [open, onClose])
+  }, [visible, onClose])
 
-  if (!open) return null
+  if (!visible) return null
 
   const sizes = {
     sm: 'max-w-sm',
@@ -29,21 +45,26 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex flex-col justify-center items-center p-4">
+    <div className="fixed inset-0 z-[9999] flex flex-col justify-center items-center p-4"
+      style={{ opacity: closing ? undefined : undefined }}>
 
       {/* Overlay */}
       <div
         className="absolute inset-0"
-        style={{ background: 'rgba(44,32,22,0.45)', backdropFilter: 'blur(4px)' }}
+        style={{
+          background: 'rgba(44,32,22,0.45)',
+          backdropFilter: 'blur(4px)',
+          animation: closing ? 'overlay-out 0.2s ease forwards' : 'overlay-in 0.3s ease forwards',
+        }}
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className={`relative w-full sm:rounded-2xl animate-enter ${sizes[size]}`}
+        className={`relative w-full sm:rounded-2xl ${closing ? 'animate-leave' : 'animate-enter'} ${sizes[size]}`}
         style={{
           background:   'var(--bg-card)',
-          border:       '1px solid var(--border-glass)', // FIX 1: CSS var
+          border:       '1px solid var(--border-glass)',
           boxShadow:    '0 -4px 40px rgba(100,70,30,0.15)',
           borderRadius: '20px',
           maxHeight:    '92dvh',
@@ -60,7 +81,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-5 flex-shrink-0"
-          style={{ borderBottom: '1px solid var(--border-glass)' }} // FIX 1: CSS var
+          style={{ borderBottom: '1px solid var(--border-glass)' }}
         >
           <h3
             className="text-base font-semibold"
@@ -68,7 +89,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
           >
             {title}
           </h3>
-          {onClose && ( // FIX 2: solo mostrar X si hay onClose
+          {onClose && (
             <button
               onClick={onClose}
               style={{

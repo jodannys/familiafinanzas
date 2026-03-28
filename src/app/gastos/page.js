@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
-import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard, Minus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard, Minus, ChevronLeft, ChevronRight, Receipt } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
@@ -11,6 +11,7 @@ import { getPresupuestoMes } from '@/lib/presupuesto'
 import { useQuien } from '@/lib/useQuien'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import CustomSelect from '@/components/ui/CustomSelect'
+import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 
 const CATS = [
   { value: 'basicos', label: 'Básicos' },
@@ -43,6 +44,7 @@ function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
 }
 export default function GastosPage() {
   const { opcionesQuien, defaultQuien } = useQuien()
+  const { confirmProps, showConfirm } = useConfirm()
   const [movs, setMovs] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -361,9 +363,8 @@ export default function GastosPage() {
   }
 
 
-  async function handleDelete(movimiento) {
-    if (!confirm(`¿Eliminar "${movimiento.descripcion}"?`)) return
-    try {
+  function handleDelete(movimiento) {
+    showConfirm(`¿Eliminar "${movimiento.descripcion}"?`, async () => { try {
       // ── Revertir meta ─────────────────────────────────────────────────────
       if (movimiento.categoria === 'ahorro') {
         const meta = movimiento.meta_id
@@ -446,6 +447,7 @@ export default function GastosPage() {
       console.error('Error en borrado:', err)
       toast('Error al eliminar el movimiento')
     }
+    })
   }
 
 
@@ -624,8 +626,26 @@ export default function GastosPage() {
               <Loader2 size={20} className="animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-sm italic" style={{ color: colores.muted }}>No hay registros</p>
+            <div className="flex flex-col items-center justify-center text-center py-12 px-6">
+              {movs.length === 0 ? (
+                <>
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ background: `color-mix(in srgb, ${colores.main} 10%, transparent)` }}>
+                    <Receipt size={24} style={{ color: colores.main }} />
+                  </div>
+                  <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Sin registros este mes</p>
+                  <p className="text-xs mb-5 opacity-60" style={{ color: 'var(--text-muted)' }}>Añade tu primer ingreso o gasto</p>
+                  <button onClick={() => setModal(true)} className="ff-btn-primary !w-auto min-w-[180px]"
+                    style={{ background: colores.main }}>
+                    Nuevo registro
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Sin resultados</p>
+                  <p className="text-xs opacity-60" style={{ color: 'var(--text-muted)' }}>Prueba otro filtro o búsqueda</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="divide-y" style={{ borderColor: colores.border }}>
@@ -1030,6 +1050,7 @@ export default function GastosPage() {
         </Modal>
 
       </div>
+      <ConfirmDialog {...confirmProps} />
     </AppShell>
   )
 }

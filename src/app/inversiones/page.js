@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
+import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 import {
   Plus, Minus, Loader2, Trash2, Pencil,
   TrendingUp, Target, Wallet, Sparkles,
@@ -215,6 +216,8 @@ export default function InversionesPage() {
     tasa: '', anos: '10', color: '', bola_nieve: true, pct_mensual: '',
   })
 
+  const { confirmProps, showConfirm } = useConfirm()
+
   useEffect(() => {
     function leer() {
       const s = getComputedStyle(document.documentElement)
@@ -360,26 +363,27 @@ export default function InversionesPage() {
     setLoadingHistorial(false)
   }
 
-  async function handleDeleteAporte(movId, monto) {
-    if (!confirm('¿Eliminar este aporte? Se restará del capital actual.')) return
-    const nuevoCapital = Math.max(0, (selected.capital || 0) - monto)
+  function handleDeleteAporte(movId, monto) {
+    showConfirm('¿Eliminar este aporte? Se restará del capital actual.', async () => {
+      const nuevoCapital = Math.max(0, (selected.capital || 0) - monto)
 
-    const { error: errInv } = await supabase
-      .from('inversiones').update({ capital: nuevoCapital }).eq('id', selected.id)
-    if (errInv) { toast('Error al actualizar capital', 'error'); return }
+      const { error: errInv } = await supabase
+        .from('inversiones').update({ capital: nuevoCapital }).eq('id', selected.id)
+      if (errInv) { toast('Error al actualizar capital', 'error'); return }
 
-    const { error: errMov } = await supabase.from('movimientos').delete().eq('id', movId)
-    if (errMov) {
-      await supabase.from('inversiones').update({ capital: selected.capital }).eq('id', selected.id)
-      toast('Error al eliminar el aporte', 'error'); return
-    }
+      const { error: errMov } = await supabase.from('movimientos').delete().eq('id', movId)
+      if (errMov) {
+        await supabase.from('inversiones').update({ capital: selected.capital }).eq('id', selected.id)
+        toast('Error al eliminar el aporte', 'error'); return
+      }
 
-    const updated = { ...selected, capital: nuevoCapital }
-    setInversiones(prev => prev.map(i => i.id === selected.id ? updated : i))
-    setSelected(updated)
-    setHistorialAportes(prev => prev.filter(a => a.id !== movId))
-    cargarAportesEsteMes()
-    toast(`Aporte de ${formatCurrency(monto)} eliminado`, 'success')
+      const updated = { ...selected, capital: nuevoCapital }
+      setInversiones(prev => prev.map(i => i.id === selected.id ? updated : i))
+      setSelected(updated)
+      setHistorialAportes(prev => prev.filter(a => a.id !== movId))
+      cargarAportesEsteMes()
+      toast(`Aporte de ${formatCurrency(monto)} eliminado`, 'success')
+    })
   }
 
   async function handleSave(e) {
@@ -419,12 +423,14 @@ export default function InversionesPage() {
 
   function abrirNuevo() {
     setEditandoId(null)
+    setError(null)
     setForm({ nombre: '', emoji: '📈', capital: '', aporteReal: '', aporte: '', tasa: '', anos: '10', color: themeColors[0] || '', bola_nieve: true, pct_mensual: '' })
     setModal(true)
   }
 
   function abrirEdicion(inv) {
     setEditandoId(inv.id)
+    setError(null)
     setForm({
       nombre: inv.nombre || '',
       emoji: inv.emoji || '📈',
@@ -440,27 +446,28 @@ export default function InversionesPage() {
     setModal(true)
   }
 
-  async function handleDelete(id) {
-    if (!confirm('¿Eliminar esta cartera?')) return
-    setSaving(true)
-    setError(null)
+  function handleDelete(id) {
+    showConfirm('¿Eliminar esta cartera?', async () => {
+      setSaving(true)
+      setError(null)
 
-    const { error: errMovs } = await supabase.from('movimientos').delete().eq('inversion_id', id)
-    if (errMovs) {
-      setError('Error al borrar movimientos asociados: ' + errMovs.message)
+      const { error: errMovs } = await supabase.from('movimientos').delete().eq('inversion_id', id)
+      if (errMovs) {
+        setError('Error al borrar movimientos asociados: ' + errMovs.message)
+        setSaving(false)
+        return
+      }
+
+      const { error } = await supabase.from('inversiones').delete().eq('id', id)
+      if (!error) {
+        const resto = inversiones.filter(i => i.id !== id)
+        setInversiones(resto)
+        setSelected(resto[0] || null)
+      } else {
+        setError(error.message)
+      }
       setSaving(false)
-      return
-    }
-
-    const { error } = await supabase.from('inversiones').delete().eq('id', id)
-    if (!error) {
-      const resto = inversiones.filter(i => i.id !== id)
-      setInversiones(resto)
-      setSelected(resto[0] || null)
-    } else {
-      setError(error.message)
-    }
-    setSaving(false)
+    })
   }
 
   async function handleAddAporte(e) {
@@ -1698,7 +1705,7 @@ export default function InversionesPage() {
       {/* ── MODAL RETIRO ──────────────────────────────────────────────────── */}
       <Modal
         open={modalRetiro}
-        onClose={() => { setModalRetiro(false); setFormRetiro({ monto: '' }) }}
+        onClose={() => { setModalRetiro(false); setFormRetiro({ monto: '' }); setError(null) }}
         title={`Retirar capital · ${selected?.nombre || ''}`}
         size="sm">
         {selected && (
@@ -1736,7 +1743,7 @@ export default function InversionesPage() {
             )}
 
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => { setModalRetiro(false); setFormRetiro({ monto: '' }) }}
+              <button type="button" onClick={() => { setModalRetiro(false); setFormRetiro({ monto: '' }); setError(null) }}
                 className="ff-btn-ghost flex-1">Cancelar</button>
               <button type="submit" disabled={savingRetiro}
                 className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
@@ -1820,6 +1827,7 @@ export default function InversionesPage() {
           setModalAporte(false)
           setFormAporte({ monto: '', descripcion: '', fecha: fechaHoy() })
           setAutoFilled(false)
+          setError(null)
         }}
         title="Agregar aporte">
         <form onSubmit={handleAddAporte} className="space-y-4">
@@ -1975,6 +1983,7 @@ export default function InversionesPage() {
                 setModalAporte(false)
                 setFormAporte({ monto: '', descripcion: '', fecha: fechaHoy() })
                 setAutoFilled(false)
+                setError(null)
               }}
               className="ff-btn-ghost flex-1">
               Cancelar
@@ -1992,7 +2001,7 @@ export default function InversionesPage() {
       {/* MODAL CREAR / EDITAR */}
       <Modal
         open={modal}
-        onClose={() => { setModal(false); setEditandoId(null) }}
+        onClose={() => { setModal(false); setEditandoId(null); setError(null) }}
         title={editandoId ? 'Editar Cartera' : 'Nueva Cartera'}>
         <form onSubmit={handleSave} className="space-y-4">
 
@@ -2194,6 +2203,7 @@ export default function InversionesPage() {
           </div>
         </form>
       </Modal>
+      <ConfirmDialog {...confirmProps} />
     </AppShell>
   )
 }

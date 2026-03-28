@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
+import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 import { Plus, Minus, Loader2, Trash2, Pencil, Pause, Play, Check, Target, TrendingUp, ChevronRight, History } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
@@ -41,6 +42,7 @@ function IconBtn({ onClick, title, bg, color, children }) {
 export default function MetasPage() {
   const { theme } = useTheme()
   const themeColors = getThemeColors(theme)
+  const { confirmProps, showConfirm } = useConfirm()
   const [metas, setMetas] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -124,21 +126,24 @@ export default function MetasPage() {
   function closeModal() {
     setModal(false)
     setEditingId(null)
+    setError(null)
     setForm({ nombre: '', emoji: '🎯', meta: '', pct_mensual: '', color: themeColors[0] || '#2D7A5F' })
   }
 
-  async function handleDelete(id) {
-    if (!confirm('¿Eliminar esta meta?')) return
-    await supabase.from('movimientos').delete().eq('meta_id', id)
-    const { error } = await supabase.from('metas').delete().eq('id', id)
-    if (!error) setMetas(prev => prev.filter(m => m.id !== id))
-    else setError(error.message)
+  function handleDelete(id) {
+    showConfirm('¿Eliminar esta meta y todos sus aportes?', async () => {
+      await supabase.from('movimientos').delete().eq('meta_id', id)
+      const { error } = await supabase.from('metas').delete().eq('id', id)
+      if (!error) setMetas(prev => prev.filter(m => m.id !== id))
+      else setError(error.message)
+    })
   }
 
   function abrirModalAporte(meta) {
     const autoMonto = montoMetasDisponible > 0 && meta.pct_mensual
       ? ((meta.pct_mensual / 100) * montoMetasDisponible).toFixed(2)
       : ''
+    setError(null)
     setModalAporte(meta)
     setMontoAporte(autoMonto)
   }
@@ -233,40 +238,43 @@ export default function MetasPage() {
     setLoadingHistorial(false)
   }
 
-  async function handleDeleteAporteMeta(movId, monto) {
-    if (!confirm('¿Eliminar este aporte? Se restará del total ahorrado.')) return
-    const meta = modalHistorialMeta
-    if (!meta) return
-    const nuevoActual = Math.max(0, (meta.actual || 0) - monto)
+  function handleDeleteAporteMeta(movId, monto) {
+    showConfirm('¿Eliminar este aporte? Se restará del total ahorrado.', async () => {
+      const meta = modalHistorialMeta
+      if (!meta) return
+      const nuevoActual = Math.max(0, (meta.actual || 0) - monto)
 
-    const { error: errMeta } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
-    if (errMeta) { toast('Error al actualizar la meta', 'error'); return }
+      const { error: errMeta } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
+      if (errMeta) { toast('Error al actualizar la meta', 'error'); return }
 
-    const { error: errMov } = await supabase.from('movimientos').delete().eq('id', movId)
-    if (errMov) {
-      // Revertir la meta si el delete falló
-      await supabase.from('metas').update({ actual: meta.actual || 0 }).eq('id', meta.id)
-      toast('Error al eliminar el aporte', 'error')
-      return
-    }
+      const { error: errMov } = await supabase.from('movimientos').delete().eq('id', movId)
+      if (errMov) {
+        await supabase.from('metas').update({ actual: meta.actual || 0 }).eq('id', meta.id)
+        toast('Error al eliminar el aporte', 'error')
+        return
+      }
 
-    const updatedMeta = { ...meta, actual: nuevoActual }
-    setMetas(prev => prev.map(m => m.id === meta.id ? updatedMeta : m))
-    setModalHistorialMeta(updatedMeta)
-    setHistorialAportes(prev => prev.filter(a => a.id !== movId))
-    toast(`Aporte de ${formatCurrency(monto)} eliminado`, 'success')
+      const updatedMeta = { ...meta, actual: nuevoActual }
+      setMetas(prev => prev.map(m => m.id === meta.id ? updatedMeta : m))
+      setModalHistorialMeta(updatedMeta)
+      setHistorialAportes(prev => prev.filter(a => a.id !== movId))
+      toast(`Aporte de ${formatCurrency(monto)} eliminado`, 'success')
   }
 
-  async function handleEstado(id, estado) {
+  function handleEstado(id, estado) {
+    const doUpdate = async () => {
+      const { error } = await supabase.from('metas').update({ estado }).eq('id', id)
+      if (!error) setMetas(prev => prev.map(m => m.id === id ? { ...m, estado } : m))
+    }
     if (estado === 'completada') {
       const meta = metas.find(m => m.id === id)
       if (meta && (meta.actual || 0) < meta.meta) {
         const pct = meta.meta > 0 ? Math.round(((meta.actual || 0) / meta.meta) * 100) : 0
-        if (!confirm(`Solo tiene ${pct}% completado. ¿Marcarla como completada?`)) return
+        showConfirm(`Solo tiene ${pct}% completado. ¿Marcarla como completada de todas formas?`, doUpdate)
+        return
       }
     }
-    const { error } = await supabase.from('metas').update({ estado }).eq('id', id)
-    if (!error) setMetas(prev => prev.map(m => m.id === id ? { ...m, estado } : m))
+    doUpdate()
   }
 
   const activas    = metas.filter(m => m.estado === 'activa')
@@ -655,7 +663,7 @@ export default function MetasPage() {
       </Modal>
 
       {/* MODAL RETIRO */}
-      <Modal open={!!modalRetiro} onClose={() => { setModalRetiro(null); setMontoRetiro('') }}
+      <Modal open={!!modalRetiro} onClose={() => { setModalRetiro(null); setMontoRetiro(''); setError(null) }}
         title={`Retirar de ${modalRetiro?.nombre || ''}`} size="sm">
         {modalRetiro && (
           <form onSubmit={handleRetirarMeta} className="space-y-4">
@@ -695,7 +703,7 @@ export default function MetasPage() {
             )}
 
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => { setModalRetiro(null); setMontoRetiro('') }}
+              <button type="button" onClick={() => { setModalRetiro(null); setMontoRetiro(''); setError(null) }}
                 className="ff-btn-ghost flex-1">Cancelar</button>
               <button type="submit" disabled={saving}
                 className="ff-btn-primary flex-1 flex items-center justify-center gap-2"
@@ -709,7 +717,7 @@ export default function MetasPage() {
       </Modal>
 
       {/* MODAL APORTE */}
-      <Modal open={!!modalAporte} onClose={() => { setModalAporte(null); setMontoAporte('') }}
+      <Modal open={!!modalAporte} onClose={() => { setModalAporte(null); setMontoAporte(''); setError(null) }}
         title={`Aportar a ${modalAporte?.nombre || ''}`} size="sm">
         {modalAporte && (
           <form onSubmit={handleAgregarDinero} className="space-y-4">
@@ -761,7 +769,7 @@ export default function MetasPage() {
             )}
 
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => { setModalAporte(null); setMontoAporte('') }}
+              <button type="button" onClick={() => { setModalAporte(null); setMontoAporte(''); setError(null) }}
                 className="ff-btn-ghost flex-1">Cancelar</button>
               <button type="submit" disabled={saving}
                 className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
@@ -860,6 +868,8 @@ export default function MetasPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog {...confirmProps} />
     </AppShell>
   )
 }

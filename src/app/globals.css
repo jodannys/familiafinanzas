@@ -213,8 +213,27 @@ h1, h2, h3{
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes leave {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(8px) scale(0.97); }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes overlay-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 .animate-enter {
   animation: enter 0.4s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+.animate-leave {
+  animation: leave 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 h1, h2, h3 { letter-spacing: -0.02em; font-weight: 400; }

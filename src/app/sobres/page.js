@@ -6,7 +6,7 @@ import CustomSelect from '@/components/ui/CustomSelect'
 import {
   Wallet, Plus, Loader2, Trash2,
   AlertTriangle, TrendingUp, Sprout, Search,
-  Calendar, X, ArrowDownRight, CreditCard
+  X, ArrowDownRight, CreditCard, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import { useQuien } from '@/lib/useQuien'
 import Modal from '@/components/ui/Modal'
+import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 
 // ── FIX FECHAS: usa fecha local para evitar desfase UTC ──────────────────────
 function fechaHoy() {
@@ -58,6 +59,19 @@ export default function SobrePage() {
   const [metaSeleccionada, setMetaSeleccionada] = useState('')
   const [inversionesData, setInversionesData] = useState([])
   const [inversionSeleccionada, setInversionSeleccionada] = useState('')
+
+  const { confirmProps, showConfirm } = useConfirm()
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+
+  function prevMes() {
+    if (filtroMes === 1) { setFiltroMes(12); setFiltroAño(a => a - 1) }
+    else setFiltroMes(m => m - 1)
+  }
+  function nextMes() {
+    if (filtroMes === 12) { setFiltroMes(1); setFiltroAño(a => a + 1) }
+    else setFiltroMes(m => m + 1)
+  }
 
   useEffect(() => { cargarTodo() }, [filtroMes, filtroAño])
 
@@ -356,51 +370,52 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
     cargarTodo()
   }
 
-  async function handleEliminar(mov) {
-    if (!confirm('¿Eliminar este movimiento?')) return
-    if (mov._fuente === 'sobre') {
-      // Verificar que el sobre_movimiento aún existe (evita doble ejecución si el usuario reintenta)
-      const { data: sobreExiste } = await supabase
-        .from('sobre_movimientos').select('id').eq('id', mov.id).maybeSingle()
-      if (!sobreExiste) { cargarTodo(); return }
+  function handleEliminar(mov) {
+    showConfirm('¿Eliminar este movimiento?', async () => {
+      if (mov._fuente === 'sobre') {
+        // Verificar que el sobre_movimiento aún existe (evita doble ejecución si el usuario reintenta)
+        const { data: sobreExiste } = await supabase
+          .from('sobre_movimientos').select('id').eq('id', mov.id).maybeSingle()
+        if (!sobreExiste) { cargarTodo(); return }
 
-      if (mov.destino === 'metas' && mov.meta_id) {
-        const { data: metaData } = await supabase
-          .from('metas').select('actual').eq('id', mov.meta_id).single()
-        if (metaData) {
-          const nuevoActual = Math.max(0, (metaData.actual || 0) - parseFloat(mov.monto || 0))
-          const { error } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', mov.meta_id)
-          if (error) { toast('Error al actualizar la meta'); cargarTodo(); return }
+        if (mov.destino === 'metas' && mov.meta_id) {
+          const { data: metaData } = await supabase
+            .from('metas').select('actual').eq('id', mov.meta_id).single()
+          if (metaData) {
+            const nuevoActual = Math.max(0, (metaData.actual || 0) - parseFloat(mov.monto || 0))
+            const { error } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', mov.meta_id)
+            if (error) { toast('Error al actualizar la meta'); cargarTodo(); return }
+          }
+          const { data: movMeta } = await supabase.from('movimientos').select('id')
+            .eq('meta_id', mov.meta_id).eq('monto', mov.monto).eq('fecha', mov.fecha)
+            .like('descripcion', 'Sobrante sobre%').limit(1).maybeSingle()
+          if (movMeta) await supabase.from('movimientos').delete().eq('id', movMeta.id)
         }
-        const { data: movMeta } = await supabase.from('movimientos').select('id')
-          .eq('meta_id', mov.meta_id).eq('monto', mov.monto).eq('fecha', mov.fecha)
-          .like('descripcion', 'Sobrante sobre%').limit(1).maybeSingle()
-        if (movMeta) await supabase.from('movimientos').delete().eq('id', movMeta.id)
-      }
-      if (mov.destino === 'inversiones' && mov.inversion_id) {
-        const { data: invData } = await supabase
-          .from('inversiones').select('capital').eq('id', mov.inversion_id).single()
-        if (invData) {
-          const nuevoCapital = Math.max(0, (invData.capital || 0) - parseFloat(mov.monto || 0))
-          const { error } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', mov.inversion_id)
-          if (error) { toast('Error al actualizar la inversión'); cargarTodo(); return }
+        if (mov.destino === 'inversiones' && mov.inversion_id) {
+          const { data: invData } = await supabase
+            .from('inversiones').select('capital').eq('id', mov.inversion_id).single()
+          if (invData) {
+            const nuevoCapital = Math.max(0, (invData.capital || 0) - parseFloat(mov.monto || 0))
+            const { error } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', mov.inversion_id)
+            if (error) { toast('Error al actualizar la inversión'); cargarTodo(); return }
+          }
+          const { data: movInv } = await supabase.from('movimientos').select('id')
+            .eq('inversion_id', mov.inversion_id).eq('monto', mov.monto).eq('fecha', mov.fecha)
+            .like('descripcion', 'Sobrante sobre%').limit(1).maybeSingle()
+          if (movInv) await supabase.from('movimientos').delete().eq('id', movInv.id)
         }
-        const { data: movInv } = await supabase.from('movimientos').select('id')
-          .eq('inversion_id', mov.inversion_id).eq('monto', mov.monto).eq('fecha', mov.fecha)
-          .like('descripcion', 'Sobrante sobre%').limit(1).maybeSingle()
-        if (movInv) await supabase.from('movimientos').delete().eq('id', movInv.id)
+        await supabase.from('sobre_movimientos').delete().eq('id', mov.id)
+        cargarTodo()
+      } else {
+        // Gasto del sobre — borrar el movimiento
+        await supabase.from('movimientos').delete().eq('id', mov.id)
+        // Si este gasto vino con un traspaso, borrarlo también (eliminación atómica)
+        if (mov._traspaso) {
+          await supabase.from('sobre_movimientos').delete().eq('id', mov._traspaso.id)
+        }
+        cargarTodo()
       }
-      await supabase.from('sobre_movimientos').delete().eq('id', mov.id)
-      cargarTodo()
-    } else {
-      // Gasto del sobre — borrar el movimiento
-      await supabase.from('movimientos').delete().eq('id', mov.id)
-      // Si este gasto vino con un traspaso, borrarlo también (eliminación atómica)
-      if (mov._traspaso) {
-        await supabase.from('sobre_movimientos').delete().eq('id', mov._traspaso.id)
-      }
-      cargarTodo()
-    }
+    })
   }
 
   // Mapa de traspasos entrantes al sobre indexados por fecha+monto para enlazarlos con su gasto
@@ -445,28 +460,21 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
     <AppShell>
 
       {/* HEADER */}
-      <div className="flex items-start justify-between gap-3 mb-6 animate-enter">
+      <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}> Control Diario</p>
-          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
-          <div className="flex items-center gap-2 mt-1.5 text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: 'var(--text-muted)' }}>
-            <Calendar size={11} />
-            <div style={{ width: 72 }}>
-              <CustomSelect
-                value={String(filtroMes)}
-                onChange={v => { if (v) setFiltroMes(Number(v)) }}
-                options={['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].map((m, i) => ({ id: String(i + 1), label: m }))}
-              />
-            </div>
-            <span>/</span>
-            <div style={{ width: 80 }}>
-              <CustomSelect
-                value={String(filtroAño)}
-                onChange={v => { if (v) setFiltroAño(Number(v)) }}
-                options={Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - 1 + i).map(a => ({ id: String(a), label: String(a) }))}
-              />
-            </div>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Control Diario</p>
+          <h1 className="text-xl tracking-tight mb-2" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
+          {/* Navegación de mes */}
+          <div className="flex items-center gap-2">
+            <button onClick={prevMes} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              <ChevronLeft size={15} strokeWidth={2.5} />
+            </button>
+            <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)', minWidth: 110, textAlign: 'center' }}>
+              {MESES[filtroMes - 1]} {filtroAño}
+            </span>
+            <button onClick={nextMes} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+              <ChevronRight size={15} strokeWidth={2.5} />
+            </button>
           </div>
         </div>
         <button onClick={() => setModal(true)}
@@ -532,17 +540,27 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
               { label: 'Básicos', saldo: saldoBasicos, color: 'var(--accent-blue)' },
               { label: 'Metas', saldo: saldoMetas, color: 'var(--accent-green)' },
               { label: 'Inversión', saldo: saldoInversiones, color: 'var(--accent-violet)' },
-            ].map((box, i) => (
-              <div key={i} className="glass-card p-3 animate-enter" style={{ animationDelay: `${i * 0.08}s` }}>
-                <p className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
-                  {box.label}
-                </p>
-                <p className="text-sm font-semibold"
-                  style={{ color: box.saldo < 0 ? 'var(--accent-rose)' : box.color, letterSpacing: '-0.02em' }}>
-                  {formatCurrency(box.saldo)}
-                </p>
-              </div>
-            ))}
+            ].map((box, i) => {
+              const negativo = box.saldo < 0
+              return (
+                <div key={i} className="glass-card p-3 animate-enter" style={{
+                  animationDelay: `${i * 0.08}s`,
+                  ...(negativo && {
+                    background: 'color-mix(in srgb, var(--accent-rose) 8%, var(--bg-card))',
+                    border: '1px solid color-mix(in srgb, var(--accent-rose) 25%, transparent)',
+                  }),
+                }}>
+                  <p className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: negativo ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
+                    {negativo && <AlertTriangle size={9} className="inline mr-0.5 -mt-0.5" />}
+                    {box.label}
+                  </p>
+                  <p className="text-sm font-semibold"
+                    style={{ color: negativo ? 'var(--accent-rose)' : box.color, letterSpacing: '-0.02em' }}>
+                    {formatCurrency(box.saldo)}
+                  </p>
+                </div>
+              )
+            })}
           </div>
 
           {/* BUSCADOR — busca en descripción y en quien */}
@@ -562,9 +580,21 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
           {/* LISTA */}
           <Card style={{ padding: '4px' }}>
             {movsFiltrados.length === 0 ? (
-              <div className="py-12 text-center">
-                <Wallet size={28} className="mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
-                <p className="text-xs font-semibold italic" style={{ color: 'var(--text-muted)' }}>Sin registros este mes</p>
+              <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                <Wallet size={28} className="mb-3" style={{ color: 'var(--text-muted)', opacity: 0.3 }} />
+                {busqueda ? (
+                  <>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Sin resultados para "{busqueda}"</p>
+                    <button onClick={() => setBusqueda('')} className="mt-3 text-xs underline" style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      Limpiar búsqueda
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Sin movimientos este mes</p>
+                    <p className="text-[11px] mt-1 opacity-60" style={{ color: 'var(--text-muted)' }}>Los gastos registrados aparecerán aquí</p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
@@ -863,6 +893,7 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
           </button>
         </div>
       </Modal>
+      <ConfirmDialog {...confirmProps} />
     </AppShell>
   )
 }
