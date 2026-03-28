@@ -8,12 +8,24 @@ import CustomSelect from '@/components/ui/CustomSelect'
 import {
   Plus, Loader2, Trash2, CreditCard, Landmark,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Pencil, MessageCircle,
-  ArrowDownRight, ArrowUpRight, Calendar, Check, AlertCircle, Table2
+  ArrowDownRight, ArrowUpRight, Calendar, Check, AlertCircle, Table2, GripVertical
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors } from '@/lib/themes'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+function SortableItem({ id, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 'auto', position: 'relative' }} {...attributes}>
+      {children(listeners, isDragging)}
+    </div>
+  )
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -284,21 +296,15 @@ export default function DeudasPage() {
     setLoading(true); setError(null)
     try {
       const [{ data: deudasData, error: e1 }, { data: tarjetasData, error: e2 }] = await Promise.all([
-        supabase.from('deudas').select('*'),
+        supabase.from('deudas').select('*').order('orden', { nullsFirst: false }).order('created_at', { ascending: true }),
         supabase.from('perfiles_tarjetas').select('*').eq('estado', 'activa'),
       ])
       if (e1) throw e1
 
-      const deudasOrdenadas = (deudasData || []).sort((a, b) => {
-        if (!a.fecha_vencimiento && !b.fecha_vencimiento) return 0
-        if (!a.fecha_vencimiento) return 1
-        if (!b.fecha_vencimiento) return -1
-        return new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento)
-      })
-      setDeudas(deudasOrdenadas)
+      setDeudas(deudasData || [])
       setMisTarjetas(tarjetasData || [])
 
-      if (deudasOrdenadas.length) {
+      if ((deudasData || []).length) {
         const { data: movs, error: e3 } = await supabase
           .from('deuda_movimientos').select('*').order('fecha', { ascending: true })
         if (!e3) {
@@ -475,7 +481,7 @@ export default function DeudasPage() {
       const { error } = await supabase.from('deudas').update(payload).eq('id', editandoId)
       if (error) { setError(error.message); setSaving(false); return }
     } else {
-      const { error } = await supabase.from('deudas').insert([payload])
+      const { error } = await supabase.from('deudas').insert([{ ...payload, orden: deudas.length }])
       if (error) { setError(error.message); setSaving(false); return }
     }
     toast(editandoId ? 'Deuda actualizada' : 'Deuda registrada', 'success')
@@ -824,6 +830,19 @@ export default function DeudasPage() {
   const hoyDia = now.getDate()
   const esHoy = (day) => day === hoyDia && calView.month === now.getMonth() && calView.year === now.getFullYear()
 
+  // ─── DRAG & DROP ─────────────────────────────────────────────────────────
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  async function handleDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return
+    const oldIndex = deudas.findIndex(d => d.id === active.id)
+    const newIndex = deudas.findIndex(d => d.id === over.id)
+    const reordered = arrayMove(deudas, oldIndex, newIndex)
+    setDeudas(reordered)
+    await Promise.all(reordered.map((d, i) => supabase.from('deudas').update({ orden: i }).eq('id', d.id)))
+  }
+
   // ─── RENDER ───────────────────────────────────────────────────────────────
 
   return (
@@ -1035,6 +1054,8 @@ export default function DeudasPage() {
     </button>
   </div>
 ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={deudas.map(d => d.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
           {deudas.map((d, i) => {
             const diasFaltantes = d.fecha_vencimiento
@@ -1070,9 +1091,11 @@ export default function DeudasPage() {
             const tablaAmort = isTabla ? generarTablaAmortizacion(d, movsDeuda) : []
 
             return (
-              <Card key={d.id}
+              <SortableItem key={d.id} id={d.id}>
+                {(dragListeners, isDragging) => (
+              <Card
                 className="animate-enter overflow-hidden cursor-pointer select-none"
-                style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px' }}
+                style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px', opacity: isDragging ? 0.45 : 1 }}
                 onClick={() => {
                   // Click en la card: solo abre/cierra botones de acción
                   // NO toca historial ni tabla
@@ -1177,6 +1200,18 @@ export default function DeudasPage() {
                       </p>
                     )}
                   </div>
+                  <button
+                    {...dragListeners}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      touchAction: 'none', cursor: 'grab',
+                      background: 'none', border: 'none', padding: 4,
+                      color: 'var(--text-muted)', opacity: 0.35, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', alignSelf: 'center',
+                    }}
+                  >
+                    <GripVertical size={14} />
+                  </button>
                 </div>
 
                 {/* ── FIX barra de progreso: solo renderizar si hay monto original ── */}
@@ -1610,9 +1645,13 @@ export default function DeudasPage() {
                   </div>
                 )}
               </Card>
+                )}
+              </SortableItem>
             )
           })}
         </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* ── MODAL CREAR / EDITAR DEUDA ── */}

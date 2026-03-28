@@ -4,12 +4,24 @@ import AppShell from '@/components/layout/AppShell'
 import { Card, ProgressBar } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
-import { Plus, Minus, Loader2, Trash2, Pencil, Pause, Play, Check, Target, TrendingUp, ChevronRight, History } from 'lucide-react'
+import { Plus, Minus, Loader2, Trash2, Pencil, Pause, Play, Check, Target, TrendingUp, ChevronRight, History, GripVertical } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import { formatCurrency, getFlagEmoji } from '@/lib/utils'
 import { useTheme, getThemeColors } from '@/lib/themes'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+function SortableItem({ id, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 'auto', position: 'relative' }} {...attributes}>
+      {children(listeners, isDragging)}
+    </div>
+  )
+}
 
 function fechaHoy() {
   const d = new Date()
@@ -78,7 +90,7 @@ export default function MetasPage() {
 
   async function cargar() {
     setLoading(true)
-    const { data, error } = await supabase.from('metas').select('*').order('created_at')
+    const { data, error } = await supabase.from('metas').select('*').order('orden', { nullsFirst: false }).order('created_at')
     if (error) setError(error.message)
     else setMetas(data || [])
     setLoading(false)
@@ -116,7 +128,7 @@ export default function MetasPage() {
       if (error) setError(error.message)
       else { setMetas(prev => prev.map(m => m.id === editingId ? { ...m, ...payload } : m)); closeModal() }
     } else {
-      const { data, error } = await supabase.from('metas').insert([{ ...payload, actual: 0, estado: 'activa' }]).select()
+      const { data, error } = await supabase.from('metas').insert([{ ...payload, actual: 0, estado: 'activa', orden: metas.length }]).select()
       if (error) setError(error.message)
       else { setMetas(prev => [...prev, data[0]]); closeModal() }
     }
@@ -287,7 +299,21 @@ export default function MetasPage() {
   const pctDisponible  = Math.max(0, 100 - totalPctAsignado)
   const montoMetasDisponible = Math.max(0, (presupuesto?.montoMetas || 0) - traspasosDeMetas)
 
-  const metasActivas = [...activas, ...pausadas]
+  const metasActivas = metas.filter(m => ['activa', 'pausada'].includes(m.estado))
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  async function handleDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return
+    const oldIndex = metasActivas.findIndex(m => m.id === active.id)
+    const newIndex = metasActivas.findIndex(m => m.id === over.id)
+    const reordered = arrayMove(metasActivas, oldIndex, newIndex)
+    setMetas(prev => {
+      const completadas = prev.filter(m => m.estado === 'completada')
+      return [...reordered, ...completadas]
+    })
+    await Promise.all(reordered.map((m, i) => supabase.from('metas').update({ orden: i }).eq('id', m.id)))
+  }
 
   return (
     <AppShell>
@@ -419,6 +445,8 @@ export default function MetasPage() {
     
   </div>
 ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={metasActivas.map(m => m.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">
           {metasActivas.map((meta, i) => {
             const isSelected = selectedMetaId === meta.id
@@ -428,13 +456,15 @@ export default function MetasPage() {
             const aporteMensual = (meta.pct_mensual / 100) * montoMetasDisponible
 
             return (
-              <Card key={meta.id}
+              <SortableItem key={meta.id} id={meta.id}>
+                {(dragListeners, isDragging) => (
+              <Card
                 className="animate-enter cursor-pointer select-none"
                 onClick={() => setSelectedMetaId(isSelected ? null : meta.id)}
                 style={{
                   animationDelay: `${i * 0.04}s`,
                   padding: '14px 16px',
-                  opacity: isPausada ? 0.75 : 1,
+                  opacity: isDragging ? 0.45 : isPausada ? 0.75 : 1,
                   border: isSelected ? `1.5px solid ${meta.color}50` : '1.5px solid transparent',
                 }}>
 
@@ -474,6 +504,18 @@ export default function MetasPage() {
                       {pct}%
                     </p>
                   </div>
+                  <button
+                    {...dragListeners}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      touchAction: 'none', cursor: 'grab',
+                      background: 'none', border: 'none', padding: 4,
+                      color: 'var(--text-muted)', opacity: 0.35, flexShrink: 0,
+                      display: 'flex', alignItems: 'center',
+                    }}
+                  >
+                    <GripVertical size={14} />
+                  </button>
                 </div>
 
                 <div className="mb-2">
@@ -575,6 +617,8 @@ export default function MetasPage() {
                   </div>
                 )}
               </Card>
+                )}
+              </SortableItem>
             )
           })}
 
@@ -617,6 +661,8 @@ export default function MetasPage() {
             </div>
           )}
         </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* MODAL HISTORIAL */}
