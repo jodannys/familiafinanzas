@@ -97,7 +97,6 @@ export default function SobrePage() {
       setMetasData(metas || [])
       setInversionesData(inversiones || [])
     } catch (err) {
-      console.error('Error al cargar:', err)
     } finally {
       setLoading(false)
     }

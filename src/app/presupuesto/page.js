@@ -140,7 +140,6 @@ export default function PresupuestoPage() {
         setSub(prev => ({ ...prev, ...newSub }))
       }
     } catch (err) {
-      console.error('Error cargando presupuesto:', err)
     } finally {
       setLoading(false)
     }

@@ -128,7 +128,6 @@ export default function ReportesPage() {
         setBloques(blqData || [])
         setMovsAnterior(movAntData || [])
       } catch (err) {
-        console.error('Error cargando reportes:', err)
       } finally {
         setLoading(false)
       }

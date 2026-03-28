@@ -473,7 +473,6 @@ export default function GastosPage() {
         }
       }
     } catch (err) {
-      console.error('Error en borrado:', err)
       toast('Error al eliminar el movimiento')
     }
     })

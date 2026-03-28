@@ -288,7 +288,6 @@ export default function DeudasPage() {
         supabase.from('perfiles_tarjetas').select('*').eq('estado', 'activa'),
       ])
       if (e1) throw e1
-      if (e2) console.error('Error tarjetas:', e2.message)
 
       const deudasOrdenadas = (deudasData || []).sort((a, b) => {
         if (!a.fecha_vencimiento && !b.fecha_vencimiento) return 0
@@ -453,7 +452,6 @@ export default function DeudasPage() {
             deuda_id: f.deuda_origen_id,
             deuda_movimiento_id: dmData?.[0]?.id || null,
           }])
-          if (movErr) console.error('Error al registrar movimiento general:', movErr.message)
           const { error: updErr } = await supabase.from('deudas').update({
             pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
           }).eq('id', f.deuda_origen_id)
@@ -513,7 +511,6 @@ export default function DeudasPage() {
       deuda_id: deuda.id,
       deuda_movimiento_id: dmData?.[0]?.id || null,
     }])
-    if (movError) console.error('Error al registrar movimiento general:', movError.message)
 
     const { error: deudaError } = await supabase.from('deudas').update({
       pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
@@ -563,7 +560,6 @@ export default function DeudasPage() {
           deuda_id: deuda.id,
           deuda_movimiento_id: data[0]?.id || null,
         }])
-        if (movGenError) console.error('Error al registrar movimiento general:', movGenError.message)
 
         const { error: updateError } = await supabase.from('deudas').update({
           pendiente: nuevoPendiente,

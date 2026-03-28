@@ -91,16 +91,12 @@ export default function AjustesPage() {
         supabase.from('metas').select('id, nombre, emoji, pct_mensual').order('created_at'),
         supabase.from('inversiones').select('id, nombre, emoji, aporte, pct_mensual').order('created_at'),
       ])
-      if (e1) console.error('Error cargando categorías:', e1.message)
-      if (e2) console.error('Error cargando subcategorías:', e2.message)
-      if (e3) console.error('Error cargando metas:', e3.message)
-      if (e4) console.error('Error cargando inversiones:', e4.message)
+      if (e1 || e2 || e3 || e4) throw (e1 || e2 || e3 || e4)
       setCategorias(cats || [])
       setSubcategorias(subs || [])
       setMetas(metasData || [])
       setInversiones(invData || [])
     } catch (err) {
-      console.error('Error cargando ajustes:', err)
     } finally {
       setLoading(false)
     }

@@ -301,7 +301,7 @@ export default function InversionesPage() {
       .gte('fecha', inicio3Meses.toISOString().slice(0, 10))
       .lt('fecha', inicioMesActual.toISOString().slice(0, 10))
 
-    if (error) { console.error(error); return }
+    if (error) return
 
     // Agrupar por mes y promediar
     const porMes = {}

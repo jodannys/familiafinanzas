@@ -104,7 +104,6 @@ export default function Dashboard() {
         setDeudas(d || [])
         setInversiones(inv || [])
       } catch (err) {
-        console.error(err)
       } finally {
         setLoading(false)
       }

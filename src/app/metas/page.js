@@ -317,8 +317,7 @@ export default function MetasPage() {
 
      {/* KPIs — Altura fija para evitar descuadre */}
 <div className="grid grid-cols-2 gap-2 mb-5 animate-enter">
-  
-  {/* Caja 1 */}
+
   {/* Caja 1 */}
 <div className="glass-card p-2 flex flex-col justify-center rounded-lg" style={{ height: 60 }}> 
   {/* Añadí rounded-lg para que sea menos ovalada */}
@@ -490,11 +489,7 @@ export default function MetasPage() {
                       / {formatCurrency(meta.meta)}
                     </span>
                   </div>
-                  <ChevronRight size={14} style={{
-                    color: 'var(--text-muted)',
-                    transform: isSelected ? 'rotate(90deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s',
-                  }} />
+                
                 </div>
 
                 {/* Acciones expandibles */}

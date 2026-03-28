@@ -64,7 +64,6 @@ export async function getPresupuestoMes(mesParam = null, añoParam = null) {
       usandoDefaults: !bloquesData?.length,
     }
   } catch (err) {
-    console.error('Error en getPresupuestoMes:', err)
     return {
       total: 0, ingresoReal: 0,
       montoFuturo: 0, montoEstilo: 0, montoNecesidades: 0,
