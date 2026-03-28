@@ -8,16 +8,18 @@ function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [mode, setMode] = useState('login') // 'login' | 'recover' | 'reset' | 'nombre'
+  const [mode, setMode] = useState('login') // 'login' | 'register' | 'recover' | 'reset' | 'nombre'
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPwd, setConfirmPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
   const [nombre, setNombre] = useState('')
   const [showPwd, setShowPwd] = useState(false)
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -51,6 +53,37 @@ function LoginContent() {
       const nombreGuardado = data?.user?.user_metadata?.nombre
       if (!nombreGuardado) { setLoading(false); setMode('nombre') }
       else router.replace('/')
+    }
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault()
+    if (!email || !password || !nombre.trim()) return
+    if (password !== confirmPwd) { setError('Las contraseñas no coinciden'); return }
+    if (password.length < 6) { setError('Mínimo 6 caracteres'); return }
+    setLoading(true); setError('')
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { nombre: nombre.trim() } },
+    })
+    if (error) {
+      setError(error.message === 'User already registered' ? 'Este correo ya está registrado' : 'No se pudo crear la cuenta')
+      setLoading(false)
+      return
+    }
+    if (data?.user) {
+      // Sincronizar nombre en perfiles_familia
+      await supabase.from('perfiles_familia').upsert(
+        { nombre: nombre.trim() },
+        { onConflict: 'nombre', ignoreDuplicates: true }
+      )
+      setLoading(false)
+      router.replace('/')
+    } else {
+      // Email confirmation required
+      setLoading(false)
+      setSent(true)
     }
   }
 
@@ -125,7 +158,7 @@ function LoginContent() {
               Familia Quintero
             </h1>
             <p className="text-[10px] uppercase tracking-[0.25em] font-black opacity-40">
-              {mode === 'recover' ? 'Seguridad' : mode === 'reset' ? 'Nueva Clave' : mode === 'nombre' ? 'Bienvenida' : 'Finanzas Familiares'}
+              {mode === 'recover' ? 'Seguridad' : mode === 'reset' ? 'Nueva Clave' : mode === 'nombre' ? 'Bienvenida' : mode === 'register' ? 'Nueva Cuenta' : 'Finanzas Familiares'}
             </p>
           </div>
 
@@ -171,6 +204,101 @@ function LoginContent() {
                 className="w-full text-center text-[11px] font-bold opacity-30 hover:opacity-100 transition-opacity py-2 uppercase tracking-tighter">
                 ¿Olvidaste tu contraseña?
               </button>
+
+              <div className="flex items-center gap-3 my-1">
+                <div className="flex-1 h-px" style={{ background: 'var(--border-glass)' }} />
+                <span className="text-[9px] font-black uppercase tracking-widest opacity-20">o</span>
+                <div className="flex-1 h-px" style={{ background: 'var(--border-glass)' }} />
+              </div>
+
+              <button type="button" onClick={() => { setMode('register'); setError(''); setPassword(''); setConfirmPwd('') }}
+                className="w-full py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                Crear cuenta nueva
+              </button>
+            </form>
+          )}
+
+          {/* ── REGISTER ── */}
+          {mode === 'register' && (
+            <form onSubmit={handleRegister} className="space-y-4">
+              {sent ? (
+                <div className="flex flex-col items-center gap-6 py-4 text-center">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center"
+                    style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)' }}>
+                    <CheckCircle size={40} style={{ color: 'var(--accent-green)' }} />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>Revisa tu correo</h2>
+                    <p className="text-[12px] opacity-60 leading-relaxed px-4">
+                      Enviamos un enlace de confirmación a <span className="font-bold">{email}</span>
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => { setMode('login'); setSent(false) }}
+                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-all mt-4">
+                    <ArrowLeft size={14} /> Volver al login
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Tu nombre</label>
+                    <input type="text" placeholder="¿Cómo te llamamos?"
+                      value={nombre} onChange={e => setNombre(e.target.value)}
+                      className="ff-input w-full" autoFocus />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
+                    <input type="email" placeholder="nombre@familia.com"
+                      value={email} onChange={e => setEmail(e.target.value)}
+                      className="ff-input w-full" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
+                    <div className="relative">
+                      <input type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
+                        value={password} onChange={e => setPassword(e.target.value)}
+                        className="ff-input w-full pr-12" />
+                      <button type="button" onClick={() => setShowPwd(!showPwd)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
+                        {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Confirmar contraseña</label>
+                    <div className="relative">
+                      <input type={showConfirmPwd ? 'text' : 'password'} placeholder="Repite la contraseña"
+                        value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)}
+                        className={`ff-input w-full pr-12 ${confirmPwd && confirmPwd !== password ? 'error' : ''}`} />
+                      <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
+                        {showConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">
+                      {error}
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={loading || !nombre.trim() || !email || !password || !confirmPwd}
+                    className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
+                    style={{
+                      background: nombre.trim() && email && password && confirmPwd ? 'var(--text-primary)' : 'var(--bg-secondary)',
+                      color: nombre.trim() && email && password && confirmPwd ? 'var(--bg-card)' : 'var(--text-muted)',
+                    }}>
+                    {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Crear cuenta'}
+                  </button>
+
+                  <button type="button" onClick={() => { setMode('login'); setError('') }}
+                    className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-30 py-3 hover:opacity-100 transition-opacity">
+                    <ArrowLeft size={12} /> Ya tengo cuenta
+                  </button>
+                </>
+              )}
             </form>
           )}
 
