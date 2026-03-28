@@ -4,7 +4,8 @@ import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import {
   Home, Sparkles, Sprout, CheckCircle, Edit3, Save, X,
-  Loader2, AlertTriangle, List, LayoutGrid, ArrowRight, Target, TrendingUp, CircleDollarSign, Copy
+  Loader2, AlertTriangle, List, LayoutGrid, ArrowRight, Target, TrendingUp, CircleDollarSign, Copy,
+  ChevronDown, ChevronUp
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -48,6 +49,14 @@ export default function PresupuestoPage() {
   const [inversiones, setInversiones] = useState([])
   const [aportesInvEsteMes, setAportesInvEsteMes] = useState(0)
   const [deudas, setDeudas] = useState([])
+  const [bloquesCerrados, setBloquesCerrados] = useState(new Set())
+  function toggleBloque(id) {
+    setBloquesCerrados(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
   const [deudaMovs, setDeudaMovs] = useState([])
   const [copiando, setCopiando] = useState(false)
 
@@ -923,7 +932,11 @@ export default function PresupuestoPage() {
                 return (
                   <Card key={bloque.id} className="animate-enter">
                     {/* Cabecera de bloque */}
-                    <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className="flex items-center gap-3 cursor-pointer select-none"
+                      style={{ marginBottom: bloquesCerrados.has(bloque.id) ? 0 : 16 }}
+                      onClick={() => toggleBloque(bloque.id)}
+                    >
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ background: `color-mix(in srgb, ${bloque.color} 12%, transparent)` }}>
                         <Icon size={16} style={{ color: bloque.color }} />
@@ -937,8 +950,13 @@ export default function PresupuestoPage() {
                           </p>
                         )}
                       </div>
+                      {bloquesCerrados.has(bloque.id)
+                        ? <ChevronDown size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        : <ChevronUp size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      }
                     </div>
 
+                    <div className={`collapsible-content ${bloquesCerrados.has(bloque.id) ? 'closed' : 'open'}`}>
                     {/* FUTURO: metas e inversiones de solo lectura */}
                     {esFuturo && (
                       <div className="space-y-3 mb-4">
@@ -1218,13 +1236,18 @@ export default function PresupuestoPage() {
                         })}
                       </div>
                     )}
+                    </div>
                   </Card>
                 )
               })}
               {/* ─── BLOQUE DEUDAS en vista detallada ─── */}
               {deudas.length > 0 && (
                 <Card className="animate-enter">
-                  <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className="flex items-center gap-3 cursor-pointer select-none"
+                    style={{ marginBottom: bloquesCerrados.has('deudas') ? 0 : 16 }}
+                    onClick={() => toggleBloque('deudas')}
+                  >
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: 'color-mix(in srgb, var(--accent-rose) 12%, transparent)' }}>
                       <CircleDollarSign size={16} style={{ color: 'var(--accent-rose)' }} />
@@ -1238,11 +1261,17 @@ export default function PresupuestoPage() {
                       )}
                     </div>
                     <a href="/deudas" className="text-[9px] font-semibold flex items-center gap-0.5"
-                      style={{ color: 'var(--accent-rose)', textDecoration: 'none' }}>
+                      style={{ color: 'var(--accent-rose)', textDecoration: 'none' }}
+                      onClick={e => e.stopPropagation()}>
                       Ver <ArrowRight size={9} />
                     </a>
+                    {bloquesCerrados.has('deudas')
+                      ? <ChevronDown size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      : <ChevronUp size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    }
                   </div>
 
+                  <div className={`collapsible-content ${bloquesCerrados.has('deudas') ? 'closed' : 'open'}`}>
                   <div className="rounded-xl overflow-hidden"
                     style={{ border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)' }}>
                     <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
@@ -1285,6 +1314,7 @@ export default function PresupuestoPage() {
                         {formatCurrency(deudas.reduce((s, d) => s + (d.cuota || 0), 0))}
                       </span>
                     </div>
+                  </div>
                   </div>
                 </Card>
               )}

@@ -1010,8 +1010,19 @@ export default function DeudasPage() {
 
       {/* Lista */}
    {loading ? (
-  <div className="flex items-center justify-center py-20">
-    <Loader2 size={20} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+  <div className="space-y-3 py-2">
+    {[1,2,3].map(i => (
+      <div key={i} className="rounded-2xl p-4" style={{ border: '1px solid var(--border-glass)' }}>
+        <div className="flex items-center gap-3">
+          <div className="skeleton w-10 h-10 rounded-2xl flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="skeleton h-3 w-2/5" />
+            <div className="skeleton h-2.5 w-3/5" />
+          </div>
+          <div className="skeleton h-4 w-20" />
+        </div>
+      </div>
+    ))}
   </div>
 ) : deudas.length === 0 ? (
   /* Añadimos flex-col e items-center para forzar el centrado vertical de los hijos */

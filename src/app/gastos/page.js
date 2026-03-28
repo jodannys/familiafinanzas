@@ -651,8 +651,17 @@ export default function GastosPage() {
         {/* LISTA DE MOVIMIENTOS */}
         <Card className="overflow-hidden border-none shadow-sm">
           {loading ? (
-            <div className="flex items-center justify-center py-12 gap-3 opacity-50">
-              <Loader2 size={20} className="animate-spin" />
+            <div className="p-4 space-y-3">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="flex items-center gap-3 px-1 py-1">
+                  <div className="skeleton w-9 h-9 flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="skeleton h-3 w-3/5" />
+                    <div className="skeleton h-2.5 w-2/5" />
+                  </div>
+                  <div className="skeleton h-3 w-14" />
+                </div>
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center py-12 px-6">

@@ -141,7 +141,7 @@ h1, h2, h3{
   border: none;
   cursor: pointer;
   letter-spacing: -0.01em;
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -151,10 +151,9 @@ h1, h2, h3{
 .ff-btn-primary { background: var(--accent-main); }
 .ff-btn-terra { background: var(--accent-terra); }
 
-.ff-btn-primary:hover, .ff-btn-terra:hover {
-  filter: brightness(1.1);
- box-shadow: none;
-}
+.ff-btn-primary:hover, .ff-btn-terra:hover { filter: brightness(1.1); }
+.ff-btn-primary:active, .ff-btn-terra:active { transform: scale(0.96); filter: brightness(0.9); }
+.ff-btn-primary:disabled, .ff-btn-terra:disabled { opacity: 0.45; cursor: not-allowed; transform: none; filter: none; }
 
 .ff-btn-ghost {
   background: var(--bg-secondary);
@@ -164,8 +163,12 @@ h1, h2, h3{
   border-radius: 999px;
   border: 1px solid var(--border-glass);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
 }
+
+.ff-btn-ghost:hover { filter: brightness(1.05); }
+.ff-btn-ghost:active { transform: scale(0.96); filter: brightness(0.95); }
+.ff-btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
 /* ── Formularios ───────────────────────────────────────────────────────────── */
 
@@ -194,9 +197,22 @@ h1, h2, h3{
 }
 
 .ff-input:focus {
+  opacity: 1;
   background: var(--bg-card);
   border-color: color-mix(in srgb, var(--accent-terra), transparent 50%);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-terra), transparent 90%);
+}
+
+.ff-input.error {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--accent-rose), transparent 30%);
+  background: color-mix(in srgb, var(--accent-rose) 5%, var(--bg-secondary));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-rose), transparent 88%);
+}
+
+.ff-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ── Gráficas & Animaciones ───────────────────────────────────────────────── */
@@ -237,6 +253,32 @@ h1, h2, h3{
 }
 
 h1, h2, h3 { letter-spacing: -0.02em; font-weight: 400; }
+
+/* ── Skeleton loader ──────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    color-mix(in srgb, var(--text-muted) 8%, var(--bg-secondary)) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* ── Colapso animado ──────────────────────────────────────────────────────── */
+.collapsible-content {
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+}
+
+.collapsible-content.open  { max-height: 9999px; opacity: 1; overflow: visible; }
+.collapsible-content.closed { max-height: 0; opacity: 0; overflow: hidden; }
 
 
 body {
