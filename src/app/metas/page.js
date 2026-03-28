@@ -259,6 +259,7 @@ export default function MetasPage() {
       setModalHistorialMeta(updatedMeta)
       setHistorialAportes(prev => prev.filter(a => a.id !== movId))
       toast(`Aporte de ${formatCurrency(monto)} eliminado`, 'success')
+    })
   }
 
   function handleEstado(id, estado) {
