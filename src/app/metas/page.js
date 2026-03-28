@@ -312,7 +312,11 @@ export default function MetasPage() {
       const completadas = prev.filter(m => m.estado === 'completada')
       return [...reordered, ...completadas]
     })
-    await Promise.all(reordered.map((m, i) => supabase.from('metas').update({ orden: i }).eq('id', m.id)))
+    // Solo actualizar los items que cambiaron de índice
+    const updates = reordered
+      .map((m, i) => ({ id: m.id, orden: i }))
+      .filter((u, i) => u.id !== metasActivas[i]?.id)
+    await Promise.all(updates.map(u => supabase.from('metas').update({ orden: u.orden }).eq('id', u.id)))
   }
 
   return (

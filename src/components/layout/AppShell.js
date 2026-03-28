@@ -684,6 +684,7 @@ function ToastDisplay() {
 export default function AppShell({ children }) {
   const [fabOpen, setFabOpen] = useState(false)
   const [authReady, setAuthReady] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -723,9 +724,41 @@ export default function AppShell({ children }) {
               <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
               <span className="font-script text-[25px]" style={{ color: 'var(--text-primary)' }}>Familia Quintero</span>
             </div>
-            <button onClick={handleLogout} className="text-[var(--text-muted)] active:scale-90 transition-transform">
-              <LogOut size={18} />
-            </button>
+            <div className="relative">
+              <button onClick={() => setConfirmLogout(true)} className="text-[var(--text-muted)] active:scale-90 transition-transform">
+                <LogOut size={18} />
+              </button>
+
+              {confirmLogout && (
+                <>
+                  <div className="fixed inset-0 z-[200]" onClick={() => setConfirmLogout(false)} />
+                  <div className="absolute top-full right-0 mt-2 z-[201]"
+                    style={{
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-glass)',
+                      borderRadius: 16,
+                      boxShadow: 'var(--shadow-lg)',
+                      padding: '14px 16px',
+                      width: 200,
+                    }}>
+                    <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>¿Cerrar sesión?</p>
+                    <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)' }}>¿Desea cerrar sesión?</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmLogout(false)}
+                        className="flex-1 text-xs font-semibold py-1.5 rounded-xl transition-all active:scale-95"
+                        style={{ background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                        Cancelar
+                      </button>
+                      <button onClick={handleLogout}
+                        className="flex-1 text-xs font-semibold py-1.5 rounded-xl transition-all active:scale-95"
+                        style={{ background: 'color-mix(in srgb, var(--accent-rose) 15%, transparent)', border: 'none', cursor: 'pointer', color: 'var(--accent-rose)' }}>
+                        Salir
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

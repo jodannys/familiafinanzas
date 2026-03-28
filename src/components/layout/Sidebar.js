@@ -56,6 +56,7 @@ export default function Sidebar() {
   const router   = useRouter()
   const [expanded, setExpanded] = useState(false)
   const [deudasAlert, setDeudasAlert] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
 
   async function handleLogout() {
     await signOut()
@@ -203,18 +204,50 @@ export default function Sidebar() {
           </span>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-2 py-2 rounded-xl w-full transition-all duration-150"
-          style={{ color: 'var(--accent-rose)', background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)', border: 'none', cursor: 'pointer' }}>
-          <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center">
-            <LogOut size={17} />
-          </div>
-          <span className="text-xs font-semibold whitespace-nowrap transition-all duration-200"
-            style={{ opacity: expanded ? 1 : 0, maxWidth: expanded ? 140 : 0 }}>
-            Salir
-          </span>
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setConfirmLogout(true)}
+            className="flex items-center gap-3 px-2 py-2 rounded-xl w-full transition-all duration-150"
+            style={{ color: 'var(--accent-rose)', background: 'color-mix(in srgb, var(--accent-rose) 8%, transparent)', border: 'none', cursor: 'pointer' }}>
+            <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center">
+              <LogOut size={17} />
+            </div>
+            <span className="text-xs font-semibold whitespace-nowrap transition-all duration-200"
+              style={{ opacity: expanded ? 1 : 0, maxWidth: expanded ? 140 : 0 }}>
+              Salir
+            </span>
+          </button>
+
+          {confirmLogout && (
+            <>
+              <div className="fixed inset-0 z-[200]" onClick={() => setConfirmLogout(false)} />
+              <div className="absolute bottom-full left-0 mb-2 z-[201]"
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-glass)',
+                  borderRadius: 16,
+                  boxShadow: 'var(--shadow-lg)',
+                  padding: '14px 16px',
+                  width: 200,
+                }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>¿Cerrar sesión?</p>
+                <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)' }}>Tendrás que volver a iniciar sesión.</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmLogout(false)}
+                    className="flex-1 text-xs font-semibold py-1.5 rounded-xl transition-all active:scale-95"
+                    style={{ background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    Cancelar
+                  </button>
+                  <button onClick={handleLogout}
+                    className="flex-1 text-xs font-semibold py-1.5 rounded-xl transition-all active:scale-95"
+                    style={{ background: 'color-mix(in srgb, var(--accent-rose) 15%, transparent)', border: 'none', cursor: 'pointer', color: 'var(--accent-rose)' }}>
+                    Salir
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </aside>
   )

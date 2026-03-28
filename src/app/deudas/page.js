@@ -840,7 +840,11 @@ export default function DeudasPage() {
     const newIndex = deudas.findIndex(d => d.id === over.id)
     const reordered = arrayMove(deudas, oldIndex, newIndex)
     setDeudas(reordered)
-    await Promise.all(reordered.map((d, i) => supabase.from('deudas').update({ orden: i }).eq('id', d.id)))
+    // Solo actualizar los items que cambiaron de índice
+    const updates = reordered
+      .map((d, i) => ({ id: d.id, orden: i }))
+      .filter((u, i) => u.id !== deudas[i]?.id)
+    await Promise.all(updates.map(u => supabase.from('deudas').update({ orden: u.orden }).eq('id', u.id)))
   }
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
