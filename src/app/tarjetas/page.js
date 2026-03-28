@@ -225,7 +225,8 @@ export default function TarjetasPage() {
   function handleDeleteDeuda(e, deuda) {
     e.stopPropagation()
     showConfirm(`¿Eliminar "${deuda.nombre}"? Se borrarán también sus pagos registrados.`, async () => {
-      await supabase.from('deuda_movimientos').delete().eq('deuda_id', deuda.id)
+      const { error: errMovs } = await supabase.from('deuda_movimientos').delete().eq('deuda_id', deuda.id)
+      if (errMovs) { toast('Error al borrar los pagos: ' + errMovs.message); return }
       const { error } = await supabase.from('deudas').delete().eq('id', deuda.id)
       if (error) { toast('' + error.message); return }
       setDeudas(prev => prev.filter(d => d.id !== deuda.id))
@@ -277,11 +278,14 @@ export default function TarjetasPage() {
     }
 
     // Registrar egreso real en movimientos (el dinero sale del bolsillo al pagar la cuota)
-    await supabase.from('movimientos').insert([{
+    const { error: errMov } = await supabase.from('movimientos').insert([{
       tipo: 'egreso', monto, descripcion: desc,
       categoria: 'deuda', fecha, quien: 'Ambos',
       metodo_pago: 'transferencia',
     }])
+    if (errMov) {
+      toast('Pago registrado pero no apareció en gastos: ' + errMov.message)
+    }
 
     // Actualizar estado local
     setDeudas(prev => prev.map(d => d.id === pagoDeuda.id

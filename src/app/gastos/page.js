@@ -425,6 +425,35 @@ export default function GastosPage() {
       if (error) { toast('' + error.message); return }
       setMovs(prev => prev.filter(m => m.id !== movimiento.id))
 
+      // Si era un gasto del sobre con traspaso, borrar también el sobre_movimiento huérfano
+      if (movimiento.categoria === 'deseo' && movimiento.fecha) {
+        const { data: smRows } = await supabase
+          .from('sobre_movimientos')
+          .select('id')
+          .in('origen', ['basicos', 'metas', 'inversiones'])
+          .eq('destino', 'sobre')
+          .eq('fecha', movimiento.fecha)
+          .eq('monto', movimiento.monto)
+          .limit(1)
+        if (smRows?.[0]?.id) {
+          await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
+        }
+      }
+
+      // Si era un sobrante enviado DESDE el sobre a metas/inversiones, borrar el sobre_movimiento huérfano
+      if ((movimiento.categoria === 'ahorro' || movimiento.categoria === 'inversion') && movimiento.fecha) {
+        const { data: smRows } = await supabase
+          .from('sobre_movimientos')
+          .select('id')
+          .eq('origen', 'sobre')
+          .eq('fecha', movimiento.fecha)
+          .eq('monto', movimiento.monto)
+          .limit(1)
+        if (smRows?.[0]?.id) {
+          await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
+        }
+      }
+
       // Ahora sí borrar deuda_movimientos (ya sin referencias en movimientos)
       if (movimiento.categoria === 'deuda' && deudaMovimientoId) {
         await supabase.from('deuda_movimientos').delete().eq('id', deudaMovimientoId)
