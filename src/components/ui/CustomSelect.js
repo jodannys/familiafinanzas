@@ -62,7 +62,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
       <button
         ref={triggerRef}
         type="button"
-        onClick={openDropdown}
+        onClick={() => open ? setOpen(false) : openDropdown()}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', gap: 8,
           padding: '9px 12px', borderRadius: 12, cursor: 'pointer',
