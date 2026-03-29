@@ -30,7 +30,7 @@ const MENU_GROUPS = [
   {
     title: 'Patrimonio',
     items: [
-      { href: '/metas',       label: 'Ahorro',      icon: Target },
+      { href: '/metas',       label: 'Metas de Ahorro',      icon: Target },
       { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
       { href: '/deudas',      label: 'Deudas',      icon: CircleDollarSign, deudaBadge: true },
       { href: '/inmuebles',   label: 'Inmuebles',   icon: Home },
@@ -81,7 +81,7 @@ export default function Sidebar() {
     <aside className="h-full flex flex-col"
       style={{
         width: 240,
-        background: 'var(--bg-card)',
+        background: 'var(--sidebar-bg, var(--bg-card))',
         borderRight: '1px solid var(--border-glass)',
         zIndex: 100,
       }}>
@@ -101,21 +101,17 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="h-px mx-5" style={{ background: 'var(--border-glass)' }} />
-
       {/* ── Nav ── */}
-      <nav className="flex-1 overflow-y-auto no-scrollbar px-3 py-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto no-scrollbar px-3 py-3">
         {MENU_GROUPS.map((group, gIdx) => (
-          <div key={gIdx} className={gIdx > 0 ? 'pt-3' : ''}>
+          <div key={gIdx} style={{ marginTop: gIdx > 0 ? 18 : 0 }}>
 
-            {/* Separador + título de grupo */}
-            {gIdx > 0 && (
-              <div className="h-px mx-2 mb-3" style={{ background: 'var(--border-glass)' }} />
-            )}
-            <p className="px-3 mb-1"
-              style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-              {group.title}
-            </p>
+            {/* Etiqueta de grupo */}
+            <div className="flex items-center gap-2 px-3 mb-1">
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.11em', textTransform: 'uppercase', color: 'var(--text-muted)', opacity: 0.55 }}>
+                {group.title}
+              </p>
+            </div>
 
             {/* Items */}
             <div className="space-y-0.5">
@@ -128,7 +124,7 @@ export default function Sidebar() {
                     style={{
                       textDecoration: 'none',
                       background: active
-                        ? 'color-mix(in srgb, var(--accent-terra) 10%, transparent)'
+                        ? 'color-mix(in srgb, var(--accent-main) 10%, transparent)'
                         : 'transparent',
                     }}>
                     {/* Hover */}
@@ -141,11 +137,11 @@ export default function Sidebar() {
                     <div className="relative flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-all"
                       style={{
                         background: active
-                          ? 'color-mix(in srgb, var(--accent-terra) 16%, transparent)'
+                          ? 'color-mix(in srgb, var(--accent-main) 16%, transparent)'
                           : 'transparent',
                       }}>
                       <Icon size={15} strokeWidth={active ? 2.5 : 1.8}
-                        style={{ color: active ? 'var(--accent-terra)' : 'var(--text-muted)' }} />
+                        style={{ color: active ? 'var(--accent-main)' : 'var(--text-muted)' }} />
                       {showBadge && (
                         <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border-2"
                           style={{ background: 'var(--accent-rose)', borderColor: 'var(--bg-card)' }} />
@@ -154,13 +150,13 @@ export default function Sidebar() {
 
                     {/* Label */}
                     <span className="relative z-10 flex-1 text-xs font-semibold"
-                      style={{ color: active ? 'var(--accent-terra)' : 'var(--text-secondary)' }}>
+                      style={{ color: active ? 'var(--accent-main)' : 'var(--text-secondary)' }}>
                       {label}
                     </span>
 
                     {/* Chevron activo */}
                     {active && (
-                      <ChevronRight size={12} style={{ color: 'var(--accent-terra)', opacity: 0.6, flexShrink: 0 }} />
+                      <ChevronRight size={12} style={{ color: 'var(--accent-main)', opacity: 0.6, flexShrink: 0 }} />
                     )}
                   </Link>
                 )
@@ -170,10 +166,9 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="h-px mx-5" style={{ background: 'var(--border-glass)' }} />
-
       {/* ── Footer ── */}
-      <div className="px-3 py-3 flex-shrink-0 space-y-0.5">
+      <div className="px-3 py-3 flex-shrink-0 space-y-0.5"
+        style={{ borderTop: '1px solid color-mix(in srgb, var(--border-glass) 60%, transparent)' }}>
 
         {/* Tema */}
         <div className="flex items-center gap-3 px-3 py-2 rounded-xl"

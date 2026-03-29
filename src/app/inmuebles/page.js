@@ -325,11 +325,13 @@ function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
   const comparadorLleno = comparando.length >= 2 && !enComparador
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
-      className="w-full glass-card transition-all active:scale-[0.99] overflow-hidden"
-      style={{ padding: 0, textAlign: 'left' }}>
+      onKeyDown={e => e.key === 'Enter' && onOpen()}
+      className="w-full glass-card transition-all active:scale-[0.99] overflow-hidden cursor-pointer"
+      style={{ textAlign: 'left' }}>
       <div className="flex items-center gap-3 p-3">
         {/* Icono */}
         <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -362,19 +364,21 @@ function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
 
         {/* Métricas + botón comparar */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Botón COMP */}
+          {/* Botón COMP — div en vez de button para evitar button-in-button */}
           {onToggleComparar && !comparadorLleno && (
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               onClick={e => { e.stopPropagation(); onToggleComparar(inmueble.id) }}
-              className="font-black px-1.5 py-1 rounded-lg transition-all"
+              onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); onToggleComparar(inmueble.id) } }}
+              className="font-black px-1.5 py-1 rounded-lg transition-all cursor-pointer"
               style={{
                 fontSize: 8, letterSpacing: '0.08em',
                 background: enComparador ? 'var(--accent-terra)' : 'var(--progress-track)',
                 color: enComparador ? '#fff' : 'var(--text-muted)',
               }}>
               {enComparador ? '✓' : '+'}
-            </button>
+            </div>
           )}
 
           <div className="text-right">
@@ -394,7 +398,7 @@ function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
           </div>
         </div>
       </div>
-    </button>
+    </div>
   )
 }
 

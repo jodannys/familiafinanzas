@@ -26,7 +26,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         {/* FIX 1: eliminado <link rel="manifest"> duplicado — metadata lo inyecta */}
         <meta name="mobile-web-app-capable"            content="yes" />
@@ -43,7 +43,7 @@ export default function RootLayout({ children }) {
     linen:    { bg: '#B3A89D' },
     obsidian: { bg: '#0F1115' },
     ocean:    { bg: '#E8F4F6' },
-    forest:   { bg: '#F1F5F1' },
+    forest:   { bg: '#D2E4CA' },
   };
   var saved = 'linen';
   try { saved = localStorage.getItem('ff-theme') || 'linen'; } catch(e) {}
@@ -62,7 +62,7 @@ export default function RootLayout({ children }) {
 `}} />
       </head>
 
-      <body>
+      <body suppressHydrationWarning>
         <ThemeProvider>
           {children}
         </ThemeProvider>

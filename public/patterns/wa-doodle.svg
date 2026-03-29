@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280">
+  <g fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Corazón grande @ (52, 44) -->
+    <path d="M52,49 C52,42 44,36 39,42 C34,36 26,42 26,49 C26,60 39,70 39,70 C39,70 52,60 52,49 Z"/>
+
+    <!-- Estrella 5 puntas @ (160, 28) -->
+    <polygon points="160,12 163.8,23 175.6,23 166.4,30 169.8,41 160,34 150.2,41 153.6,30 144.4,23 156.2,23"/>
+
+    <!-- Nota musical doble @ (232, 68) -->
+    <path d="M242,52 L242,74 M242,74 C242,78 238,80 234,80 C230,80 226,78 226,74 C226,70 230,68 234,68 C238,68 242,70 242,74"/>
+    <path d="M256,48 L256,70 M256,70 C256,74 252,76 248,76 C244,76 240,74 240,70 C240,66 244,64 248,64 C252,64 256,66 256,70"/>
+    <line x1="242" y1="52" x2="256" y2="48"/>
+
+    <!-- Burbuja de chat @ (26, 128) -->
+    <path d="M16,115 Q16,105 28,105 L72,105 Q84,105 84,115 L84,138 Q84,148 72,148 L44,148 L32,160 L35,148 L28,148 Q16,148 16,138 Z"/>
+
+    <!-- Caritas / emoji @ (198, 138) -->
+    <circle cx="198" cy="138" r="22"/>
+    <path d="M188,146 Q198,157 208,146"/>
+    <circle cx="191" cy="130" r="2.5" fill="rgba(255,255,255,0.18)" stroke="none"/>
+    <circle cx="205" cy="130" r="2.5" fill="rgba(255,255,255,0.18)" stroke="none"/>
+
+    <!-- Flor / margarita @ (96, 208) -->
+    <circle cx="96" cy="208" r="5"/>
+    <circle cx="96" cy="193" r="5"/>
+    <circle cx="96" cy="223" r="5"/>
+    <circle cx="81"  cy="208" r="5"/>
+    <circle cx="111" cy="208" r="5"/>
+    <circle cx="85"  cy="197" r="5"/>
+    <circle cx="107" cy="197" r="5"/>
+
+    <!-- Cámara @ (230, 205) -->
+    <rect x="214" y="196" width="32" height="22" rx="4"/>
+    <circle cx="230" cy="207" r="7"/>
+    <rect x="236" y="192" width="7" height="4" rx="2"/>
+    <circle cx="238" cy="200" r="1.5" fill="rgba(255,255,255,0.18)" stroke="none"/>
+
+    <!-- Corazoncito pequeño @ (158, 224) -->
+    <path d="M165,228 C165,224 160,220 157,224 C154,220 149,224 149,228 C149,234 157,240 157,240 C157,240 165,234 165,228 Z"/>
+
+    <!-- Estrella pequeña @ (248, 175) -->
+    <polygon points="248,162 250.8,170.6 260,170.6 252.6,176 255.4,184.6 248,179.2 240.6,184.6 243.4,176 236,170.6 245.2,170.6"/>
+
+    <!-- Mariposa / lazo @ (46, 250) -->
+    <path d="M46,250 C40,244 30,242 30,250 C30,258 40,256 46,250 Z"/>
+    <path d="M46,250 C52,244 62,242 62,250 C62,258 52,256 46,250 Z"/>
+    <path d="M46,250 C40,256 30,258 30,250"/>
+    <path d="M46,250 C52,256 62,258 62,250"/>
+    <circle cx="46" cy="250" r="2.5" fill="rgba(255,255,255,0.18)" stroke="none"/>
+
+    <!-- Puntos decorativos -->
+    <circle cx="130" cy="68" r="3" fill="rgba(255,255,255,0.18)" stroke="none"/>
+    <circle cx="145" cy="178" r="2.5" fill="rgba(255,255,255,0.18)" stroke="none"/>
+    <circle cx="180" cy="82" r="2" fill="rgba(255,255,255,0.18)" stroke="none"/>
+    <circle cx="22" cy="92" r="2" fill="rgba(255,255,255,0.18)" stroke="none"/>
+    <circle cx="268" cy="130" r="2.5" fill="rgba(255,255,255,0.18)" stroke="none"/>
+    <circle cx="112" cy="150" r="2" fill="rgba(255,255,255,0.18)" stroke="none"/>
+    <circle cx="268" cy="44" r="2" fill="rgba(255,255,255,0.18)" stroke="none"/>
+
+  </g>
+</svg>

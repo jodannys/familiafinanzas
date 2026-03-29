@@ -40,6 +40,8 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
   const [procesando, setProcesando] = useState(false)
   const [gastosReales, setGastosReales] = useState([])
+  const [tipoMarginal, setTipoMarginal] = useState(30)
+  const [inquilinoVH, setInquilinoVH] = useState(true)
 
   const { datos_compra: dc, hipoteca: hip, alquiler_config: al, tipo, estado } = inmueble
   const fi = hip
@@ -115,8 +117,8 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
     gastosTotalesCents: noi.gastosTotalesCents,
     interesHipotecaAnualCents: interesAnualCents,
     amortizacionFiscalCents: amortFiscal?.amortizacionAnualCents || 0,
-    viviendaHabitual: true,
-    tipoMarginal: 30,
+    viviendaHabitual: inquilinoVH,
+    tipoMarginal,
   }) : null
 
   const cashflowPostIrpfMensualCents = irpf ? cashflowMensualCents - irpf.irpfMensualCents : null
@@ -179,10 +181,10 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
     { id: 'amortizacion', label: 'Cuotas',      icon: Calendar },
     ...(tipo === 'vivienda_habitual' ? [{ id: 'casos',     label: 'Casos',     icon: BarChart2 }] : []),
     ...(tipo === 'inversion'         ? [{ id: 'inversion', label: 'Inversión', icon: TrendingUp }] : []),
-    ...(tipo === 'inversion'         ? [{ id: 'fiscal',    label: 'Fiscal',    icon: Receipt }] : []),
+    { id: 'fiscal',      label: 'Fiscal',       icon: Receipt },
     { id: 'patrimonio',  label: 'Patrimonio',   icon: BarChart2 },
     { id: 'refin',       label: 'Refinanciar',  icon: RefreshCw },
-    ...(tipo === 'inversion'         ? [{ id: 'venta',     label: 'Venta',     icon: TrendingUp }] : []),
+    { id: 'venta',       label: 'Venta',        icon: TrendingUp },
   ]
 
   async function handleRegistrarCompra() {
@@ -615,9 +617,32 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
           </div>
         )}
 
-        {/* Tab: Fiscal */}
-        {tab === 'fiscal' && noi && irpf && (
+        {/* Tab: Fiscal (inversión) */}
+        {tab === 'fiscal' && tipo === 'inversion' && noi && irpf && (
           <div className="space-y-4">
+
+            {/* Config fiscal */}
+            <div className="rounded-xl p-4 border space-y-3" style={{ borderColor: 'var(--border-glass)', background: 'var(--bg-card)' }}>
+              <p className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Configuración fiscal</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>El inquilino usa el piso como VH</p>
+                  <p style={{ fontSize: 9, color: 'var(--text-muted)' }}>Activa la reducción del 60% en base imponible</p>
+                </div>
+                <button onClick={() => setInquilinoVH(v => !v)} type="button"
+                  className="flex-shrink-0 relative w-10 h-6 rounded-full transition-all"
+                  style={{ background: inquilinoVH ? 'var(--accent-green)' : 'var(--progress-track)', border: 'none', cursor: 'pointer' }}>
+                  <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
+                    style={{ background: 'white', left: inquilinoVH ? 'calc(100% - 22px)' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                </button>
+              </div>
+              <div>
+                <label className="ff-label">Tu tipo marginal IRPF (%)</label>
+                <input type="number" step={1} min={19} max={47} className="ff-input" value={tipoMarginal}
+                  onChange={e => setTipoMarginal(Number(e.target.value))} />
+              </div>
+            </div>
+
             <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-blue), transparent 75%)', background: 'color-mix(in srgb, var(--accent-blue), transparent 94%)' }}>
               <p className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--accent-blue)', letterSpacing: '0.12em' }}>IRPF — Rendimientos Capital Inmobiliario</p>
               <div className="space-y-1">
@@ -627,10 +652,13 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                 <CasoRow label="Amortización fiscal (3%)" value={`− ${formatCurrency(fromCents(amortFiscal?.amortizacionAnualCents || 0))}`} />
                 <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-blue), transparent 75%)' }} />
                 <CasoRow label="Rendimiento neto" value={formatCurrency(fromCents(irpf.rendimientoNetoCents))} bold />
-                <CasoRow label="Reducción 60% (VH inquilino)" value={`− ${formatCurrency(fromCents(irpf.reduccionCents))}`} />
+                {inquilinoVH && irpf.reduccionCents > 0
+                  ? <CasoRow label="Reducción 60% (inquilino VH)" value={`− ${formatCurrency(fromCents(irpf.reduccionCents))}`} />
+                  : <CasoRow label="Reducción 60% (no aplica — turístico/comercial)" value="0 €" />
+                }
                 <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-blue), transparent 75%)' }} />
                 <CasoRow label="Base imponible reducida" value={formatCurrency(fromCents(irpf.baseReducidaCents))} bold />
-                <CasoRow label="Tipo marginal aplicado" value="30%" />
+                <CasoRow label="Tipo marginal aplicado" value={`${tipoMarginal}%`} />
                 <CasoRow label="IRPF anual estimado" value={formatCurrency(fromCents(irpf.irpfAnualCents))} bold />
                 <CasoRow label="IRPF mensual" value={formatCurrency(fromCents(irpf.irpfMensualCents))} />
               </div>
@@ -673,6 +701,56 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
           </div>
         )}
 
+        {/* Tab: Fiscal (vivienda habitual) */}
+        {tab === 'fiscal' && tipo === 'vivienda_habitual' && (
+          <div className="space-y-4">
+
+            {/* No tributas por IRPF */}
+            <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-green), transparent 70%)', background: 'color-mix(in srgb, var(--accent-green), transparent 93%)' }}>
+              <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--accent-green)', letterSpacing: '0.12em' }}>✅ Sin IRPF por uso propio</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                Al vivir en el inmueble no generas rendimientos de capital inmobiliario. No tienes que declarar nada a Hacienda por el simple hecho de habitarlo.
+              </p>
+            </div>
+
+            {/* Deducción pre-2013 */}
+            <div className="rounded-2xl p-4 border" style={{ borderColor: 'var(--border-glass)', background: 'var(--bg-card)' }}>
+              <p className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)', letterSpacing: '0.12em' }}>Deducción por inversión en vivienda habitual</p>
+              <div className="flex items-start gap-2 mb-2">
+                <span className="text-base flex-shrink-0">❌</span>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Eliminada para compras desde el 1 de enero de 2013. Al comprar ahora <strong>no puedes aplicar esta deducción</strong> en la declaración de la renta.
+                </p>
+              </div>
+              <p style={{ fontSize: 9, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                Solo pueden seguir aplicándola quienes compraron y dedujeron antes del 01/01/2013 y mantienen el régimen transitorio.
+              </p>
+            </div>
+
+            {/* Gastos reales (informativos, no deducibles) */}
+            <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 80%)', background: 'color-mix(in srgb, var(--accent-gold), transparent 94%)' }}>
+              <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--accent-gold)', letterSpacing: '0.12em' }}>Gastos de propiedad — no deducibles</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                No reducen tu IRPF, pero son costes reales que debes presupuestar cada año:
+              </p>
+              <div className="space-y-1">
+                <CasoRow label="IBI (0,4 – 1,1% valor catastral aprox.)" value="Ver recibo municipal" />
+                <CasoRow label="Comunidad de propietarios" value="Depende del edificio" />
+                <CasoRow label="Seguro multirriesgo hogar" value="~200 – 500 €/año" />
+                <CasoRow label="Intereses hipoteca" value="No deducibles (compra post-2013)" />
+              </div>
+            </div>
+
+            {/* Tip: si la alquilas en el futuro */}
+            <div className="rounded-xl px-4 py-3 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-terra), transparent 78%)', background: 'color-mix(in srgb, var(--accent-terra), transparent 94%)' }}>
+              <p className="text-xs font-black" style={{ color: 'var(--accent-terra)' }}>💡 Si en el futuro la alquilas</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                Pasarías a generar rendimientos de capital inmobiliario sujetos a IRPF. Cambia el tipo a <strong>Inversión</strong> para ver el análisis fiscal completo: deducibles, amortización fiscal y cashflow post-impuestos.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Tab: Patrimonio */}
         {tab === 'patrimonio' && (
           <PatrimonioTab evolucion={evolucion} precioCents={precioCents} tabla={tabla} />
@@ -688,13 +766,14 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
         )}
 
         {/* Tab: Venta */}
-        {tab === 'venta' && tipo === 'inversion' && (
+        {tab === 'venta' && (
           <VentaTab
             precioCents={precioCents}
             gastosCompraCents={gastosCompraCents}
             reformaCents={reformaCents}
             tabla={tabla}
             plazoMeses={plazoMeses}
+            esViviendaHabitual={tipo === 'vivienda_habitual'}
           />
         )}
 
@@ -890,10 +969,14 @@ function RefinanciacionTab({ saldoPendienteCents, interesActual, mesesRestantes 
 }
 
 // ── Tab: Venta ────────────────────────────────────────────────────────────────
-function VentaTab({ precioCents, gastosCompraCents, reformaCents, tabla, plazoMeses }) {
+function VentaTab({ precioCents, gastosCompraCents, reformaCents, tabla, plazoMeses, esViviendaHabitual = false }) {
   const [precioVenta, setPrecioVenta] = useState(String(Math.round(fromCents(precioCents) * 1.15)))
   const [añosVenta, setAñosVenta] = useState('10')
   const [comisionVentaPct, setComisionVentaPct] = useState('3')
+  const [reinvierteVH, setReinvierteVH] = useState(false)
+  const [mayores65, setMayores65] = useState(false)
+
+  const irpfExento = esViviendaHabitual && (reinvierteVH || mayores65)
 
   const resultado = useMemo(() => {
     const años = parseInt(añosVenta) || 10
@@ -913,8 +996,48 @@ function VentaTab({ precioCents, gastosCompraCents, reformaCents, tabla, plazoMe
   return (
     <div className="space-y-4">
       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-        Simula cuánto ganarías vendiendo el inmueble en un año concreto descontando impuestos y gastos.
+        Simula cuánto obtendrías vendiendo el inmueble en un año concreto, descontando impuestos y gastos.
       </p>
+
+      {/* Exenciones IRPF — solo vivienda habitual */}
+      {esViviendaHabitual && (
+        <div className="rounded-2xl p-4 border space-y-3"
+          style={{ borderColor: 'color-mix(in srgb, var(--accent-green), transparent 70%)', background: 'color-mix(in srgb, var(--accent-green), transparent 93%)' }}>
+          <p className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--accent-green)', letterSpacing: '0.12em' }}>
+            Exenciones IRPF — Vivienda Habitual
+          </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Reinviertes en otra VH en 2 años</p>
+              <p style={{ fontSize: 9, color: 'var(--text-muted)' }}>Exención total si reinviertes en tu próxima vivienda habitual</p>
+            </div>
+            <button onClick={() => setReinvierteVH(v => !v)} type="button"
+              className="flex-shrink-0 relative w-10 h-6 rounded-full transition-all"
+              style={{ background: reinvierteVH ? 'var(--accent-green)' : 'var(--progress-track)', border: 'none', cursor: 'pointer' }}>
+              <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
+                style={{ background: 'white', left: reinvierteVH ? 'calc(100% - 22px)' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Tienes más de 65 años</p>
+              <p style={{ fontSize: 9, color: 'var(--text-muted)' }}>Exención total sin ninguna condición adicional</p>
+            </div>
+            <button onClick={() => setMayores65(v => !v)} type="button"
+              className="flex-shrink-0 relative w-10 h-6 rounded-full transition-all"
+              style={{ background: mayores65 ? 'var(--accent-green)' : 'var(--progress-track)', border: 'none', cursor: 'pointer' }}>
+              <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
+                style={{ background: 'white', left: mayores65 ? 'calc(100% - 22px)' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+            </button>
+          </div>
+          {irpfExento && resultado && (
+            <div className="rounded-xl px-3 py-2 text-center font-black text-xs"
+              style={{ background: 'color-mix(in srgb, var(--accent-green), transparent 80%)', color: 'var(--accent-green)' }}>
+              ✅ EXENTO — ahorras {formatCurrency(fromCents(resultado.irpfVentaCents))} en IRPF
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -934,13 +1057,20 @@ function VentaTab({ precioCents, gastosCompraCents, reformaCents, tabla, plazoMe
       {resultado && (
         <div className="rounded-2xl p-4 border space-y-1" style={{ borderColor: 'var(--border-glass)', background: 'var(--bg-card)' }}>
           <CasoRow label="Precio de venta" value={formatCurrency(fromCents(resultado.precioVentaCents))} />
-          <CasoRow label="Deuda pendiente (año {añosVenta})" value={`− ${formatCurrency(fromCents(resultado.deudaPendienteCents))}`} />
+          <CasoRow label={`Deuda pendiente (año ${añosVenta})`} value={`− ${formatCurrency(fromCents(resultado.deudaPendienteCents))}`} />
           <CasoRow label="Comisión agente" value={`− ${formatCurrency(fromCents(resultado.comisionVentaCents))}`} />
           <CasoRow label="Plusvalía municipal (est.)" value={`− ${formatCurrency(fromCents(resultado.plusvaliaMunicipalCents))}`} />
           <CasoRow label="Ganancia patrimonial" value={formatCurrency(fromCents(resultado.gananciaPatrimonialCents))} bold />
-          <CasoRow label="IRPF sobre la ganancia" value={`− ${formatCurrency(fromCents(resultado.irpfVentaCents))}`} />
+          {irpfExento
+            ? <CasoRow label="IRPF sobre la ganancia" value="0 € (exento)" />
+            : <CasoRow label="IRPF sobre la ganancia" value={`− ${formatCurrency(fromCents(resultado.irpfVentaCents))}`} />
+          }
           <div className="my-1 border-t" style={{ borderColor: 'var(--border-glass)' }} />
-          <CasoRow label="Liquidez neta (en tu cuenta)" value={formatCurrency(fromCents(resultado.liquidezNetaCents))} bold />
+          <CasoRow label="Liquidez neta (en tu cuenta)"
+            value={formatCurrency(fromCents(irpfExento
+              ? resultado.liquidezNetaCents + resultado.irpfVentaCents
+              : resultado.liquidezNetaCents))}
+            bold />
           <div className="mt-3 flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}>
             <span className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>ROI total</span>
             <span className="text-xl font-black" style={{ color: resultado.roiTotal >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', letterSpacing: '-0.03em' }}>

@@ -424,16 +424,15 @@ export default function Dashboard() {
               <ChevronRight size={14} />
             </Link>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, background: 'var(--border-glass)' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 1, background: 'var(--border-glass)' }}>
             {metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).length === 0 ? (
               <div style={{ background: 'var(--bg-card)', padding: '28px 20px', textAlign: 'center', gridColumn: 'span 2' }}>
                 <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin metas activas</p>
               </div>
             ) : metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).map((m, idx, arr) => {
               const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
-              const esUltimoImpar = arr.length % 2 !== 0 && idx === arr.length - 1
               return (
-                <div key={m.id} style={{ background: 'var(--bg-card)', padding: '18px 20px', gridColumn: esUltimoImpar ? 'span 2' : undefined }}>
+                <div key={m.id} style={{ background: 'var(--bg-card)', padding: '18px 20px' }}>
                   <div className="flex items-center gap-2.5 mb-3">
                     <div style={{
                       width: 30, height: 30, borderRadius: 9, flexShrink: 0,

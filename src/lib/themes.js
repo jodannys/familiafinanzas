@@ -64,33 +64,35 @@ export const THEMES = {
     }
   },
   forest: {
-    name: 'Forest Moss',
-    themeColor: '#131C10',
-    emoji: '🛰️',
-    preview: ['#131C10', '#5A9E42', '#1C2D18', '#D2E8C8'],
+    name: 'Sage Verde',
+    themeColor: '#D2E4CA',
+    emoji: '🌿',
+    preview: ['#D2E4CA', '#128C7E', '#EDF7E8', '#0E2018'],
     vars: {
-      '--bg-primary': '#131C10',
-      '--bg-secondary': '#1A2816',
-      '--bg-card': '#1F3019',
-      '--bg-dark-card': '#0B1209',
-      '--bg-glass': 'rgba(31, 48, 25, 0.70)',
-      '--border-glass': 'rgba(90, 158, 66, 0.20)',
-      '--input-bg': 'rgba(26, 40, 22, 0.92)',
-      '--progress-track': 'rgba(31, 48, 25, 0.75)',
-      '--accent-main': '#5A9E42',
-      '--accent-green': '#74C258',
-      '--accent-terra': '#C86C38',
-      '--accent-blue': '#4882C4',
-      '--accent-rose': '#C45878',
-      '--accent-violet': '#9858C8',
-      '--accent-gold': '#C49C2C',
-      '--accent-danger': '#C43838',
-      '--text-primary': '#D0E8C4',
-      '--text-secondary': '#84A472',
-      '--text-muted': '#486240',
-      '--sidebar-bg': '#0E1608',
-      '--sidebar-border': 'rgba(90, 158, 66, 0.16)',
-      '--text-on-dark': 'rgba(255,255,255,0.95)',
+      '--bg-primary':    '#D2E4CA',
+      '--bg-secondary':  '#DFF0D6',
+      '--bg-card':       '#EDF7E8',
+      '--bg-dark-card':  '#0E2018',
+      '--bg-glass':      'rgba(237, 247, 232, 0.65)',
+      '--border-glass':  'rgba(18, 140, 126, 0.18)',
+      '--input-bg':      'rgba(237, 247, 232, 0.80)',
+      '--progress-track':'#C4DAB8',
+      '--accent-main':   '#128C7E',
+      '--accent-green':  '#1FAD8A',
+      '--accent-terra':  '#C8703E',
+      '--accent-blue':   '#3A78B8',
+      '--accent-rose':   '#C04068',
+      '--accent-violet': '#6E4EA8',
+      '--accent-gold':   '#A87E28',
+      '--accent-danger': '#B02828',
+      '--sidebar-bg':    '#C8DEC0',
+      '--sidebar-border':'rgba(18, 140, 126, 0.16)',
+      '--text-primary':  '#0E2018',
+      '--text-secondary':'#2A4E38',
+      '--text-muted':    '#628A70',
+      '--text-on-dark':  'rgba(255,255,255,0.95)',
+      '--bg-pattern':    "url('/patterns/wa-doodle.svg')",
+      '--bg-pattern-size': '360px',
     }
   },
   carbon: {
@@ -233,6 +235,18 @@ export function ThemeProvider({ children }) {
     if (!t) return
     const root = document.documentElement
     Object.entries(t.vars).forEach(([key, val]) => root.style.setProperty(key, val))
+    root.setAttribute('data-theme', theme)
+    // Aplicar patrón de fondo directamente al body
+    const pattern = t.vars['--bg-pattern']
+    if (pattern) {
+      document.body.style.backgroundImage = pattern
+      document.body.style.backgroundSize = t.vars['--bg-pattern-size'] || '360px'
+      document.body.style.backgroundRepeat = 'repeat'
+    } else {
+      document.body.style.backgroundImage = ''
+      document.body.style.backgroundSize = ''
+      document.body.style.backgroundRepeat = ''
+    }
     try { localStorage.setItem('ff-theme', theme) } catch (e) { }
     updateThemeMeta(t.themeColor)
     window.dispatchEvent(new CustomEvent('theme-change'))
