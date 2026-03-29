@@ -24,12 +24,14 @@ export const THEMES = {
       '--accent-gold': '#B07830',
       '--accent-danger': '#B03030',
       '--sidebar-bg': '#F2EBE2',
-      '--sidebar-border': 'rgba(180,165,150,0.45)',
       '--progress-track': '#E3D8CC',
       '--text-primary': '#1A1410',
       '--text-secondary': '#6A5C50',
       '--text-muted': '#9A8778',
       '--text-on-dark': 'rgba(255,255,255,0.95)',
+      '--sidebar-border': 'rgba(130,115,100,0.3)',
+      '--glass-blur': '8px',
+      '--bg-pattern': '',
     }
   },
 
@@ -59,24 +61,28 @@ export const THEMES = {
       '--text-secondary': '#1C3A52',
       '--text-muted': '#5C7A90',
       '--sidebar-bg': '#EAF6FA',
-      '--sidebar-border': 'rgba(8,130,168,0.14)',
+      '--sidebar-border': 'rgba(8,130,168,0.25)',
       '--text-on-dark': 'rgba(255,255,255,0.95)',
+      '--glass-blur': '8px',
+      '--bg-pattern': '',
     }
   },
 
-  /* VERSION 1: VERDE SALVIA ELEGANTE */
   sage: {
     name: 'Sage Oscuro',
     themeColor: '#101C17',
     emoji: '🌿',
     preview: ['#101C17', '#4A7C59', '#E8EFEA', '#86A789'],
     vars: {
-      '--bg-primary': "linear-gradient(rgba(16, 28, 23, 0.40), rgba(16, 28, 23, 0.40)), url('/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg')",
+      // Separamos la imagen del gradiente para que el useEffect la maneje bien
+      '--bg-primary': '#101C17',
+      '--bg-pattern': '/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg',
       '--bg-secondary': '#192922',
       '--bg-card': '#1C2B24',
-      '--bg-glass': '#1C2B24', // Añade esta línea para que el nav la encuentre
       '--bg-dark-card': '#0A120F',
+      '--bg-glass': 'rgba(28, 43, 36, 0.90)',
       '--border-glass': 'rgba(134, 167, 137, 0.20)',
+      '--input-bg': 'rgba(25, 41, 34, 0.5)',
       '--accent-main': '#86A789',
       '--accent-green': '#4A7C59',
       '--accent-terra': '#C89F70',
@@ -85,27 +91,32 @@ export const THEMES = {
       '--accent-violet': '#7D7098',
       '--accent-gold': '#D4AF37',
       '--accent-danger': '#D15B5B',
+      '--sidebar-bg': '#0D1713',
+      '--sidebar-border': 'rgba(134, 167, 137, 0.15)',
+      '--progress-track': '#1F332A',
       '--text-primary': '#E8EFEA',
       '--text-secondary': '#A3B8AC',
       '--text-muted': '#758F81',
+      '--text-on-dark': 'rgba(255,255,255,0.95)',
       '--bg-pattern-size': '380px',
       '--glass-blur': '12px',
     }
   },
 
-  /* VERSION 2: VERDE WHATSAPP OFICIAL */
   forest: {
     name: 'Verde Chat',
     themeColor: '#075E54',
     emoji: '💬',
     preview: ['#128C7E', '#25D366', '#DCF8C6', '#075E54'],
     vars: {
-      '--bg-primary': "linear-gradient(rgba(11, 20, 26, 0.35), rgba(11, 20, 26, 0.35)), url('/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg')",
+      '--bg-primary': '#0B141A',
+      '--bg-pattern': '/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg',
       '--bg-secondary': '#111B21',
       '--bg-card': '#202C33',
-      '--bg-glass': '#202C33', // Añade esta línea sólida '--bg-card': 'rgba(32, 44, 51, 0.92)',
       '--bg-dark-card': '#0B141A',
+      '--bg-glass': 'rgba(32, 44, 51, 0.90)',
       '--border-glass': 'rgba(0, 168, 132, 0.2)',
+      '--input-bg': '#2A3942',
       '--accent-main': '#00A884',
       '--accent-green': '#25D366',
       '--accent-terra': '#E2A34A',
@@ -114,9 +125,13 @@ export const THEMES = {
       '--accent-violet': '#B084CC',
       '--accent-gold': '#FFC531',
       '--accent-danger': '#F15C6D',
+      '--sidebar-bg': '#111B21',
+      '--sidebar-border': 'rgba(134, 150, 160, 0.15)',
+      '--progress-track': '#202C33',
       '--text-primary': '#E9EDEF',
       '--text-secondary': '#8696A0',
       '--text-muted': '#667781',
+      '--text-on-dark': 'rgba(255,255,255,0.95)',
       '--bg-pattern-size': '380px',
       '--glass-blur': '10px',
     }
@@ -132,7 +147,7 @@ export const THEMES = {
       '--bg-secondary': '#121212',
       '--bg-card': '#171717',
       '--bg-dark-card': '#050505',
-      '--bg-glass': 'rgba(23, 23, 23, 0.8)',
+      '--bg-glass': 'rgba(23, 23, 23, 0.95)',
       '--border-glass': '#262626',
       '--input-bg': '#0F0F0F',
       '--progress-track': '#262626',
@@ -150,6 +165,8 @@ export const THEMES = {
       '--sidebar-bg': '#0A0A0A',
       '--sidebar-border': '#1A1A1A',
       '--text-on-dark': 'rgba(255,255,255,0.95)',
+      '--glass-blur': '12px',
+      '--bg-pattern': '',
     }
   },
 
@@ -181,6 +198,8 @@ export const THEMES = {
       '--sidebar-bg': '#181825',
       '--sidebar-border': 'rgba(205, 214, 244, 0.08)',
       '--text-on-dark': '#1E1E2E',
+      '--glass-blur': '12px',
+      '--bg-pattern': '',
     }
   },
 
@@ -212,10 +231,11 @@ export const THEMES = {
       '--sidebar-bg': '#FAF0F2',
       '--sidebar-border': 'rgba(192, 88, 120, 0.16)',
       '--text-on-dark': 'rgba(255,255,255,0.95)',
+      '--glass-blur': '8px',
+      '--bg-pattern': '',
     }
   },
 }
-
 // ✅ Declarada DESPUÉS de THEMES para evitar el bug de hoisting con const
 export function getThemeColors(themeName) {
   const vars = THEMES[themeName]?.vars

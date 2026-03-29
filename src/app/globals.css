@@ -10,42 +10,37 @@
 }
 
 :root {
-  /* Fondos Principales (Tema Base / Por defecto) */
-  --bg-primary:      #B3A89D;
-  --bg-card:         rgba(248, 243, 238, 0.7);
+  /* Fondos: Aclaramos ligeramente para mejor contraste, pero mantenemos la lógica */
+  --bg-primary:      #E6DFD6; /* Un lino más limpio que mantiene la calidez */
+  
+  /* Mantener opacidad para tus tarjetas glass, pero con fondo más claro */
+  --bg-card:         rgba(251, 248, 245, 0.7); 
   --bg-secondary:    rgba(241, 233, 224, 0.84);
   --bg-dark-card:    #2C241E;
-  --bg-glass:        rgba(255, 255, 255, 0.45);
-  --input-bg:        rgba(255, 255, 255, 0.3);
+  --bg-glass:        rgba(251, 248, 245, 0.45);
+  --input-bg:        rgba(251, 248, 245, 0.3);
 
-  /* Variables del tema base */
+  /* Acentos Generales (Paleta Tierra) */
+  --accent-main:     #D99E5C;
   --accent-terra:    #D99E5C;
   --accent-blue:     #4A6FA5;
   --accent-rose:     #C0605A;
   --accent-violet:   #7C6FAB;
   --accent-gold:     #C17A3A;
   --accent-green:    #2D7A5F;
-  --sidebar-bg:      #F8F3EE;
-  --sidebar-border:  rgba(255,255,255,0.4);
-  --progress-track:  #EAE2D8;
-
-  /* Textos */
-  --text-primary:    #1A1410;
-  --text-secondary:  #6D5F54;
-  --text-muted:      #918479;
-
-  /* Acentos Generales */
-  --accent-main:     #D99E5C;
   --accent-danger:   #C0605A;
 
-  /* Geometría */
-  --radius-xl:       32px;
+  /* Textos: Oscurecidos para legibilidad profesional */
+  --text-primary:    #1A1410;
+  --text-secondary:  #4A3F35; /* Más oscuro que el original para mejor contraste */
+  --text-muted:      #7A6D62; /* Grisáceo pero legible */
+  --text-on-dark:    rgba(255, 255, 255, 0.95);
+
+  /* Geometría: ESTO NO SE TOCA, TUS OVALADAS MANDAN */
+  --radius-xl:       32px; /* Mantenemos tu radio ovalado */
   --border-glass:    rgba(255, 255, 255, 0.4);
 
-  /* Texto sobre fondos oscuros/acentuados */
-  --text-on-dark:    rgba(255,255,255,0.95);
-
-  /* Sistema de sombras adaptadas al tema */
+  /* Sistema de sombras: Tu color-mix es excelente */
   --shadow-sm:  0 1px 4px color-mix(in srgb, var(--bg-dark-card), transparent 88%);
   --shadow-md:  0 4px 16px color-mix(in srgb, var(--bg-dark-card), transparent 82%);
   --shadow-lg:  0 8px 32px color-mix(in srgb, var(--bg-dark-card), transparent 75%);
