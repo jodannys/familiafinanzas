@@ -34,9 +34,17 @@ export function useConfirm() {
 export default function ConfirmDialog({ open, message, onConfirm, onCancel, labelConfirm = 'Eliminar', labelCancel = 'Cancelar' }) {
   useEffect(() => {
     if (!open) return
+    // Bloquear scroll del body y compensar el ancho del scrollbar para evitar layout shift
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+    document.body.style.overflow = 'hidden'
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
     const handler = (e) => { if (e.key === 'Escape') onCancel() }
     window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    return () => {
+      window.removeEventListener('keydown', handler)
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
+    }
   }, [open, onCancel])
 
   if (!open) return null

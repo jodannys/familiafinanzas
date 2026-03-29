@@ -16,7 +16,13 @@
       "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas -type f -name *migration* -o -name *schema* -o -name *seed*)",
       "Bash(xargs wc:*)",
       "Bash(ls -la /c/Users/jodan/OneDrive/Escritorio/familiafinanzas/.env*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas -name *.sql -o -name *migration* -o -name *schema*)",
+      "Bash(find /c/Users/jodan/OneDrive/Escritorio/familiafinanzas/src -name *auth* -o -name *user* -o -name *login*)",
+      "Read(//c/Users/jodan/Downloads/**)",
+      "Bash(python3 -c \":*)",
+      "Bash(mkdir -p \"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/supabase/migrations\")",
+      "Bash(mkdir -p \"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/src/components/inmuebles\")"
     ]
   }
 }

@@ -24,8 +24,18 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    document.body.style.overflow = visible ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
+    if (visible) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.overflow = 'hidden'
+      if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
+    }
   }, [visible])
 
   useEffect(() => {

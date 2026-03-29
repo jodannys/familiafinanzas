@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, Target,
   MoreHorizontal, TrendingUp, Wallet, CircleDollarSign,
-  CreditCard, Settings2, BarChart3, X, CalendarDays, Plus
+  CreditCard, Settings2, BarChart3, X, CalendarDays, Plus, Home
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -19,6 +19,7 @@ const MORE_ITEMS = [
   { href: '/presupuesto', label: 'Presupuesto', icon: PieChart },
   { href: '/metas', label: 'Metas', icon: Target },
   { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
+  { href: '/inmuebles', label: 'Inmuebles', icon: Home },
   { href: '/sobres', label: 'Sobres', icon: Wallet },
   { href: '/deudas', label: 'Deudas', icon: CircleDollarSign },
   { href: '/tarjetas', label: 'Tarjetas', icon: CreditCard },

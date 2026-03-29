@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, Target, TrendingUp, PieChart,
-  CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2, CalendarDays
+  CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2, CalendarDays, Home
 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
 import { supabase, signOut } from '@/lib/supabase'
@@ -32,12 +32,13 @@ const MENU_GROUPS = [
       { href: '/metas', label: 'Ahorro', icon: Target },
       { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
       { href: '/deudas', label: 'Deudas', icon: CircleDollarSign, deudaBadge: true },
-      { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard },
+      { href: '/inmuebles', label: 'Inmuebles', icon: Home },
     ],
   },
   {
     title: 'Sistema',
     items: [
+      { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard },
       { href: '/ajustes', label: 'Configuración', icon: Settings2 },
     ],
   },
