@@ -325,63 +325,59 @@ function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
   const comparadorLleno = comparando.length >= 2 && !enComparador
 
   return (
-    <div className="relative">
-    {/* Botón comparar */}
-    {onToggleComparar && !comparadorLleno && (
-      <button
-        type="button"
-        onClick={() => onToggleComparar(inmueble.id)}
-        className="absolute top-2 right-2 z-10 text-xs font-black px-1.5 py-0.5 rounded-md transition-all"
-        style={{
-          fontSize: 8, letterSpacing: '0.08em',
-          background: enComparador ? 'var(--accent-terra)' : 'var(--progress-track)',
-          color: enComparador ? '#fff' : 'var(--text-muted)',
-        }}>
-        {enComparador ? '✓ COMP' : 'COMP'}
-      </button>
-    )}
     <button
       type="button"
       onClick={onOpen}
       className="w-full glass-card transition-all active:scale-[0.99] overflow-hidden"
       style={{ padding: 0, textAlign: 'left' }}>
-      <div className="flex items-stretch">
+      <div className="flex items-center gap-3 p-3">
+        {/* Icono */}
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: `color-mix(in srgb, ${accentColor}, transparent 88%)` }}>
+          {tipo === 'inversion'
+            ? <Building2 size={15} style={{ color: accentColor }} />
+            : <Home size={15} style={{ color: accentColor }} />}
+        </div>
 
-        {/* Franja de color izquierda */}
-        <div className="w-1 flex-shrink-0" style={{ background: accentColor, borderRadius: '16px 0 0 16px' }} />
-
-        <div className="flex items-center gap-3 p-3 flex-1 min-w-0">
-          {/* Icono */}
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: `color-mix(in srgb, ${accentColor}, transparent 88%)` }}>
-            {tipo === 'inversion'
-              ? <Building2 size={15} style={{ color: accentColor }} />
-              : <Home size={15} style={{ color: accentColor }} />}
-          </div>
-
-          {/* Nombre + datos */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0 mb-1">
-              <p className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{inmueble.nombre}</p>
-              {estado === 'comprado' && (
-                <span className="flex-shrink-0 text-xs font-black px-1.5 py-0.5 rounded-md"
-                  style={{ background: 'color-mix(in srgb, var(--accent-green), transparent 88%)', color: 'var(--accent-green)', fontSize: 9 }}>
-                  ✓ Comprado
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCurrency(fromCents(precioCents))}</span>
-              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>·</span>
-              <span className="font-bold px-1.5 py-0.5 rounded-md"
-                style={{ fontSize: 9, background: `color-mix(in srgb, ${ltvColor}, transparent 88%)`, color: ltvColor }}>
-                LTV {ltvInicial}%
+        {/* Nombre + datos */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 mb-1">
+            <p className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{inmueble.nombre}</p>
+            {estado === 'comprado' && (
+              <span className="flex-shrink-0 font-black px-1.5 py-0.5 rounded-md"
+                style={{ background: 'color-mix(in srgb, var(--accent-green), transparent 88%)', color: 'var(--accent-green)', fontSize: 9 }}>
+                ✓ Comprado
               </span>
-            </div>
+            )}
           </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCurrency(fromCents(precioCents))}</span>
+            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>·</span>
+            <span className="font-bold px-1.5 py-0.5 rounded-md"
+              style={{ fontSize: 9, background: `color-mix(in srgb, ${ltvColor}, transparent 88%)`, color: ltvColor }}>
+              LTV {ltvInicial}%
+            </span>
+          </div>
+        </div>
 
-          {/* Métricas derecha */}
-          <div className="text-right flex-shrink-0">
+        {/* Métricas + botón comparar */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Botón COMP */}
+          {onToggleComparar && !comparadorLleno && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onToggleComparar(inmueble.id) }}
+              className="font-black px-1.5 py-1 rounded-lg transition-all"
+              style={{
+                fontSize: 8, letterSpacing: '0.08em',
+                background: enComparador ? 'var(--accent-terra)' : 'var(--progress-track)',
+                color: enComparador ? '#fff' : 'var(--text-muted)',
+              }}>
+              {enComparador ? '✓' : '+'}
+            </button>
+          )}
+
+          <div className="text-right">
             <p className="text-sm font-black" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               {formatCurrency(fromCents(cuotaCents))}
             </p>
@@ -399,7 +395,6 @@ function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
         </div>
       </div>
     </button>
-    </div>
   )
 }
 

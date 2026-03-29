@@ -34,16 +34,25 @@ export function useConfirm() {
 export default function ConfirmDialog({ open, message, onConfirm, onCancel, labelConfirm = 'Eliminar', labelCancel = 'Cancelar' }) {
   useEffect(() => {
     if (!open) return
-    // Bloquear scroll del body y compensar el ancho del scrollbar para evitar layout shift
+    // Guardar posición de scroll y fijar el body para evitar salto lateral/vertical en móvil
+    const scrollY = window.scrollY
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
-    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = '0'
+    document.body.style.right = '0'
     if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
     const handler = (e) => { if (e.key === 'Escape') onCancel() }
     window.addEventListener('keydown', handler)
     return () => {
       window.removeEventListener('keydown', handler)
-      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.left = ''
+      document.body.style.right = ''
       document.body.style.paddingRight = ''
+      // Restaurar posición exacta del scroll
+      window.scrollTo(0, scrollY)
     }
   }, [open, onCancel])
 

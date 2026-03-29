@@ -279,7 +279,7 @@ export default function Dashboard() {
           { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', Icon: ArrowUpRight, signo: '+', pct: 100 },
           { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', Icon: ArrowDownRight, signo: '-', pct: pctGastos },
           { label: 'Futuro', val: ahorroMes, col: 'var(--accent-gold)', Icon: Target, signo: '', pct: pctAhorro },
-          { label: 'Disponible', val: saldoLibre, col: saldoLibre >= 0 ? 'var(--accent-blue)' : 'var(--accent-danger)', Icon: Wallet, signo: '', pct: pctDisp },
+          { label: 'Disponible', val: saldoLibre, col: saldoLibre >= 0 ? 'var(--accent-blue)' : 'var(--accent-rose)', Icon: Wallet, signo: '', pct: pctDisp },
         ].map((k, i) => (
           <div key={i} className="animate-enter"
             style={{
@@ -377,7 +377,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Distribución + Metas ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
         {/* Distribución */}
         <div className="rounded-[28px] overflow-hidden"
@@ -424,15 +424,16 @@ export default function Dashboard() {
               <ChevronRight size={14} />
             </Link>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 1, background: 'var(--border-glass)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, background: 'var(--border-glass)' }}>
             {metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).length === 0 ? (
-              <div style={{ background: 'var(--bg-card)', padding: '28px 20px', textAlign: 'center' }}>
+              <div style={{ background: 'var(--bg-card)', padding: '28px 20px', textAlign: 'center', gridColumn: 'span 2' }}>
                 <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin metas activas</p>
               </div>
-            ) : metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).map(m => {
+            ) : metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).map((m, idx, arr) => {
               const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
+              const esUltimoImpar = arr.length % 2 !== 0 && idx === arr.length - 1
               return (
-                <div key={m.id} style={{ background: 'var(--bg-card)', padding: '18px 20px' }}>
+                <div key={m.id} style={{ background: 'var(--bg-card)', padding: '18px 20px', gridColumn: esUltimoImpar ? 'span 2' : undefined }}>
                   <div className="flex items-center gap-2.5 mb-3">
                     <div style={{
                       width: 30, height: 30, borderRadius: 9, flexShrink: 0,

@@ -711,7 +711,7 @@ export default function AppShell({ children }) {
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
       <ToastDisplay />
       <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]"><Sidebar /></div>
-      <main className="flex-1 min-h-screen lg:ml-20 flex flex-col overflow-x-hidden">
+      <main className="flex-1 min-h-screen lg:ml-60 flex flex-col overflow-x-hidden">
 
         {/* Header móvil */}
         <div className="lg:hidden sticky top-0 z-50 w-full" style={{

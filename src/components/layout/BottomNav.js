@@ -96,7 +96,7 @@ export default function BottomNav({ onFABClick }) {
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-4 gap-1.5 px-3 pb-5">
+            <div className="grid grid-cols-3 gap-1.5 px-3 pb-5">
               {MORE_ITEMS.map(({ href, label, icon: Icon }) => {
                 const active = pathname === href
                 return (
