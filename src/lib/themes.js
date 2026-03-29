@@ -3,215 +3,255 @@ import { createContext, useContext, useEffect, useState } from 'react'
 
 export const THEMES = {
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🌾 WARM LINEN — Papel artesanal, tinta de roble, oro viejo
+  // ─────────────────────────────────────────────────────────────────────────
   linen: {
     name: 'Warm Linen',
-    themeColor: '#C9BFB3',
+    themeColor: '#C9BFB3',          // = --bg-primary → status bar integrada
     emoji: '🌾',
-    preview: ['#C9BFB3', '#C08540', '#F7F1EB', '#2C241E'],
+    preview: ['#C9BFB3', '#B07838', '#F5EFE8', '#1A1410'],
     vars: {
-      '--bg-primary': '#C9BFB3',
-      '--bg-secondary': '#EDE4D9',
-      '--bg-card': '#F7F1EB',
-      '--bg-dark-card': '#2C241E',
-      '--bg-glass': 'rgba(247,241,235,0.60)',
-      '--border-glass': 'rgba(255,255,255,0.55)',
-      '--input-bg': 'rgba(255,255,255,0.45)',
-      '--accent-main': '#C08540',
-      '--accent-green': '#3A7A5C',
-      '--accent-terra': '#B8622A',
-      '--accent-blue': '#4E6EA0',
-      '--accent-rose': '#B85452',
-      '--accent-violet': '#7060A8',
-      '--accent-gold': '#B07830',
-      '--accent-danger': '#B03030',
-      '--sidebar-bg': '#F2EBE2',
-      '--progress-track': '#E3D8CC',
-      '--text-primary': '#1A1410',
-      '--text-secondary': '#6A5C50',
-      '--text-muted': '#9A8778',
-      '--text-on-dark': 'rgba(255,255,255,0.95)',
-      '--sidebar-border': 'rgba(130,115,100,0.3)',
-      '--glass-blur': '8px',
-      '--bg-pattern': '',
+      // Fondos
+      '--bg-primary':      '#C9BFB3',
+      '--bg-secondary':    '#E8DDD3',
+      '--bg-pattern':      '',
+      '--bg-pattern-size': '360px',
+      // Tarjetas
+      '--bg-card':         '#F5EFE8',
+      '--bg-dark-card':    '#2C241E',
+      '--bg-glass':        'rgba(245,239,232,0.78)',   // vidrio cálido translúcido
+      '--border-glass':    'rgba(255,255,255,0.62)',
+      '--radius-xl':       '28px',
+      // Navegación
+      '--sidebar-bg':      '#EDE4D8',
+      '--sidebar-border':  'rgba(120,100,82,0.28)',
+      '--progress-track':  '#DDD0C2',
+      // Inputs — claramente más blancos que el vidrio del modal
+      '--input-bg':        'rgba(255,255,255,0.78)',
+      // Acentos
+      '--accent-main':     '#B07838',
+      '--accent-green':    '#3D7A56',
+      '--accent-terra':    '#A85A28',
+      '--accent-blue':     '#4A6898',
+      '--accent-rose':     '#A85050',
+      '--accent-violet':   '#6858A0',
+      '--accent-gold':     '#A87028',
+      '--accent-danger':   '#A83030',
+      // Tipografía — jerarquía oscura sobre fondo claro
+      '--text-primary':    '#1A1410',   // máximo contraste: títulos
+      '--text-secondary':  '#4A3C30',   // medio: datos y filas
+      '--text-muted':      '#88786A',   // suave: etiquetas e inputs
+      '--text-on-dark':    'rgba(255,255,255,0.95)',
+      // Efectos
+      '--glass-blur':      '14px',
     }
   },
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🌊 OCEAN SLATE — Cielo atlántico, espuma, profundidad marina
+  // ─────────────────────────────────────────────────────────────────────────
   ocean: {
     name: 'Ocean Slate',
-    themeColor: '#D6EEF5',
+    themeColor: '#D6EEF5',          // = --bg-primary
     emoji: '🌊',
     preview: ['#D6EEF5', '#0882A8', '#EDF7FB', '#0B1C2E'],
     vars: {
-      '--bg-primary': '#D6EEF5',
-      '--bg-secondary': '#EDF7FB',
-      '--bg-card': '#FAFEFF',
-      '--bg-dark-card': '#0B1C2E',
-      '--bg-glass': 'rgba(250,254,255,0.68)',
-      '--border-glass': 'rgba(8,130,168,0.18)',
-      '--input-bg': '#EDF7FB',
-      '--progress-track': '#C8E8F2',
-      '--accent-main': '#0882A8',
-      '--accent-green': '#0D9E74',
-      '--accent-terra': '#E8703A',
-      '--accent-blue': '#2F7FD4',
-      '--accent-rose': '#D64F8A',
-      '--accent-violet': '#6248C8',
-      '--accent-gold': '#C88A10',
-      '--accent-danger': '#D63030',
-      '--text-primary': '#0B1C2E',
-      '--text-secondary': '#1C3A52',
-      '--text-muted': '#5C7A90',
-      '--sidebar-bg': '#EAF6FA',
-      '--sidebar-border': 'rgba(8,130,168,0.25)',
-      '--text-on-dark': 'rgba(255,255,255,0.95)',
-      '--glass-blur': '8px',
-      '--bg-pattern': '',
+      '--bg-primary':      '#D6EEF5',
+      '--bg-secondary':    '#EDF7FB',
+      '--bg-pattern':      '',
+      '--bg-pattern-size': '360px',
+      '--bg-card':         '#FAFEFF',
+      '--bg-dark-card':    '#0B1C2E',
+      '--bg-glass':        'rgba(230,246,252,0.76)',
+      '--border-glass':    'rgba(8,130,168,0.20)',
+      '--radius-xl':       '28px',
+      '--sidebar-bg':      '#E8F5FA',
+      '--sidebar-border':  'rgba(8,130,168,0.22)',
+      '--progress-track':  '#C8E8F2',
+      '--input-bg':        'rgba(255,255,255,0.82)',
+      '--accent-main':     '#0882A8',
+      '--accent-green':    '#0D9E74',
+      '--accent-terra':    '#E8703A',
+      '--accent-blue':     '#2F7FD4',
+      '--accent-rose':     '#D64F8A',
+      '--accent-violet':   '#6248C8',
+      '--accent-gold':     '#C88A10',
+      '--accent-danger':   '#D63030',
+      '--text-primary':    '#0B1C2E',
+      '--text-secondary':  '#1C3A52',
+      '--text-muted':      '#5C7A90',
+      '--text-on-dark':    'rgba(255,255,255,0.95)',
+      '--glass-blur':      '14px',
     }
   },
-greenHarmony: {
-  name: 'Green Harmony',
-  themeColor: '#2C8028', // Pinta la barra de la hora del celular
-  emoji: '🌿',
-  preview: ['#2C8028', '#82CB4E', '#1F2A23', '#F0FAF2'],
-  vars: {
-    /* 🌿 ESTRUCTURA DE FONDOS */
-    '--bg-primary': '#2C8028',       // Fondo verde oscuro principal
-    '--bg-secondary': '#D6EBDD',     // Fondo secundario claro
-    '--bg-pattern': '',              // Sin patrón para mantenerlo "Premium"
-    '--bg-pattern-size': '360px',
 
-    /* 🧊 TARJETAS (CARDS) */
-    '--bg-card': '#82CB4E',          // El verde lima de tus capturas
-    '--bg-dark-card': '#1F2A23',     // Fondo para resaltar balances importantes
-    '--bg-glass': 'rgba(255, 255, 255, 0.7)',
-    '--border-glass': 'rgba(31, 42, 35, 0.15)',
-    '--radius-xl': '32px',           // Mantiene tus tarjetas ovaladas
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🌿 GREEN HARMONY — Dosel selvático, lima vibrante, tierra oscura
+  // ─────────────────────────────────────────────────────────────────────────
+  greenHarmony: {
+    name: 'Green Harmony',
+    themeColor: '#2C8028',          // = --bg-primary
+    emoji: '🌿',
+    preview: ['#2C8028', '#82CB4E', '#1F2A23', '#F0FAF2'],
+    vars: {
+      '--bg-primary':      '#2C8028',   // INTOCABLE ✓
+      // bg-secondary muy cercano al primary → no crea rectángulos visibles
+      '--bg-secondary':    '#3A9035',
+      '--bg-pattern':      '',
+      '--bg-pattern-size': '360px',
+      '--bg-card':         '#82CB4E',   // INTOCABLE ✓
+      '--bg-dark-card':    '#1A2A1E',
+      // Modal: blanco translúcido suave
+      '--bg-glass':        'rgba(255,255,255,0.86)',
+      '--border-glass':    'rgba(44,128,40,0.18)',
+      '--radius-xl':       '28px',
+      '--sidebar-bg':      '#F2FBF0',   // verde muy pálido (no blanco puro)
+      '--sidebar-border':  'rgba(44,128,40,0.12)',
+      '--progress-track':  '#4EAA44',   // verde medio — armónico con primary
+      // CRÍTICO: blanco sólido — inputs visibles sobre lima
+      '--input-bg':        '#FFFFFF',
+      // Acentos más oscuros/saturados para que los botones resalten sobre el lima
+      '--accent-main':     '#1A6018',   // verde bosque para CTA principal
+      '--accent-green':    '#157A38',
+      '--accent-terra':    '#A87828',   // ocre cálido — contrasta con lima
+      '--accent-blue':     '#2A7888',   // teal oscuro — claramente visible
+      '--accent-rose':     '#A84848',   // carmín apagado
+      '--accent-violet':   '#605898',   // violeta musgo
+      '--accent-gold':     '#A88820',   // oro oliva
+      '--accent-danger':   '#B81840',
+      // text-primary BLANCO sobre --bg-primary (fondo verde oscuro #2C8028)
+      '--text-primary':    '#FFFFFF',
+      // text-secondary VERDE CASI NEGRO sobre --bg-card (lima #82CB4E) — WCAG AA ~10:1
+      '--text-secondary':  '#0A1A0F',
+      // text-muted: verde bosque desaturado (no gris genérico)
+      '--text-muted':      '#2D5038',
+      '--text-on-dark':    '#FFFFFF',
+      '--glass-blur':      '14px',
+    }
+  },
 
-    /* 📊 NAVEGACIÓN Y SIDEBAR */
-    '--sidebar-bg': '#FFFFFF',       // Sidebar blanco para contraste limpio
-    '--sidebar-border': 'rgba(44, 128, 40, 0.12)',
-    '--progress-track': '#DCEFE2',
-
-    /* 🧾 FORMULARIOS / INPUTS */
-    '--input-bg': '#FFFFFF',         // Fondo blanco para que el texto oscuro resalte
-
-    /* 🎨 PALETA DE ACENTOS */
-    '--accent-main': '#2C8028',      // Verde oscuro para botones de acción
-    '--accent-green': '#1DB954',
-    '--accent-terra': '#C4A35A',
-    '--accent-blue': '#5FA8A0',
-    '--accent-rose': '#C06C6C',
-    '--accent-violet': '#7A6FA3',
-    '--accent-gold': '#D4B85F',
-    '--accent-danger': '#E91E63',    // Para egresos o alertas
-
-    /* ✍️ TEXTOS CORREGIDOS (LEGIBILIDAD) */
-    '--text-primary': '#FFFFFF',     // Blanco para el fondo oscuro principal
-    '--text-secondary': '#0A1A0F',   // VERDE OSCURO para que se lean los gastos en las cards lima
-    '--text-muted': '#2D4135',       // Para descripciones y etiquetas pequeñas
-    '--text-on-dark': '#FFFFFF',     // Texto sobre botones o fondos negros
-
-    /* 🧩 EFECTOS VISUALES */
-    '--glass-blur': '12px',
-  }
-},
-
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🕶️ FORGED CARBON — Acero bruñido, oro antiguo, carbono puro
+  // ─────────────────────────────────────────────────────────────────────────
   carbon: {
     name: 'Forged Carbon',
-    themeColor: '#080808',
+    themeColor: '#080808',          // = --bg-primary
     emoji: '🕶️',
-    preview: ['#080808', '#B8860B', '#1A1A1A', '#E0E0E0'],
+    preview: ['#080808', '#C8A020', '#181818', '#E8E8E8'],
     vars: {
-      '--bg-primary': '#080808',
-      '--bg-secondary': '#121212',
-      '--bg-card': '#171717',
-      '--bg-dark-card': '#050505',
-      '--bg-glass': 'rgba(23,23,23,0.95)',
-      '--border-glass': '#262626',
-      '--input-bg': '#0F0F0F',
-      '--progress-track': '#262626',
-      '--accent-main': '#B8860B',
-      '--accent-green': '#3E5C45',
-      '--accent-terra': '#8B4513',
-      '--accent-blue': '#243447',
-      '--accent-rose': '#5C2E2E',
-      '--accent-violet': '#3D2B56',
-      '--accent-gold': '#D4AF37',
-      '--accent-danger': '#7F1D1D',
-      '--text-primary': '#E5E5E5',
-      '--text-secondary': '#A3A3A3',
-      '--text-muted': '#525252',
-      '--sidebar-bg': '#0A0A0A',
-      '--sidebar-border': '#1A1A1A',
-      '--text-on-dark': 'rgba(255,255,255,0.95)',
-      '--glass-blur': '12px',
-      '--bg-pattern': '',
+      '--bg-primary':      '#080808',
+      '--bg-secondary':    '#121212',
+      '--bg-pattern':      '',
+      '--bg-pattern-size': '360px',
+      '--bg-card':         '#181818',
+      '--bg-dark-card':    '#050505',
+      '--bg-glass':        'rgba(16,16,16,0.88)',      // vidrio oscuro translúcido
+      '--border-glass':    'rgba(255,255,255,0.07)',
+      '--radius-xl':       '28px',
+      '--sidebar-bg':      '#0A0A0A',
+      '--sidebar-border':  'rgba(255,255,255,0.06)',
+      '--progress-track':  '#262626',
+      '--input-bg':        '#222222',                  // más claro que card: resalta
+      '--accent-main':     '#C8A020',
+      // Acentos CORREGIDOS: más saturados para ser legibles sobre #181818
+      '--accent-green':    '#4A8A58',
+      '--accent-terra':    '#C06830',
+      '--accent-blue':     '#4A6A9A',
+      '--accent-rose':     '#A85050',
+      '--accent-violet':   '#7058A8',
+      '--accent-gold':     '#D4AF37',
+      '--accent-danger':   '#B02020',
+      // Tríada tipográfica: off-white dorado (no gris genérico) sobre carbono puro
+      // --bg-card: #181818 | WCAG AA mínimo 4.5:1 sobre card
+      '--text-primary':    '#EDE8D8',   // off-white ámbar  — ratio vs #181818 ≈ 17:1
+      '--text-secondary':  '#BCAC88',   // piedra dorada    — ratio vs #181818 ≈  8.5:1
+      '--text-muted':      '#9A8848',   // oro ceniza       — ratio vs #181818 ≈  4.5:1 (WCAG AA)
+      '--text-on-dark':    'rgba(255,255,255,0.95)',
+      '--glass-blur':      '14px',
     }
   },
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🌌 DUSK VIOLET — Catppuccin nocturno, neblina púrpura
+  // ─────────────────────────────────────────────────────────────────────────
   dusk: {
     name: 'Dusk Violet',
-    themeColor: '#1E1E2E',
+    themeColor: '#1E1E2E',          // = --bg-primary
     emoji: '🌌',
     preview: ['#1E1E2E', '#CBA6F7', '#2A2739', '#CDD6F4'],
     vars: {
-      '--bg-primary': '#1E1E2E',
-      '--bg-secondary': '#313244',
-      '--bg-card': '#2A2739',
-      '--bg-dark-card': '#11111B',
-      '--bg-glass': 'rgba(49,50,68,0.55)',
-      '--border-glass': 'rgba(205,214,244,0.1)',
-      '--input-bg': 'rgba(49,50,68,0.85)',
-      '--progress-track': 'rgba(49,50,68,0.7)',
-      '--accent-main': '#CBA6F7',
-      '--accent-green': '#A6E3A1',
-      '--accent-terra': '#FAB387',
-      '--accent-blue': '#89B4FA',
-      '--accent-rose': '#F38BA8',
-      '--accent-violet': '#B4BEFE',
-      '--accent-gold': '#F9E2AF',
-      '--accent-danger': '#F38BA8',
-      '--text-primary': '#CDD6F4',
-      '--text-secondary': '#BAC2DE',
-      '--text-muted': '#6C7086',
-      '--sidebar-bg': '#181825',
-      '--sidebar-border': 'rgba(205,214,244,0.08)',
-      '--text-on-dark': '#1E1E2E',
-      '--glass-blur': '12px',
-      '--bg-pattern': '',
+      '--bg-primary':      '#1E1E2E',
+      '--bg-secondary':    '#313244',
+      '--bg-pattern':      '',
+      '--bg-pattern-size': '360px',
+      '--bg-card':         '#2A2739',
+      '--bg-dark-card':    '#11111B',
+      '--bg-glass':        'rgba(42,39,57,0.76)',      // vidrio violeta translúcido
+      '--border-glass':    'rgba(205,214,244,0.12)',
+      '--radius-xl':       '28px',
+      '--sidebar-bg':      '#181825',
+      '--sidebar-border':  'rgba(205,214,244,0.08)',
+      '--progress-track':  'rgba(49,50,68,0.80)',
+      '--input-bg':        'rgba(55,56,76,0.95)',      // más opaco que glass: resalta
+      '--accent-main':     '#CBA6F7',
+      '--accent-green':    '#A6E3A1',
+      '--accent-terra':    '#FAB387',
+      '--accent-blue':     '#89B4FA',
+      '--accent-rose':     '#F38BA8',
+      '--accent-violet':   '#B4BEFE',
+      '--accent-gold':     '#F9E2AF',
+      '--accent-danger':   '#F38BA8',
+      '--text-primary':    '#CDD6F4',
+      '--text-secondary':  '#BAC2DE',
+      '--text-muted':      '#6C7086',
+      '--text-on-dark':    '#1E1E2E',
+      '--glass-blur':      '14px',
     }
   },
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🌸 ROSE BLOOM — Peonía apagada, seda nude, malva profundo — PREMIUM
+  // ─────────────────────────────────────────────────────────────────────────
   silk: {
     name: 'Rose Bloom',
-    themeColor: '#F0E2E6',
+    themeColor: '#E8D2D8',          // = --bg-primary
     emoji: '🌸',
-    preview: ['#F0E2E6', '#C05878', '#FDF5F7', '#2A1820'],
+    preview: ['#E8D2D8', '#A8486A', '#FBF4F6', '#281820'],
     vars: {
-      '--bg-primary': '#F0E2E6',
-      '--bg-secondary': '#F6EAEd',
-      '--bg-card': '#FDF5F7',
-      '--bg-dark-card': '#2A1820',
-      '--bg-glass': 'rgba(253,245,247,0.62)',
-      '--border-glass': 'rgba(192,88,120,0.20)',
-      '--input-bg': '#FDF5F7',
-      '--progress-track': '#EAD4DA',
-      '--accent-main': '#C05878',
-      '--accent-green': '#688A58',
-      '--accent-terra': '#C07858',
-      '--accent-blue': '#7888C0',
-      '--accent-rose': '#D04070',
-      '--accent-violet': '#9860B0',
-      '--accent-gold': '#C09040',
-      '--accent-danger': '#B02840',
-      '--text-primary': '#2A1820',
-      '--text-secondary': '#6A4858',
-      '--text-muted': '#A08090',
-      '--sidebar-bg': '#FAF0F2',
-      '--sidebar-border': 'rgba(192,88,120,0.16)',
-      '--text-on-dark': 'rgba(255,255,255,0.95)',
-      '--glass-blur': '8px',
-      '--bg-pattern': '',
+      // Fondos — rosa desaturado elegante, no pastel chillón
+      '--bg-primary':      '#E8D2D8',
+      '--bg-secondary':    '#F2E5EA',
+      '--bg-pattern':      '',
+      '--bg-pattern-size': '360px',
+      // Tarjetas — blanco marfil con tinte rosado mínimo
+      '--bg-card':         '#FBF4F6',
+      '--bg-dark-card':    '#281820',
+      '--bg-glass':        'rgba(248,242,245,0.78)',   // vidrio rosado suave
+      '--border-glass':    'rgba(168,72,106,0.18)',
+      '--radius-xl':       '28px',
+      // Navegación
+      '--sidebar-bg':      '#F5ECF0',
+      '--sidebar-border':  'rgba(168,72,106,0.15)',
+      '--progress-track':  '#DEC8CE',
+      // Inputs — más blancos que el modal: claramente diferenciables
+      '--input-bg':        'rgba(255,255,255,0.85)',
+      // Acentos — desaturados y profundos (premium, no pop art)
+      '--accent-main':     '#A8486A',
+      '--accent-green':    '#5A7A4A',
+      '--accent-terra':    '#A87050',
+      '--accent-blue':     '#6070A8',
+      '--accent-rose':     '#C04068',
+      '--accent-violet':   '#8050A8',
+      '--accent-gold':     '#A88038',
+      '--accent-danger':   '#A02840',
+      // Tipografía — jerarquía oscura sobre blanco marfil
+      '--text-primary':    '#281820',   // casi negro-vino: máximo contraste
+      '--text-secondary':  '#4A2838',   // malva oscuro: registros y datos
+      '--text-muted':      '#8A6878',   // polvoriento: etiquetas e inputs
+      '--text-on-dark':    'rgba(255,255,255,0.95)',
+      // Efectos
+      '--glass-blur':      '14px',
     }
   }
 

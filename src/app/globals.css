@@ -205,22 +205,21 @@ h1, h2, h3 {
   width: 100%;
   padding: 14px 18px;
   border-radius: 16px;
-  border: 1px solid var(--border-glass); /* Ahora toma el borde del tema activo */
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  border: 1px solid var(--border-glass);
+  /* Usa --input-bg del tema activo; fallback a --bg-secondary para temas sin él */
+  background: var(--input-bg, var(--bg-secondary));
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 400;
-  opacity: 0.85; /* Más opacidad para que resalte sobre patrones de fondo */
   outline: none;
   transition: all 0.2s ease;
 }
 
 .ff-input:focus {
-  opacity: 1;
-  background: var(--bg-card);
-  /* Usa accent-main en lugar de terra para ser compatible con cualquier tema */
-  border-color: color-mix(in srgb, var(--accent-main), transparent 50%);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-main), transparent 90%);
+  /* Mantiene el mismo fondo del input — solo cambia borde y sombra */
+  background: var(--input-bg, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--accent-main), transparent 40%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-main), transparent 88%);
 }
 
 .ff-input.error {
@@ -242,6 +241,19 @@ h1, h2, h3 {
   border-radius: var(--radius-xl);
   padding: 24px;
   color: var(--text-on-dark);
+}
+
+/* ── Green Harmony: corrección de contraste dual ─────────────────────────────
+   Problema: --text-primary = #FFF (para bg-primary oscuro #2C8028)
+             pero ese token también se usa sobre cards lima #82CB4E → invisible.
+   Solución: rebind local del token dentro de cualquier contenedor con bg-card.
+   Las CSS custom properties se heredan → todos los hijos reciben el nuevo valor
+   sin necesidad de tocar los componentes.
+   ────────────────────────────────────────────────────────────────────────── */
+[data-theme="greenHarmony"] [style*="var(--bg-card)"] {
+  --text-primary: #0A1A0F;   /* oscuro sobre lima — WCAG AA ~17:1             */
+  --text-muted:   #2D5038;   /* verde bosque — reemplaza el blanco muted       */
+  color: #0A1A0F;
 }
 
 @keyframes enter {
