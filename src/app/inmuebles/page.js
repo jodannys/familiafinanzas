@@ -25,15 +25,17 @@ import {
 } from '@/lib/inmuebles'
 import FormInmueble from '@/components/inmuebles/FormInmueble'
 import SimuladorPanel from '@/components/inmuebles/SimuladorPanel'
+import ComparadorInmuebles from '@/components/inmuebles/ComparadorInmuebles'
 
 export default function InmueblesPage() {
   const [inmuebles, setInmuebles] = useState([])
   const [loading, setLoading] = useState(true)
   const [totalAhorradoCents, setTotalAhorradoCents] = useState(0)
   const [metas, setMetas] = useState([])
-  const [panelInmueble, setPanelInmueble] = useState(null) // inmueble abierto en modal
+  const [panelInmueble, setPanelInmueble] = useState(null)
   const [formAbierto, setFormAbierto] = useState(false)
-  const [editando, setEditando] = useState(null) // inmueble a editar
+  const [editando, setEditando] = useState(null)
+  const [comparando, setComparando] = useState([]) // max 2 ids
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -138,53 +140,59 @@ export default function InmueblesPage() {
         <div className="space-y-6">
           {/* ── Meta: Entrada para la casa ── */}
           {entradaObjetivoCents > 0 && (
-              <Card glow="terra">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ background: 'color-mix(in srgb, var(--accent-terra), transparent 88%)', border: '1px solid color-mix(in srgb, var(--accent-terra), transparent 78%)' }}>
-                      <Target size={18} style={{ color: 'var(--accent-terra)' }} />
-                    </div>
-                    <div>
-                      <p className="font-serif text-base" style={{ color: 'var(--text-primary)' }}>Meta: Entrada para la casa</p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {inmueblemeta?.nombre}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-2xl font-black" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.03em' }}>
-                    {progressPct}%
-                  </span>
+            <Card glow="terra">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'color-mix(in srgb, var(--accent-terra), transparent 88%)', border: '1px solid color-mix(in srgb, var(--accent-terra), transparent 78%)' }}>
+                  <Target size={18} style={{ color: 'var(--accent-terra)' }} />
                 </div>
-
-                <ProgressBar value={ahorroReferenceCents} max={entradaObjetivoCents} color="var(--accent-terra)" className="h-2 mb-3" />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{formatCurrency(fromCents(ahorroReferenceCents))}</p>
-                    <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                      {metaVinculada ? metaVinculada.nombre : 'Total ahorrado'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(fromCents(entradaObjetivoCents))}</p>
-                    <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Entrada + gastos + reforma</p>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Objetivo de compra</p>
+                  <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>{inmueblemeta?.nombre}</p>
                 </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-2xl font-black" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.04em', lineHeight: 1 }}>{progressPct}%</p>
+                  <p style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>completado</p>
+                </div>
+              </div>
 
-                {entradaObjetivoCents > ahorroReferenceCents && (
-                  <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
-                    Faltan {formatCurrency(fromCents(entradaObjetivoCents - ahorroReferenceCents))} para la entrada
+              {/* Barra más gruesa */}
+              <div className="h-3 rounded-full overflow-hidden mb-4" style={{ background: 'var(--progress-track)' }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: 'var(--accent-terra)' }} />
+              </div>
+
+              {/* Amounts */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="rounded-xl px-3 py-2.5" style={{ background: 'var(--progress-track)' }}>
+                  <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{formatCurrency(fromCents(ahorroReferenceCents))}</p>
+                  <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 2 }}>
+                    {metaVinculada ? metaVinculada.nombre : 'Total ahorrado'}
                   </p>
-                )}
-                {ahorroReferenceCents >= entradaObjetivoCents && (
-                  <div className="mt-3 text-xs font-bold px-3 py-1.5 rounded-lg text-center"
-                    style={{ background: 'color-mix(in srgb, var(--accent-green), transparent 88%)', color: 'var(--accent-green)' }}>
-                    ¡Meta alcanzada! Puedes iniciar la búsqueda.
-                  </div>
-                )}
-              </Card>
-            )}
+                </div>
+                <div className="rounded-xl px-3 py-2.5" style={{ background: 'var(--progress-track)' }}>
+                  <p className="text-sm font-black" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(fromCents(entradaObjetivoCents))}</p>
+                  <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 2 }}>Necesario</p>
+                </div>
+              </div>
+
+              {/* Estado */}
+              {entradaObjetivoCents > ahorroReferenceCents ? (
+                <div className="rounded-xl px-3 py-2 flex items-center justify-between"
+                  style={{ background: 'color-mix(in srgb, var(--accent-terra), transparent 90%)' }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>Aún te faltan</p>
+                  <p className="text-sm font-black" style={{ color: 'var(--accent-terra)' }}>
+                    {formatCurrency(fromCents(entradaObjetivoCents - ahorroReferenceCents))}
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl px-3 py-2 text-center font-black text-sm"
+                  style={{ background: 'color-mix(in srgb, var(--accent-green), transparent 88%)', color: 'var(--accent-green)' }}>
+                  ✓ ¡Meta alcanzada! Puedes iniciar la búsqueda.
+                </div>
+              )}
+            </Card>
+          )}
 
             {/* ── Lista vacía ── */}
             {inmuebles.length === 0 && (
@@ -201,6 +209,14 @@ export default function InmueblesPage() {
               </div>
             )}
 
+            {/* ── Comparador ── */}
+            {comparando.length === 2 && (
+              <ComparadorInmuebles
+                inmuebles={inmuebles.filter(i => comparando.includes(i.id))}
+                onCerrar={() => setComparando([])}
+              />
+            )}
+
             {/* ── Vivienda habitual ── */}
             {viviendas.length > 0 && (
               <section className="space-y-2">
@@ -210,6 +226,10 @@ export default function InmueblesPage() {
                     key={inmueble.id}
                     inmueble={inmueble}
                     onOpen={() => setPanelInmueble(inmueble)}
+                    comparando={comparando}
+                    onToggleComparar={id => setComparando(prev =>
+                      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 2 ? [...prev, id] : prev
+                    )}
                   />
                 ))}
               </section>
@@ -224,6 +244,10 @@ export default function InmueblesPage() {
                     key={inmueble.id}
                     inmueble={inmueble}
                     onOpen={() => setPanelInmueble(inmueble)}
+                    comparando={comparando}
+                    onToggleComparar={id => setComparando(prev =>
+                      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 2 ? [...prev, id] : prev
+                    )}
                   />
                 ))}
               </section>
@@ -262,7 +286,7 @@ export default function InmueblesPage() {
 
 // ── Componente: tarjeta de inmueble (compacta, abre modal al tocar) ───────────
 
-function InmuebleItem({ inmueble, onOpen }) {
+function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
   const { datos_compra: dc, hipoteca: hip, alquiler_config: al, tipo, estado } = inmueble
   const fi = hip
 
@@ -296,54 +320,102 @@ function InmuebleItem({ inmueble, onOpen }) {
 
   const accentColor = tipo === 'inversion' ? 'var(--accent-gold)' : 'var(--accent-blue)'
 
+  const ltvColor = ltvInicial > 90 ? 'var(--accent-rose)' : ltvInicial > 80 ? 'var(--accent-gold)' : 'var(--accent-green)'
+  const enComparador = comparando.includes(inmueble.id)
+  const comparadorLleno = comparando.length >= 2 && !enComparador
+
   return (
+    <div className="relative">
+    {/* Botón comparar */}
+    {onToggleComparar && !comparadorLleno && (
+      <button
+        type="button"
+        onClick={() => onToggleComparar(inmueble.id)}
+        className="absolute top-2 right-2 z-10 text-xs font-black px-1.5 py-0.5 rounded-md transition-all"
+        style={{
+          fontSize: 8, letterSpacing: '0.08em',
+          background: enComparador ? 'var(--accent-terra)' : 'var(--progress-track)',
+          color: enComparador ? '#fff' : 'var(--text-muted)',
+        }}>
+        {enComparador ? '✓ COMP' : 'COMP'}
+      </button>
+    )}
     <button
       type="button"
       onClick={onOpen}
-      className="w-full glass-card transition-all active:scale-[0.99]"
+      className="w-full glass-card transition-all active:scale-[0.99] overflow-hidden"
       style={{ padding: 0, textAlign: 'left' }}>
-      <div className="flex items-center gap-3 p-3">
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: `color-mix(in srgb, ${accentColor}, transparent 88%)`, border: `1px solid color-mix(in srgb, ${accentColor}, transparent 78%)` }}>
-          {tipo === 'inversion'
-            ? <Building2 size={14} style={{ color: accentColor }} />
-            : <Home size={14} style={{ color: accentColor }} />}
-        </div>
+      <div className="flex items-stretch">
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{inmueble.nombre}</p>
-            {estado === 'comprado' && <Badge color="green">Comprado</Badge>}
+        {/* Franja de color izquierda */}
+        <div className="w-1 flex-shrink-0" style={{ background: accentColor, borderRadius: '16px 0 0 16px' }} />
+
+        <div className="flex items-center gap-3 p-3 flex-1 min-w-0">
+          {/* Icono */}
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: `color-mix(in srgb, ${accentColor}, transparent 88%)` }}>
+            {tipo === 'inversion'
+              ? <Building2 size={15} style={{ color: accentColor }} />
+              : <Home size={15} style={{ color: accentColor }} />}
           </div>
-          <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-            {formatCurrency(fromCents(precioCents))} · LTV {ltvInicial}%
-          </p>
-        </div>
 
-        <div className="text-right flex-shrink-0">
-          <p className="text-sm font-black" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.02em' }}>
-            {formatCurrency(fromCents(cuotaCents))}
-          </p>
-          {cashflowLabel
-            ? <p className="text-xs font-bold" style={{ color: cashflowLabel.positive ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                CF {formatCurrency(fromCents(cashflowLabel.cents))}
-              </p>
-            : <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>/mes</p>
-          }
+          {/* Nombre + datos */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 mb-1">
+              <p className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{inmueble.nombre}</p>
+              {estado === 'comprado' && (
+                <span className="flex-shrink-0 text-xs font-black px-1.5 py-0.5 rounded-md"
+                  style={{ background: 'color-mix(in srgb, var(--accent-green), transparent 88%)', color: 'var(--accent-green)', fontSize: 9 }}>
+                  ✓ Comprado
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCurrency(fromCents(precioCents))}</span>
+              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>·</span>
+              <span className="font-bold px-1.5 py-0.5 rounded-md"
+                style={{ fontSize: 9, background: `color-mix(in srgb, ${ltvColor}, transparent 88%)`, color: ltvColor }}>
+                LTV {ltvInicial}%
+              </span>
+            </div>
+          </div>
+
+          {/* Métricas derecha */}
+          <div className="text-right flex-shrink-0">
+            <p className="text-sm font-black" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              {formatCurrency(fromCents(cuotaCents))}
+            </p>
+            {cashflowLabel ? (
+              <div className="flex items-center justify-end gap-1 mt-0.5">
+                <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.08em', color: 'var(--text-muted)' }}>CF</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: cashflowLabel.positive ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                  {formatCurrency(fromCents(cashflowLabel.cents))}
+                </span>
+              </div>
+            ) : (
+              <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 2 }}>/mes</p>
+            )}
+          </div>
         </div>
       </div>
     </button>
+    </div>
   )
 }
 
 function SectionHeader({ icon: Icon, label, count, color }) {
   return (
-    <div className="flex items-center gap-2">
-      <Icon size={14} style={{ color }} />
-      <p className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--text-muted)', letterSpacing: '0.12em' }}>
+    <div className="flex items-center gap-2 px-1">
+      <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+        style={{ background: `color-mix(in srgb, ${color}, transparent 88%)` }}>
+        <Icon size={11} style={{ color }} />
+      </div>
+      <p className="text-xs font-black uppercase tracking-wider flex-1"
+        style={{ color: 'var(--text-muted)', letterSpacing: '0.12em' }}>
         {label}
       </p>
-      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, ${color}, transparent 90%)`, color }}>
+      <span className="text-xs font-black px-2 py-0.5 rounded-full"
+        style={{ background: `color-mix(in srgb, ${color}, transparent 88%)`, color }}>
         {count}
       </span>
     </div>

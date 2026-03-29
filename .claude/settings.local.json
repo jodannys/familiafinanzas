@@ -22,7 +22,8 @@
       "Read(//c/Users/jodan/Downloads/**)",
       "Bash(python3 -c \":*)",
       "Bash(mkdir -p \"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/supabase/migrations\")",
-      "Bash(mkdir -p \"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/src/components/inmuebles\")"
+      "Bash(mkdir -p \"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/src/components/inmuebles\")",
+      "Bash(\"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/src/app/globals.css\")"
     ]
   }
 }

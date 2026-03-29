@@ -294,3 +294,46 @@ body {
   background-color: var(--bg-primary);
   padding-top: env(safe-area-inset-top);
 }
+
+/* ── Print / PDF export ───────────────────────────────────────────────────── */
+@media print {
+  /* Ocultar navegación y botones de acción */
+  nav, footer, .print\:hidden,
+  [data-print="hidden"] { display: none !important; }
+
+  /* Fondo blanco, texto negro */
+  body, html {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 12px;
+  }
+
+  /* Las cards sin sombra ni blur */
+  .glass-card, [class*="rounded"] {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border: 1px solid #ddd !important;
+    background: #fff !important;
+  }
+
+  /* Evitar corte de páginas dentro de bloques clave */
+  .rounded-2xl, .rounded-xl, section {
+    break-inside: avoid;
+  }
+
+  /* Variables de color — forzar valores legibles en papel */
+  :root {
+    --text-primary: #111;
+    --text-secondary: #444;
+    --text-muted: #777;
+    --bg-card: #fff;
+    --progress-track: #f0f0f0;
+    --border-glass: #ddd;
+    --accent-terra: #c05c3a;
+    --accent-green: #2d7a4f;
+    --accent-rose: #c0394a;
+    --accent-gold: #a07a20;
+    --accent-blue: #2a5cb8;
+    --accent-violet: #6b3cb8;
+  }
+}

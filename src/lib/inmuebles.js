@@ -577,6 +577,283 @@ export function generarCasosDeCompra({ precioCents, interesAnual, plazoMeses, ga
   })
 }
 
+// ── Motor Financiero: Análisis Fiscal ────────────────────────────────────────
+
+/**
+ * IRPF sobre rendimientos de capital inmobiliario (alquiler)
+ *
+ * En España, el alquiler de vivienda habitual tiene una reducción del 60%
+ * sobre el rendimiento neto positivo (desde 2024 puede variar por CCAA).
+ * Los gastos deducibles incluyen: intereses hipoteca, IBI, seguro, comunidad,
+ * mantenimiento, amortización fiscal del inmueble (3% sobre valor construcción).
+ *
+ * Base imponible = Ingresos − Gastos deducibles − Amortización fiscal
+ * Reducción 60% si es vivienda habitual del inquilino
+ * IRPF aplicado: tipo marginal del contribuyente (default 30%)
+ *
+ * @returns {{ baseImponibleCents, reduccionCents, baseReducidaCents, irpfAnualCents, irpfMensualCents, cashflowPostIrpfCents }}
+ */
+export function calcularIRPFAlquiler({
+  ingresosBrutosCents,
+  gastosTotalesCents,      // NOI gastos (comunidad, IBI, seguro, gestión…)
+  interesHipotecaAnualCents = 0,  // intereses del primer año (deducibles)
+  amortizacionFiscalCents = 0,    // 3% del valor de construcción
+  viviendaHabitual = true,        // reducción 60% si es VH del inquilino
+  tipoMarginal = 30,              // tipo IRPF del contribuyente (%)
+}) {
+  // Gastos fiscalmente deducibles = operativos + intereses hipoteca
+  const gastosDeduciblesCents = gastosTotalesCents + interesHipotecaAnualCents + amortizacionFiscalCents
+  const rendimientoNetoCents = ingresosBrutosCents - gastosDeduciblesCents
+
+  // Solo se aplica reducción si el rendimiento es positivo
+  const reduccionCents = (viviendaHabitual && rendimientoNetoCents > 0)
+    ? Math.round(rendimientoNetoCents * 0.60)
+    : 0
+  const baseReducidaCents = Math.max(0, rendimientoNetoCents - reduccionCents)
+  const irpfAnualCents = Math.round(baseReducidaCents * tipoMarginal / 100)
+  const irpfMensualCents = Math.round(irpfAnualCents / 12)
+
+  return {
+    rendimientoNetoCents,
+    reduccionCents,
+    baseReducidaCents,
+    irpfAnualCents,
+    irpfMensualCents,
+    gastosDeduciblesCents,
+  }
+}
+
+/**
+ * Amortización fiscal del inmueble
+ * En España, el 3% anual sobre el mayor de: valor catastral de construcción
+ * o el coste de adquisición de la construcción (precio − valor suelo).
+ * Regla práctica: 70-80% del precio → construcción (varía por zona).
+ *
+ * @param {number} precioCents        - Precio de compra
+ * @param {number} [pctConstruccion]  - % del precio que es construcción (default 0.70)
+ * @param {number} [pctAmortizacion]  - % de amortización fiscal anual (default 0.03)
+ */
+export function calcularAmortizacionFiscal({
+  precioCents,
+  gastosCompraCents = 0,
+  pctConstruccion = 0.70,
+  pctAmortizacion = 0.03,
+}) {
+  const baseAmortizacion = Math.round((precioCents + gastosCompraCents) * pctConstruccion)
+  const amortizacionAnualCents = Math.round(baseAmortizacion * pctAmortizacion)
+  return { baseAmortizacion, amortizacionAnualCents }
+}
+
+/**
+ * Análisis de venta: plusvalía y fiscalidad
+ *
+ * Calcula el beneficio neto tras vender el inmueble descontando:
+ * - Deuda pendiente en el año de venta
+ * - Gastos de venta (comisión agente + plusvalía municipal estimada)
+ * - IRPF sobre la ganancia patrimonial (escala 2024)
+ *
+ * Escala IRPF ganancia patrimonial 2024:
+ *   0–6.000€ → 19%  |  6.000–50.000€ → 21%  |  50.000–200.000€ → 23%
+ *   200.000–300.000€ → 27%  |  >300.000€ → 28%
+ *
+ * @param {object} config
+ * @param {number} config.precioCents              - Precio de compra
+ * @param {number} config.gastosCompraCents        - Gastos en la compra (ITP, notaría…)
+ * @param {number} config.reformaCents             - Reforma capitalizable
+ * @param {number} config.precioVentaCents         - Precio al que se vende
+ * @param {number} config.deudaPendienteCents      - Capital pendiente en el año de venta
+ * @param {number} [config.comisionVentaPct]       - Comisión agente en venta (default 3%)
+ * @param {number} [config.añosPropiedad]          - Años en propiedad (para plusvalía municipal)
+ * @returns {object} Desglose completo de la venta
+ */
+export function calcularPlusvaliaVenta({
+  precioCents,
+  gastosCompraCents = 0,
+  reformaCents = 0,
+  precioVentaCents,
+  deudaPendienteCents = 0,
+  comisionVentaPct = 3,
+  añosPropiedad = 10,
+}) {
+  // Coste de adquisición (base para IRPF)
+  const costeAdquisicionCents = precioCents + gastosCompraCents + reformaCents
+
+  // Gastos de venta
+  const comisionVentaCents = Math.round(precioVentaCents * comisionVentaPct / 100)
+  // Plusvalía municipal estimada (muy variable; usamos 5% del valor catastral ≈ 1% precio)
+  const plusvaliaMunicipalCents = Math.round(precioVentaCents * 0.01 * Math.min(añosPropiedad, 20))
+  const gastosVentaCents = comisionVentaCents + plusvaliaMunicipalCents
+
+  // Ganancia patrimonial (base IRPF)
+  const gananciaPatrimonialCents = Math.max(0, precioVentaCents - gastosVentaCents - costeAdquisicionCents)
+
+  // Escala IRPF ganancia patrimonial 2024
+  function calcIRPFGanancia(cents) {
+    const euros = cents / 100
+    let impuesto = 0
+    if (euros <= 6000)                            impuesto = euros * 0.19
+    else if (euros <= 50000)  impuesto = 6000 * 0.19  + (euros - 6000)   * 0.21
+    else if (euros <= 200000) impuesto = 6000 * 0.19  + 44000 * 0.21     + (euros - 50000)  * 0.23
+    else if (euros <= 300000) impuesto = 6000 * 0.19  + 44000 * 0.21     + 150000 * 0.23   + (euros - 200000) * 0.27
+    else                      impuesto = 6000 * 0.19  + 44000 * 0.21     + 150000 * 0.23   + 100000 * 0.27   + (euros - 300000) * 0.28
+    return Math.round(impuesto * 100)
+  }
+
+  const irpfVentaCents = calcIRPFGanancia(gananciaPatrimonialCents)
+
+  // Liquidez neta tras venta (lo que entra en tu cuenta)
+  const liquidezNetaCents = precioVentaCents - deudaPendienteCents - gastosVentaCents - irpfVentaCents
+  // Beneficio neto sobre inversión inicial
+  const beneficioNetoCents = liquidezNetaCents - (precioCents - deudaPendienteCents + gastosCompraCents + reformaCents - deudaPendienteCents)
+  const roi = costeAdquisicionCents > 0
+    ? Math.round((liquidezNetaCents / costeAdquisicionCents - 1) * 10000) / 100
+    : 0
+
+  return {
+    precioVentaCents,
+    costeAdquisicionCents,
+    gananciaPatrimonialCents,
+    comisionVentaCents,
+    plusvaliaMunicipalCents,
+    gastosVentaCents,
+    irpfVentaCents,
+    deudaPendienteCents,
+    liquidezNetaCents,
+    roiTotal: roi,
+  }
+}
+
+/**
+ * Periodo de recuperación de la inversión (Payback)
+ * Meses necesarios para recuperar el efectivo desembolsado con el cashflow acumulado.
+ *
+ * @param {number} efectivoDesembolsadoCents - Inversión inicial en efectivo
+ * @param {number} cashflowMensualCents      - Cashflow mensual neto
+ * @returns {{ meses: number|null, años: number, mesesRestantes: number }}
+ */
+export function calcularPayback(efectivoDesembolsadoCents, cashflowMensualCents) {
+  if (cashflowMensualCents <= 0 || efectivoDesembolsadoCents <= 0) return { meses: null, años: null, mesesRestantes: null }
+  const meses = Math.ceil(efectivoDesembolsadoCents / cashflowMensualCents)
+  return {
+    meses,
+    años: Math.floor(meses / 12),
+    mesesRestantes: meses % 12,
+  }
+}
+
+/**
+ * Tres capas de rentabilidad para inversión inmobiliaria
+ *
+ * 1. Rentabilidad bruta = Ingresos brutos / Precio compra (sin gastos)
+ * 2. Rentabilidad neta  = NOI / (Precio + gastos compra + reforma)
+ * 3. Cash-on-Cash       = Cashflow anual / Efectivo desembolsado
+ *
+ * @returns {{ brutaPct, netaPct, cocPct }}
+ */
+export function calcularTresCapasRentabilidad({
+  ingresosBrutosCents,
+  noiAnualCents,
+  cashflowAnualCents,
+  precioCents,
+  inversionTotalCents,
+  efectivoDesembolsadoCents,
+}) {
+  const brutaPct = precioCents > 0
+    ? Math.round((ingresosBrutosCents / precioCents) * 10000) / 100
+    : 0
+  const netaPct = inversionTotalCents > 0
+    ? Math.round((noiAnualCents / inversionTotalCents) * 10000) / 100
+    : 0
+  const cocPct = efectivoDesembolsadoCents > 0
+    ? Math.round((cashflowAnualCents / efectivoDesembolsadoCents) * 10000) / 100
+    : 0
+  return { brutaPct, netaPct, cocPct }
+}
+
+/**
+ * Calculadora de refinanciación
+ * ¿Merece la pena refinanciar a un tipo menor dado el coste de subrogación?
+ *
+ * @param {object} config
+ * @param {number} config.saldoPendienteCents     - Capital pendiente actual
+ * @param {number} config.interesActual           - Tipo actual (%)
+ * @param {number} config.interesNuevo            - Tipo nuevo tras refinanciar (%)
+ * @param {number} config.mesesRestantes          - Meses que quedan de hipoteca
+ * @param {number} [config.costeSubrogacionCents] - Gastos de subrogación/novación (default 1% saldo)
+ * @returns {object} Ahorro mensual, total y meses para amortizar el coste
+ */
+export function calcularRefinanciacion({
+  saldoPendienteCents,
+  interesActual,
+  interesNuevo,
+  mesesRestantes,
+  costeSubrogacionCents = null,
+}) {
+  const cuotaActualCents = calcularCuotaHipoteca(saldoPendienteCents, interesActual, mesesRestantes)
+  const cuotaNuevaCents  = calcularCuotaHipoteca(saldoPendienteCents, interesNuevo, mesesRestantes)
+  const ahorrMensualCents = cuotaActualCents - cuotaNuevaCents
+
+  const coste = costeSubrogacionCents ?? Math.round(saldoPendienteCents * 0.01)
+  const mesesBreakeven = ahorrMensualCents > 0 ? Math.ceil(coste / ahorrMensualCents) : null
+  const ahorroTotalCents = ahorrMensualCents * mesesRestantes - coste
+
+  // Intereses totales con tipo actual vs nuevo
+  const tablaActual = generarTablaAmortizacion({ principalCents: saldoPendienteCents, interesAnual: interesActual, plazoMeses: mesesRestantes })
+  const tablaNueva  = generarTablaAmortizacion({ principalCents: saldoPendienteCents, interesAnual: interesNuevo,  plazoMeses: mesesRestantes })
+  const interesesActualCents = tablaActual.reduce((s, f) => s + f.interesCents, 0)
+  const interesesNuevosCents = tablaNueva.reduce((s, f) => s + f.interesCents, 0)
+  const ahorroInteresesCents = interesesActualCents - interesesNuevosCents
+
+  return {
+    cuotaActualCents,
+    cuotaNuevaCents,
+    ahorrMensualCents,
+    costeSubrogacionCents: coste,
+    mesesBreakeven,
+    ahorroTotalCents,
+    ahorroInteresesCents,
+    merece: ahorroTotalCents > 0 && mesesBreakeven !== null,
+  }
+}
+
+/**
+ * Genera los datos de evolución del patrimonio mes a mes
+ * Patrimonio = Valor mercado estimado − Deuda pendiente
+ *
+ * @param {object} config
+ * @param {number} config.precioCents           - Precio de compra
+ * @param {Array}  config.tabla                 - Tabla de amortización
+ * @param {number} [config.revalorizacionAnual] - % anual de revalorización del inmueble (default 2%)
+ * @param {number} [config.intervaloMeses]      - Cada cuántos meses añadir un punto (default 12)
+ * @returns {Array} [{ año, valorMercadoCents, deudaCents, patrimonioCents }]
+ */
+export function generarEvolucionPatrimonio({
+  precioCents,
+  tabla,
+  revalorizacionAnual = 2,
+  intervaloMeses = 12,
+}) {
+  const puntos = []
+  // Punto 0: al comprar
+  puntos.push({ mes: 0, año: 0, valorMercadoCents: precioCents, deudaCents: tabla[0]?.saldoCents + tabla[0]?.capitalCents || precioCents, patrimonioCents: 0 })
+
+  for (let i = intervaloMeses - 1; i < tabla.length; i += intervaloMeses) {
+    const fila = tabla[i]
+    const años = (i + 1) / 12
+    const valorMercadoCents = Math.round(precioCents * Math.pow(1 + revalorizacionAnual / 100, años))
+    const deudaCents = fila.saldoCents
+    const patrimonioCents = valorMercadoCents - deudaCents
+    puntos.push({
+      mes: i + 1,
+      año: Math.round(años),
+      valorMercadoCents,
+      deudaCents,
+      patrimonioCents,
+    })
+  }
+  return puntos
+}
+
 // ── Supabase CRUD ─────────────────────────────────────────────────────────────
 
 export async function getInmuebles() {
