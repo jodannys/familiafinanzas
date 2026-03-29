@@ -68,50 +68,51 @@ export const THEMES = {
       '--bg-pattern': '',
     }
   },
-
-  greenHarmony: {
+greenHarmony: {
   name: 'Green Harmony',
-  themeColor: '#B1D8B7',
+  themeColor: '#2C8028', // Pinta la barra de la hora del celular
   emoji: '🌿',
-  preview: ['#76B947', '#B1D8B7', '#2F5233', '#94C973'],
+  preview: ['#2C8028', '#82CB4E', '#1F2A23', '#F0FAF2'],
   vars: {
-    /* 🌿 FONDO BASE */
-    '--bg-primary': '#B1D8B7',              // verde claro suave (base)
-    '--bg-secondary': '#D6EBDD',            // aún más claro para contraste
-    '--bg-pattern': '',
+    /* 🌿 ESTRUCTURA DE FONDOS */
+    '--bg-primary': '#2C8028',       // Fondo verde oscuro principal
+    '--bg-secondary': '#D6EBDD',     // Fondo secundario claro
+    '--bg-pattern': '',              // Sin patrón para mantenerlo "Premium"
+    '--bg-pattern-size': '360px',
 
-    /* 🧊 CARDS */
-    '--bg-card': '#F3FAF5',                 // casi blanco verdoso → limpio
-    '--bg-dark-card': '#2F5233',            // verde profundo elegante
-    '--bg-glass': 'rgba(255,255,255,0.65)',
-    '--border-glass': 'rgba(47,82,51,0.15)',
+    /* 🧊 TARJETAS (CARDS) */
+    '--bg-card': '#82CB4E',          // El verde lima de tus capturas
+    '--bg-dark-card': '#1F2A23',     // Fondo para resaltar balances importantes
+    '--bg-glass': 'rgba(255, 255, 255, 0.7)',
+    '--border-glass': 'rgba(31, 42, 35, 0.15)',
+    '--radius-xl': '32px',           // Mantiene tus tarjetas ovaladas
 
-    /* 🧾 INPUTS */
-    '--input-bg': '#FFFFFF',
-
-    /* 📊 UI */
+    /* 📊 NAVEGACIÓN Y SIDEBAR */
+    '--sidebar-bg': '#FFFFFF',       // Sidebar blanco para contraste limpio
+    '--sidebar-border': 'rgba(44, 128, 40, 0.12)',
     '--progress-track': '#DCEFE2',
-    '--sidebar-bg': '#EAF6EE',
-    '--sidebar-border': 'rgba(47,82,51,0.12)',
 
-    /* 🎨 ACENTOS (basados en tu paleta) */
-    '--accent-main': '#76B947',     // verde principal
-    '--accent-green': '#94C973',    // verde vivo
-    '--accent-terra': '#C4A35A',    // toque cálido (para balance visual)
-    '--accent-blue': '#5FA8A0',     // complemento fresco
-    '--accent-rose': '#C06C6C',     // contraste suave
+    /* 🧾 FORMULARIOS / INPUTS */
+    '--input-bg': '#FFFFFF',         // Fondo blanco para que el texto oscuro resalte
+
+    /* 🎨 PALETA DE ACENTOS */
+    '--accent-main': '#2C8028',      // Verde oscuro para botones de acción
+    '--accent-green': '#1DB954',
+    '--accent-terra': '#C4A35A',
+    '--accent-blue': '#5FA8A0',
+    '--accent-rose': '#C06C6C',
     '--accent-violet': '#7A6FA3',
     '--accent-gold': '#D4B85F',
-    '--accent-danger': '#C06C6C',
+    '--accent-danger': '#E91E63',    // Para egresos o alertas
 
-    /* ✍️ TEXTO (clave para UX) */
-    '--text-primary': '#1F2A23',    // casi negro verdoso → alta legibilidad
-    '--text-secondary': '#3F5A4A',  // jerarquía clara
-    '--text-muted': '#6F8F7C',      // gris verdoso elegante
-    '--text-on-dark': 'rgba(255,255,255,0.95)',
+    /* ✍️ TEXTOS CORREGIDOS (LEGIBILIDAD) */
+    '--text-primary': '#FFFFFF',     // Blanco para el fondo oscuro principal
+    '--text-secondary': '#0A1A0F',   // VERDE OSCURO para que se lean los gastos en las cards lima
+    '--text-muted': '#2D4135',       // Para descripciones y etiquetas pequeñas
+    '--text-on-dark': '#FFFFFF',     // Texto sobre botones o fondos negros
 
-    /* 🧩 EFECTOS */
-    '--glass-blur': '8px',
+    /* 🧩 EFECTOS VISUALES */
+    '--glass-blur': '12px',
   }
 },
 
