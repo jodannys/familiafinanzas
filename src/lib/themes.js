@@ -65,34 +65,31 @@ export const THEMES = {
   },
   forest: {
     name: 'Sage Verde',
-    themeColor: '#D2E4CA',
+    themeColor: '#0E2018', // Color más oscuro para el tema
     emoji: '🌿',
-    preview: ['#D2E4CA', '#128C7E', '#EDF7E8', '#0E2018'],
+    preview: ['#0E2018', '#128C7E', '#EDF7E8', '#1FAD8A'],
     vars: {
-      '--bg-primary':    '#D2E4CA',
-      '--bg-secondary':  '#DFF0D6',
-      '--bg-card':       '#EDF7E8',
-      '--bg-dark-card':  '#0E2018',
-      '--bg-glass':      'rgba(237, 247, 232, 0.65)',
-      '--border-glass':  'rgba(18, 140, 126, 0.18)',
-      '--input-bg':      'rgba(237, 247, 232, 0.80)',
-      '--progress-track':'#C4DAB8',
-      '--accent-main':   '#128C7E',
-      '--accent-green':  '#1FAD8A',
-      '--accent-terra':  '#C8703E',
-      '--accent-blue':   '#3A78B8',
-      '--accent-rose':   '#C04068',
-      '--accent-violet': '#6E4EA8',
-      '--accent-gold':   '#A87E28',
-      '--accent-danger': '#B02828',
-      '--sidebar-bg':    '#C8DEC0',
-      '--sidebar-border':'rgba(18, 140, 126, 0.16)',
-      '--text-primary':  '#0E2018',
-      '--text-secondary':'#2A4E38',
-      '--text-muted':    '#628A70',
-      '--text-on-dark':  'rgba(255,255,255,0.95)',
-      '--bg-pattern':    "url('/patterns/wa-doodle.svg')",
-      '--bg-pattern-size': '360px',
+      /* Fondo: Usamos un gradiente oscuro sobre la imagen para que el patrón sea sutil */
+      '--bg-primary':    "linear-gradient(rgba(14, 32, 24, 0.85), rgba(14, 32, 24, 0.85)), url('/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg')",
+      '--bg-secondary':  '#162C22',
+      
+      /* Cards: Más sólidas para que el patrón no distraiga del contenido */
+      '--bg-card':       'rgba(31, 56, 46, 0.95)', 
+      '--bg-dark-card':  '#07110C',
+      '--bg-glass':      'rgba(31, 56, 46, 0.75)',
+      '--border-glass':  'rgba(31, 173, 138, 0.2)',
+      
+      /* Acentos */
+      '--accent-main':   '#1FAD8A', // Un verde más brillante para que destaque
+      '--sidebar-bg':    '#0E2018',
+      
+      /* TEXTOS: Crucial para la legibilidad */
+      '--text-primary':  '#F0F7F4', // Blanco roto/Verde muy claro
+      '--text-secondary':'#B8CDC3', // Gris verdoso claro
+      '--text-muted':    '#7D998B',
+      '--text-on-dark':  '#FFFFFF',
+      
+      '--bg-pattern-size': '380px',
     }
   },
   carbon: {
@@ -239,7 +236,7 @@ export function ThemeProvider({ children }) {
     // Aplicar patrón de fondo directamente al body
     const pattern = t.vars['--bg-pattern']
     if (pattern) {
-      document.body.style.backgroundImage = pattern
+      document.body.style.backgroundImage = `url("${pattern}")`
       document.body.style.backgroundSize = t.vars['--bg-pattern-size'] || '360px'
       document.body.style.backgroundRepeat = 'repeat'
     } else {

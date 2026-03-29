@@ -205,6 +205,8 @@ h1, h2, h3{
   opacity: 0.7;
   outline: none;
   transition: all 0.2s ease;
+
+
 }
 
 .ff-input:focus {
@@ -293,8 +295,15 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 400; }
 
 
 body {
-  background-color: var(--bg-primary);
-  padding-top: env(safe-area-inset-top);
+  /* Esto hará que el fondo se vea como el de WhatsApp: repetido y fijo */
+  background: var(--bg-primary) !important;
+  background-repeat: repeat !important;
+  background-size: var(--bg-pattern-size, 360px) !important;
+  background-attachment: fixed !important;
+   padding-top: env(safe-area-inset-top);
+  /* Forzamos el color de texto de las variables del tema */
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 /* ── Print / PDF export ───────────────────────────────────────────────────── */
@@ -313,6 +322,7 @@ body {
   /* Las cards sin sombra ni blur */
   .glass-card, [class*="rounded"] {
     box-shadow: none !important;
+    backdrop-filter: blur(8px);
     backdrop-filter: none !important;
     border: 1px solid #ddd !important;
     background: #fff !important;
