@@ -71,7 +71,7 @@ export const THEMES = {
 
   greenHarmony: {
   name: 'Green Harmony',
-  themeColor: '#76B947',
+  themeColor: '#B1D8B7',
   emoji: '🌿',
   preview: ['#76B947', '#B1D8B7', '#2F5233', '#94C973'],
   vars: {
