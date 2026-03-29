@@ -648,7 +648,8 @@ export default function GastosPage() {
         </div>
 
         {/* LISTA DE MOVIMIENTOS */}
-        <Card className="overflow-hidden border-none shadow-sm">
+        <Card className="overflow-hidden border-none"
+          style={{ boxShadow: '0 8px 20px -6px color-mix(in srgb, var(--accent-main) 16%, transparent), 0 2px 6px -2px color-mix(in srgb, var(--bg-dark-card) 8%, transparent)' }}>
           {loading ? (
             <div className="p-4 space-y-3">
               {[1,2,3,4].map(i => (
@@ -688,10 +689,10 @@ export default function GastosPage() {
             <div className="divide-y" style={{ borderColor: colores.border }}>
               {filtered.map((m, i) => (
                 <div key={m.id}
-                  className="flex items-center gap-2.5 px-3 py-3 transition-colors group"
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  style={{ animationDelay: `${i * 0.02}s` }}>
+                  className="flex items-center gap-2.5 px-3 py-3 group"
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  style={{ animationDelay: `${i * 0.02}s`, transition: 'background 0.18s ease, transform 0.15s ease' }}>
 
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{

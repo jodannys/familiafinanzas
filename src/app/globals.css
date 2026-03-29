@@ -243,6 +243,23 @@ h1, h2, h3 {
   color: var(--text-on-dark);
 }
 
+/* ── Sidebar: margen dinámico según --sidebar-w ──────────────────────────── */
+@media (min-width: 1024px) {
+  main.app-main {
+    margin-left: var(--sidebar-w, 240px);
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* ── Sidebar tooltip fade-in ─────────────────────────────────────────────── */
+.sidebar-tooltip {
+  animation: tooltip-fade 0.14s ease forwards;
+}
+@keyframes tooltip-fade {
+  from { opacity: 0; transform: translateY(-50%) translateX(-6px); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0);    }
+}
+
 /* ── Green Harmony: corrección de contraste dual ─────────────────────────────
    Problema: --text-primary = #FFF (para bg-primary oscuro #2C8028)
              pero ese token también se usa sobre cards lima #82CB4E → invisible.
