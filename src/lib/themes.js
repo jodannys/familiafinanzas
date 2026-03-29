@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 export const THEMES = {
+
   linen: {
     name: 'Warm Linen',
     themeColor: '#C9BFB3',
@@ -68,74 +69,51 @@ export const THEMES = {
     }
   },
 
-  sage: {
-    name: 'Sage Oscuro',
-    themeColor: '#101C17',
-    emoji: '🌿',
-    preview: ['#101C17', '#4A7C59', '#E8EFEA', '#86A789'],
-    vars: {
-      // Separamos la imagen del gradiente para que el useEffect la maneje bien
-      '--bg-primary': '#101C17',
-      '--bg-pattern': '/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg',
-      '--bg-secondary': '#192922',
-      '--bg-card': '#1C2B24',
-      '--bg-dark-card': '#0A120F',
-      '--bg-glass': 'rgba(28, 43, 36, 0.90)',
-      '--border-glass': 'rgba(134, 167, 137, 0.20)',
-      '--input-bg': 'rgba(25, 41, 34, 0.5)',
-      '--accent-main': '#86A789',
-      '--accent-green': '#4A7C59',
-      '--accent-terra': '#C89F70',
-      '--accent-blue': '#5C8090',
-      '--accent-rose': '#B06A6A',
-      '--accent-violet': '#7D7098',
-      '--accent-gold': '#D4AF37',
-      '--accent-danger': '#D15B5B',
-      '--sidebar-bg': '#0D1713',
-      '--sidebar-border': 'rgba(134, 167, 137, 0.15)',
-      '--progress-track': '#1F332A',
-      '--text-primary': '#E8EFEA',
-      '--text-secondary': '#A3B8AC',
-      '--text-muted': '#758F81',
-      '--text-on-dark': 'rgba(255,255,255,0.95)',
-      '--bg-pattern-size': '380px',
-      '--glass-blur': '12px',
-    }
-  },
+  greenHarmony: {
+  name: 'Green Harmony',
+  themeColor: '#76B947',
+  emoji: '🌿',
+  preview: ['#76B947', '#B1D8B7', '#2F5233', '#94C973'],
+  vars: {
+    /* 🌿 FONDO BASE */
+    '--bg-primary': '#B1D8B7',              // verde claro suave (base)
+    '--bg-secondary': '#D6EBDD',            // aún más claro para contraste
+    '--bg-pattern': '',
 
-  forest: {
-    name: 'Verde Chat',
-    themeColor: '#075E54',
-    emoji: '💬',
-    preview: ['#128C7E', '#25D366', '#DCF8C6', '#075E54'],
-    vars: {
-      '--bg-primary': '#0B141A',
-      '--bg-pattern': '/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg',
-      '--bg-secondary': '#111B21',
-      '--bg-card': '#202C33',
-      '--bg-dark-card': '#0B141A',
-      '--bg-glass': 'rgba(32, 44, 51, 0.90)',
-      '--border-glass': 'rgba(0, 168, 132, 0.2)',
-      '--input-bg': '#2A3942',
-      '--accent-main': '#00A884',
-      '--accent-green': '#25D366',
-      '--accent-terra': '#E2A34A',
-      '--accent-blue': '#53BDEB',
-      '--accent-rose': '#F15C6D',
-      '--accent-violet': '#B084CC',
-      '--accent-gold': '#FFC531',
-      '--accent-danger': '#F15C6D',
-      '--sidebar-bg': '#111B21',
-      '--sidebar-border': 'rgba(134, 150, 160, 0.15)',
-      '--progress-track': '#202C33',
-      '--text-primary': '#E9EDEF',
-      '--text-secondary': '#8696A0',
-      '--text-muted': '#667781',
-      '--text-on-dark': 'rgba(255,255,255,0.95)',
-      '--bg-pattern-size': '380px',
-      '--glass-blur': '10px',
-    }
-  },
+    /* 🧊 CARDS */
+    '--bg-card': '#F3FAF5',                 // casi blanco verdoso → limpio
+    '--bg-dark-card': '#2F5233',            // verde profundo elegante
+    '--bg-glass': 'rgba(255,255,255,0.65)',
+    '--border-glass': 'rgba(47,82,51,0.15)',
+
+    /* 🧾 INPUTS */
+    '--input-bg': '#FFFFFF',
+
+    /* 📊 UI */
+    '--progress-track': '#DCEFE2',
+    '--sidebar-bg': '#EAF6EE',
+    '--sidebar-border': 'rgba(47,82,51,0.12)',
+
+    /* 🎨 ACENTOS (basados en tu paleta) */
+    '--accent-main': '#76B947',     // verde principal
+    '--accent-green': '#94C973',    // verde vivo
+    '--accent-terra': '#C4A35A',    // toque cálido (para balance visual)
+    '--accent-blue': '#5FA8A0',     // complemento fresco
+    '--accent-rose': '#C06C6C',     // contraste suave
+    '--accent-violet': '#7A6FA3',
+    '--accent-gold': '#D4B85F',
+    '--accent-danger': '#C06C6C',
+
+    /* ✍️ TEXTO (clave para UX) */
+    '--text-primary': '#1F2A23',    // casi negro verdoso → alta legibilidad
+    '--text-secondary': '#3F5A4A',  // jerarquía clara
+    '--text-muted': '#6F8F7C',      // gris verdoso elegante
+    '--text-on-dark': 'rgba(255,255,255,0.95)',
+
+    /* 🧩 EFECTOS */
+    '--glass-blur': '8px',
+  }
+},
 
   carbon: {
     name: 'Forged Carbon',
@@ -147,7 +125,7 @@ export const THEMES = {
       '--bg-secondary': '#121212',
       '--bg-card': '#171717',
       '--bg-dark-card': '#050505',
-      '--bg-glass': 'rgba(23, 23, 23, 0.95)',
+      '--bg-glass': 'rgba(23,23,23,0.95)',
       '--border-glass': '#262626',
       '--input-bg': '#0F0F0F',
       '--progress-track': '#262626',
@@ -180,10 +158,10 @@ export const THEMES = {
       '--bg-secondary': '#313244',
       '--bg-card': '#2A2739',
       '--bg-dark-card': '#11111B',
-      '--bg-glass': 'rgba(49, 50, 68, 0.55)',
-      '--border-glass': 'rgba(205, 214, 244, 0.1)',
-      '--input-bg': 'rgba(49, 50, 68, 0.85)',
-      '--progress-track': 'rgba(49, 50, 68, 0.7)',
+      '--bg-glass': 'rgba(49,50,68,0.55)',
+      '--border-glass': 'rgba(205,214,244,0.1)',
+      '--input-bg': 'rgba(49,50,68,0.85)',
+      '--progress-track': 'rgba(49,50,68,0.7)',
       '--accent-main': '#CBA6F7',
       '--accent-green': '#A6E3A1',
       '--accent-terra': '#FAB387',
@@ -196,7 +174,7 @@ export const THEMES = {
       '--text-secondary': '#BAC2DE',
       '--text-muted': '#6C7086',
       '--sidebar-bg': '#181825',
-      '--sidebar-border': 'rgba(205, 214, 244, 0.08)',
+      '--sidebar-border': 'rgba(205,214,244,0.08)',
       '--text-on-dark': '#1E1E2E',
       '--glass-blur': '12px',
       '--bg-pattern': '',
@@ -213,8 +191,8 @@ export const THEMES = {
       '--bg-secondary': '#F6EAEd',
       '--bg-card': '#FDF5F7',
       '--bg-dark-card': '#2A1820',
-      '--bg-glass': 'rgba(253, 245, 247, 0.62)',
-      '--border-glass': 'rgba(192, 88, 120, 0.20)',
+      '--bg-glass': 'rgba(253,245,247,0.62)',
+      '--border-glass': 'rgba(192,88,120,0.20)',
       '--input-bg': '#FDF5F7',
       '--progress-track': '#EAD4DA',
       '--accent-main': '#C05878',
@@ -229,12 +207,13 @@ export const THEMES = {
       '--text-secondary': '#6A4858',
       '--text-muted': '#A08090',
       '--sidebar-bg': '#FAF0F2',
-      '--sidebar-border': 'rgba(192, 88, 120, 0.16)',
+      '--sidebar-border': 'rgba(192,88,120,0.16)',
       '--text-on-dark': 'rgba(255,255,255,0.95)',
       '--glass-blur': '8px',
       '--bg-pattern': '',
     }
-  },
+  }
+
 }
 // ✅ Declarada DESPUÉS de THEMES para evitar el bug de hoisting con const
 export function getThemeColors(themeName) {
