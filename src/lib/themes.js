@@ -2,36 +2,36 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 export const THEMES = {
- linen: {
-  name: 'Warm Linen',
-  themeColor: '#C9BFB3',
-  emoji: '🌾',
-  preview: ['#C9BFB3', '#C08540', '#F7F1EB', '#2C241E'],
-  vars: {
-    '--bg-primary': '#C9BFB3',
-    '--bg-secondary': '#EDE4D9',
-    '--bg-card': '#F7F1EB',
-    '--bg-dark-card': '#2C241E',
-    '--bg-glass': 'rgba(247,241,235,0.60)',
-    '--border-glass': 'rgba(255,255,255,0.55)',
-    '--input-bg': 'rgba(255,255,255,0.45)',
-    '--accent-main': '#C08540',
-    '--accent-green': '#3A7A5C',
-    '--accent-terra': '#B8622A',
-    '--accent-blue': '#4E6EA0',
-    '--accent-rose': '#B85452',
-    '--accent-violet': '#7060A8',
-    '--accent-gold': '#B07830',
-    '--accent-danger': '#B03030',
-    '--sidebar-bg': '#F2EBE2',
-    '--sidebar-border': 'rgba(180,165,150,0.45)',
-    '--progress-track': '#E3D8CC',
-    '--text-primary': '#1A1410',
-    '--text-secondary': '#6A5C50',
-    '--text-muted': '#9A8778',
-    '--text-on-dark': 'rgba(255,255,255,0.95)',
-  }
-},
+  linen: {
+    name: 'Warm Linen',
+    themeColor: '#C9BFB3',
+    emoji: '🌾',
+    preview: ['#C9BFB3', '#C08540', '#F7F1EB', '#2C241E'],
+    vars: {
+      '--bg-primary': '#C9BFB3',
+      '--bg-secondary': '#EDE4D9',
+      '--bg-card': '#F7F1EB',
+      '--bg-dark-card': '#2C241E',
+      '--bg-glass': 'rgba(247,241,235,0.60)',
+      '--border-glass': 'rgba(255,255,255,0.55)',
+      '--input-bg': 'rgba(255,255,255,0.45)',
+      '--accent-main': '#C08540',
+      '--accent-green': '#3A7A5C',
+      '--accent-terra': '#B8622A',
+      '--accent-blue': '#4E6EA0',
+      '--accent-rose': '#B85452',
+      '--accent-violet': '#7060A8',
+      '--accent-gold': '#B07830',
+      '--accent-danger': '#B03030',
+      '--sidebar-bg': '#F2EBE2',
+      '--sidebar-border': 'rgba(180,165,150,0.45)',
+      '--progress-track': '#E3D8CC',
+      '--text-primary': '#1A1410',
+      '--text-secondary': '#6A5C50',
+      '--text-muted': '#9A8778',
+      '--text-on-dark': 'rgba(255,255,255,0.95)',
+    }
+  },
 
   ocean: {
     name: 'Ocean Slate',
@@ -63,35 +63,65 @@ export const THEMES = {
       '--text-on-dark': 'rgba(255,255,255,0.95)',
     }
   },
-  forest: {
-    name: 'Sage Verde',
-    themeColor: '#0E2018', // Color más oscuro para el tema
+
+  /* VERSION 1: VERDE SALVIA ELEGANTE */
+  sage: {
+    name: 'Sage Oscuro',
+    themeColor: '#101C17',
     emoji: '🌿',
-    preview: ['#0E2018', '#128C7E', '#EDF7E8', '#1FAD8A'],
+    preview: ['#101C17', '#4A7C59', '#E8EFEA', '#86A789'],
     vars: {
-      /* Fondo: Usamos un gradiente oscuro sobre la imagen para que el patrón sea sutil */
-      '--bg-primary':    "linear-gradient(rgba(14, 32, 24, 0.85), rgba(14, 32, 24, 0.85)), url('/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg')",
-      '--bg-secondary':  '#162C22',
-      
-      /* Cards: Más sólidas para que el patrón no distraiga del contenido */
-      '--bg-card':       'rgba(31, 56, 46, 0.95)', 
-      '--bg-dark-card':  '#07110C',
-      '--bg-glass':      'rgba(31, 56, 46, 0.75)',
-      '--border-glass':  'rgba(31, 173, 138, 0.2)',
-      
-      /* Acentos */
-      '--accent-main':   '#1FAD8A', // Un verde más brillante para que destaque
-      '--sidebar-bg':    '#0E2018',
-      
-      /* TEXTOS: Crucial para la legibilidad */
-      '--text-primary':  '#F0F7F4', // Blanco roto/Verde muy claro
-      '--text-secondary':'#B8CDC3', // Gris verdoso claro
-      '--text-muted':    '#7D998B',
-      '--text-on-dark':  '#FFFFFF',
-      
+      '--bg-primary': "linear-gradient(rgba(16, 28, 23, 0.40), rgba(16, 28, 23, 0.40)), url('/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg')",
+      '--bg-secondary': '#192922',
+      '--bg-card': '#1C2B24',
+      '--bg-glass': '#1C2B24', // Añade esta línea para que el nav la encuentre
+      '--bg-dark-card': '#0A120F',
+      '--border-glass': 'rgba(134, 167, 137, 0.20)',
+      '--accent-main': '#86A789',
+      '--accent-green': '#4A7C59',
+      '--accent-terra': '#C89F70',
+      '--accent-blue': '#5C8090',
+      '--accent-rose': '#B06A6A',
+      '--accent-violet': '#7D7098',
+      '--accent-gold': '#D4AF37',
+      '--accent-danger': '#D15B5B',
+      '--text-primary': '#E8EFEA',
+      '--text-secondary': '#A3B8AC',
+      '--text-muted': '#758F81',
       '--bg-pattern-size': '380px',
+      '--glass-blur': '12px',
     }
   },
+
+  /* VERSION 2: VERDE WHATSAPP OFICIAL */
+  forest: {
+    name: 'Verde Chat',
+    themeColor: '#075E54',
+    emoji: '💬',
+    preview: ['#128C7E', '#25D366', '#DCF8C6', '#075E54'],
+    vars: {
+      '--bg-primary': "linear-gradient(rgba(11, 20, 26, 0.35), rgba(11, 20, 26, 0.35)), url('/patterns/HD-wallpaper-whatsapp-g-background-doodle-pattern-patterns.jpg')",
+      '--bg-secondary': '#111B21',
+      '--bg-card': '#202C33',
+      '--bg-glass': '#202C33', // Añade esta línea sólida '--bg-card': 'rgba(32, 44, 51, 0.92)',
+      '--bg-dark-card': '#0B141A',
+      '--border-glass': 'rgba(0, 168, 132, 0.2)',
+      '--accent-main': '#00A884',
+      '--accent-green': '#25D366',
+      '--accent-terra': '#E2A34A',
+      '--accent-blue': '#53BDEB',
+      '--accent-rose': '#F15C6D',
+      '--accent-violet': '#B084CC',
+      '--accent-gold': '#FFC531',
+      '--accent-danger': '#F15C6D',
+      '--text-primary': '#E9EDEF',
+      '--text-secondary': '#8696A0',
+      '--text-muted': '#667781',
+      '--bg-pattern-size': '380px',
+      '--glass-blur': '10px',
+    }
+  },
+
   carbon: {
     name: 'Forged Carbon',
     themeColor: '#080808',
@@ -122,37 +152,37 @@ export const THEMES = {
       '--text-on-dark': 'rgba(255,255,255,0.95)',
     }
   },
+
   dusk: {
     name: 'Dusk Violet',
     themeColor: '#1E1E2E',
     emoji: '🌌',
     preview: ['#1E1E2E', '#CBA6F7', '#2A2739', '#CDD6F4'],
     vars: {
-      '--bg-primary':    '#1E1E2E',
-      '--bg-secondary':  '#313244',
-      '--bg-card':       '#2A2739',
-      '--bg-dark-card':  '#11111B',
-      '--bg-glass':      'rgba(49, 50, 68, 0.55)',
-      '--border-glass':  'rgba(205, 214, 244, 0.1)',
-      '--input-bg':      'rgba(49, 50, 68, 0.85)',
-      '--progress-track':'rgba(49, 50, 68, 0.7)',
-      '--accent-main':   '#CBA6F7',
-      '--accent-green':  '#A6E3A1',
-      '--accent-terra':  '#FAB387',
-      '--accent-blue':   '#89B4FA',
-      '--accent-rose':   '#F38BA8',
+      '--bg-primary': '#1E1E2E',
+      '--bg-secondary': '#313244',
+      '--bg-card': '#2A2739',
+      '--bg-dark-card': '#11111B',
+      '--bg-glass': 'rgba(49, 50, 68, 0.55)',
+      '--border-glass': 'rgba(205, 214, 244, 0.1)',
+      '--input-bg': 'rgba(49, 50, 68, 0.85)',
+      '--progress-track': 'rgba(49, 50, 68, 0.7)',
+      '--accent-main': '#CBA6F7',
+      '--accent-green': '#A6E3A1',
+      '--accent-terra': '#FAB387',
+      '--accent-blue': '#89B4FA',
+      '--accent-rose': '#F38BA8',
       '--accent-violet': '#B4BEFE',
-      '--accent-gold':   '#F9E2AF',
+      '--accent-gold': '#F9E2AF',
       '--accent-danger': '#F38BA8',
-      '--text-primary':  '#CDD6F4',
-      '--text-secondary':'#BAC2DE',
-      '--text-muted':    '#6C7086',
-      '--sidebar-bg':    '#181825',
-      '--sidebar-border':'rgba(205, 214, 244, 0.08)',
-      '--text-on-dark':  '#1E1E2E',
+      '--text-primary': '#CDD6F4',
+      '--text-secondary': '#BAC2DE',
+      '--text-muted': '#6C7086',
+      '--sidebar-bg': '#181825',
+      '--sidebar-border': 'rgba(205, 214, 244, 0.08)',
+      '--text-on-dark': '#1E1E2E',
     }
   },
-
 
   silk: {
     name: 'Rose Bloom',

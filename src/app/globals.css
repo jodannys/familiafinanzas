@@ -3,15 +3,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @keyframes progress-bar {
   from { width: 0%; opacity: 1; }
   to   { width: 100%; opacity: 0; }
 }
+
 :root {
-  /* Fondos Principales */
+  /* Fondos Principales (Tema Base / Por defecto) */
   --bg-primary:      #B3A89D;
---bg-card: rgba(248, 243, 238, 0.7);
- --bg-secondary: rgba(241, 233, 224, 0.84);
+  --bg-card:         rgba(248, 243, 238, 0.7);
+  --bg-secondary:    rgba(241, 233, 224, 0.84);
   --bg-dark-card:    #2C241E;
   --bg-glass:        rgba(255, 255, 255, 0.45);
   --input-bg:        rgba(255, 255, 255, 0.3);
@@ -32,7 +34,7 @@
   --text-secondary:  #6D5F54;
   --text-muted:      #918479;
 
-  /* Acentos */
+  /* Acentos Generales */
   --accent-main:     #D99E5C;
   --accent-danger:   #C0605A;
 
@@ -60,18 +62,25 @@
 }
 
 html, body {
-  background-color: var(--bg-primary) !important;
+  /* Fondo dinámico compatible con colores sólidos o patrones de imagen */
+  background: var(--bg-primary) !important;
+  background-repeat: repeat !important;
+  background-size: var(--bg-pattern-size, 360px) !important;
+  background-attachment: fixed !important;
+  
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   max-width: 100vw;
+  padding-top: env(safe-area-inset-top);
+  transition: all 0.3s ease;
 }
 
-
-
-h1, h2, h3{
+h1, h2, h3 {
   font-family: 'DM Serif Display', Georgia, serif;
+  letter-spacing: -0.02em; 
+  font-weight: 400;
 }
 
 .font-serif { font-family: 'DM Serif Display', Georgia, serif; }
@@ -126,6 +135,9 @@ h1, h2, h3{
   border-radius: var(--radius-xl);
   padding: 24px;
   box-shadow: var(--shadow-md);
+  /* Efecto cristal compatible con los temas */
+  backdrop-filter: blur(var(--glass-blur, 8px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 8px));
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
 }
 
@@ -197,23 +209,22 @@ h1, h2, h3{
   width: 100%;
   padding: 14px 18px;
   border-radius: 16px;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-glass); /* Ahora toma el borde del tema activo */
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 400;
-  opacity: 0.7;
+  opacity: 0.85; /* Más opacidad para que resalte sobre patrones de fondo */
   outline: none;
   transition: all 0.2s ease;
-
-
 }
 
 .ff-input:focus {
   opacity: 1;
   background: var(--bg-card);
-  border-color: color-mix(in srgb, var(--accent-terra), transparent 50%);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-terra), transparent 90%);
+  /* Usa accent-main en lugar de terra para ser compatible con cualquier tema */
+  border-color: color-mix(in srgb, var(--accent-main), transparent 50%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-main), transparent 90%);
 }
 
 .ff-input.error {
@@ -265,9 +276,8 @@ h1, h2, h3{
   animation: leave 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
-h1, h2, h3 { letter-spacing: -0.02em; font-weight: 400; }
-
 /* ── Skeleton loader ──────────────────────────────────────────────────────── */
+
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position: 400px 0; }
@@ -286,6 +296,7 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 400; }
 }
 
 /* ── Colapso animado ──────────────────────────────────────────────────────── */
+
 .collapsible-content {
   transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
 }
@@ -293,20 +304,8 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 400; }
 .collapsible-content.open  { max-height: 9999px; opacity: 1; overflow: visible; }
 .collapsible-content.closed { max-height: 0; opacity: 0; overflow: hidden; }
 
-
-body {
-  /* Esto hará que el fondo se vea como el de WhatsApp: repetido y fijo */
-  background: var(--bg-primary) !important;
-  background-repeat: repeat !important;
-  background-size: var(--bg-pattern-size, 360px) !important;
-  background-attachment: fixed !important;
-   padding-top: env(safe-area-inset-top);
-  /* Forzamos el color de texto de las variables del tema */
-  color: var(--text-primary);
-  transition: all 0.3s ease;
-}
-
 /* ── Print / PDF export ───────────────────────────────────────────────────── */
+
 @media print {
   /* Ocultar navegación y botones de acción */
   nav, footer, .print\:hidden,
@@ -322,8 +321,8 @@ body {
   /* Las cards sin sombra ni blur */
   .glass-card, [class*="rounded"] {
     box-shadow: none !important;
-    backdrop-filter: blur(8px);
-    backdrop-filter: none !important;
+    backdrop-filter: none !important; /* Limpiado para evitar conflictos al imprimir */
+    -webkit-backdrop-filter: none !important;
     border: 1px solid #ddd !important;
     background: #fff !important;
   }
