@@ -15,8 +15,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         if (typeof window === 'undefined' || !window.navigator?.locks) return fn()
         return await window.navigator.locks.request(name, { timeout: acquireTimeout }, fn)
       } catch (e) {
-        // En Chrome móvil el Web Lock puede romperse entre pestañas/recargas.
-        // Si es ese error, simplemente ejecutamos la función sin lock.
         if (e?.message?.includes('lock broken') || e?.name === 'NotSupportedError') {
           return fn()
         }

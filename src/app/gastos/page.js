@@ -12,6 +12,9 @@ import { useQuien } from '@/lib/useQuien'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import CustomSelect from '@/components/ui/CustomSelect'
 import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
+import { getRangoMes, getFechaLocal } from '@/lib/utils'
+import { getCurrentMonth } from '@/lib/utils' // Importamos la utilidad
+
 
 const CATS = [
   { value: 'basicos', label: 'Básicos' },
@@ -80,10 +83,10 @@ export default function GastosPage() {
   }, [defaultQuien])
 
   const METODOS_PAGO = [
-    { id: 'efectivo',        short: 'EF', label: 'Efectivo',   color: colores.green  },
-    { id: 'transferencia',   short: 'TR', label: 'Transf.',    color: colores.blue   },
-    { id: 'debito',          short: 'DB', label: 'Débito',     color: colores.violet },
-    { id: 'tarjeta_credito', short: 'TC', label: 'T. Crédito', color: colores.rose   },
+    { id: 'efectivo', short: 'EF', label: 'Efectivo', color: colores.green },
+    { id: 'transferencia', short: 'TR', label: 'Transf.', color: colores.blue },
+    { id: 'debito', short: 'DB', label: 'Débito', color: colores.violet },
+    { id: 'tarjeta_credito', short: 'TC', label: 'T. Crédito', color: colores.rose },
   ]
   const CUOTAS_OPCIONES = [1, 3, 6, 9, 12, 18, 24, 36]
   const [hayMas, setHayMas] = useState(false)
@@ -136,7 +139,7 @@ export default function GastosPage() {
       .then(({ data }) => {
         if (!activo) return
         const map = {}
-        ;(data || []).forEach(p => { map[p.subcategoria_id] = parseFloat(p.monto) })
+          ; (data || []).forEach(p => { map[p.subcategoria_id] = parseFloat(p.monto) })
         setSubcatPresupuesto(map)
       })
     supabase.from('metas').select('id, nombre, meta, actual, pct_mensual').then(({ data }) => { if (activo) setMetasData(data || []) })
@@ -151,8 +154,8 @@ export default function GastosPage() {
       .then(({ data }) => {
         if (!activo) return
         const map = {}
-        // Primero mapear los que tienen perfil_tarjeta_id
-        ;(data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
+          // Primero mapear los que tienen perfil_tarjeta_id
+          ; (data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
         // Para tarjetas de perfiles sin deuda asociada, guardar un fallback genérico
         setTarjetaDeudasMap(map)
       })
@@ -164,19 +167,34 @@ export default function GastosPage() {
   }, [visMes, visAño])
 
   async function cargarMovimientos(cargarTodos = false, mesV, añoV) {
+    // 1. Obtenemos mes y año (si no vienen, usamos los del estado/vista)
     const m = mesV ?? visMes
     const a = añoV ?? visAño
-    const fechaInicio = `${a}-${String(m).padStart(2, '0')}-01`
-    const fechaFin = new Date(a, m, 0).toISOString().slice(0, 10)
+
+    // 2. Usamos la nueva utilidad para obtener el rango exacto (YYYY-MM-DD)
+    const { inicio, fin } = getRangoMes(m, a)
+
     setLoading(true)
     setError(null)
-    const query = supabase.from('movimientos').select('*')
-      .gte('fecha', fechaInicio).lte('fecha', fechaFin)
-      .order('fecha', { ascending: false }).order('created_at', { ascending: false })
-    const { data, error } = cargarTodos ? await query : await query.limit(LIMITE_INICIAL + 1)
+
+    // 3. Aplicamos el rango a la query de Supabase
+    const query = supabase
+      .from('movimientos')
+      .select('*')
+      .gte('fecha', inicio)
+      .lte('fecha', fin)
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false })
+
+    // 4. Ejecutamos la consulta con o sin límite
+    const { data, error } = cargarTodos
+      ? await query
+      : await query.limit(LIMITE_INICIAL + 1)
+
     if (error) {
       setError('Error al cargar movimientos: ' + error.message)
     } else {
+      // 5. Lógica de paginación/limite
       if (!cargarTodos && data && data.length > LIMITE_INICIAL) {
         setMovs(data.slice(0, LIMITE_INICIAL))
         setHayMas(true)
@@ -185,13 +203,31 @@ export default function GastosPage() {
         setHayMas(false)
       }
     }
+
     setLoading(false)
   }
 
-  async function cargarPresupuesto() {
-    const { data } = await supabase.from('presupuesto_items').select('*')
-      .eq('mes', now.getMonth() + 1).eq('año', now.getFullYear())
-    setPresItems(data || [])
+
+  async function cargarPresupuesto(mesV, añoV) {
+    // 1. Obtenemos el mes/año real en el momento de la ejecución
+    const { month, year } = getCurrentMonth()
+
+    // 2. Priorizamos los argumentos (si estamos navegando por meses) 
+    // o usamos el mes actual por defecto.
+    const m = mesV ?? month
+    const a = añoV ?? year
+
+    const { data, error } = await supabase
+      .from('presupuesto_items')
+      .select('*')
+      .eq('mes', m)
+      .eq('año', a)
+
+    if (error) {
+      console.error("Error en presupuesto:", error.message)
+    } else {
+      setPresItems(data || [])
+    }
   }
 
   function resetModal() {
@@ -206,275 +242,295 @@ export default function GastosPage() {
 
 
   async function handleAdd(e) {
-    e.preventDefault()
-    if (saving) return
-    const monto = parseFloat(form.monto)
-    if (!monto || monto <= 0) return
-    setSaving(true)
+    e.preventDefault();
+    if (saving) return;
 
-    // ── Tarjeta de crédito ────────────────────────────────────────────────────
-    // ── Tarjeta de crédito (nuevo flujo con cuotas) ───────────────────────────
-    if (metodoPago === 'tarjeta_credito' && form.tipo === 'egreso') {
-      if (!tarjetaSeleccionada) {
-        toast('Selecciona una tarjeta de crédito', 'warning')
-        setSaving(false)
-        return
-      }
-      const cuotas = parseInt(numCuotas)
-      if (!cuotas || cuotas < 1) {
-        toast('Ingresa el número de cuotas', 'warning')
-        setSaving(false)
-        return
-      }
-      const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
-      const subNombreTC = form.subcategoria_id ? subcategorias.find(s => s.id === form.subcategoria_id)?.nombre : null
-      const descTC = form.descripcion.trim() || subNombreTC || 'Compra con tarjeta'
-      const cuotaMensual = parseFloat((monto / cuotas).toFixed(2))
+    const monto = parseFloat(form.monto);
+    if (!monto || monto <= 0) return;
 
-      // Solo crear la deuda — el movimiento se registra cuando se paga cada cuota
-      const { error: errDeuda } = await supabase.from('deudas').insert([{
-        tipo_deuda: 'tarjeta', tipo: 'debo', emoji: '💳',
-        nombre: descTC, categoria: form.categoria,
-        capital: monto, monto, pendiente: monto,
-        cuota: cuotaMensual, plazo_meses: cuotas, pagadas: 0,
-        estado: 'activa', perfil_tarjeta_id: tarjetaSeleccionada,
-        dia_pago: tarjeta?.dia_pago || null,
-        fecha_primer_pago: calcFechaPrimerPago(form.fecha, tarjeta?.dia_pago, tarjeta?.dia_corte),
-        color: tarjeta?.color || '#A44A3F',
-        tasa: 0, tasa_interes: 0,
-      }])
-      if (errDeuda) { setError('Error: ' + errDeuda.message); setSaving(false); return }
+    setSaving(true);
+    setError(null);
 
-      resetModal()
-      setSaving(false)
-      toast(`Compra registrada · ${cuotas === 1 ? 'Pago único' : `${cuotas}x de ${formatCurrency(cuotaMensual)}`}`, 'success')
-      return
-    }
-
-    // ── Movimiento normal ─────────────────────────────────────────────────────
-    const deudaId = form.categoria === 'deuda' && deudaSeleccionada ? deudaSeleccionada : null
-
-    // FIX 2: guardar meta_id e inversion_id en el payload para poder revertir correctamente al eliminar
-    const metaId = form.categoria === 'ahorro' && metaSeleccionada ? metaSeleccionada : null
-    const invId = form.categoria === 'inversion' && metaSeleccionada?.startsWith('inv_')
-      ? metaSeleccionada.replace('inv_', '')
-      : null
-
-    const subNombre = form.subcategoria_id ? subcategorias.find(s => s.id === form.subcategoria_id)?.nombre : null
-    const descFinal = form.descripcion.trim() || subNombre || (form.tipo === 'ingreso' ? 'Ingreso' : 'Gasto')
-
-    const payloadMov = {
-      tipo: form.tipo,
-      monto,
-      descripcion: descFinal,
-      metodo_pago: form.tipo === 'egreso' ? metodoPago : 'transferencia',
-      categoria: form.categoria,
-      fecha: form.fecha,
-      quien: form.quien,
-      ...(deudaId && { deuda_id: deudaId }),
-      ...(metaId && { meta_id: metaId }),
-      ...(invId && { inversion_id: invId }),
-      ...(form.subcategoria_id && { subcategoria_id: form.subcategoria_id }),
-    }
-
-    const { data, error } = await supabase.from('movimientos').insert([payloadMov]).select()
-
-    if (error) {
-      setError('Error al guardar: ' + error.message)
-      setSaving(false)
-      return
-    }
-
-    setMovs(prev => [data[0], ...prev])
-
-    // ── Actualizar meta ───────────────────────────────────────────────────────
-    if (metaId) {
-      const meta = metasData.find(m => m.id === metaId)
-      if (meta) {
-        const nuevoActual = (meta.actual || 0) + monto
-        const { error: metaErr } = await supabase.from('metas').update({ actual: nuevoActual }).eq('id', metaId)
-        if (!metaErr) setMetasData(prev => prev.map(m => m.id === metaId ? { ...m, actual: nuevoActual } : m))
-      }
-      setMetaSeleccionada('')
-    }
-
-    // ── Actualizar inversión ──────────────────────────────────────────────────
-    if (invId) {
-      const inv = inversionesData.find(i => i.id === invId)
-      if (inv) {
-        const nuevoCapital = (inv.capital || 0) + monto
-        const { error: invErr } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', invId)
-        if (!invErr) setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i))
-      }
-      setMetaSeleccionada('')
-    }
-
-    // ── Actualizar deuda ──────────────────────────────────────────────────────
-    if (deudaId) {
-      const deuda = deudasData.find(d => d.id === deudaId)
-      if (deuda) {
-        const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
-        const nuevosPagados = (deuda.pagadas || 0) + 1
-        const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-
-        await supabase.from('deudas').update({
-          pendiente: nuevoPendiente,
-          pagadas: nuevosPagados,
-          estado: nuevoEstado,
-        }).eq('id', deudaId)
-
-        const esAbono = nuevoPendiente > 0
-        const descMovimiento = descFinal !== (form.tipo === 'egreso' ? 'Gasto' : 'Ingreso')
-          ? descFinal
-          : `${esAbono ? 'Abono' : 'Pago'}: ${deuda.nombre}`
-
-        // Actualizar descripción del movimiento ya insertado para reflejar abono/pago
-        await supabase.from('movimientos').update({ descripcion: descMovimiento }).eq('id', data[0].id)
-        setMovs(prev => prev.map(m => m.id === data[0].id ? { ...m, descripcion: descMovimiento } : m))
-
-        const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
-          deuda_id: deudaId,
-          tipo: 'pago',
-          descripcion: descMovimiento,
-          monto,
-          fecha: form.fecha,
-          mes, año,
-        }]).select()
-
-        // FIX 3: actualizar el movimiento con el deuda_movimiento_id
-        if (dmData?.[0]?.id) {
-          await supabase.from('movimientos')
-            .update({ deuda_movimiento_id: dmData[0].id })
-            .eq('id', data[0].id)
-          setMovs(prev => prev.map(m =>
-            m.id === data[0].id ? { ...m, deuda_movimiento_id: dmData[0].id } : m
-          ))
+    try {
+      // ── 1. CASO: TARJETA DE CRÉDITO (FLUJO ESPECIAL) ───────────────────────────
+      if (metodoPago === 'tarjeta_credito' && form.tipo === 'egreso') {
+        if (!tarjetaSeleccionada) {
+          toast('Selecciona una tarjeta de crédito', 'warning');
+          setSaving(false);
+          return;
+        }
+        const cuotas = parseInt(numCuotas);
+        if (!cuotas || cuotas < 1) {
+          toast('Ingresa el número de cuotas', 'warning');
+          setSaving(false);
+          return;
         }
 
-        setDeudasData(prev => prev.map(d =>
-          d.id === deudaId ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados } : d
-        ))
+        const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada);
+        const subNombreTC = form.subcategoria_id ? subcategorias.find(s => s.id === form.subcategoria_id)?.nombre : null;
+        const descTC = form.descripcion.trim() || subNombreTC || 'Compra con tarjeta';
+        const cuotaMensual = parseFloat((monto / cuotas).toFixed(2));
+
+        // Solo crear la deuda (el movimiento real se crea al pagar la cuota)
+        const { error: errDeuda } = await supabase.from('deudas').insert([{
+          tipo_deuda: 'tarjeta',
+          tipo: 'debo',
+          emoji: '💳',
+          nombre: descTC,
+          categoria: form.categoria,
+          capital: monto,
+          monto: monto,
+          pendiente: monto,
+          cuota: cuotaMensual,
+          plazo_meses: cuotas,
+          pagadas: 0,
+          estado: 'activa',
+          perfil_tarjeta_id: tarjetaSeleccionada,
+          dia_pago: tarjeta?.dia_pago || null,
+          fecha_primer_pago: calcFechaPrimerPago(form.fecha, tarjeta?.dia_pago, tarjeta?.dia_corte),
+          color: tarjeta?.color || '#A44A3F',
+          tasa: 0,
+          tasa_interes: 0,
+        }]);
+
+        if (errDeuda) throw errDeuda;
+
+        toast(`Compra registrada · ${cuotas === 1 ? 'Pago único' : `${cuotas}x de ${formatCurrency(cuotaMensual)}`}`, 'success');
+        resetModal();
+        setSaving(false);
+        return;
       }
-      setDeudaSeleccionada('')
-    }
 
-    resetModal()
-    setSaving(false)
-  }
+      // ── 2. PREPARAR MOVIMIENTO NORMAL ──────────────────────────────────────────
+      const deudaId = form.categoria === 'deuda' && deudaSeleccionada ? deudaSeleccionada : null;
+      const metaId = form.categoria === 'ahorro' && metaSeleccionada ? metaSeleccionada : null;
+      const invId = form.categoria === 'inversion' && metaSeleccionada?.startsWith('inv_')
+        ? metaSeleccionada.replace('inv_', '')
+        : null;
 
+      const subNombre = form.subcategoria_id ? subcategorias.find(s => s.id === form.subcategoria_id)?.nombre : null;
+      const descFinal = form.descripcion.trim() || subNombre || (form.tipo === 'ingreso' ? 'Ingreso' : 'Gasto');
 
-  function handleDelete(movimiento) {
-    showConfirm(`¿Eliminar "${movimiento.descripcion}"?`, async () => { try {
-      // ── Revertir meta ─────────────────────────────────────────────────────
-      if (movimiento.categoria === 'ahorro') {
-        const meta = movimiento.meta_id
-          ? metasData.find(m => m.id === movimiento.meta_id)
-          : metasData.find(m => m.nombre === movimiento.descripcion)
+      const payloadMov = {
+        tipo: form.tipo,
+        monto,
+        descripcion: descFinal,
+        metodo_pago: form.tipo === 'egreso' ? metodoPago : 'transferencia',
+        categoria: form.categoria,
+        fecha: form.fecha,
+        quien: form.quien,
+        ...(deudaId && { deuda_id: deudaId }),
+        ...(metaId && !invId && { meta_id: metaId }),
+        ...(invId && { inversion_id: invId }),
+        ...(form.subcategoria_id && { subcategoria_id: form.subcategoria_id }),
+      };
+
+      // ── 3. INSERTAR MOVIMIENTO ────────────────────────────────────────────────
+      const { data, error: errMov } = await supabase.from('movimientos').insert([payloadMov]).select();
+
+      if (errMov) throw errMov;
+      if (!data || data.length === 0) throw new Error('No se recibió confirmación del servidor');
+
+      const nuevoMov = data[0];
+      setMovs(prev => [nuevoMov, ...prev]);
+
+      // ── 4. ACTUALIZACIONES SEGÚN CATEGORÍA ─────────────────────────────────────
+
+      // A) Actualizar Meta
+      if (metaId && !invId) {
+        const meta = metasData.find(m => m.id === metaId);
         if (meta) {
-          const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto)
-          await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
-          setMetasData(prev => prev.map(m => m.id === meta.id ? { ...m, actual: nuevoActual } : m))
+          const nuevoActual = (meta.actual || 0) + monto;
+          await supabase.from('metas').update({ actual: nuevoActual }).eq('id', metaId);
+          setMetasData(prev => prev.map(m => m.id === metaId ? { ...m, actual: nuevoActual } : m));
         }
       }
 
-      // ── Revertir inversión ────────────────────────────────────────────────
-      if (movimiento.categoria === 'inversion') {
-        const inv = movimiento.inversion_id
-          ? inversionesData.find(i => i.id === movimiento.inversion_id)
-          : inversionesData.find(i => i.nombre === movimiento.descripcion)
+      // B) Actualizar Inversión
+      if (invId) {
+        const inv = inversionesData.find(i => i.id === invId);
         if (inv) {
-          const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto)
-          await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id)
-          setInversionesData(prev => prev.map(i => i.id === inv.id ? { ...i, capital: nuevoCapital } : i))
+          const nuevoCapital = (inv.capital || 0) + monto;
+          await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', invId);
+          setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i));
         }
       }
 
-      // ── Revertir deuda ────────────────────────────────────────────────────
-      let deudaMovimientoId = movimiento.deuda_movimiento_id || null
-
-      if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
-        const { data: deudaData } = await supabase
-          .from('deudas').select('id, pendiente, monto, pagadas, estado')
-          .eq('id', movimiento.deuda_id).single()
-
-        if (deudaData) {
-          const nuevoPendiente = Math.min(
-            deudaData.monto || (deudaData.pendiente + movimiento.monto),
-            (deudaData.pendiente || 0) + movimiento.monto
-          )
-          const nuevosPagados = Math.max(0, (deudaData.pagadas || 0) - 1)
-          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+      // C) Actualizar Deuda
+      if (deudaId) {
+        const deuda = deudasData.find(d => d.id === deudaId);
+        if (deuda) {
+          const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto);
+          const nuevosPagados = (deuda.pagadas || 0) + 1;
+          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa';
 
           await supabase.from('deudas').update({
             pendiente: nuevoPendiente,
             pagadas: nuevosPagados,
             estado: nuevoEstado,
-          }).eq('id', movimiento.deuda_id)
+          }).eq('id', deudaId);
+
+          const esAbono = nuevoPendiente > 0;
+          const descMovimiento = descFinal !== (form.tipo === 'egreso' ? 'Gasto' : 'Ingreso')
+            ? descFinal
+            : `${esAbono ? 'Abono' : 'Pago'}: ${deuda.nombre}`;
+
+          // Insertar en historial de deudas
+          const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
+            deuda_id: deudaId,
+            tipo: 'pago',
+            descripcion: descMovimiento,
+            monto,
+            fecha: form.fecha,
+            mes: visMes,
+            año: visAño,
+          }]).select();
+
+          // Vincular el movimiento con el historial de deuda
+          if (dmData?.[0]?.id) {
+            await supabase.from('movimientos')
+              .update({
+                descripcion: descMovimiento,
+                deuda_movimiento_id: dmData[0].id
+              })
+              .eq('id', nuevoMov.id);
+
+            setMovs(prev => prev.map(m =>
+              m.id === nuevoMov.id ? { ...m, descripcion: descMovimiento, deuda_movimiento_id: dmData[0].id } : m
+            ));
+          }
 
           setDeudasData(prev => prev.map(d =>
-            d.id === movimiento.deuda_id
-              ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados }
-              : d
-          ))
+            d.id === deudaId ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados } : d
+          ));
         }
       }
 
-      // BUG FIX: borrar movimientos PRIMERO (tiene FK a deuda_movimientos)
-      // Si se borra deuda_movimientos antes, la FK violation impide la operación
-      const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
-      if (error) { toast('' + error.message); return }
-      setMovs(prev => prev.filter(m => m.id !== movimiento.id))
+      toast('Movimiento guardado', 'success');
+      resetModal();
 
-      // Si era un gasto del sobre con traspaso, borrar también el sobre_movimiento huérfano
-      if (movimiento.categoria === 'deseo' && movimiento.fecha) {
-        const { data: smRows } = await supabase
-          .from('sobre_movimientos')
-          .select('id')
-          .in('origen', ['basicos', 'metas', 'inversiones'])
-          .eq('destino', 'sobre')
-          .eq('fecha', movimiento.fecha)
-          .eq('monto', movimiento.monto)
-          .limit(1)
-        if (smRows?.[0]?.id) {
-          await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
-        }
-      }
-
-      // Si era un sobrante enviado DESDE el sobre a metas/inversiones, borrar el sobre_movimiento huérfano
-      if ((movimiento.categoria === 'ahorro' || movimiento.categoria === 'inversion') && movimiento.fecha) {
-        const { data: smRows } = await supabase
-          .from('sobre_movimientos')
-          .select('id')
-          .eq('origen', 'sobre')
-          .eq('fecha', movimiento.fecha)
-          .eq('monto', movimiento.monto)
-          .limit(1)
-        if (smRows?.[0]?.id) {
-          await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
-        }
-      }
-
-      // Ahora sí borrar deuda_movimientos (ya sin referencias en movimientos)
-      if (movimiento.categoria === 'deuda' && deudaMovimientoId) {
-        await supabase.from('deuda_movimientos').delete().eq('id', deudaMovimientoId)
-      } else if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
-        // fallback legacy: SELECT primero para obtener el ID exacto, luego DELETE por ID
-        // (Supabase no soporta .limit() en DELETE — borraría todos los matches)
-        const { data: dmRows } = await supabase
-          .from('deuda_movimientos')
-          .select('id')
-          .eq('deuda_id', movimiento.deuda_id)
-          .eq('tipo', 'pago')
-          .eq('monto', movimiento.monto)
-          .eq('fecha', movimiento.fecha)
-          .limit(1)
-        if (dmRows?.[0]?.id) {
-          await supabase.from('deuda_movimientos').delete().eq('id', dmRows[0].id)
-        }
-      }
     } catch (err) {
-      toast('Error al eliminar el movimiento')
+      console.error('Error en handleAdd:', err);
+      setError(err.message);
+      toast('Error: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
     }
+  }
+
+  function handleDelete(movimiento) {
+    showConfirm(`¿Eliminar "${movimiento.descripcion}"?`, async () => {
+      try {
+        // ── Revertir meta ─────────────────────────────────────────────────────
+        if (movimiento.categoria === 'ahorro') {
+          const meta = movimiento.meta_id
+            ? metasData.find(m => m.id === movimiento.meta_id)
+            : metasData.find(m => m.nombre === movimiento.descripcion)
+          if (meta) {
+            const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto)
+            await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
+            setMetasData(prev => prev.map(m => m.id === meta.id ? { ...m, actual: nuevoActual } : m))
+          }
+        }
+
+        // ── Revertir inversión ────────────────────────────────────────────────
+        if (movimiento.categoria === 'inversion') {
+          const inv = movimiento.inversion_id
+            ? inversionesData.find(i => i.id === movimiento.inversion_id)
+            : inversionesData.find(i => i.nombre === movimiento.descripcion)
+          if (inv) {
+            const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto)
+            await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id)
+            setInversionesData(prev => prev.map(i => i.id === inv.id ? { ...i, capital: nuevoCapital } : i))
+          }
+        }
+
+        // ── Revertir deuda ────────────────────────────────────────────────────
+        let deudaMovimientoId = movimiento.deuda_movimiento_id || null
+
+        if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
+          const { data: deudaData } = await supabase
+            .from('deudas').select('id, pendiente, monto, pagadas, estado')
+            .eq('id', movimiento.deuda_id).single()
+
+          if (deudaData) {
+            const nuevoPendiente = Math.min(
+              deudaData.monto || (deudaData.pendiente + movimiento.monto),
+              (deudaData.pendiente || 0) + movimiento.monto
+            )
+            const nuevosPagados = Math.max(0, (deudaData.pagadas || 0) - 1)
+            const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
+
+            await supabase.from('deudas').update({
+              pendiente: nuevoPendiente,
+              pagadas: nuevosPagados,
+              estado: nuevoEstado,
+            }).eq('id', movimiento.deuda_id)
+
+            setDeudasData(prev => prev.map(d =>
+              d.id === movimiento.deuda_id
+                ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados }
+                : d
+            ))
+          }
+        }
+
+        // BUG FIX: borrar movimientos PRIMERO (tiene FK a deuda_movimientos)
+        // Si se borra deuda_movimientos antes, la FK violation impide la operación
+        const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
+        if (error) { toast('' + error.message); return }
+        setMovs(prev => prev.filter(m => m.id !== movimiento.id))
+
+        // Si era un gasto del sobre con traspaso, borrar también el sobre_movimiento huérfano
+        if (movimiento.categoria === 'deseo' && movimiento.fecha) {
+          const { data: smRows } = await supabase
+            .from('sobre_movimientos')
+            .select('id')
+            .in('origen', ['basicos', 'metas', 'inversiones'])
+            .eq('destino', 'sobre')
+            .eq('fecha', movimiento.fecha)
+            .eq('monto', movimiento.monto)
+            .limit(1)
+          if (smRows?.[0]?.id) {
+            await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
+          }
+        }
+
+        // Si era un sobrante enviado DESDE el sobre a metas/inversiones, borrar el sobre_movimiento huérfano
+        if ((movimiento.categoria === 'ahorro' || movimiento.categoria === 'inversion') && movimiento.fecha) {
+          const { data: smRows } = await supabase
+            .from('sobre_movimientos')
+            .select('id')
+            .eq('origen', 'sobre')
+            .eq('fecha', movimiento.fecha)
+            .eq('monto', movimiento.monto)
+            .limit(1)
+          if (smRows?.[0]?.id) {
+            await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
+          }
+        }
+
+        // Ahora sí borrar deuda_movimientos (ya sin referencias en movimientos)
+        if (movimiento.categoria === 'deuda' && deudaMovimientoId) {
+          await supabase.from('deuda_movimientos').delete().eq('id', deudaMovimientoId)
+        } else if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
+          // fallback legacy: SELECT primero para obtener el ID exacto, luego DELETE por ID
+          // (Supabase no soporta .limit() en DELETE — borraría todos los matches)
+          const { data: dmRows } = await supabase
+            .from('deuda_movimientos')
+            .select('id')
+            .eq('deuda_id', movimiento.deuda_id)
+            .eq('tipo', 'pago')
+            .eq('monto', movimiento.monto)
+            .eq('fecha', movimiento.fecha)
+            .limit(1)
+          if (dmRows?.[0]?.id) {
+            await supabase.from('deuda_movimientos').delete().eq('id', dmRows[0].id)
+          }
+        }
+      } catch (err) {
+        toast('Error al eliminar el movimiento')
+      }
     })
   }
 
@@ -533,10 +589,18 @@ export default function GastosPage() {
 
   const filtered = movs
     .filter(m => filtro === 'todos' || m.tipo === filtro || m.categoria === filtro)
-    .filter(m => !search || m.descripcion.toLowerCase().includes(search.toLowerCase()))
-
+    .filter(m =>
+      !search ||
+      (m.descripcion?.toLowerCase() || "").includes(search.toLowerCase())
+    );
   const usandoTarjeta = form.tipo === 'egreso' && metodoPago === 'tarjeta_credito' && tarjetaSeleccionada
-
+  console.log("=== DEBUG GASTOS ===");
+  console.log("1. Registros totales cargados (movs):", movs.length);
+  console.log("2. Filtro activo:", filtro);
+  console.log("3. Registros que pasan el filtro (filtered):", filtered.length);
+  if (movs.length > 0) {
+    console.log("4. Ejemplo de un registro:", movs[0]);
+  }
   return (
     <AppShell>
       <div className="w-full max-w-full overflow-x-hidden">
@@ -554,7 +618,7 @@ export default function GastosPage() {
                   <ChevronLeft size={13} />
                 </button>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', minWidth: 72, textAlign: 'center' }}>
-                  {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][visMes-1]} {visAño}
+                  {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][visMes - 1]} {visAño}
                 </span>
                 <button
                   onClick={() => { if (visMes === 12) { setVisMes(1); setVisAño(v => v + 1) } else setVisMes(v => v + 1) }}
@@ -652,7 +716,7 @@ export default function GastosPage() {
           style={{ boxShadow: '0 8px 20px -6px color-mix(in srgb, var(--accent-main) 16%, transparent), 0 2px 6px -2px color-mix(in srgb, var(--bg-dark-card) 8%, transparent)' }}>
           {loading ? (
             <div className="p-4 space-y-3">
-              {[1,2,3,4].map(i => (
+              {[1, 2, 3, 4].map(i => (
                 <div key={i} className="flex items-center gap-3 px-1 py-1">
                   <div className="skeleton w-9 h-9 flex-shrink-0" />
                   <div className="flex-1 space-y-2">
@@ -699,8 +763,8 @@ export default function GastosPage() {
                       background: m.tipo === 'ingreso'
                         ? `color-mix(in srgb, ${colores.green} 10%, transparent)`
                         : m.tipo === 'retiro'
-                        ? `color-mix(in srgb, ${colores.terra} 10%, transparent)`
-                        : `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
+                          ? `color-mix(in srgb, ${colores.terra} 10%, transparent)`
+                          : `color-mix(in srgb, ${colores.rose} 10%, transparent)`,
                       color: m.tipo === 'ingreso' ? colores.green : m.tipo === 'retiro' ? colores.terra : colores.rose,
                     }}>
                     {m.tipo === 'ingreso' ? <ArrowUpRight size={18} /> : m.tipo === 'retiro' ? <Minus size={18} /> : <ArrowDownRight size={18} />}
@@ -804,7 +868,7 @@ export default function GastosPage() {
               {['ingreso', 'egreso'].map(t => (
                 <button type="button" key={t}
                   onClick={() => {
-                    setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? '' : 'basicos' })
+                    setForm({ ...form, tipo: t, categoria: t === 'ingreso' ? 'ingreso' : 'basicos' })
                     setTarjetaSeleccionada('')
                   }}
                   className="py-2.5 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all"
