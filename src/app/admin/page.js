@@ -140,9 +140,11 @@ export default function AdminPage() {
       toast('Error: ' + (error?.message || data?.error || 'No se pudo generar la invitación'))
       return
     }
-    setLinkGenerado(
-      data.link || `${window.location.origin}/registro?token=${data.token}`
-    )
+    const baseUrl = 'https://finanzas-dos-delta.vercel.app'
+  const token = data.token || data // Depende de qué devuelva exactamente tu RPC
+  
+  setLinkGenerado(`${baseUrl}/registro?token=${token}`)
+    
   }
 
   async function handleCopiar() {
