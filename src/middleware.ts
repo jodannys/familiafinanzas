@@ -35,6 +35,15 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Archivos estáticos públicos — pasar sin procesar auth
+  if (
+    pathname === '/manifest.json' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml'
+  ) {
+    return NextResponse.next()
+  }
+
   // No redirigir si estamos en el callback de autenticación
   if (pathname.startsWith('/auth/callback')) {
     return supabaseResponse
