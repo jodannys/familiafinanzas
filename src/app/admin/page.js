@@ -17,16 +17,16 @@ import { toast } from '@/lib/toast'
 // ── Permisos disponibles ───────────────────────────────────────────────────────
 
 const PERMISOS_OPCIONES = [
-  { key: 'gastos',      label: 'Registro de gastos', icon: '💸' },
-  { key: 'presupuesto', label: 'Presupuesto',         icon: '📊' },
-  { key: 'agenda',      label: 'Agenda',              icon: '📅' },
-  { key: 'sobres',      label: 'Sobres',              icon: '👛' },
-  { key: 'metas',       label: 'Metas de Ahorro',    icon: '🎯' },
-  { key: 'inversiones', label: 'Inversiones',         icon: '📈' },
-  { key: 'deudas',      label: 'Deudas',              icon: '💳' },
-  { key: 'inmuebles',   label: 'Inmuebles',           icon: '🏠' },
-  { key: 'tarjetas',    label: 'Mis Tarjetas',        icon: '💳' },
-  { key: 'reportes',    label: 'Reportes',            icon: '📋' },
+  { key: 'gastos', label: 'Registro de gastos', icon: '💸' },
+  { key: 'presupuesto', label: 'Presupuesto', icon: '📊' },
+  { key: 'agenda', label: 'Agenda', icon: '📅' },
+  { key: 'sobres', label: 'Sobres', icon: '👛' },
+  { key: 'metas', label: 'Metas de Ahorro', icon: '🎯' },
+  { key: 'inversiones', label: 'Inversiones', icon: '📈' },
+  { key: 'deudas', label: 'Deudas', icon: '💳' },
+  { key: 'inmuebles', label: 'Inmuebles', icon: '🏠' },
+  { key: 'tarjetas', label: 'Mis Tarjetas', icon: '💳' },
+  { key: 'reportes', label: 'Reportes', icon: '📋' },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -34,8 +34,8 @@ const PERMISOS_OPCIONES = [
 function formatFechaDDMM(fechaStr) {
   if (!fechaStr) return ''
   const d = new Date(fechaStr)
-  const day  = String(d.getDate()).padStart(2, '0')
-  const mon  = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const mon = String(d.getMonth() + 1).padStart(2, '0')
   return `${day}/${mon}`
 }
 
@@ -46,20 +46,20 @@ export default function AdminPage() {
   const [rolVerificado, setRolVerificado] = useState(false)
 
   // ── Sección 1: Panel Familiar ──────────────────────────────────────────────
-  const [miembros,    setMiembros]    = useState([])
+  const [miembros, setMiembros] = useState([])
   const [seleccionado, setSeleccionado] = useState('')
   const [movimientos, setMovimientos] = useState([])
-  const [loadingMov,  setLoadingMov]  = useState(false)
+  const [loadingMov, setLoadingMov] = useState(false)
 
   // ── Sección 2: Invitar Miembro ─────────────────────────────────────────────
-  const [email,        setEmail]        = useState('')
-  const [rol,          setRol]          = useState('miembro')
-  const [permisos,     setPermisos]     = useState(() =>
+  const [email, setEmail] = useState('')
+  const [rol, setRol] = useState('miembro')
+  const [permisos, setPermisos] = useState(() =>
     Object.fromEntries(PERMISOS_OPCIONES.map(p => [p.key, true]))
   )
   const [linkGenerado, setLinkGenerado] = useState('')
-  const [generando,    setGenerando]    = useState(false)
-  const [copiado,      setCopiado]      = useState(false)
+  const [generando, setGenerando] = useState(false)
+  const [copiado, setCopiado] = useState(false)
 
   // ── Verificar rol admin ────────────────────────────────────────────────────
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function AdminPage() {
 
   async function cargarMovimientos(nombreMiembro) {
     setLoadingMov(true)
-    const hoy   = new Date()
+    const hoy = new Date()
     const desde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`
     let query = supabase
       .from('movimientos')
@@ -119,8 +119,8 @@ export default function AdminPage() {
     setPermisos(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const todosActivos     = PERMISOS_OPCIONES.every(p => permisos[p.key])
-  const ningunoActivo    = PERMISOS_OPCIONES.every(p => !permisos[p.key])
+  const todosActivos = PERMISOS_OPCIONES.every(p => permisos[p.key])
+  const ningunoActivo = PERMISOS_OPCIONES.every(p => !permisos[p.key])
 
   function toggleTodos() {
     const nuevoEstado = !todosActivos
@@ -140,11 +140,11 @@ export default function AdminPage() {
       toast('Error: ' + (error?.message || data?.error || 'No se pudo generar la invitación'))
       return
     }
-    const baseUrl = 'https://finanzas-dos-delta.vercel.app'
-  const token = data.token || data // Depende de qué devuelva exactamente tu RPC
-  
-  setLinkGenerado(`${baseUrl}/login?token=${token}`)
-    
+    const baseUrl = 'https://finanzas-two-delta.vercel.app'
+    const token = data.token || data // Depende de qué devuelva exactamente tu RPC
+
+    setLinkGenerado(`${baseUrl}/login?token=${token}`)
+
   }
 
   async function handleCopiar() {
