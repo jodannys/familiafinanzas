@@ -14,8 +14,8 @@ export async function GET(request) {
   }
 
   if (code) {
-    // 1. Creamos la respuesta de redirección primero
-    const response = NextResponse.redirect(`${origin}/`)
+    // 1. Redirigir a /login para que useAuthFlow detecte el usuario y muestre el formulario si es nuevo
+    const response = NextResponse.redirect(`${origin}/login`)
 
     // 2. Creamos el cliente usando la lógica de cookies recomendada para Next.js
     const supabase = createServerClient(
