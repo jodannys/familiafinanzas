@@ -131,8 +131,17 @@ function LoginContent() {
         setError('Credenciales no válidas')
       } else {
         const nombreGuardado = data?.user?.user_metadata?.nombre
-        if (!nombreGuardado) setMode('nombre')
-        else window.location.href = '/'
+        if (!nombreGuardado) {
+          setMode('nombre')
+        } else {
+          // Verificar que tiene perfil; si no, crearlo con los datos de metadata
+          const { data: perfil } = await supabase.rpc('get_mis_permisos')
+          if (!perfil) {
+            const nombreHogarMeta = data.user.user_metadata?.nombre_hogar || 'Mi Familia'
+            await inicializarHogar(nombreGuardado, nombreHogarMeta)
+          }
+          window.location.href = '/'
+        }
       }
     } catch {
       setError('Error de conexión. Intenta de nuevo.')
