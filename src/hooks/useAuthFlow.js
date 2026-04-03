@@ -49,7 +49,11 @@ export function useAuthFlow() {
 
       const { data: perfil } = await supabase.rpc('get_mis_permisos')
       if (!perfil) {
-        const nombreMeta = user.user_metadata?.nombre || ''
+        // Google devuelve 'name'/'full_name', no 'nombre'
+        const nombreMeta = user.user_metadata?.nombre
+          || user.user_metadata?.full_name
+          || user.user_metadata?.name
+          || ''
         const nombreHogarMeta = user.user_metadata?.nombre_hogar || 'Mi Familia'
         if (nombreMeta) {
           await inicializarHogar(nombreMeta, nombreHogarMeta)
@@ -59,6 +63,7 @@ export function useAuthFlow() {
           setChecking(false)
         }
       } else {
+        setChecking(false)
         router.replace('/')
       }
     }
@@ -135,7 +140,7 @@ export function useAuthFlow() {
 
       // SIGNED_IN cubre tanto el login con email/password como el retorno
       // de OAuth (Google). Es el punto de entrada seguro post-callback.
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         setChecking(true)
         try {
           await handleAuthenticatedUser(session.user)
