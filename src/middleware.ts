@@ -67,14 +67,22 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && pathname === '/login') {
+    // Si el usuario no tiene 'nombre' en sus metadatos aún no completó el onboarding
+    // (ocurre con Google OAuth). Dejarlo pasar al /login para que useAuthFlow
+    // muestre el formulario de bienvenida.
+    const nombreGuardado = user.user_metadata?.nombre
+    if (!nombreGuardado) {
+      return supabaseResponse
+    }
+
     const redirectUrl = new URL('/', request.url)
     const response = NextResponse.redirect(redirectUrl)
-    
+
     // Copiar las cookies aquí también para no perder sesiones recién refrescadas
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie.name, cookie.value)
     })
-    
+
     return response
   }
 
