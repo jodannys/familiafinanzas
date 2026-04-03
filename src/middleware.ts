@@ -13,8 +13,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Login siempre accesible
-  if (pathname === '/login') {
+  // Login y callback de OAuth siempre accesibles
+  if (pathname === '/login' || pathname === '/auth/callback') {
     return NextResponse.next()
   }
 
