@@ -686,7 +686,16 @@ export default function AppShell({ children }) {
   const [authReady, setAuthReady] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [nombreHogar, setNombreHogar] = useState('')
+  const [perfilUsuario, setPerfilUsuario] = useState(null)
   const router = useRouter()
+
+  function avatarColor(nombre) {
+    const COLORS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#FF6D00', '#46BDC6', '#7B61FF', '#E91E63']
+    if (!nombre) return COLORS[0]
+    let h = 0
+    for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff
+    return COLORS[h % COLORS.length]
+  }
 
   useEffect(() => {
     supabase.auth.getSession()
@@ -696,6 +705,7 @@ export default function AppShell({ children }) {
           setAuthReady(true)
           getMisPermisos().then(({ data }) => {
             if (data?.nombre_hogar) setNombreHogar(data.nombre_hogar)
+            if (data) setPerfilUsuario(data)
           })
         }
       })
@@ -730,7 +740,25 @@ export default function AppShell({ children }) {
               <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
               <span className="font-script text-[25px]" style={{ color: 'var(--text-primary)' }}>{nombreHogar || 'Mi Familia'}</span>
             </div>
-            <div className="relative">
+            <div className="flex items-center gap-3">
+              {perfilUsuario?.rol === 'admin' && (
+                <button
+                  onClick={() => router.push('/admin')}
+                  className="active:scale-90 transition-transform"
+                  style={{
+                    width: 34, height: 34, borderRadius: '50%',
+                    background: avatarColor(perfilUsuario?.nombre || ''),
+                    border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 700, color: '#fff',
+                    userSelect: 'none', flexShrink: 0,
+                  }}
+                  aria-label="Panel Admin"
+                >
+                  {(perfilUsuario?.nombre || '?').charAt(0).toUpperCase()}
+                </button>
+              )}
+              <div className="relative">
               <button onClick={() => setConfirmLogout(true)} className="text-[var(--text-muted)] active:scale-90 transition-transform">
                 <LogOut size={18} />
               </button>
@@ -764,6 +792,7 @@ export default function AppShell({ children }) {
                   </div>
                 </>
               )}
+            </div>
             </div>
           </div>
         </div>

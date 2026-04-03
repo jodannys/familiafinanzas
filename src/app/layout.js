@@ -2,13 +2,13 @@ import './globals.css'
 import { ThemeProvider } from '@/lib/themes'
 
 export const metadata = {
-  title:       'Familia Quintero',
-  description: 'Gestión financiera familiar inteligente',
+  title:       ' Economía del Hogar',
+  description: 'Gestión inteligente de los gastos del hogar',
   manifest:    '/manifest.json',
   appleWebApp: {
     capable:         true,
     statusBarStyle:  'black-translucent',
-    title:           'Familia Quintero',
+    title:           'Economía del Hogar',
   },
   icons: {
     icon:  '/icon.svg',
@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
         <meta name="mobile-web-app-capable"            content="yes" />
         <meta name="apple-mobile-web-app-capable"      content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title"        content="Familia Quintero" />
+        <meta name="apple-mobile-web-app-title"        content="Economía del Hogar" />
         <link rel="apple-touch-icon" href="/icon.svg" />
 
         {/* FIX 2: localStorage envuelto en try/catch para modo privado */}

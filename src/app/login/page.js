@@ -1,263 +1,44 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase, validarTokenInvitacion, inicializarHogar, aceptarInvitacion } from '@/lib/supabase'
+import { Suspense } from 'react'
 import { Loader2, Eye, EyeOff, ArrowLeft, Mail, CheckCircle, Lock, UserCircle2 } from 'lucide-react'
+import { useAuthFlow } from '@/hooks/useAuthFlow'
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+    </svg>
+  )
+}
 
 function LoginContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
-  const [mode, setMode] = useState('login') // 'login' | 'register' | 'recover' | 'reset' | 'nombre'
-  const [loading, setLoading] = useState(false)
-  const [checking, setChecking] = useState(true)
-  const [error, setError] = useState('')
-  const [sent, setSent] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPwd, setConfirmPwd] = useState('')
-  const [newPwd, setNewPwd] = useState('')
-  const [nombre, setNombre] = useState('')
-  const [nombreHogar, setNombreHogar] = useState('')
-  const [showPwd, setShowPwd] = useState(false)
-  const [showConfirmPwd, setShowConfirmPwd] = useState(false)
-  // Estado de invitación
-  const [invToken, setInvToken] = useState(null)
-  const [invInfo, setInvInfo] = useState(null) // { nombre_hogar, rol_asignado, email }
-
-  useEffect(() => {
-    async function checkSession() {
-      try {
-        const type  = searchParams.get('type')
-        const token = searchParams.get('token')
-
-        if (token) {
-          const inv = await validarTokenInvitacion(token)
-
-          if (!inv?.valida) {
-            setError(inv?.error || 'Invitación inválida o expirada')
-            setChecking(false)
-            return
-          }
-
-          const { data: { user } } = await supabase.auth.getUser()
-
-          if (user) {
-            const emailCoincide = user.email?.toLowerCase() === inv.email?.toLowerCase()
-
-            if (emailCoincide) {
-              // Caso A: el invitado acaba de confirmar su email → aceptar invitación
-              const nombreFinal = user.user_metadata?.nombre || ''
-              const { data: res, error: invError } = await aceptarInvitacion(token, nombreFinal)
-              if (!invError && res?.ok) {
-                window.location.href = '/'
-                return
-              }
-              setError(res?.error || invError?.message || 'Error al aceptar la invitación')
-              setChecking(false)
-              return
-            }
-
-            // Caso B: hay sesión activa de otro usuario (ej: admin) → cerrar sesión
-            await supabase.auth.signOut()
-          }
-
-          // Sin sesión o recién cerrada: mostrar formulario de registro para el invitado
-          setInvToken(token)
-          setInvInfo(inv)
-          setEmail(inv.email)
-          setMode('register')
-          setChecking(false)
-          return
-        }
-
-        // Sin token: flujo normal de sesión
-        const { data: { user }, error } = await supabase.auth.getUser()
-        if (error) {
-          await supabase.auth.signOut()
-          setChecking(false)
-          return
-        }
-
-        if (type === 'recovery' && user) {
-          setMode('reset')
-          setChecking(false)
-          return
-        }
-
-        if (user) {
-          // Verificar si el usuario ya tiene perfil
-          const { data: perfil } = await supabase.rpc('get_mis_permisos')
-          if (!perfil) {
-            // Nuevo usuario que acaba de confirmar email: crear hogar con los datos guardados
-            const nombreMeta = user.user_metadata?.nombre || ''
-            const nombreHogarMeta = user.user_metadata?.nombre_hogar || 'Mi Familia'
-            if (nombreMeta) {
-              await inicializarHogar(nombreMeta, nombreHogarMeta)
-            } else {
-              // No tiene nombre guardado → mostrar pantalla de nombre
-              setMode('nombre')
-              setChecking(false)
-              return
-            }
-          }
-          router.replace('/')
-          setChecking(false)
-          return
-        }
-
-        setChecking(false)
-      } catch {
-        await supabase.auth.signOut()
-        setChecking(false)
-      }
-    }
-    checkSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setMode('reset')
-    })
-
-    return () => subscription.unsubscribe()
-  }, [searchParams, router])
-
- async function handleLogin(e) {
-    e.preventDefault()
-    if (!email || !password) return
-    setLoading(true)
-    setError('')
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password,
-      })
-      if (error) {
-        setError('Credenciales no válidas')
-      } else {
-        const nombreGuardado = data?.user?.user_metadata?.nombre
-        if (!nombreGuardado) {
-          setMode('nombre')
-        } else {
-          // Verificar que tiene perfil; si no, crearlo con los datos de metadata
-          const { data: perfil } = await supabase.rpc('get_mis_permisos')
-          if (!perfil) {
-            const nombreHogarMeta = data.user.user_metadata?.nombre_hogar || 'Mi Familia'
-            await inicializarHogar(nombreGuardado, nombreHogarMeta)
-          }
-          window.location.href = '/'
-        }
-      }
-    } catch {
-      setError('Error de conexión. Intenta de nuevo.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleRegister(e) {
-    e.preventDefault()
-    if (!invToken && !nombreHogar.trim()) {
-      setError('Debes darle un nombre a tu familia (Ej: Familia Quintero)')
-      return
-    }
-    if (!email || !password || !nombre.trim()) return
-    if (password !== confirmPwd) { setError('Las contraseñas no coinciden'); return }
-    if (password.length < 6) { setError('Mínimo 6 caracteres'); return }
-    setLoading(true); setError('')
-
-    const redirectTo = invToken
-      ? `${window.location.origin}/login?token=${invToken}`
-      : `${window.location.origin}/login`
-
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: {
-          nombre: nombre.trim(),
-          nombre_hogar: invToken ? undefined : nombreHogar.trim(),
-        },
-        emailRedirectTo: redirectTo,
-      },
-    })
-
-    if (error) {
-      setError(error.message === 'User already registered' ? 'Este correo ya está registrado' : 'No se pudo crear la cuenta')
-      setLoading(false)
-      return
-    }
-
-    if (data?.session) {
-      // Sesión activa → crear perfil en la BD
-      const nombreFinal = nombre.trim()
-      if (invToken) {
-        // Flujo invitación: unirse a hogar existente
-        const { data: res, error: invError } = await aceptarInvitacion(invToken, nombreFinal)
-        if (invError || (res && !res.ok)) {
-          setError(res?.error || invError?.message || 'Error al aceptar la invitación')
-          setLoading(false)
-          return
-        }
-      } else {
-        // Flujo normal: crear hogar propio como admin
-        await inicializarHogar(nombreFinal, nombreHogar.trim())
-      }
-      setLoading(false)
-      window.location.href = '/'
-    } else {
-      // Supabase requiere confirmación de email → sesión pendiente
-      setLoading(false)
-      setSent(true)
-    }
-  }
-
-  async function handleRecover(e) {
-    e.preventDefault()
-    if (!email) return
-    setLoading(true); setError('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/login`,
-    })
-    setLoading(false)
-    if (error) setError('No se pudo enviar el enlace. Verifica el correo.')
-    else setSent(true)
-  }
-
-  async function handleResetPassword(e) {
-    e.preventDefault()
-    if (!newPwd || newPwd.length < 6) { setError('Mínimo 6 caracteres'); return }
-    setLoading(true); setError('')
-    const { error } = await supabase.auth.updateUser({ password: newPwd })
-    setLoading(false)
-    if (error) setError('No se pudo actualizar la contraseña')
-    else window.location.href = '/'
-  }
-
-  async function handleGuardarNombre(e) {
-    e.preventDefault()
-    if (!nombre.trim()) return
-    setLoading(true); setError('')
-    const nombreFinal = nombre.trim()
-
-    // 1. Guardar nombre en user_metadata de Supabase Auth
-    const { error } = await supabase.auth.updateUser({ data: { nombre: nombreFinal } })
-    if (error) { setError('Error al guardar el perfil'); setLoading(false); return }
-
-    // 2. Crear perfil en hogares si no existe (usuario sin hogar)
-    const { data: perfil } = await supabase.rpc('get_mis_permisos')
-    if (!perfil) {
-      const { data: { user: u } } = await supabase.auth.getUser()
-      const nombreHogarMeta = u?.user_metadata?.nombre_hogar || 'Mi Familia'
-      await inicializarHogar(nombreFinal, nombreHogarMeta)
-    } else {
-      // Ya tiene perfil: solo actualizar nombre
-      const { data: { user: u } } = await supabase.auth.getUser()
-      if (u) await supabase.from('perfiles').update({ nombre: nombreFinal }).eq('id', u.id)
-    }
-
-    setLoading(false)
-    window.location.href = '/'
-  }
+  const {
+    form,
+    updateForm,
+    mode,
+    setMode,
+    loading,
+    checking,
+    error,
+    setError,
+    sent,
+    setSent,
+    showPwd,
+    setShowPwd,
+    showConfirmPwd,
+    setShowConfirmPwd,
+    invToken,
+    invInfo,
+    handleLogin,
+    handleRegister,
+    handleRecover,
+    handleResetPassword,
+    handleGuardarNombre,
+    handleGoogleLogin,
+  } = useAuthFlow()
 
   if (checking) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
@@ -285,10 +66,10 @@ function LoginContent() {
               <img src="/icon.svg" alt="Logo" className="w-10 h-10" />
             </div>
             <h1 className="font-script text-[38px] leading-none mb-2" style={{ color: 'var(--text-primary)' }}>
-              Finanzas Familia
+              Economía del Hogar
             </h1>
             <p className="text-[10px] uppercase tracking-[0.25em] font-black opacity-40">
-              {mode === 'recover' ? 'Seguridad' : mode === 'reset' ? 'Nueva Clave' : mode === 'nombre' ? 'Bienvenida' : mode === 'register' ? 'Nueva Cuenta' : 'Finanzas Familiares'}
+              {mode === 'recover' ? 'Seguridad' : mode === 'reset' ? 'Nueva Clave' : mode === 'nombre' ? 'Bienvenida' : mode === 'register' ? 'Nueva Cuenta' : 'Control de Gastos'}
             </p>
           </div>
 
@@ -297,17 +78,18 @@ function LoginContent() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">
                 <label htmlFor="login-email" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
-                <input id="login-email" name="email" type="email" placeholder="nombre@familia.com"
-                  value={email} onChange={e => setEmail(e.target.value)}
+                <input id="login-email" name="email" type="email" placeholder="nombre@Gmail.com"
+                  value={form.email} onChange={e => updateForm('email', e.target.value)}
                   className="ff-input w-full" autoFocus />
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="login-password" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
                 <div className="relative">
                   <input id="login-password" name="password" type={showPwd ? 'text' : 'password'} placeholder="••••••••"
-                    value={password} onChange={e => setPassword(e.target.value)}
+                    value={form.password} onChange={e => updateForm('password', e.target.value)}
                     className="ff-input w-full pr-12" />
                   <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
                     {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -315,33 +97,40 @@ function LoginContent() {
               </div>
 
               {error && (
-                <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">
+                <div role="alert" className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">
                   {error}
                 </div>
               )}
 
-              <button type="submit" disabled={loading || !email || !password}
+              <button type="submit" disabled={loading || !form.email || !form.password}
                 className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
                 style={{
-                  background: email && password ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                  color: email && password ? 'var(--bg-card)' : 'var(--text-muted)',
+                  background: form.email && form.password ? 'var(--text-primary)' : 'var(--bg-secondary)',
+                  color: form.email && form.password ? 'var(--bg-card)' : 'var(--text-muted)',
                 }}>
-                {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Entrar'}
+                {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Entrar'}
               </button>
 
+              {/* Google */}
+              <button type="button" onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)', color: 'var(--text-secondary)' }}>
+                <GoogleIcon />
+                Continuar con Google
+              </button>
 
               <button type="button" onClick={() => { setMode('recover'); setError('') }}
                 className="w-full text-center text-[11px] font-bold opacity-30 hover:opacity-100 transition-opacity py-2 uppercase tracking-tighter">
                 ¿Olvidaste tu contraseña?
               </button>
 
-              <div className="flex items-center gap-3 my-1">
+              <div className="flex items-center gap-3 my-1" aria-hidden="true">
                 <div className="flex-1 h-px" style={{ background: 'var(--border-glass)' }} />
                 <span className="text-[9px] font-black uppercase tracking-widest opacity-20">o</span>
                 <div className="flex-1 h-px" style={{ background: 'var(--border-glass)' }} />
               </div>
 
-              <button type="button" onClick={() => { setMode('register'); setError(''); setPassword(''); setConfirmPwd('') }}
+              <button type="button" onClick={() => { setMode('register'); setError(''); updateForm('password', ''); updateForm('confirmPwd', '') }}
                 className="w-full py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
                 style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 Crear cuenta nueva
@@ -352,7 +141,6 @@ function LoginContent() {
           {/* ── REGISTER ── */}
           {mode === 'register' && (
             <form onSubmit={handleRegister} className="space-y-4">
-              {/* Banner de invitación */}
               {invInfo && (
                 <div className="p-3 rounded-2xl text-[11px] font-medium text-center border"
                   style={{ background: 'color-mix(in srgb, var(--accent-green) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--accent-green) 20%, transparent)', color: 'var(--text-secondary)' }}>
@@ -363,17 +151,17 @@ function LoginContent() {
                 <div className="flex flex-col items-center gap-6 py-4 text-center">
                   <div className="w-20 h-20 rounded-full flex items-center justify-center"
                     style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)' }}>
-                    <CheckCircle size={40} style={{ color: 'var(--accent-green)' }} />
+                    <CheckCircle size={40} style={{ color: 'var(--accent-green)' }} aria-hidden="true" />
                   </div>
                   <div className="space-y-2">
                     <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>Revisa tu correo</h2>
                     <p className="text-[12px] opacity-60 leading-relaxed px-4">
-                      Enviamos un enlace de confirmación a <span className="font-bold">{email}</span>
+                      Enviamos un enlace de confirmación a <span className="font-bold">{form.email}</span>
                     </p>
                   </div>
                   <button type="button" onClick={() => { setMode('login'); setSent(false) }}
                     className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-all mt-4">
-                    <ArrowLeft size={14} /> Volver al login
+                    <ArrowLeft size={14} aria-hidden="true" /> Volver al login
                   </button>
                 </div>
               ) : (
@@ -382,20 +170,20 @@ function LoginContent() {
                     <div className="space-y-1.5">
                       <label htmlFor="reg-familia" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Nombre de tu Familia</label>
                       <input id="reg-familia" name="familia" type="text" placeholder="Ej: Familia Quintero"
-                        value={nombreHogar} onChange={e => setNombreHogar(e.target.value)}
+                        value={form.nombreHogar} onChange={e => updateForm('nombreHogar', e.target.value)}
                         className="ff-input w-full border-accent-terra" autoFocus />
                     </div>
                   )}
                   <div className="space-y-1.5">
                     <label htmlFor="reg-nombre" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Tu nombre</label>
                     <input id="reg-nombre" name="nombre" type="text" placeholder="¿Cómo te llamamos?"
-                      value={nombre} onChange={e => setNombre(e.target.value)}
+                      value={form.nombre} onChange={e => updateForm('nombre', e.target.value)}
                       className="ff-input w-full" autoFocus={!!invToken} />
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="reg-email" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
-                    <input id="reg-email" name="email" type="email" placeholder="nombre@familia.com"
-                      value={email} onChange={e => !invToken && setEmail(e.target.value)}
+                    <input id="reg-email" name="email" type="email" placeholder="nombre@gmail.com"
+                      value={form.email} onChange={e => !invToken && updateForm('email', e.target.value)}
                       readOnly={!!invToken}
                       className={`ff-input w-full ${invToken ? 'opacity-60 cursor-not-allowed' : ''}`} />
                   </div>
@@ -403,9 +191,10 @@ function LoginContent() {
                     <label htmlFor="reg-password" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
                     <div className="relative">
                       <input id="reg-password" name="password" type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
-                        value={password} onChange={e => setPassword(e.target.value)}
+                        value={form.password} onChange={e => updateForm('password', e.target.value)}
                         className="ff-input w-full pr-12" />
                       <button type="button" onClick={() => setShowPwd(!showPwd)}
+                        aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                         className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
                         {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -415,9 +204,10 @@ function LoginContent() {
                     <label htmlFor="reg-confirm" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Confirmar contraseña</label>
                     <div className="relative">
                       <input id="reg-confirm" name="confirm_password" type={showConfirmPwd ? 'text' : 'password'} placeholder="Repite la contraseña"
-                        value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)}
-                        className={`ff-input w-full pr-12 ${confirmPwd && confirmPwd !== password ? 'error' : ''}`} />
+                        value={form.confirmPwd} onChange={e => updateForm('confirmPwd', e.target.value)}
+                        className={`ff-input w-full pr-12 ${form.confirmPwd && form.confirmPwd !== form.password ? 'error' : ''}`} />
                       <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                        aria-label={showConfirmPwd ? 'Ocultar confirmación' : 'Mostrar confirmación'}
                         className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
                         {showConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -425,23 +215,23 @@ function LoginContent() {
                   </div>
 
                   {error && (
-                    <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">
+                    <div role="alert" className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">
                       {error}
                     </div>
                   )}
 
-                  <button type="submit" disabled={loading || !nombre.trim() || !email || !password || !confirmPwd || (!invToken && !nombreHogar.trim())}
+                  <button type="submit" disabled={loading || !form.nombre.trim() || !form.email || !form.password || !form.confirmPwd || (!invToken && !form.nombreHogar.trim())}
                     className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
                     style={{
-                      background: nombre.trim() && email && password && confirmPwd && (invToken || nombreHogar.trim()) ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                      color: nombre.trim() && email && password && confirmPwd && (invToken || nombreHogar.trim()) ? 'var(--bg-card)' : 'var(--text-muted)',
+                      background: form.nombre.trim() && form.email && form.password && form.confirmPwd && (invToken || form.nombreHogar.trim()) ? 'var(--text-primary)' : 'var(--bg-secondary)',
+                      color: form.nombre.trim() && form.email && form.password && form.confirmPwd && (invToken || form.nombreHogar.trim()) ? 'var(--bg-card)' : 'var(--text-muted)',
                     }}>
-                    {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Crear cuenta'}
+                    {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Crear cuenta'}
                   </button>
 
                   <button type="button" onClick={() => { setMode('login'); setError('') }}
                     className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-30 py-3 hover:opacity-100 transition-opacity">
-                    <ArrowLeft size={12} /> Ya tengo cuenta
+                    <ArrowLeft size={12} aria-hidden="true" /> Ya tengo cuenta
                   </button>
                 </>
               )}
@@ -454,15 +244,15 @@ function LoginContent() {
               {sent ? (
                 <div className="flex flex-col items-center gap-6 py-4 text-center">
                   <div className="w-20 h-20 rounded-full flex items-center justify-center bg-green-500/10">
-                    <CheckCircle size={40} style={{ color: 'var(--accent-green)' }} />
+                    <CheckCircle size={40} style={{ color: 'var(--accent-green)' }} aria-hidden="true" />
                   </div>
                   <div className="space-y-2">
                     <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>Enlace Enviado</h2>
-                    <p className="text-[12px] opacity-60 leading-relaxed px-4">Revisa <span className="font-bold">{email}</span> para restablecer tu acceso.</p>
+                    <p className="text-[12px] opacity-60 leading-relaxed px-4">Revisa <span className="font-bold">{form.email}</span> para restablecer tu acceso.</p>
                   </div>
                   <button type="button" onClick={() => { setMode('login'); setSent(false) }}
                     className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-all mt-4">
-                    <ArrowLeft size={14} /> Volver
+                    <ArrowLeft size={14} aria-hidden="true" /> Volver
                   </button>
                 </div>
               ) : (
@@ -472,19 +262,21 @@ function LoginContent() {
                     Escribe tu email para recibir un enlace de recuperación.
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
-                    <input type="email" placeholder="tu-correo@familia.com" value={email}
-                      onChange={e => setEmail(e.target.value)} className="ff-input w-full" autoFocus />
+                    <label htmlFor="recover-email" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
+                    <input id="recover-email" type="email" placeholder="tu-correo@gmail.com" value={form.email}
+                      onChange={e => updateForm('email', e.target.value)} className="ff-input w-full" autoFocus />
                   </div>
-                  {error && <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>}
-                  <button type="submit" disabled={loading || !email}
+                  {error && (
+                    <div role="alert" className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>
+                  )}
+                  <button type="submit" disabled={loading || !form.email}
                     className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
-                    style={{ background: email ? 'var(--text-primary)' : 'var(--bg-secondary)', color: email ? 'var(--bg-card)' : 'var(--text-muted)' }}>
-                    {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : <><Mail size={16} className="mr-2 inline" />Enviar Enlace</>}
+                    style={{ background: form.email ? 'var(--text-primary)' : 'var(--bg-secondary)', color: form.email ? 'var(--bg-card)' : 'var(--text-muted)' }}>
+                    {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : <><Mail size={16} className="mr-2 inline" aria-hidden="true" />Enviar Enlace</>}
                   </button>
                   <button type="button" onClick={() => { setMode('login'); setError('') }}
                     className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-30 py-4 hover:opacity-100 transition-opacity">
-                    <ArrowLeft size={12} /> Cancelar
+                    <ArrowLeft size={12} aria-hidden="true" /> Cancelar
                   </button>
                 </>
               )}
@@ -499,22 +291,25 @@ function LoginContent() {
                 Establece una nueva contraseña segura.
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Nueva Contraseña</label>
+                <label htmlFor="reset-newpwd" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Nueva Contraseña</label>
                 <div className="relative">
-                  <input type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
-                    value={newPwd} onChange={e => setNewPwd(e.target.value)}
+                  <input id="reset-newpwd" type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
+                    value={form.newPwd} onChange={e => updateForm('newPwd', e.target.value)}
                     className="ff-input w-full pr-12" autoFocus />
                   <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
                     {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
-              {error && <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>}
-              <button type="submit" disabled={loading || newPwd.length < 6}
+              {error && (
+                <div role="alert" className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>
+              )}
+              <button type="submit" disabled={loading || form.newPwd.length < 6}
                 className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
-                style={{ background: newPwd.length >= 6 ? 'var(--accent-green)' : 'var(--bg-secondary)', color: 'white' }}>
-                {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Actualizar Contraseña'}
+                style={{ background: form.newPwd.length >= 6 ? 'var(--accent-green)' : 'var(--bg-secondary)', color: 'white' }}>
+                {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Actualizar Contraseña'}
               </button>
             </form>
           )}
@@ -525,25 +320,28 @@ function LoginContent() {
               <div className="flex flex-col items-center text-center space-y-2">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
                   style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)', color: 'var(--accent-blue)' }}>
-                  <UserCircle2 size={40} strokeWidth={1.5} />
+                  <UserCircle2 size={40} strokeWidth={1.5} aria-hidden="true" />
                 </div>
                 <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>¡Bienvenido!</h2>
                 <p className="text-[12px] opacity-60 leading-relaxed">¿Cómo quieres que te llamemos?</p>
               </div>
-              <input type="text" placeholder="Tu nombre..." value={nombre}
-                onChange={e => setNombre(e.target.value)}
+              <label htmlFor="onboarding-nombre" className="sr-only">Tu nombre</label>
+              <input id="onboarding-nombre" type="text" placeholder="Tu nombre..." value={form.nombre}
+                onChange={e => updateForm('nombre', e.target.value)}
                 className="ff-input w-full text-center text-lg font-bold" autoFocus />
-              {error && <div className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>}
-              <button type="submit" disabled={loading || !nombre.trim()}
+              {error && (
+                <div role="alert" className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>
+              )}
+              <button type="submit" disabled={loading || !form.nombre.trim()}
                 className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-                style={{ background: nombre.trim() ? 'var(--text-primary)' : 'var(--bg-secondary)', color: nombre.trim() ? 'var(--bg-card)' : 'var(--text-muted)' }}>
-                {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Comenzar →'}
+                style={{ background: form.nombre.trim() ? 'var(--text-primary)' : 'var(--bg-secondary)', color: form.nombre.trim() ? 'var(--bg-card)' : 'var(--text-muted)' }}>
+                {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Comenzar →'}
               </button>
             </form>
           )}
         </div>
 
-        <div className="flex items-center justify-center gap-2 mt-10 opacity-30">
+        <div className="flex items-center justify-center gap-2 mt-10 opacity-30" aria-hidden="true">
           <Lock size={10} />
           <p className="text-[9px] font-black uppercase tracking-[0.4em]">Acceso Privado · 2026</p>
         </div>
@@ -563,4 +361,3 @@ export default function LoginPage() {
     </Suspense>
   )
 }
-

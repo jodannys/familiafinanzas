@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import {
-  Users, UserPlus, Loader2, Copy, Check, ChevronDown,
+  Users, UserPlus, Loader2, Copy, Check,
 } from 'lucide-react'
 import {
   supabase,
@@ -13,6 +13,7 @@ import {
 } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 // ── Permisos disponibles ───────────────────────────────────────────────────────
 
@@ -62,15 +63,19 @@ export default function AdminPage() {
   const [copiado, setCopiado] = useState(false)
 
   // ── Verificar rol admin ────────────────────────────────────────────────────
-  useEffect(() => {
-    getMisPermisos().then(({ data }) => {
-      if (data && data.rol !== 'admin') {
-        router.replace('/')
-        return
-      }
-      setRolVerificado(true)
-    })
-  }, [router])
+ const [hogarId, setHogarId] = useState(null)
+
+// 2. En el efecto de verificar rol, guarda también el hogar_id
+useEffect(() => {
+  getMisPermisos().then(({ data }) => {
+    if (data && data.rol !== 'admin') {
+      router.replace('/')
+      return
+    }
+    setHogarId(data.hogar_id) // <--- Guarda el hogar_id aquí
+    setRolVerificado(true)
+  })
+}, [router])
 
   // ── Cargar miembros del hogar (perfiles_familia = quién gasta) ────────────
   useEffect(() => {
@@ -81,6 +86,7 @@ export default function AdminPage() {
       .order('created_at')
       .then(({ data }) => setMiembros(data || []))
   }, [rolVerificado])
+  
 
   // ── Cargar movimientos cuando cambia el miembro seleccionado ──────────────
   useEffect(() => {
@@ -176,7 +182,7 @@ export default function AdminPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-6 pb-24 px-4 pt-6 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-6 pb-24 px-2 sm:px-4 pt-6 w-full max-w-2xl mx-auto">
 
         {/* ── Cabecera de página ───────────────────────────────────────────── */}
         <div>
@@ -225,32 +231,12 @@ export default function AdminPage() {
           {/* Selector de miembro */}
           <div className="mb-5">
             <label className="ff-label">Miembro del hogar</label>
-            <div style={{ position: 'relative' }}>
-              <select
-                className="ff-input"
-                style={{ appearance: 'none', paddingRight: 44 }}
-                value={seleccionado}
-                onChange={e => setSeleccionado(e.target.value)}
-              >
-                <option value="">Seleccionar miembro...</option>
-                {miembros.map((m) => (
-                  <option key={m.id} value={m.nombre}>
-                    {m.nombre}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                style={{
-                  position: 'absolute',
-                  right: 16,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                  pointerEvents: 'none',
-                }}
-              />
-            </div>
+            <CustomSelect
+              value={seleccionado}
+              onChange={val => setSeleccionado(val ?? '')}
+              options={miembros.map(m => ({ id: m.nombre, label: m.nombre }))}
+              placeholder="Todos los miembros"
+            />
           </div>
 
           {/* KPIs — todos los miembros o el seleccionado */}
@@ -411,28 +397,15 @@ export default function AdminPage() {
           {/* Rol */}
           <div className="mb-5">
             <label className="ff-label">Rol</label>
-            <div style={{ position: 'relative' }}>
-              <select
-                className="ff-input"
-                style={{ appearance: 'none', paddingRight: 44 }}
-                value={rol}
-                onChange={e => setRol(e.target.value)}
-              >
-                <option value="miembro">Miembro</option>
-                <option value="admin">Admin</option>
-              </select>
-              <ChevronDown
-                size={16}
-                style={{
-                  position: 'absolute',
-                  right: 16,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                  pointerEvents: 'none',
-                }}
-              />
-            </div>
+            <CustomSelect
+              value={rol}
+              onChange={val => setRol(val ?? 'miembro')}
+              options={[
+                { id: 'miembro', label: 'Miembro' },
+                { id: 'admin',   label: 'Admin'   },
+              ]}
+              placeholder="Seleccionar rol"
+            />
           </div>
 
           {/* Permisos — encabezado con toggle global */}

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, Target, TrendingUp, PieChart,
   CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2,
-  CalendarDays, Home, Menu, Users,
+  CalendarDays, Home, Menu,
 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
 import { supabase, signOut, getMisPermisos } from '@/lib/supabase'
@@ -45,7 +45,6 @@ const MENU_GROUPS = [
     items: [
       { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard, permiso: 'tarjetas' },
       { href: '/ajustes', label: 'Configuración', icon: Settings2 },
-      { href: '/admin', label: 'Panel Familiar', icon: Users, adminOnly: true },
     ],
   },
 ]
@@ -422,27 +421,44 @@ export default function Sidebar() {
           display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0,
         }}>
 
-          {/* ── Avatar del usuario ── */}
-          <div
+          {/* ── Avatar del usuario (abre Panel Familiar si es admin) ── */}
+          <button
+            onClick={() => {
+              if (rol === 'admin') {
+                setTooltip(null)
+                router.push('/admin')
+              }
+            }}
             style={{
-              display: 'flex', alignItems: 'center',
+              width: '100%', display: 'flex', alignItems: 'center',
               gap: collapsed ? 0 : 10,
               padding: collapsed ? '7px 6px' : '7px 8px',
               borderRadius: 10,
               justifyContent: collapsed ? 'center' : 'flex-start',
-              transition: `gap ${TRANS}, padding ${TRANS}`,
-              cursor: 'default',
+              border: 'none',
+              background: 'transparent',
+              cursor: rol === 'admin' ? 'pointer' : 'default',
+              transition: `background 0.15s ease, gap ${TRANS}, padding ${TRANS}`,
             }}
             onMouseEnter={e => {
+              if (rol === 'admin') {
+                e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-main) 8%, transparent)'
+              }
               if (collapsed && nombre) {
                 const rect = e.currentTarget.getBoundingClientRect()
-                setTooltip({ label: nombre, top: rect.top + rect.height / 2 })
+                setTooltip({
+                  label: rol === 'admin' ? 'Panel Admin' : nombre,
+                  top: rect.top + rect.height / 2,
+                })
               }
             }}
-            onMouseLeave={() => setTooltip(null)}
-            aria-label={collapsed ? nombre || 'Usuario' : undefined}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              setTooltip(null)
+            }}
+            aria-label={collapsed ? (rol === 'admin' ? 'Panel Admin' : nombre || 'Usuario') : undefined}
           >
-            {/* Circulo avatar */}
+            {/* Círculo avatar */}
             <div style={{
               width: 28, height: 28,
               borderRadius: '50%',
@@ -492,7 +508,7 @@ export default function Sidebar() {
                 </span>
               )}
             </div>
-          </div>
+          </button>
 
           {/* ── ThemeSwitcher ── */}
           <div style={{
