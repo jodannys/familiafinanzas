@@ -4,7 +4,6 @@ import { ThemeProvider } from '@/lib/themes'
 export const metadata = {
   title:       ' Economía del Hogar',
   description: 'Gestión inteligente de los gastos del hogar',
-  manifest:    '/manifest.json',
   appleWebApp: {
     capable:         true,
     statusBarStyle:  'black-translucent',
