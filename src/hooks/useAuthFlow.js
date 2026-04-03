@@ -35,9 +35,36 @@ export function useAuthFlow() {
   }
 
   useEffect(() => {
+    // Ejecuta el flujo de post-autenticacion para un usuario ya verificado.
+    // Se llama tanto desde checkSession (flujo normal/email) como desde
+    // onAuthStateChange SIGNED_IN (flujo OAuth / race condition).
+    async function handleAuthenticatedUser(user) {
+      const type = searchParams.get('type')
+
+      if (type === 'recovery') {
+        setMode('reset')
+        setChecking(false)
+        return
+      }
+
+      const { data: perfil } = await supabase.rpc('get_mis_permisos')
+      if (!perfil) {
+        const nombreMeta = user.user_metadata?.nombre || ''
+        const nombreHogarMeta = user.user_metadata?.nombre_hogar || 'Mi Familia'
+        if (nombreMeta) {
+          await inicializarHogar(nombreMeta, nombreHogarMeta)
+          router.replace('/')
+        } else {
+          setMode('nombre')
+          setChecking(false)
+        }
+      } else {
+        router.replace('/')
+      }
+    }
+
     async function checkSession() {
       try {
-        const type  = searchParams.get('type')
         const token = searchParams.get('token')
 
         if (token) {
@@ -78,49 +105,48 @@ export function useAuthFlow() {
         }
 
         const { data: { user }, error } = await supabase.auth.getUser()
-        if (error) {
-          await supabase.auth.signOut()
-          setChecking(false)
-          return
-        }
 
-        if (type === 'recovery' && user) {
-          setMode('reset')
+        // Si hay error de sesion pero venimos de OAuth (el evento SIGNED_IN
+        // llegara via onAuthStateChange cuando las cookies esten listas).
+        // No hacemos signOut automatico para no destruir la sesion recien creada.
+        if (error) {
           setChecking(false)
           return
         }
 
         if (user) {
-          const { data: perfil } = await supabase.rpc('get_mis_permisos')
-          if (!perfil) {
-            const nombreMeta = user.user_metadata?.nombre || ''
-            const nombreHogarMeta = user.user_metadata?.nombre_hogar || 'Mi Familia'
-            if (nombreMeta) {
-              await inicializarHogar(nombreMeta, nombreHogarMeta)
-            } else {
-              setMode('nombre')
-              setChecking(false)
-              return
-            }
-          }
-          router.replace('/')
-          setChecking(false)
+          await handleAuthenticatedUser(user)
           return
         }
 
         setChecking(false)
       } catch {
-        await supabase.auth.signOut()
         setChecking(false)
       }
     }
+
     checkSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setMode('reset')
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setMode('reset')
+        return
+      }
+
+      // SIGNED_IN cubre tanto el login con email/password como el retorno
+      // de OAuth (Google). Es el punto de entrada seguro post-callback.
+      if (event === 'SIGNED_IN' && session?.user) {
+        setChecking(true)
+        try {
+          await handleAuthenticatedUser(session.user)
+        } catch {
+          setChecking(false)
+        }
+      }
     })
 
     return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, router])
 
   async function handleLogin(e) {
