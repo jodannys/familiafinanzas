@@ -164,6 +164,13 @@ export function useAuthFlow() {
       }
 
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        // Si hay token de invitación en la URL, checkSession() maneja todo el flujo.
+        // Evitar la race condition donde onAuthStateChange llama inicializarHogar
+        // antes de que checkSession pueda llamar aceptarInvitacion.
+        if (searchParams.get('token')) {
+          console.log('[AuthFlow] Evento SIGNED_IN/INITIAL_SESSION con token de invitación -> delegando a checkSession')
+          return
+        }
         console.log('[AuthFlow] Evento SIGNED_IN/INITIAL_SESSION -> Procesando usuario:', session.user.email)
         setChecking(true)
         try {
