@@ -143,7 +143,7 @@ export default function AdminPage() {
     const baseUrl = 'https://finanzas-dos-delta.vercel.app'
   const token = data.token || data // Depende de qué devuelva exactamente tu RPC
   
-  setLinkGenerado(`${baseUrl}/registro?token=${token}`)
+  setLinkGenerado(`${baseUrl}/login?token=${token}`)
     
   }
 
