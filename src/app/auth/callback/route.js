@@ -2,31 +2,53 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function GET(request) {
-  const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('code')
-  const origin = requestUrl.origin
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  
+  // Si hay un error en la URL que viene de Supabase, lo capturamos
+  const authError = searchParams.get('error_description')
 
-  const response = NextResponse.redirect(`${origin}/login`)
+  if (authError) {
+    console.error('[Auth Callback] Error de Supabase:', authError)
+    return NextResponse.redirect(`${origin}/login?auth_error=${encodeURIComponent(authError)}`)
+  }
 
   if (code) {
+    // 1. Creamos la respuesta de redirección primero
+    const response = NextResponse.redirect(`${origin}/`)
+
+    // 2. Creamos el cliente usando la lógica de cookies recomendada para Next.js
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
-          getAll: () => request.cookies.getAll(),
-          setAll: (toSet) => toSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          ),
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // Esto es vital: se setea en la request y en la response
+              request.cookies.set(name, value)
+              response.cookies.set(name, value, options)
+            })
+          },
         },
       }
     )
+
+    // 3. Intercambiamos el código por la sesión
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) {
-      console.error('[auth/callback] exchange error:', error.message)
-      return NextResponse.redirect(`${origin}/login?auth_error=${encodeURIComponent(error.message)}`)
+
+    if (!error) {
+      console.log('[Auth Callback] Intercambio exitoso. Redirigiendo...')
+      return response
     }
+
+    console.error('[Auth Callback] Error en el exchange:', error.message)
+    return NextResponse.redirect(`${origin}/login?auth_error=${encodeURIComponent(error.message)}`)
   }
 
-  return response
+  // Si llegamos aquí sin código, algo salió mal
+  return NextResponse.redirect(`${origin}/login?auth_error=No+code+found`)
 }
