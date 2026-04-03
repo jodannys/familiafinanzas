@@ -6,7 +6,7 @@ import {
   Check, CreditCard, AlertCircle, CheckCircle, Info,
   Banknote, Smartphone, Building2, Wallet, LogOut,
 } from 'lucide-react'
-import { supabase, signOut } from '@/lib/supabase'
+import { supabase, signOut, getMisPermisos } from '@/lib/supabase'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
 import { formatCurrency } from '@/lib/utils'
@@ -685,13 +685,19 @@ export default function AppShell({ children }) {
   const [fabOpen, setFabOpen] = useState(false)
   const [authReady, setAuthReady] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [nombreHogar, setNombreHogar] = useState('')
   const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         if (!session) router.replace('/login')
-        else setAuthReady(true)
+        else {
+          setAuthReady(true)
+          getMisPermisos().then(({ data }) => {
+            if (data?.nombre_hogar) setNombreHogar(data.nombre_hogar)
+          })
+        }
       })
       .catch(() => router.replace('/login'))
   }, [])
@@ -722,7 +728,7 @@ export default function AppShell({ children }) {
             style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
             <div className="flex items-center gap-2">
               <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
-              <span className="font-script text-[25px]" style={{ color: 'var(--text-primary)' }}>Familia Quintero</span>
+              <span className="font-script text-[25px]" style={{ color: 'var(--text-primary)' }}>{nombreHogar || 'Mi Familia'}</span>
             </div>
             <div className="relative">
               <button onClick={() => setConfirmLogout(true)} className="text-[var(--text-muted)] active:scale-90 transition-transform">

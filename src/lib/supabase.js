@@ -45,9 +45,14 @@ export async function validarTokenInvitacion(token) {
 
 /**
  * Crea el hogar + perfil admin para un usuario recién registrado (sin token).
+ * @param {string} nombre        - Nombre personal del admin
+ * @param {string} nombreFamilia - Nombre del hogar (ej: "Familia Quintero")
  */
-export async function inicializarHogar(nombre) {
-  const { data, error } = await supabase.rpc('inicializar_hogar', { p_nombre: nombre })
+export async function inicializarHogar(nombre, nombreFamilia) {
+  const { data, error } = await supabase.rpc('inicializar_hogar', {
+    p_nombre: nombre,
+    p_nombre_hogar: nombreFamilia,
+  })
   return { data, error }
 }
 

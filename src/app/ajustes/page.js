@@ -71,9 +71,19 @@ export default function AjustesPage() {
   async function handleGuardarNombre() {
     if (!nombrePerfil.trim()) return
     setSavingNombre(true)
-    const { error } = await supabase.auth.updateUser({ data: { nombre: nombrePerfil.trim() } })
+    const nombre = nombrePerfil.trim()
+
+    // 1. Actualizar metadatos de Auth
+    const { error: authError } = await supabase.auth.updateUser({ data: { nombre } })
+    if (authError) { toast('Error al guardar nombre: ' + authError.message); setSavingNombre(false); return }
+
+    // 2. Sincronizar en la tabla perfiles (para Sidebar, permisos y lógica del hogar)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.from('perfiles').update({ nombre }).eq('id', user.id)
+    }
+
     setSavingNombre(false)
-    if (error) { toast('Error al guardar nombre: ' + error.message); return }
     setEditNombre(false)
   }
 

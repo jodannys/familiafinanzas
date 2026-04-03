@@ -171,6 +171,7 @@ export default function Sidebar() {
 
   const nombre = miPermisos?.nombre ?? ''
   const rol = miPermisos?.rol ?? ''
+  const nombreHogar = miPermisos?.nombre_hogar ?? ''
   const initial = nombre ? nombre.charAt(0).toUpperCase() : '?'
   const bgColor = avatarColor(nombre)
 
@@ -247,7 +248,7 @@ export default function Sidebar() {
                 color: 'var(--text-primary)',
                 whiteSpace: 'nowrap',
               }}>
-                Familia Quintero
+                {nombreHogar || 'Mi Familia'}
               </p>
             </div>
           )}

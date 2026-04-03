@@ -18,6 +18,7 @@ function LoginContent() {
   const [confirmPwd, setConfirmPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
   const [nombre, setNombre] = useState('')
+  const [nombreHogar, setNombreHogar] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [showConfirmPwd, setShowConfirmPwd] = useState(false)
   // Estado de invitación
@@ -100,6 +101,10 @@ function LoginContent() {
 
   async function handleRegister(e) {
     e.preventDefault()
+    if (!invToken && !nombreHogar.trim()) {
+      setError('Debes darle un nombre a tu familia (Ej: Familia Quintero)')
+      return
+    }
     if (!email || !password || !nombre.trim()) return
     if (password !== confirmPwd) { setError('Las contraseñas no coinciden'); return }
     if (password.length < 6) { setError('Mínimo 6 caracteres'); return }
@@ -122,15 +127,15 @@ function LoginContent() {
       const nombreFinal = nombre.trim()
       if (invToken) {
         // Flujo invitación: unirse a hogar existente
-        const { data: res } = await aceptarInvitacion(invToken, nombreFinal)
-        if (res && !res.ok) {
-          setError(res.error || 'Error al aceptar la invitación')
+        const { data: res, error: invError } = await aceptarInvitacion(invToken, nombreFinal)
+        if (invError || (res && !res.ok)) {
+          setError(res?.error || invError?.message || 'Error al aceptar la invitación')
           setLoading(false)
           return
         }
       } else {
         // Flujo normal: crear hogar propio como admin
-        await inicializarHogar(nombreFinal)
+        await inicializarHogar(nombreFinal, nombreHogar.trim())
       }
       setLoading(false)
       window.location.href = '/'
@@ -209,7 +214,7 @@ function LoginContent() {
               <img src="/icon.svg" alt="Logo" className="w-10 h-10" />
             </div>
             <h1 className="font-script text-[38px] leading-none mb-2" style={{ color: 'var(--text-primary)' }}>
-              Familia Quintero
+              Finanzas Familia
             </h1>
             <p className="text-[10px] uppercase tracking-[0.25em] font-black opacity-40">
               {mode === 'recover' ? 'Seguridad' : mode === 'reset' ? 'Nueva Clave' : mode === 'nombre' ? 'Bienvenida' : mode === 'register' ? 'Nueva Cuenta' : 'Finanzas Familiares'}
@@ -302,11 +307,19 @@ function LoginContent() {
                 </div>
               ) : (
                 <>
+                  {!invToken && (
+                    <div className="space-y-1.5">
+                      <label htmlFor="reg-familia" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Nombre de tu Familia</label>
+                      <input id="reg-familia" name="familia" type="text" placeholder="Ej: Familia Quintero"
+                        value={nombreHogar} onChange={e => setNombreHogar(e.target.value)}
+                        className="ff-input w-full border-accent-terra" autoFocus />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <label htmlFor="reg-nombre" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Tu nombre</label>
                     <input id="reg-nombre" name="nombre" type="text" placeholder="¿Cómo te llamamos?"
                       value={nombre} onChange={e => setNombre(e.target.value)}
-                      className="ff-input w-full" autoFocus />
+                      className="ff-input w-full" autoFocus={!!invToken} />
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="reg-email" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
@@ -346,11 +359,11 @@ function LoginContent() {
                     </div>
                   )}
 
-                  <button type="submit" disabled={loading || !nombre.trim() || !email || !password || !confirmPwd}
+                  <button type="submit" disabled={loading || !nombre.trim() || !email || !password || !confirmPwd || (!invToken && !nombreHogar.trim())}
                     className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
                     style={{
-                      background: nombre.trim() && email && password && confirmPwd ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                      color: nombre.trim() && email && password && confirmPwd ? 'var(--bg-card)' : 'var(--text-muted)',
+                      background: nombre.trim() && email && password && confirmPwd && (invToken || nombreHogar.trim()) ? 'var(--text-primary)' : 'var(--bg-secondary)',
+                      color: nombre.trim() && email && password && confirmPwd && (invToken || nombreHogar.trim()) ? 'var(--bg-card)' : 'var(--text-muted)',
                     }}>
                     {loading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Crear cuenta'}
                   </button>
