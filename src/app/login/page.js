@@ -32,12 +32,21 @@ function LoginContent() {
         const token = searchParams.get('token')
 
         if (token) {
-          // Caso A: el invitado acaba de confirmar su email y regresa con token+code
-          // La sesión ya fue establecida por Supabase al intercambiar el code.
+          const inv = await validarTokenInvitacion(token)
+
+          if (!inv?.valida) {
+            setError(inv?.error || 'Invitación inválida o expirada')
+            setChecking(false)
+            return
+          }
+
           const { data: { user } } = await supabase.auth.getUser()
+
           if (user) {
-            const inv = await validarTokenInvitacion(token)
-            if (inv?.valida) {
+            const emailCoincide = user.email?.toLowerCase() === inv.email?.toLowerCase()
+
+            if (emailCoincide) {
+              // Caso A: el invitado acaba de confirmar su email → aceptar invitación
               const nombreFinal = user.user_metadata?.nombre || ''
               const { data: res, error: invError } = await aceptarInvitacion(token, nombreFinal)
               if (!invError && res?.ok) {
@@ -45,24 +54,19 @@ function LoginContent() {
                 return
               }
               setError(res?.error || invError?.message || 'Error al aceptar la invitación')
-            } else {
-              setError(inv?.error || 'Invitación inválida o expirada')
+              setChecking(false)
+              return
             }
-            setChecking(false)
-            return
+
+            // Caso B: hay sesión activa de otro usuario (ej: admin) → cerrar sesión
+            await supabase.auth.signOut()
           }
 
-          // Caso B: primera visita al link (sin sesión). Cerrar sesión del admin si la hay.
-          await supabase.auth.signOut()
-          const inv = await validarTokenInvitacion(token)
-          if (inv?.valida) {
-            setInvToken(token)
-            setInvInfo(inv)
-            setEmail(inv.email)
-            setMode('register')
-          } else {
-            setError(inv?.error || 'Invitación inválida o expirada')
-          }
+          // Sin sesión o recién cerrada: mostrar formulario de registro para el invitado
+          setInvToken(token)
+          setInvInfo(inv)
+          setEmail(inv.email)
+          setMode('register')
           setChecking(false)
           return
         }
