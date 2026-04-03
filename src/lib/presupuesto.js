@@ -22,7 +22,7 @@ export async function getPresupuestoMes(mesParam = null, añoParam = null) {
 
     const ingresoReal = (movsData || [])
       .filter(m => m.tipo === 'ingreso')
-      .reduce((s, m) => s + m.monto, 0)
+      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
 
     const pctFuturo      = (bloquesData || []).find(b => b.bloque === 'futuro')?.pct      || 30
     const pctEstilo      = (bloquesData || []).find(b => b.bloque === 'estilo')?.pct      || 20

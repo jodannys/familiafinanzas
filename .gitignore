@@ -4,6 +4,8 @@ node_modules/
 .env.local
 .env.local.example
 .clauderules
+.supabase\migrations
+.claude
 serviceAccountKey.json
 dist/
 build/

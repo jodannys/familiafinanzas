@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, Target, TrendingUp, PieChart,
   CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2,
-  CalendarDays, Home, Menu,
+  CalendarDays, Home, Menu, Users,
 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
-import { supabase, signOut } from '@/lib/supabase'
+import { supabase, signOut, getMisPermisos } from '@/lib/supabase'
 
 const W_EXP = 240
 const W_COL = 64
@@ -19,35 +19,44 @@ const MENU_GROUPS = [
     title: 'Análisis',
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/reportes', label: 'Reporte Anual', icon: BarChart3 },
+      { href: '/reportes', label: 'Reporte Anual', icon: BarChart3, permiso: 'reportes' },
     ],
   },
   {
     title: 'Gestión',
     items: [
-      { href: '/presupuesto', label: 'Presupuesto', icon: PieChart },
-      { href: '/gastos', label: 'Registro', icon: ArrowLeftRight },
-      { href: '/agenda', label: 'Agenda', icon: CalendarDays },
-      { href: '/sobres', label: 'Sobres', icon: Wallet },
+      { href: '/presupuesto', label: 'Presupuesto', icon: PieChart, permiso: 'presupuesto' },
+      { href: '/gastos', label: 'Registro', icon: ArrowLeftRight, permiso: 'gastos' },
+      { href: '/agenda', label: 'Agenda', icon: CalendarDays, permiso: 'agenda' },
+      { href: '/sobres', label: 'Sobres', icon: Wallet, permiso: 'sobres' },
     ],
   },
   {
     title: 'Patrimonio',
     items: [
-      { href: '/metas', label: 'Metas de Ahorro', icon: Target },
-      { href: '/inversiones', label: 'Inversiones', icon: TrendingUp },
-      { href: '/deudas', label: 'Deudas', icon: CircleDollarSign, deudaBadge: true },
-      { href: '/inmuebles', label: 'Inmuebles', icon: Home },
+      { href: '/metas', label: 'Metas de Ahorro', icon: Target, permiso: 'metas' },
+      { href: '/inversiones', label: 'Inversiones', icon: TrendingUp, permiso: 'inversiones' },
+      { href: '/deudas', label: 'Deudas', icon: CircleDollarSign, deudaBadge: true, permiso: 'deudas' },
+      { href: '/inmuebles', label: 'Inmuebles', icon: Home, permiso: 'inmuebles' },
     ],
   },
   {
     title: 'Sistema',
     items: [
-      { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard },
+      { href: '/tarjetas', label: 'Mis Tarjetas', icon: CreditCard, permiso: 'tarjetas' },
       { href: '/ajustes', label: 'Configuración', icon: Settings2 },
+      { href: '/admin', label: 'Panel Familiar', icon: Users, adminOnly: true },
     ],
   },
 ]
+
+function avatarColor(nombre) {
+  const COLORS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#FF6D00', '#46BDC6', '#7B61FF', '#E91E63']
+  if (!nombre) return COLORS[0]
+  let h = 0
+  for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff
+  return COLORS[h % COLORS.length]
+}
 
 function diasHastaPago(diaPago) {
   if (!diaPago) return null
@@ -66,6 +75,7 @@ export default function Sidebar() {
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [tooltip, setTooltip] = useState(null)
   const [indicator, setIndicator] = useState({ top: 8, height: 36, visible: false })
+  const [miPermisos, setMiPermisos] = useState(null)
 
   // ── collapsed se inicializa directo desde localStorage, sin flash ──
   const [collapsed, setCollapsed] = useState(() => {
@@ -82,6 +92,11 @@ export default function Sidebar() {
       '--sidebar-w',
       collapsed ? `${W_COL}px` : `${W_EXP}px`
     )
+  }, [])
+
+  // ── Carga de permisos del usuario ──
+  useEffect(() => {
+    getMisPermisos().then(({ data }) => setMiPermisos(data))
   }, [])
 
   // ── Auth + deudas con realtime ──
@@ -145,6 +160,19 @@ export default function Sidebar() {
     await signOut()
     router.replace('/login')
   }
+
+  function itemVisible(item) {
+    if (!miPermisos) return true
+    if (item.adminOnly) return miPermisos.rol === 'admin'
+    if (!item.permiso) return true
+    if (miPermisos.rol === 'admin') return true
+    return miPermisos.permisos?.[item.permiso] === true
+  }
+
+  const nombre = miPermisos?.nombre ?? ''
+  const rol = miPermisos?.rol ?? ''
+  const initial = nombre ? nombre.charAt(0).toUpperCase() : '?'
+  const bgColor = avatarColor(nombre)
 
   return (
     <>
@@ -274,111 +302,116 @@ export default function Sidebar() {
             }} />
           )}
 
-          {MENU_GROUPS.map((group, gIdx) => (
-            <div key={gIdx} style={{ marginTop: gIdx > 0 ? 14 : 4 }}>
+          {MENU_GROUPS.map((group, gIdx) => {
+            const visibleItems = group.items.filter(itemVisible)
+            if (visibleItems.length === 0) return null
 
-              <div style={{
-                overflow: 'hidden',
-                maxHeight: collapsed ? 0 : 24,
-                opacity: collapsed ? 0 : 1,
-                transition: `max-height ${TRANS}, opacity 0.2s ease`,
-                marginBottom: collapsed ? 0 : 4,
-              }}>
-                <p style={{
-                  fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.11em', textTransform: 'uppercase',
-                  color: 'var(--text-muted)', opacity: 0.55,
-                  padding: '0 6px', whiteSpace: 'nowrap',
-                }}>
-                  {group.title}
-                </p>
-              </div>
+            return (
+              <div key={gIdx} style={{ marginTop: gIdx > 0 ? 14 : 4 }}>
 
-              {collapsed && gIdx > 0 && (
                 <div style={{
-                  height: 1, margin: '6px 4px 10px',
-                  background: 'color-mix(in srgb, var(--border-glass) 40%, transparent)',
-                }} />
-              )}
+                  overflow: 'hidden',
+                  maxHeight: collapsed ? 0 : 24,
+                  opacity: collapsed ? 0 : 1,
+                  transition: `max-height ${TRANS}, opacity 0.2s ease`,
+                  marginBottom: collapsed ? 0 : 4,
+                }}>
+                  <p style={{
+                    fontSize: 9, fontWeight: 700,
+                    letterSpacing: '0.11em', textTransform: 'uppercase',
+                    color: 'var(--text-muted)', opacity: 0.55,
+                    padding: '0 6px', whiteSpace: 'nowrap',
+                  }}>
+                    {group.title}
+                  </p>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {group.items.map(({ href, label, icon: Icon, deudaBadge }) => {
-                  const active = pathname === href
-                  const showBadge = deudaBadge && deudasAlert
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      data-active={active}
-                      aria-label={collapsed ? label : undefined}
-                      style={{
-                        textDecoration: 'none',
-                        display: 'flex', alignItems: 'center',
-                        gap: collapsed ? 0 : 10,
-                        padding: collapsed ? '6px' : '7px 8px',
-                        borderRadius: 10,
-                        justifyContent: collapsed ? 'center' : 'flex-start',
-                        background: (!collapsed && active)
-                          ? 'color-mix(in srgb, var(--accent-main) 10%, transparent)'
-                          : 'transparent',
-                        position: 'relative', zIndex: 1,
-                        transition: `background 0.15s ease, gap ${TRANS}, padding ${TRANS}`,
-                      }}
-                      onMouseEnter={e => {
-                        if (!active) e.currentTarget.style.background = collapsed
-                          ? 'transparent'
-                          : 'color-mix(in srgb, var(--text-muted) 7%, transparent)'
-                        if (collapsed) {
-                          const rect = e.currentTarget.getBoundingClientRect()
-                          setTooltip({ label, top: rect.top + rect.height / 2 })
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        if (!active) e.currentTarget.style.background = 'transparent'
-                        setTooltip(null)
-                      }}
-                    >
-                      <div style={{
-                        width: 34, height: 34,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        borderRadius: 10, flexShrink: 0, position: 'relative',
-                        background: active
-                          ? 'color-mix(in srgb, var(--accent-main) 18%, transparent)'
-                          : 'transparent',
-                        transition: 'background 0.15s ease',
-                      }}>
-                        <Icon
-                          size={15}
-                          strokeWidth={active ? 2.5 : 1.8}
-                          style={{ color: active ? 'var(--accent-main)' : 'var(--text-muted)' }}
-                        />
-                        {showBadge && (
-                          <span style={{
-                            position: 'absolute', top: -2, right: -2,
-                            width: 7, height: 7, borderRadius: '50%',
-                            background: 'var(--accent-rose)',
-                            border: '2px solid var(--sidebar-bg)',
-                          }} />
-                        )}
-                      </div>
+                {collapsed && gIdx > 0 && (
+                  <div style={{
+                    height: 1, margin: '6px 4px 10px',
+                    background: 'color-mix(in srgb, var(--border-glass) 40%, transparent)',
+                  }} />
+                )}
 
-                      <span style={{
-                        fontSize: 12, fontWeight: 600,
-                        color: active ? 'var(--accent-main)' : 'var(--text-secondary)',
-                        whiteSpace: 'nowrap', overflow: 'hidden',
-                        flex: 1,
-                        maxWidth: collapsed ? 0 : 180,
-                        opacity: collapsed ? 0 : 1,
-                        transition: `max-width ${TRANS}, opacity 0.18s ease`,
-                      }}>
-                        {label}
-                      </span>
-                    </Link>
-                  )
-                })}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {visibleItems.map(({ href, label, icon: Icon, deudaBadge }) => {
+                    const active = pathname === href
+                    const showBadge = deudaBadge && deudasAlert
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        data-active={active}
+                        aria-label={collapsed ? label : undefined}
+                        style={{
+                          textDecoration: 'none',
+                          display: 'flex', alignItems: 'center',
+                          gap: collapsed ? 0 : 10,
+                          padding: collapsed ? '6px' : '7px 8px',
+                          borderRadius: 10,
+                          justifyContent: collapsed ? 'center' : 'flex-start',
+                          background: (!collapsed && active)
+                            ? 'color-mix(in srgb, var(--accent-main) 10%, transparent)'
+                            : 'transparent',
+                          position: 'relative', zIndex: 1,
+                          transition: `background 0.15s ease, gap ${TRANS}, padding ${TRANS}`,
+                        }}
+                        onMouseEnter={e => {
+                          if (!active) e.currentTarget.style.background = collapsed
+                            ? 'transparent'
+                            : 'color-mix(in srgb, var(--text-muted) 7%, transparent)'
+                          if (collapsed) {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setTooltip({ label, top: rect.top + rect.height / 2 })
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (!active) e.currentTarget.style.background = 'transparent'
+                          setTooltip(null)
+                        }}
+                      >
+                        <div style={{
+                          width: 34, height: 34,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          borderRadius: 10, flexShrink: 0, position: 'relative',
+                          background: active
+                            ? 'color-mix(in srgb, var(--accent-main) 18%, transparent)'
+                            : 'transparent',
+                          transition: 'background 0.15s ease',
+                        }}>
+                          <Icon
+                            size={15}
+                            strokeWidth={active ? 2.5 : 1.8}
+                            style={{ color: active ? 'var(--accent-main)' : 'var(--text-muted)' }}
+                          />
+                          {showBadge && (
+                            <span style={{
+                              position: 'absolute', top: -2, right: -2,
+                              width: 7, height: 7, borderRadius: '50%',
+                              background: 'var(--accent-rose)',
+                              border: '2px solid var(--sidebar-bg)',
+                            }} />
+                          )}
+                        </div>
+
+                        <span style={{
+                          fontSize: 12, fontWeight: 600,
+                          color: active ? 'var(--accent-main)' : 'var(--text-secondary)',
+                          whiteSpace: 'nowrap', overflow: 'hidden',
+                          flex: 1,
+                          maxWidth: collapsed ? 0 : 180,
+                          opacity: collapsed ? 0 : 1,
+                          transition: `max-width ${TRANS}, opacity 0.18s ease`,
+                        }}>
+                          {label}
+                        </span>
+                      </Link>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
 
         {/* ── Footer ── */}
@@ -388,6 +421,79 @@ export default function Sidebar() {
           display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0,
         }}>
 
+          {/* ── Avatar del usuario ── */}
+          <div
+            style={{
+              display: 'flex', alignItems: 'center',
+              gap: collapsed ? 0 : 10,
+              padding: collapsed ? '7px 6px' : '7px 8px',
+              borderRadius: 10,
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              transition: `gap ${TRANS}, padding ${TRANS}`,
+              cursor: 'default',
+            }}
+            onMouseEnter={e => {
+              if (collapsed && nombre) {
+                const rect = e.currentTarget.getBoundingClientRect()
+                setTooltip({ label: nombre, top: rect.top + rect.height / 2 })
+              }
+            }}
+            onMouseLeave={() => setTooltip(null)}
+            aria-label={collapsed ? nombre || 'Usuario' : undefined}
+          >
+            {/* Circulo avatar */}
+            <div style={{
+              width: 28, height: 28,
+              borderRadius: '50%',
+              background: bgColor,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              fontSize: 12, fontWeight: 700,
+              color: '#fff',
+              userSelect: 'none',
+              transition: `background ${TRANS}`,
+            }}
+              aria-hidden="true"
+            >
+              {initial}
+            </div>
+
+            {/* Nombre + badge de rol (solo expandido) */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              overflow: 'hidden',
+              maxWidth: collapsed ? 0 : 180,
+              opacity: collapsed ? 0 : 1,
+              transition: `max-width ${TRANS}, opacity 0.18s ease`,
+              flexShrink: 0,
+            }}>
+              <span style={{
+                fontSize: 12, fontWeight: 600,
+                color: 'var(--text-secondary)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                maxWidth: rol ? 100 : 150,
+              }}>
+                {nombre || 'Usuario'}
+              </span>
+              {rol && (
+                <span style={{
+                  fontSize: 9, fontWeight: 700,
+                  padding: '2px 5px',
+                  borderRadius: 6,
+                  whiteSpace: 'nowrap',
+                  background: rol === 'admin'
+                    ? 'color-mix(in srgb, var(--accent-gold) 14%, transparent)'
+                    : 'color-mix(in srgb, var(--text-muted) 12%, transparent)',
+                  color: rol === 'admin' ? 'var(--accent-gold)' : 'var(--text-muted)',
+                  lineHeight: 1.4,
+                }}>
+                  {rol}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* ── ThemeSwitcher ── */}
           <div style={{
             display: 'flex', alignItems: 'center',
             gap: collapsed ? 0 : 10,

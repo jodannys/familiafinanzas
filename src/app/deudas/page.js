@@ -508,7 +508,7 @@ export default function DeudasPage() {
     if (dmError) { setError(dmError.message); setSaving(false); return }
 
     const tipoMov = deuda.tipo === 'medeben' ? 'ingreso' : 'egreso'
-    const { error: movError } = await supabase.from('movimientos').insert([{
+    const { data: movData, error: movError } = await supabase.from('movimientos').insert([{
       tipo: tipoMov, categoria: 'deuda',
       descripcion: deuda.tipo === 'medeben'
         ? `Cobro deuda: ${deuda.nombre}`
@@ -516,13 +516,34 @@ export default function DeudasPage() {
       monto, fecha: hoy, quien: 'Ambos',
       deuda_id: deuda.id,
       deuda_movimiento_id: dmData?.[0]?.id || null,
-    }])
+    }]).select()
+
+    if (movError) {
+      // Rollback paso 1: borrar el deuda_movimiento si el movimiento general falló
+      if (dmData?.[0]?.id) {
+        await supabase.from('deuda_movimientos').delete().eq('id', dmData[0].id)
+      }
+      setError(movError.message)
+      setSaving(false)
+      return
+    }
 
     const { error: deudaError } = await supabase.from('deudas').update({
       pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
     }).eq('id', deuda.id)
 
-    if (deudaError) { setError(deudaError.message); setSaving(false); return }
+    if (deudaError) {
+      // Rollback en cascada: borrar movimiento y deuda_movimiento si el UPDATE final falló
+      if (movData?.[0]?.id) {
+        await supabase.from('movimientos').delete().eq('id', movData[0].id)
+      }
+      if (dmData?.[0]?.id) {
+        await supabase.from('deuda_movimientos').delete().eq('id', dmData[0].id)
+      }
+      setError(deudaError.message)
+      setSaving(false)
+      return
+    }
 
     setDeudas(prev => prev.map(d => d.id === deuda.id
       ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))

@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, Target,
   MoreHorizontal, TrendingUp, Wallet, CircleDollarSign,
-  CreditCard, Settings2, BarChart3, X, CalendarDays, Plus, Home
+  CreditCard, Settings2, BarChart3, X, CalendarDays, Plus, Home,Users
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -25,6 +25,7 @@ const MORE_ITEMS = [
   { href: '/tarjetas', label: 'Tarjetas', icon: CreditCard },
   { href: '/reportes', label: 'Reportes', icon: BarChart3 },
   { href: '/ajustes', label: 'Ajustes', icon: Settings2 },
+   { href: '/admin', label: 'Admin', icon: Users },
 ]
 
 function NavTab({ href, label, icon: Icon, active }) {

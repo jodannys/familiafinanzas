@@ -325,85 +325,53 @@ export default function GastosPage() {
         ...(form.subcategoria_id && { subcategoria_id: form.subcategoria_id }),
       };
 
-      // ── 3. INSERTAR MOVIMIENTO ────────────────────────────────────────────────
-      const { data, error: errMov } = await supabase.from('movimientos').insert([payloadMov]).select();
+      // ── 3. REGISTRAR MOVIMIENTO (RPC atómica) ────────────────────────────────
+      // Una sola llamada reemplaza: INSERT movimientos + UPDATE metas/inversiones/deudas
+      // + INSERT deuda_movimientos + UPDATE movimientos (deuda_movimiento_id).
+      // Si cualquier paso falla en el servidor, PostgreSQL hace rollback completo.
+      const { data: rpcData, error: errRpc } = await supabase.rpc('registrar_movimiento', {
+        p_tipo:            form.tipo,
+        p_monto:           monto,
+        p_descripcion:     descFinal,
+        p_categoria:       form.categoria,
+        p_fecha:           form.fecha,
+        p_quien:           form.quien,
+        p_metodo_pago:     form.tipo === 'egreso' ? metodoPago : 'transferencia',
+        p_meta_id:         metaId || null,
+        p_inversion_id:    invId || null,
+        p_deuda_id:        deudaId || null,
+        p_subcategoria_id: form.subcategoria_id || null,
+      });
 
-      if (errMov) throw errMov;
-      if (!data || data.length === 0) throw new Error('No se recibió confirmación del servidor');
+      if (errRpc) throw errRpc;
 
-      const nuevoMov = data[0];
-      setMovs(prev => [nuevoMov, ...prev]);
+      // ── 4. ACTUALIZAR ESTADO LOCAL ────────────────────────────────────────────
+      // Recargamos el movimiento real desde DB para tener deuda_movimiento_id
+      // y descripcion final que la RPC pudo haber guardado.
+      const movId = rpcData?.mov_id;
+      if (movId) {
+        const { data: movRow } = await supabase
+          .from('movimientos').select('*').eq('id', movId).single();
+        if (movRow) setMovs(prev => [movRow, ...prev]);
+      }
 
-      // ── 4. ACTUALIZACIONES SEGÚN CATEGORÍA ─────────────────────────────────────
-
-      // A) Actualizar Meta
+      // Sincronizar estado local de metas, inversiones y deudas
       if (metaId && !invId) {
-        const meta = metasData.find(m => m.id === metaId);
-        if (meta) {
-          const nuevoActual = (meta.actual || 0) + monto;
-          await supabase.from('metas').update({ actual: nuevoActual }).eq('id', metaId);
-          setMetasData(prev => prev.map(m => m.id === metaId ? { ...m, actual: nuevoActual } : m));
-        }
+        setMetasData(prev => prev.map(m =>
+          m.id === metaId ? { ...m, actual: (m.actual || 0) + monto } : m
+        ));
       }
-
-      // B) Actualizar Inversión
       if (invId) {
-        const inv = inversionesData.find(i => i.id === invId);
-        if (inv) {
-          const nuevoCapital = (inv.capital || 0) + monto;
-          await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', invId);
-          setInversionesData(prev => prev.map(i => i.id === invId ? { ...i, capital: nuevoCapital } : i));
-        }
+        setInversionesData(prev => prev.map(i =>
+          i.id === invId ? { ...i, capital: (i.capital || 0) + monto } : i
+        ));
       }
-
-      // C) Actualizar Deuda
       if (deudaId) {
-        const deuda = deudasData.find(d => d.id === deudaId);
-        if (deuda) {
-          const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto);
-          const nuevosPagados = (deuda.pagadas || 0) + 1;
-          const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa';
-
-          await supabase.from('deudas').update({
-            pendiente: nuevoPendiente,
-            pagadas: nuevosPagados,
-            estado: nuevoEstado,
-          }).eq('id', deudaId);
-
-          const esAbono = nuevoPendiente > 0;
-          const descMovimiento = descFinal !== (form.tipo === 'egreso' ? 'Gasto' : 'Ingreso')
-            ? descFinal
-            : `${esAbono ? 'Abono' : 'Pago'}: ${deuda.nombre}`;
-
-          // Insertar en historial de deudas
-          const { data: dmData } = await supabase.from('deuda_movimientos').insert([{
-            deuda_id: deudaId,
-            tipo: 'pago',
-            descripcion: descMovimiento,
-            monto,
-            fecha: form.fecha,
-            mes: visMes,
-            año: visAño,
-          }]).select();
-
-          // Vincular el movimiento con el historial de deuda
-          if (dmData?.[0]?.id) {
-            await supabase.from('movimientos')
-              .update({
-                descripcion: descMovimiento,
-                deuda_movimiento_id: dmData[0].id
-              })
-              .eq('id', nuevoMov.id);
-
-            setMovs(prev => prev.map(m =>
-              m.id === nuevoMov.id ? { ...m, descripcion: descMovimiento, deuda_movimiento_id: dmData[0].id } : m
-            ));
-          }
-
-          setDeudasData(prev => prev.map(d =>
-            d.id === deudaId ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados } : d
-          ));
-        }
+        setDeudasData(prev => prev.map(d => {
+          if (d.id !== deudaId) return d;
+          const nuevoPendiente = Math.max(0, (d.pendiente || 0) - monto);
+          return { ...d, pendiente: nuevoPendiente, pagadas: (d.pagadas || 0) + 1 };
+        }));
       }
 
       toast('Movimiento guardado', 'success');
@@ -421,115 +389,52 @@ export default function GastosPage() {
   function handleDelete(movimiento) {
     showConfirm(`¿Eliminar "${movimiento.descripcion}"?`, async () => {
       try {
-        // ── Revertir meta ─────────────────────────────────────────────────────
-        if (movimiento.categoria === 'ahorro') {
-          const meta = movimiento.meta_id
-            ? metasData.find(m => m.id === movimiento.meta_id)
-            : metasData.find(m => m.nombre === movimiento.descripcion)
-          if (meta) {
-            const nuevoActual = Math.max(0, (meta.actual || 0) - movimiento.monto)
-            await supabase.from('metas').update({ actual: nuevoActual }).eq('id', meta.id)
-            setMetasData(prev => prev.map(m => m.id === meta.id ? { ...m, actual: nuevoActual } : m))
-          }
-        }
+        // ── RPC atómica: revierte metas/inversiones/deudas + borra movimiento ─
+        const { error } = await supabase.rpc('revertir_movimiento', { p_mov_id: movimiento.id })
+        if (error) { toast('Error: ' + error.message, 'error'); return }
 
-        // ── Revertir inversión ────────────────────────────────────────────────
-        if (movimiento.categoria === 'inversion') {
-          const inv = movimiento.inversion_id
-            ? inversionesData.find(i => i.id === movimiento.inversion_id)
-            : inversionesData.find(i => i.nombre === movimiento.descripcion)
-          if (inv) {
-            const nuevoCapital = Math.max(0, (inv.capital || 0) - movimiento.monto)
-            await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', inv.id)
-            setInversionesData(prev => prev.map(i => i.id === inv.id ? { ...i, capital: nuevoCapital } : i))
-          }
-        }
-
-        // ── Revertir deuda ────────────────────────────────────────────────────
-        let deudaMovimientoId = movimiento.deuda_movimiento_id || null
-
-        if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
-          const { data: deudaData } = await supabase
-            .from('deudas').select('id, pendiente, monto, pagadas, estado')
-            .eq('id', movimiento.deuda_id).single()
-
-          if (deudaData) {
-            const nuevoPendiente = Math.min(
-              deudaData.monto || (deudaData.pendiente + movimiento.monto),
-              (deudaData.pendiente || 0) + movimiento.monto
-            )
-            const nuevosPagados = Math.max(0, (deudaData.pagadas || 0) - 1)
-            const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-
-            await supabase.from('deudas').update({
-              pendiente: nuevoPendiente,
-              pagadas: nuevosPagados,
-              estado: nuevoEstado,
-            }).eq('id', movimiento.deuda_id)
-
-            setDeudasData(prev => prev.map(d =>
-              d.id === movimiento.deuda_id
-                ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados }
-                : d
-            ))
-          }
-        }
-
-        // BUG FIX: borrar movimientos PRIMERO (tiene FK a deuda_movimientos)
-        // Si se borra deuda_movimientos antes, la FK violation impide la operación
-        const { error } = await supabase.from('movimientos').delete().eq('id', movimiento.id)
-        if (error) { toast('' + error.message); return }
         setMovs(prev => prev.filter(m => m.id !== movimiento.id))
 
-        // Si era un gasto del sobre con traspaso, borrar también el sobre_movimiento huérfano
+        // Sincronizar estado local de metas, inversiones y deudas
+        if (movimiento.categoria === 'ahorro' && movimiento.meta_id) {
+          setMetasData(prev => prev.map(m =>
+            m.id === movimiento.meta_id
+              ? { ...m, actual: Math.max(0, (m.actual || 0) - movimiento.monto) }
+              : m
+          ))
+        }
+        if (movimiento.categoria === 'inversion' && movimiento.inversion_id) {
+          setInversionesData(prev => prev.map(i =>
+            i.id === movimiento.inversion_id
+              ? { ...i, capital: Math.max(0, (i.capital || 0) - movimiento.monto) }
+              : i
+          ))
+        }
+        if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
+          setDeudasData(prev => prev.map(d =>
+            d.id === movimiento.deuda_id
+              ? { ...d, pendiente: (d.pendiente || 0) + movimiento.monto, pagadas: Math.max(0, (d.pagadas || 0) - 1) }
+              : d
+          ))
+        }
+
+        // Limpiar sobre_movimientos huérfanos (lógica de sobres, no cubierta por la RPC)
         if (movimiento.categoria === 'deseo' && movimiento.fecha) {
           const { data: smRows } = await supabase
-            .from('sobre_movimientos')
-            .select('id')
+            .from('sobre_movimientos').select('id')
             .in('origen', ['basicos', 'metas', 'inversiones'])
-            .eq('destino', 'sobre')
-            .eq('fecha', movimiento.fecha)
-            .eq('monto', movimiento.monto)
-            .limit(1)
-          if (smRows?.[0]?.id) {
-            await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
-          }
+            .eq('destino', 'sobre').eq('fecha', movimiento.fecha).eq('monto', movimiento.monto).limit(1)
+          if (smRows?.[0]?.id) await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
         }
-
-        // Si era un sobrante enviado DESDE el sobre a metas/inversiones, borrar el sobre_movimiento huérfano
         if ((movimiento.categoria === 'ahorro' || movimiento.categoria === 'inversion') && movimiento.fecha) {
           const { data: smRows } = await supabase
-            .from('sobre_movimientos')
-            .select('id')
-            .eq('origen', 'sobre')
-            .eq('fecha', movimiento.fecha)
-            .eq('monto', movimiento.monto)
-            .limit(1)
-          if (smRows?.[0]?.id) {
-            await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
-          }
+            .from('sobre_movimientos').select('id')
+            .eq('origen', 'sobre').eq('fecha', movimiento.fecha).eq('monto', movimiento.monto).limit(1)
+          if (smRows?.[0]?.id) await supabase.from('sobre_movimientos').delete().eq('id', smRows[0].id)
         }
 
-        // Ahora sí borrar deuda_movimientos (ya sin referencias en movimientos)
-        if (movimiento.categoria === 'deuda' && deudaMovimientoId) {
-          await supabase.from('deuda_movimientos').delete().eq('id', deudaMovimientoId)
-        } else if (movimiento.categoria === 'deuda' && movimiento.deuda_id) {
-          // fallback legacy: SELECT primero para obtener el ID exacto, luego DELETE por ID
-          // (Supabase no soporta .limit() en DELETE — borraría todos los matches)
-          const { data: dmRows } = await supabase
-            .from('deuda_movimientos')
-            .select('id')
-            .eq('deuda_id', movimiento.deuda_id)
-            .eq('tipo', 'pago')
-            .eq('monto', movimiento.monto)
-            .eq('fecha', movimiento.fecha)
-            .limit(1)
-          if (dmRows?.[0]?.id) {
-            await supabase.from('deuda_movimientos').delete().eq('id', dmRows[0].id)
-          }
-        }
       } catch (err) {
-        toast('Error al eliminar el movimiento')
+        toast('Error al eliminar el movimiento', 'error')
       }
     })
   }

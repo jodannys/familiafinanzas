@@ -481,21 +481,32 @@ export default function InversionesPage() {
     const nuevoCapital = (selected.capital || 0) + monto
     const fecha = formAporte.fecha || new Date().toISOString().slice(0, 10)
 
-    const { error: errInv } = await supabase
-      .from('inversiones')
-      .update({ capital: nuevoCapital })
-      .eq('id', selected.id)
-
-    if (errInv) { setError(errInv.message); setSavingAporte(false); return }
-
-    await supabase.from('movimientos').insert([{
+    // Paso 1: INSERT movimiento primero (con .select() para obtener el id)
+    const { data: movData, error: movErr } = await supabase.from('movimientos').insert([{
       tipo: 'egreso',
       categoria: 'inversion',
       monto,
       descripcion: formAporte.descripcion || `Aporte a ${selected.nombre}`,
       fecha, quien: 'Ambos',
       inversion_id: selected.id,
-    }])
+    }]).select()
+
+    if (movErr) { setError(movErr.message); setSavingAporte(false); return }
+
+    // Paso 2: UPDATE inversiones — si falla, rollback del movimiento recién insertado
+    const { error: errInv } = await supabase
+      .from('inversiones')
+      .update({ capital: nuevoCapital })
+      .eq('id', selected.id)
+
+    if (errInv) {
+      if (movData?.[0]?.id) {
+        await supabase.from('movimientos').delete().eq('id', movData[0].id)
+      }
+      setError(errInv.message)
+      setSavingAporte(false)
+      return
+    }
 
     const updated = { ...selected, capital: nuevoCapital }
     setInversiones(prev => prev.map(i => i.id === selected.id ? updated : i))
@@ -516,15 +527,27 @@ export default function InversionesPage() {
     setSavingRetiro(true)
 
     const nuevoCapital = (selected.capital || 0) - monto
-    const { error: errInv } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', selected.id)
-    if (errInv) { setError(errInv.message); setSavingRetiro(false); return }
 
-    await supabase.from('movimientos').insert([{
+    // Paso 1: INSERT movimiento primero (con .select() para obtener el id)
+    const { data: movRetiroData, error: movRetiroErr } = await supabase.from('movimientos').insert([{
       tipo: 'retiro', categoria: 'inversion',
       descripcion: `Retiro: ${selected.nombre}`,
       monto, fecha: fechaHoy(), quien: 'Ambos',
       inversion_id: selected.id,
-    }])
+    }]).select()
+
+    if (movRetiroErr) { setError(movRetiroErr.message); setSavingRetiro(false); return }
+
+    // Paso 2: UPDATE inversiones — si falla, rollback del movimiento recién insertado
+    const { error: errInv } = await supabase.from('inversiones').update({ capital: nuevoCapital }).eq('id', selected.id)
+    if (errInv) {
+      if (movRetiroData?.[0]?.id) {
+        await supabase.from('movimientos').delete().eq('id', movRetiroData[0].id)
+      }
+      setError(errInv.message)
+      setSavingRetiro(false)
+      return
+    }
 
     const updated = { ...selected, capital: nuevoCapital }
     setInversiones(prev => prev.map(i => i.id === selected.id ? updated : i))

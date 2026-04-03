@@ -22,9 +22,12 @@
       "Read(//c/Users/jodan/Downloads/**)",
       "Bash(python3 -c \":*)",
       "Bash(mkdir -p \"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/supabase/migrations\")",
-      "Bash(mkdir -p \"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/src/components/inmuebles\")",
+      "Bash(mkdir -p \"c:/Users/jodan/OneDrive/Escristorio/familiafinanzas/src/components/inmuebles\")",
       "Bash(\"c:/Users/jodan/OneDrive/Escritorio/familiafinanzas/src/app/globals.css\")",
       "Bash(grep -l \"bg-secondary\\\\|sidebar-bg\\\\|bg-primary\\\\|bg-card\\\\|bg-glass\" c:UsersjodanOneDriveEscritoriofamiliafinanzassrcapp*.js c:UsersjodanOneDriveEscritoriofamiliafinanzassrccomponentsui*.js)"
     ]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   }
 }

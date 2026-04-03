@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase, signIn } from '@/lib/supabase'
+import { supabase, validarTokenInvitacion, inicializarHogar, aceptarInvitacion } from '@/lib/supabase'
 import { Loader2, Eye, EyeOff, ArrowLeft, Mail, CheckCircle, Lock, UserCircle2 } from 'lucide-react'
 
 function LoginContent() {
@@ -20,19 +20,52 @@ function LoginContent() {
   const [nombre, setNombre] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [showConfirmPwd, setShowConfirmPwd] = useState(false)
+  // Estado de invitación
+  const [invToken, setInvToken] = useState(null)
+  const [invInfo, setInvInfo] = useState(null) // { nombre_hogar, rol_asignado, email }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const type = searchParams.get('type')
-      if (type === 'recovery' && session) {
-        setMode('reset')
+    async function checkSession() {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (error) {
+          await supabase.auth.signOut()
+          setChecking(false)
+          return
+        }
+        const type  = searchParams.get('type')
+        const token = searchParams.get('token')
+
+        if (type === 'recovery' && user) {
+          setMode('reset')
+          setChecking(false)
+          return
+        }
+        if (user && type !== 'recovery') {
+          router.replace('/')
+          setChecking(false)
+          return
+        }
+
+        // Validar token de invitación si está presente
+        if (token) {
+          const inv = await validarTokenInvitacion(token)
+          if (inv?.valida) {
+            setInvToken(token)
+            setInvInfo(inv)
+            setEmail(inv.email)
+            setMode('register')
+          } else {
+            setError(inv?.error || 'Invitación inválida')
+          }
+        }
         setChecking(false)
-      } else if (session && type !== 'recovery') {
-        router.replace('/')
-      } else {
+      } catch {
+        await supabase.auth.signOut()
         setChecking(false)
       }
-    })
+    }
+    checkSession()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setMode('reset')
@@ -41,18 +74,27 @@ function LoginContent() {
     return () => subscription.unsubscribe()
   }, [searchParams, router])
 
-  async function handleLogin(e) {
+ async function handleLogin(e) {
     e.preventDefault()
     if (!email || !password) return
-    setLoading(true); setError('')
-    const { data, error } = await signIn(email.trim(), password)
-    if (error) {
-      setError('Credenciales no válidas')
+    setLoading(true)
+    setError('')
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      })
+      if (error) {
+        setError('Credenciales no válidas')
+      } else {
+        const nombreGuardado = data?.user?.user_metadata?.nombre
+        if (!nombreGuardado) setMode('nombre')
+        else window.location.href = '/'
+      }
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.')
+    } finally {
       setLoading(false)
-    } else {
-      const nombreGuardado = data?.user?.user_metadata?.nombre
-      if (!nombreGuardado) { setLoading(false); setMode('nombre') }
-      else router.replace('/')
     }
   }
 
@@ -62,26 +104,38 @@ function LoginContent() {
     if (password !== confirmPwd) { setError('Las contraseñas no coinciden'); return }
     if (password.length < 6) { setError('Mínimo 6 caracteres'); return }
     setLoading(true); setError('')
+
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: { data: { nombre: nombre.trim() } },
     })
+
     if (error) {
       setError(error.message === 'User already registered' ? 'Este correo ya está registrado' : 'No se pudo crear la cuenta')
       setLoading(false)
       return
     }
-    if (data?.user) {
-      // Sincronizar nombre en perfiles_familia
-      await supabase.from('perfiles_familia').upsert(
-        { nombre: nombre.trim() },
-        { onConflict: 'nombre', ignoreDuplicates: true }
-      )
+
+    if (data?.session) {
+      // Sesión activa → crear perfil en la BD
+      const nombreFinal = nombre.trim()
+      if (invToken) {
+        // Flujo invitación: unirse a hogar existente
+        const { data: res } = await aceptarInvitacion(invToken, nombreFinal)
+        if (res && !res.ok) {
+          setError(res.error || 'Error al aceptar la invitación')
+          setLoading(false)
+          return
+        }
+      } else {
+        // Flujo normal: crear hogar propio como admin
+        await inicializarHogar(nombreFinal)
+      }
       setLoading(false)
-      router.replace('/')
+      window.location.href = '/'
     } else {
-      // Email confirmation required
+      // Supabase requiere confirmación de email → sesión pendiente
       setLoading(false)
       setSent(true)
     }
@@ -106,7 +160,7 @@ function LoginContent() {
     const { error } = await supabase.auth.updateUser({ password: newPwd })
     setLoading(false)
     if (error) setError('No se pudo actualizar la contraseña')
-    else router.replace('/')
+    else window.location.href = '/'
   }
 
   async function handleGuardarNombre(e) {
@@ -126,7 +180,7 @@ function LoginContent() {
     )
 
     setLoading(false)
-    router.replace('/')
+    window.location.href = '/'
   }
 
   if (checking) return (
@@ -166,15 +220,15 @@ function LoginContent() {
           {mode === 'login' && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
-                <input type="email" placeholder="nombre@familia.com"
+                <label htmlFor="login-email" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
+                <input id="login-email" name="email" type="email" placeholder="nombre@familia.com"
                   value={email} onChange={e => setEmail(e.target.value)}
                   className="ff-input w-full" autoFocus />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
+                <label htmlFor="login-password" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
                 <div className="relative">
-                  <input type={showPwd ? 'text' : 'password'} placeholder="••••••••"
+                  <input id="login-password" name="password" type={showPwd ? 'text' : 'password'} placeholder="••••••••"
                     value={password} onChange={e => setPassword(e.target.value)}
                     className="ff-input w-full pr-12" />
                   <button type="button" onClick={() => setShowPwd(!showPwd)}
@@ -222,6 +276,13 @@ function LoginContent() {
           {/* ── REGISTER ── */}
           {mode === 'register' && (
             <form onSubmit={handleRegister} className="space-y-4">
+              {/* Banner de invitación */}
+              {invInfo && (
+                <div className="p-3 rounded-2xl text-[11px] font-medium text-center border"
+                  style={{ background: 'color-mix(in srgb, var(--accent-green) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--accent-green) 20%, transparent)', color: 'var(--text-secondary)' }}>
+                  Te invitaron a unirte a <span className="font-black" style={{ color: 'var(--accent-green)' }}>{invInfo.nombre_hogar}</span> como <span className="font-bold">{invInfo.rol_asignado}</span>
+                </div>
+              )}
               {sent ? (
                 <div className="flex flex-col items-center gap-6 py-4 text-center">
                   <div className="w-20 h-20 rounded-full flex items-center justify-center"
@@ -242,21 +303,22 @@ function LoginContent() {
               ) : (
                 <>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Tu nombre</label>
-                    <input type="text" placeholder="¿Cómo te llamamos?"
+                    <label htmlFor="reg-nombre" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Tu nombre</label>
+                    <input id="reg-nombre" name="nombre" type="text" placeholder="¿Cómo te llamamos?"
                       value={nombre} onChange={e => setNombre(e.target.value)}
                       className="ff-input w-full" autoFocus />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
-                    <input type="email" placeholder="nombre@familia.com"
-                      value={email} onChange={e => setEmail(e.target.value)}
-                      className="ff-input w-full" />
+                    <label htmlFor="reg-email" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
+                    <input id="reg-email" name="email" type="email" placeholder="nombre@familia.com"
+                      value={email} onChange={e => !invToken && setEmail(e.target.value)}
+                      readOnly={!!invToken}
+                      className={`ff-input w-full ${invToken ? 'opacity-60 cursor-not-allowed' : ''}`} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
+                    <label htmlFor="reg-password" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
                     <div className="relative">
-                      <input type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
+                      <input id="reg-password" name="password" type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
                         value={password} onChange={e => setPassword(e.target.value)}
                         className="ff-input w-full pr-12" />
                       <button type="button" onClick={() => setShowPwd(!showPwd)}
@@ -266,9 +328,9 @@ function LoginContent() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Confirmar contraseña</label>
+                    <label htmlFor="reg-confirm" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Confirmar contraseña</label>
                     <div className="relative">
-                      <input type={showConfirmPwd ? 'text' : 'password'} placeholder="Repite la contraseña"
+                      <input id="reg-confirm" name="confirm_password" type={showConfirmPwd ? 'text' : 'password'} placeholder="Repite la contraseña"
                         value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)}
                         className={`ff-input w-full pr-12 ${confirmPwd && confirmPwd !== password ? 'error' : ''}`} />
                       <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)}
@@ -417,3 +479,4 @@ export default function LoginPage() {
     </Suspense>
   )
 }
+
