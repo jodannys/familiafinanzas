@@ -82,6 +82,21 @@ function LoginContent() {
         }
 
         if (user) {
+          // Verificar si el usuario ya tiene perfil
+          const { data: perfil } = await supabase.rpc('get_mis_permisos')
+          if (!perfil) {
+            // Nuevo usuario que acaba de confirmar email: crear hogar con los datos guardados
+            const nombreMeta = user.user_metadata?.nombre || ''
+            const nombreHogarMeta = user.user_metadata?.nombre_hogar || 'Mi Familia'
+            if (nombreMeta) {
+              await inicializarHogar(nombreMeta, nombreHogarMeta)
+            } else {
+              // No tiene nombre guardado → mostrar pantalla de nombre
+              setMode('nombre')
+              setChecking(false)
+              return
+            }
+          }
           router.replace('/')
           setChecking(false)
           return
@@ -145,7 +160,10 @@ function LoginContent() {
       email: email.trim(),
       password,
       options: {
-        data: { nombre: nombre.trim() },
+        data: {
+          nombre: nombre.trim(),
+          nombre_hogar: invToken ? undefined : nombreHogar.trim(),
+        },
         emailRedirectTo: redirectTo,
       },
     })
@@ -212,11 +230,17 @@ function LoginContent() {
     const { error } = await supabase.auth.updateUser({ data: { nombre: nombreFinal } })
     if (error) { setError('Error al guardar el perfil'); setLoading(false); return }
 
-    // 2. Sincronizar en perfiles_familia para que useQuien lo detecte automáticamente
-    await supabase.from('perfiles_familia').upsert(
-      { nombre: nombreFinal },
-      { onConflict: 'nombre', ignoreDuplicates: true }
-    )
+    // 2. Crear perfil en hogares si no existe (usuario sin hogar)
+    const { data: perfil } = await supabase.rpc('get_mis_permisos')
+    if (!perfil) {
+      const { data: { user: u } } = await supabase.auth.getUser()
+      const nombreHogarMeta = u?.user_metadata?.nombre_hogar || 'Mi Familia'
+      await inicializarHogar(nombreFinal, nombreHogarMeta)
+    } else {
+      // Ya tiene perfil: solo actualizar nombre
+      const { data: { user: u } } = await supabase.auth.getUser()
+      if (u) await supabase.from('perfiles').update({ nombre: nombreFinal }).eq('id', u.id)
+    }
 
     setLoading(false)
     window.location.href = '/'
