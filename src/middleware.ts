@@ -35,18 +35,14 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Archivos estáticos públicos — pasar sin procesar auth
+  // Archivos estáticos públicos y callback — pasar sin procesar auth
   if (
     pathname === '/manifest.json' ||
     pathname === '/robots.txt' ||
-    pathname === '/sitemap.xml'
+    pathname === '/sitemap.xml' ||
+    pathname.startsWith('/auth/callback')
   ) {
     return NextResponse.next()
-  }
-
-  // No redirigir si estamos en el callback de autenticación
-  if (pathname.startsWith('/auth/callback')) {
-    return supabaseResponse
   }
 
   // getUser() dispara el refresco del token y ejecuta setAll() si es necesario
@@ -95,8 +91,8 @@ export const config = {
      * Excluye todas las rutas que NO deben ser procesadas por el middleware:
      * - _next/static, _next/image (archivos internos de Next.js)
      * - favicon.ico, manifest.json, sitemap.xml, robots.txt (metadatos)
-     * - Archivos de imagen (svg, png, jpg, etc.)
+     * - Archivos de imagen y otros estáticos
      */
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json)$).*)',
   ],
 }
