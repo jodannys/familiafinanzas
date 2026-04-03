@@ -52,12 +52,11 @@ export function useAuthFlow() {
 
       if (!perfil) {
         console.log('[AuthFlow] No se encontró perfil. Buscando metadata en el usuario...')
-        const nombreMeta = user.user_metadata?.nombre
-          || user.user_metadata?.full_name
-          || user.user_metadata?.name
-          || ''
+        // Solo usamos el nombre que *nosotros* guardamos (registro email/invitación).
+        // Ignoramos full_name/name de Google para no saltarnos el formulario de bienvenida.
+        const nombreMeta = user.user_metadata?.nombre || ''
         const nombreHogarMeta = user.user_metadata?.nombre_hogar || 'Mi Familia'
-        
+
         console.log('[AuthFlow] Metadata extraída:', { nombreMeta, nombreHogarMeta })
 
         if (nombreMeta) {
@@ -66,7 +65,7 @@ export function useAuthFlow() {
           console.log('[AuthFlow] 🚀 Redirigiendo a / (desde handleAuthenticatedUser > !perfil > inicializarHogar)')
           router.replace('/')
         } else {
-          console.log('[AuthFlow] Falta nombre en metadata. Cambiando a modo: nombre')
+          console.log('[AuthFlow] Falta nombre guardado. Cambiando a modo: nombre')
           setMode('nombre')
           setChecking(false)
         }
