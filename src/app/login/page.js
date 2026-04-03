@@ -31,13 +31,31 @@ function LoginContent() {
         const type  = searchParams.get('type')
         const token = searchParams.get('token')
 
-        // El token de invitación tiene prioridad absoluta.
-        // Si hay sesión activa (ej: el admin que envió el link), se cierra
-        // para que el invitado pueda registrarse con su propia cuenta.
         if (token) {
+          // Caso A: el invitado acaba de confirmar su email y regresa con token+code
+          // La sesión ya fue establecida por Supabase al intercambiar el code.
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const inv = await validarTokenInvitacion(token)
+            if (inv?.valida) {
+              const nombreFinal = user.user_metadata?.nombre || ''
+              const { data: res, error: invError } = await aceptarInvitacion(token, nombreFinal)
+              if (!invError && res?.ok) {
+                window.location.href = '/'
+                return
+              }
+              setError(res?.error || invError?.message || 'Error al aceptar la invitación')
+            } else {
+              setError(inv?.error || 'Invitación inválida o expirada')
+            }
+            setChecking(false)
+            return
+          }
+
+          // Caso B: primera visita al link (sin sesión). Cerrar sesión del admin si la hay.
+          await supabase.auth.signOut()
           const inv = await validarTokenInvitacion(token)
           if (inv?.valida) {
-            await supabase.auth.signOut()
             setInvToken(token)
             setInvInfo(inv)
             setEmail(inv.email)
@@ -119,10 +137,17 @@ function LoginContent() {
     if (password.length < 6) { setError('Mínimo 6 caracteres'); return }
     setLoading(true); setError('')
 
+    const redirectTo = invToken
+      ? `${window.location.origin}/login?token=${invToken}`
+      : `${window.location.origin}/login`
+
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { nombre: nombre.trim() } },
+      options: {
+        data: { nombre: nombre.trim() },
+        emailRedirectTo: redirectTo,
+      },
     })
 
     if (error) {
