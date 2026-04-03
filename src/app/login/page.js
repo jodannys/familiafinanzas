@@ -28,38 +28,47 @@ function LoginContent() {
   useEffect(() => {
     async function checkSession() {
       try {
+        const type  = searchParams.get('type')
+        const token = searchParams.get('token')
+
+        // El token de invitación tiene prioridad absoluta.
+        // Si hay sesión activa (ej: el admin que envió el link), se cierra
+        // para que el invitado pueda registrarse con su propia cuenta.
+        if (token) {
+          const inv = await validarTokenInvitacion(token)
+          if (inv?.valida) {
+            await supabase.auth.signOut()
+            setInvToken(token)
+            setInvInfo(inv)
+            setEmail(inv.email)
+            setMode('register')
+          } else {
+            setError(inv?.error || 'Invitación inválida o expirada')
+          }
+          setChecking(false)
+          return
+        }
+
+        // Sin token: flujo normal de sesión
         const { data: { user }, error } = await supabase.auth.getUser()
         if (error) {
           await supabase.auth.signOut()
           setChecking(false)
           return
         }
-        const type  = searchParams.get('type')
-        const token = searchParams.get('token')
 
         if (type === 'recovery' && user) {
           setMode('reset')
           setChecking(false)
           return
         }
-        if (user && type !== 'recovery') {
+
+        if (user) {
           router.replace('/')
           setChecking(false)
           return
         }
 
-        // Validar token de invitación si está presente
-        if (token) {
-          const inv = await validarTokenInvitacion(token)
-          if (inv?.valida) {
-            setInvToken(token)
-            setInvInfo(inv)
-            setEmail(inv.email)
-            setMode('register')
-          } else {
-            setError(inv?.error || 'Invitación inválida')
-          }
-        }
         setChecking(false)
       } catch {
         await supabase.auth.signOut()
