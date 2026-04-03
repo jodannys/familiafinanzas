@@ -236,14 +236,14 @@ export function useAuthFlow() {
     setLoading(true); setError('')
     const nombreFinal = form.nombre.trim()
 
-    const { error } = await supabase.auth.updateUser({ data: { nombre: nombreFinal } })
+    const nombreHogarFinal = form.nombreHogar.trim() || 'Mi Familia'
+
+    const { error } = await supabase.auth.updateUser({ data: { nombre: nombreFinal, nombre_hogar: nombreHogarFinal } })
     if (error) { setError('Error al guardar el perfil'); setLoading(false); return }
 
     const { data: perfil } = await supabase.rpc('get_mis_permisos')
     if (!perfil) {
-      const { data: { user: u } } = await supabase.auth.getUser()
-      const nombreHogarMeta = u?.user_metadata?.nombre_hogar || 'Mi Familia'
-      await inicializarHogar(nombreFinal, nombreHogarMeta)
+      await inicializarHogar(nombreFinal, nombreHogarFinal)
     } else {
       const { data: { user: u } } = await supabase.auth.getUser()
       if (u) await supabase.from('perfiles').update({ nombre: nombreFinal }).eq('id', u.id)

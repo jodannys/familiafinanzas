@@ -316,25 +316,33 @@ function LoginContent() {
 
           {/* ── NOMBRE (ONBOARDING) ── */}
           {mode === 'nombre' && (
-            <form onSubmit={handleGuardarNombre} className="space-y-6">
+            <form onSubmit={handleGuardarNombre} className="space-y-4">
               <div className="flex flex-col items-center text-center space-y-2">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
                   style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)', color: 'var(--accent-blue)' }}>
                   <UserCircle2 size={40} strokeWidth={1.5} aria-hidden="true" />
                 </div>
                 <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>¡Bienvenido!</h2>
-                <p className="text-[12px] opacity-60 leading-relaxed">¿Cómo quieres que te llamemos?</p>
+                <p className="text-[12px] opacity-60 leading-relaxed">Cuéntanos un poco sobre ti y tu familia</p>
               </div>
-              <label htmlFor="onboarding-nombre" className="sr-only">Tu nombre</label>
-              <input id="onboarding-nombre" type="text" placeholder="Tu nombre..." value={form.nombre}
-                onChange={e => updateForm('nombre', e.target.value)}
-                className="ff-input w-full text-center text-lg font-bold" autoFocus />
+              <div className="space-y-1.5">
+                <label htmlFor="onboarding-nombre" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Tu nombre</label>
+                <input id="onboarding-nombre" type="text" placeholder="¿Cómo te llamamos?" value={form.nombre}
+                  onChange={e => updateForm('nombre', e.target.value)}
+                  className="ff-input w-full" autoFocus />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="onboarding-hogar" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Nombre de tu familia</label>
+                <input id="onboarding-hogar" type="text" placeholder="Ej: Familia Quintero" value={form.nombreHogar}
+                  onChange={e => updateForm('nombreHogar', e.target.value)}
+                  className="ff-input w-full" />
+              </div>
               {error && (
                 <div role="alert" className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>
               )}
-              <button type="submit" disabled={loading || !form.nombre.trim()}
+              <button type="submit" disabled={loading || !form.nombre.trim() || !form.nombreHogar.trim()}
                 className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-                style={{ background: form.nombre.trim() ? 'var(--text-primary)' : 'var(--bg-secondary)', color: form.nombre.trim() ? 'var(--bg-card)' : 'var(--text-muted)' }}>
+                style={{ background: form.nombre.trim() && form.nombreHogar.trim() ? 'var(--text-primary)' : 'var(--bg-secondary)', color: form.nombre.trim() && form.nombreHogar.trim() ? 'var(--bg-card)' : 'var(--text-muted)' }}>
                 {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Comenzar →'}
               </button>
             </form>
