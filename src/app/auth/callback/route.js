@@ -6,7 +6,7 @@ export async function GET(request) {
   const code = requestUrl.searchParams.get('code')
   const origin = requestUrl.origin
 
-  const response = NextResponse.redirect(origin)
+  const response = NextResponse.redirect(`${origin}/login`)
 
   if (code) {
     const supabase = createServerClient(
