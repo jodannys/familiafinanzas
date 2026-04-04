@@ -77,13 +77,13 @@ useEffect(() => {
   })
 }, [router])
 
-  // ── Cargar miembros del hogar (perfiles_familia = quién gasta) ────────────
+  // ── Cargar miembros del hogar (perfiles = usuarios registrados en el hogar) ──
   useEffect(() => {
     if (!rolVerificado) return
     supabase
-      .from('perfiles_familia')
+      .from('perfiles')
       .select('id, nombre')
-      .order('created_at')
+      .order('nombre')
       .then(({ data }) => setMiembros(data || []))
   }, [rolVerificado])
   
