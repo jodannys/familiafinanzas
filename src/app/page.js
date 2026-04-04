@@ -477,7 +477,7 @@ export default function Dashboard() {
         <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--text-muted)', marginBottom: 6 }}>
           Ingresos — {mesNombre}
         </p>
-        <p style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--text-primary)', marginBottom: 20 }}>
+        <p style={{ fontSize: 30, fontWeight: 600, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--text-primary)', marginBottom: 20 }}>
           {formatCurrency(ingresosMes)}
         </p>
         <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border-glass)', paddingTop: 16 }}>
