@@ -146,7 +146,7 @@ useEffect(() => {
       toast('Error: ' + (error?.message || data?.error || 'No se pudo generar la invitación'))
       return
     }
-    const baseUrl = 'https://finanzas-two-delta.vercel.app'
+   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const token = data.token || data // Depende de qué devuelva exactamente tu RPC
 
     setLinkGenerado(`${baseUrl}/login?token=${token}`)
