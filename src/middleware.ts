@@ -38,6 +38,7 @@ export async function middleware(request: NextRequest) {
   // Archivos estáticos públicos y callback — pasar sin procesar auth
   if (
     pathname === '/manifest.json' ||
+    pathname === '/manifest.webmanifest' ||
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml' ||
     pathname.startsWith('/auth/callback')
@@ -93,6 +94,6 @@ export const config = {
      * - favicon.ico, manifest.json, sitemap.xml, robots.txt (metadatos)
      * - Archivos de imagen y otros estáticos
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|webmanifest)$).*)',
   ],
 }
