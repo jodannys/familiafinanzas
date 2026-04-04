@@ -8,7 +8,7 @@ import { Plus, Minus, Loader2, Trash2, Pencil, Pause, Play, Check, Target, Trend
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
-import { formatCurrency, getFlagEmoji } from '@/lib/utils'
+import { formatCurrency, getFlagEmoji, fechaHoy } from '@/lib/utils'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -23,10 +23,6 @@ function SortableItem({ id, children }) {
   )
 }
 
-function fechaHoy() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 function mesesRestantes(actual, meta, pctMensual, montoDisponible = 0) {
   if (actual >= meta) return 'Completada'

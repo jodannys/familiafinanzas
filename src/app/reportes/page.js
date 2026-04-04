@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Loader2, TrendingUp, TrendingDown, Wallet, PiggyBank, BarChart3, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   Tooltip, Cell, Legend
@@ -128,6 +129,8 @@ export default function ReportesPage() {
         setBloques(blqData || [])
         setMovsAnterior(movAntData || [])
       } catch (err) {
+        console.error('Error cargando reportes:', err)
+        toast('Error cargando datos de reportes')
       } finally {
         setLoading(false)
       }

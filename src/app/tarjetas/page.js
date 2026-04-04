@@ -318,6 +318,7 @@ export default function TarjetasPage() {
         </div>
         <button onClick={() => openModal()} className="ff-btn-primary flex items-center gap-2">
           <Plus size={16} strokeWidth={3} />
+          <span className="hidden sm:inline text-sm font-semibold">Agregar</span>
         </button>
       </div>
 

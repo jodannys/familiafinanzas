@@ -76,6 +76,8 @@ export default function AjustesPage() {
       setMetas(metasData || [])
       setInversiones(invData || [])
     } catch (err) {
+      console.error('Error cargando ajustes:', err)
+      toast('Error cargando configuración')
     } finally {
       setLoading(false)
     }

@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
 /**
- * Hook que construye las opciones de "¿Quién?" a partir de:
- *  1. Los usuarios registrados en `perfiles_familia` (se puebla automáticamente al hacer login)
- *  2. El nombre del usuario actual (user_metadata.nombre) como fallback
+ * Hook que construye las opciones de "¿Quién?" a partir de
+ * los miembros registrados en `perfiles` del mismo hogar.
  *
  * - 1 miembro  → opciones: [{ id: nombre, label: nombre }]
  *               default: ese nombre
@@ -17,29 +16,12 @@ export function useQuien() {
 
   useEffect(() => {
     async function cargar() {
-      // Obtener nombre del usuario actual desde auth (siempre disponible)
-      const { data: { user } } = await supabase.auth.getUser()
-      const nombreActual = user?.user_metadata?.nombre
-
-      // Leer todos los perfiles registrados
       const { data } = await supabase
-        .from('perfiles_familia')
+        .from('perfiles')
         .select('nombre')
         .order('created_at')
 
-      let nombres = (data || []).map(p => p.nombre)
-
-      // Si el usuario actual tiene nombre pero aún no está en la tabla, añadirlo
-      if (nombreActual && !nombres.includes(nombreActual)) {
-        // Sincronizar en background para futuros accesos
-        supabase.from('perfiles_familia').upsert(
-          { nombre: nombreActual },
-          { onConflict: 'nombre', ignoreDuplicates: true }
-        )
-        nombres = [...nombres, nombreActual]
-      }
-
-      setPerfiles(nombres)
+      setPerfiles((data || []).map(p => p.nombre))
       setLoadingQuien(false)
     }
 

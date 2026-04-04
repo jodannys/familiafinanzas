@@ -11,7 +11,7 @@ export default function NotFound() {
         justifyContent: 'center',
         gap: 16,
         padding: 24,
-        background: 'var(--bg-base)',
+        background: 'var(--bg-primary)',
       }}
     >
       <div

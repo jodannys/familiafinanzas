@@ -273,7 +273,15 @@ export function getThemeColors(themeName) {
 const ThemeContext = createContext({ theme: 'linen', setTheme: () => { } })
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState('linen')
+  // Inicializa desde localStorage directamente para evitar flash
+  const [theme, setThemeState] = useState(() => {
+    if (typeof window === 'undefined') return 'linen'
+    try {
+      const saved = localStorage.getItem('ff-theme')
+      if (saved && THEMES[saved]) return saved
+    } catch (e) { }
+    return 'linen'
+  })
 
   const updateThemeMeta = (color) => {
     let meta = document.querySelector('meta[name="theme-color"]')
@@ -286,24 +294,11 @@ export function ThemeProvider({ children }) {
   }
 
   useEffect(() => {
-    let saved = null
-    try { saved = localStorage.getItem('ff-theme') } catch (e) { }
-    if (saved && THEMES[saved]) {
-      setThemeState(saved)
-      const t = THEMES[saved]
-      const root = document.documentElement
-      Object.entries(t.vars).forEach(([key, val]) => root.style.setProperty(key, val))
-      updateThemeMeta(t.themeColor)
-    }
-  }, [])
-
-  useEffect(() => {
     const t = THEMES[theme]
     if (!t) return
     const root = document.documentElement
     Object.entries(t.vars).forEach(([key, val]) => root.style.setProperty(key, val))
     root.setAttribute('data-theme', theme)
-    // Aplicar patrón de fondo directamente al body
     const pattern = t.vars['--bg-pattern']
     if (pattern) {
       document.body.style.backgroundImage = `url("${pattern}")`
@@ -319,7 +314,6 @@ export function ThemeProvider({ children }) {
     window.dispatchEvent(new CustomEvent('theme-change'))
   }, [theme])
 
-  // ← esta función faltaba
   function setTheme(t) {
     if (THEMES[t]) setThemeState(t)
   }

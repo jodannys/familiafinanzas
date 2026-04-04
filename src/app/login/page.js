@@ -41,28 +41,36 @@ function LoginContent() {
   } = useAuthFlow()
 
   if (checking) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen flex items-center justify-center"
+      style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary), var(--bg-dark-card) 12%) 100%)' }}>
       <Loader2 size={32} className="animate-spin opacity-20" style={{ color: 'var(--text-primary)' }} />
     </div>
   )
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden"
-      style={{ background: 'var(--bg-primary)' }}>
+      style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary), var(--bg-dark-card) 12%) 100%)' }}>
 
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-10 blur-[100px]"
+      {/* Blob 1 — arriba-derecha */}
+      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 rounded-full opacity-15 blur-[100px]"
         style={{ background: 'var(--accent-main)' }} />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full opacity-5 blur-[100px]"
+      {/* Blob 2 — abajo-izquierda */}
+      <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 rounded-full opacity-[0.08] blur-[100px]"
         style={{ background: 'var(--accent-green)' }} />
+      {/* Blob 3 — centrado */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-[0.05] blur-[120px]"
+        style={{ background: 'var(--accent-violet)' }} />
 
       <div className="w-full max-w-sm relative z-10">
-        <div className="border rounded-[40px] p-8 shadow-2xl"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
+        <div className="ff-sheet animate-enter p-8">
 
           {/* Header */}
           <div className="flex flex-col items-center mb-8 text-center">
-            <div className="w-20 h-20 rounded-[28px] flex items-center justify-center mb-6 shadow-xl"
-              style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-glass)' }}>
+            <div className="w-20 h-20 rounded-[28px] flex items-center justify-center mb-6 shadow-sm"
+              style={{
+                background: 'color-mix(in srgb, var(--accent-main) 12%, var(--bg-card))',
+                border: '1px solid var(--border-subtle)',
+              }}>
               <img src="/icon.svg" alt="Logo" className="w-10 h-10" />
             </div>
             <h1 className="font-script text-[38px] leading-none mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -105,8 +113,8 @@ function LoginContent() {
               <button type="submit" disabled={loading || !form.email || !form.password}
                 className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
                 style={{
-                  background: form.email && form.password ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                  color: form.email && form.password ? 'var(--bg-card)' : 'var(--text-muted)',
+                  background: form.email && form.password ? 'var(--accent-main)' : 'var(--bg-secondary)',
+                  color: form.email && form.password ? 'var(--text-on-dark)' : 'var(--text-muted)',
                 }}>
                 {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Entrar'}
               </button>
@@ -114,7 +122,7 @@ function LoginContent() {
               {/* Google */}
               <button type="button" onClick={handleGoogleLogin}
                 className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
-                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)', color: 'var(--text-secondary)' }}>
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
                 <GoogleIcon />
                 Continuar con Google
               </button>
@@ -125,14 +133,14 @@ function LoginContent() {
               </button>
 
               <div className="flex items-center gap-3 my-1" aria-hidden="true">
-                <div className="flex-1 h-px" style={{ background: 'var(--border-glass)' }} />
+                <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
                 <span className="text-[9px] font-black uppercase tracking-widest opacity-20">o</span>
-                <div className="flex-1 h-px" style={{ background: 'var(--border-glass)' }} />
+                <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
               </div>
 
               <button type="button" onClick={() => { setMode('register'); setError(''); updateForm('password', ''); updateForm('confirmPwd', '') }}
                 className="w-full py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
-                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 Crear cuenta nueva
               </button>
             </form>
@@ -223,8 +231,8 @@ function LoginContent() {
                   <button type="submit" disabled={loading || !form.nombre.trim() || !form.email || !form.password || !form.confirmPwd || (!invToken && !form.nombreHogar.trim())}
                     className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
                     style={{
-                      background: form.nombre.trim() && form.email && form.password && form.confirmPwd && (invToken || form.nombreHogar.trim()) ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                      color: form.nombre.trim() && form.email && form.password && form.confirmPwd && (invToken || form.nombreHogar.trim()) ? 'var(--bg-card)' : 'var(--text-muted)',
+                      background: form.nombre.trim() && form.email && form.password && form.confirmPwd && (invToken || form.nombreHogar.trim()) ? 'var(--accent-main)' : 'var(--bg-secondary)',
+                      color: form.nombre.trim() && form.email && form.password && form.confirmPwd && (invToken || form.nombreHogar.trim()) ? 'var(--text-on-dark)' : 'var(--text-muted)',
                     }}>
                     {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Crear cuenta'}
                   </button>
@@ -273,7 +281,10 @@ function LoginContent() {
                   )}
                   <button type="submit" disabled={loading || !form.email}
                     className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
-                    style={{ background: form.email ? 'var(--text-primary)' : 'var(--bg-secondary)', color: form.email ? 'var(--bg-card)' : 'var(--text-muted)' }}>
+                    style={{
+                      background: form.email ? 'var(--accent-main)' : 'var(--bg-secondary)',
+                      color: form.email ? 'var(--text-on-dark)' : 'var(--text-muted)',
+                    }}>
                     {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : <><Mail size={16} className="mr-2 inline" aria-hidden="true" />Enviar Enlace</>}
                   </button>
                   <button type="button" onClick={() => { setMode('login'); setError('') }}
@@ -346,7 +357,10 @@ function LoginContent() {
               )}
               <button type="submit" disabled={loading || !form.nombre.trim() || !form.nombreHogar.trim()}
                 className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-                style={{ background: form.nombre.trim() && form.nombreHogar.trim() ? 'var(--text-primary)' : 'var(--bg-secondary)', color: form.nombre.trim() && form.nombreHogar.trim() ? 'var(--bg-card)' : 'var(--text-muted)' }}>
+                style={{
+                  background: form.nombre.trim() && form.nombreHogar.trim() ? 'var(--accent-main)' : 'var(--bg-secondary)',
+                  color: form.nombre.trim() && form.nombreHogar.trim() ? 'var(--text-on-dark)' : 'var(--text-muted)',
+                }}>
                 {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Comenzar →'}
               </button>
             </form>
@@ -365,7 +379,8 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary), var(--bg-dark-card) 12%) 100%)' }}>
         <Loader2 size={32} className="animate-spin opacity-20" style={{ color: 'var(--text-primary)' }} />
       </div>
     }>

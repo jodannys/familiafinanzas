@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Loader2, X, Plus, ArrowUpRight, ArrowDownRight,
@@ -17,6 +17,7 @@ import { useQuien } from '@/lib/useQuien'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import ProfilePanel from '@/components/ui/ProfilePanel'
 import PageTransition from '@/components/ui/PageTransition'
+import ConfirmLogoutModal from '@/components/ui/ConfirmLogoutModal'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,94 @@ function Section({ label, children }) {
 // ── Divisor ───────────────────────────────────────────────────────────────────
 
 function Divider() {
-  return <div style={{ height: '1px', background: 'var(--border-glass)', margin: '2px 0' }} />
+  return <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '2px 0' }} />
+}
+
+// ── DraggableFAB (solo desktop) ───────────────────────────────────────────────
+
+function DraggableFAB({ onClick }) {
+  const DEFAULT = { x: window?.innerWidth ? window.innerWidth - 80 : 1200, y: window?.innerHeight ? window.innerHeight - 100 : 700 }
+
+  const [pos, setPos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ff-fab-pos')
+      if (saved) {
+        const p = JSON.parse(saved)
+        // Validar que siga dentro de la pantalla
+        if (p.x > 0 && p.y > 0 && p.x < window.innerWidth && p.y < window.innerHeight) return p
+      }
+    } catch (e) {}
+    return DEFAULT
+  })
+
+  const dragging  = useRef(false)
+  const didMove   = useRef(false)
+  const startPtr  = useRef({ x: 0, y: 0 })
+  const startPos  = useRef({ x: 0, y: 0 })
+
+  const onPointerDown = useCallback((e) => {
+    dragging.current = true
+    didMove.current  = false
+    startPtr.current = { x: e.clientX, y: e.clientY }
+    startPos.current = pos
+    e.currentTarget.setPointerCapture(e.pointerId)
+    e.preventDefault()
+  }, [pos])
+
+  const onPointerMove = useCallback((e) => {
+    if (!dragging.current) return
+    const dx = e.clientX - startPtr.current.x
+    const dy = e.clientY - startPtr.current.y
+    if (Math.abs(dx) + Math.abs(dy) > 4) didMove.current = true
+    const SIZE = 58
+    const nx = Math.max(8, Math.min(window.innerWidth  - SIZE - 8, startPos.current.x + dx))
+    const ny = Math.max(8, Math.min(window.innerHeight - SIZE - 8, startPos.current.y + dy))
+    setPos({ x: nx, y: ny })
+  }, [])
+
+  const onPointerUp = useCallback((e) => {
+    if (!dragging.current) return
+    dragging.current = false
+    if (!didMove.current) {
+      onClick()
+    } else {
+      try { localStorage.setItem('ff-fab-pos', JSON.stringify(pos)) } catch (e) {}
+    }
+  }, [onClick, pos])
+
+  // Guardar posición al soltar
+  useEffect(() => {
+    if (!dragging.current) {
+      try { localStorage.setItem('ff-fab-pos', JSON.stringify(pos)) } catch (e) {}
+    }
+  }, [pos])
+
+  return (
+    <button
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={{
+        position: 'fixed',
+        left: pos.x,
+        top: pos.y,
+        width: 58, height: 58,
+        borderRadius: '50%',
+        background: 'var(--accent-main)',
+        color: 'var(--text-on-dark)',
+        border: '3px solid color-mix(in srgb, var(--bg-card) 85%, transparent)',
+        boxShadow: `var(--shadow-lg), 0 8px 24px color-mix(in srgb, var(--accent-main) 55%, transparent)`,
+        cursor: dragging.current ? 'grabbing' : 'grab',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 400,
+        touchAction: 'none',
+        userSelect: 'none',
+        transition: dragging.current ? 'none' : 'box-shadow 0.2s',
+      }}
+    >
+      <Plus size={26} strokeWidth={3} />
+    </button>
+  )
 }
 
 // ── FABModal ──────────────────────────────────────────────────────────────────
@@ -272,104 +360,98 @@ export function FABModal({ onClose }) {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 z-[110]"
-        style={{ background: 'color-mix(in srgb, var(--bg-dark-card), transparent 55%)', backdropFilter: 'blur(6px)' }}
-        onClick={onClose}
-      />
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center"
+      style={{
+        background: 'color-mix(in srgb, var(--bg-dark-card), transparent 45%)',
+        backdropFilter: 'blur(8px)',
+        padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))',
+      }}
+      onClick={onClose}
+    >
+        {/* Sheet */}
+        <div
+          className="ff-sheet animate-enter relative w-full flex flex-col"
+          style={{
+            maxWidth: 440,
+            maxHeight: '100%',
+          }}
+          onClick={e => e.stopPropagation()}
+        >
 
-      {/* Sheet */}
-      <div
-        className="fixed z-[120] flex flex-col"
-        style={{
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'min(92vw, 440px)',
-          maxHeight: '88vh',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-glass)',
-          borderRadius: 28,
-          boxShadow: 'var(--shadow-xl)',
-          paddingBottom: 8,
-        }}
-      >
-
-        {/* ── Header ── */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '34px 1fr 34px',
-          alignItems: 'center', gap: 8,
-          padding: '14px 16px 14px', borderBottom: '1px solid var(--border-glass)',
-        }}>
-          <div />
-          <div style={{ display: 'flex', gap: 4, padding: '3px', borderRadius: 16,
-            background: 'var(--bg-secondary)', border: '1px solid var(--border-glass)' }}>
-            {[
-              { id: 'egreso',  label: 'Gasto',   Icon: ArrowDownRight, color: 'var(--accent-rose)'  },
-              { id: 'ingreso', label: 'Ingreso',  Icon: ArrowUpRight,   color: 'var(--accent-green)' },
-            ].map(t => (
-              <button
-                key={t.id}
-                onClick={() => handleTipo(t.id)}
-                style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  padding: '9px 0', borderRadius: 12, border: 'none', cursor: 'pointer',
-                  background: tipo === t.id
-                    ? `color-mix(in srgb, ${t.color} 15%, var(--bg-card))`
-                    : 'transparent',
+          {/* ── Header ── */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '38px 1fr 38px',
+            alignItems: 'center', gap: 8,
+            padding: '14px 14px 12px',
+            borderBottom: '1px solid var(--border-subtle)',
+            background: 'var(--bg-secondary)',
+            flexShrink: 0,
+          }}>
+            <div />
+            <div style={{
+              display: 'flex', gap: 3, padding: '3px',
+              borderRadius: 14, background: 'var(--bg-card)',
+              border: '1px solid var(--border-glass)',
+            }}>
+              {[
+                { id: 'egreso',  label: 'Gasto',   Icon: ArrowDownRight, color: 'var(--accent-rose)'  },
+                { id: 'ingreso', label: 'Ingreso',  Icon: ArrowUpRight,   color: 'var(--accent-green)' },
+              ].map(t => (
+                <button key={t.id} onClick={() => handleTipo(t.id)} style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  padding: '8px 0', borderRadius: 11, border: 'none', cursor: 'pointer',
+                  background: tipo === t.id ? `color-mix(in srgb, ${t.color} 14%, var(--bg-secondary))` : 'transparent',
                   color: tipo === t.id ? t.color : 'var(--text-muted)',
-                  fontWeight: 700, fontSize: 13,
-                  boxShadow: tipo === t.id ? 'var(--shadow-sm)' : 'none',
+                  fontWeight: 700, fontSize: 12,
                   transition: 'all 0.15s',
-                }}
-              >
-                <t.Icon size={15} strokeWidth={2.5} />
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: 34, height: 34, borderRadius: '50%', border: 'none', cursor: 'pointer',
-              background: 'var(--bg-secondary)', color: 'var(--text-muted)',
+                }}>
+                  <t.Icon size={14} strokeWidth={2.5} />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <button onClick={onClose} style={{
+              width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
+              background: 'var(--bg-card)', color: 'var(--text-muted)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <X size={17} />
-          </button>
-        </div>
-
-        {/* ── Monto — hero prominente ── */}
-        <div style={{
-          padding: '18px 20px 14px',
-          borderBottom: '1px solid var(--border-glass)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        }}>
-          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
-            textTransform: 'uppercase', color: accentColor, opacity: 0.7, margin: 0 }}>
-            {tipo === 'ingreso' ? 'Ingreso' : (catInfo?.label || 'Importe')}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontSize: 22, fontWeight: 400, color: accentColor, opacity: 0.5, fontFamily: 'var(--font-serif, serif)' }}>€</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={monto}
-              onChange={e => setMonto(e.target.value)}
-              style={{
-                background: 'transparent', border: 'none', outline: 'none',
-                fontSize: 48, fontWeight: 700, color: accentColor,
-                width: 200, textAlign: 'center', fontFamily: 'var(--font-serif, serif)',
-              }}
-            />
+            }}>
+              <X size={15} />
+            </button>
           </div>
-        </div>
 
-        {/* ── Cuerpo scrollable ── */}
-        <div className="no-scrollbar" style={{ overflowY: 'auto', flex: 1, padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* ── Monto — hero con tinte de color ── */}
+          <div style={{
+            padding: '20px 20px 16px',
+            borderBottom: '1px solid var(--border-subtle)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            background: `color-mix(in srgb, ${accentColor} 5%, var(--bg-card))`,
+            flexShrink: 0,
+          }}>
+            <p style={{
+              fontSize: 10, fontWeight: 800, letterSpacing: '0.12em',
+              textTransform: 'uppercase', color: accentColor, opacity: 0.8, margin: 0,
+            }}>
+              {tipo === 'ingreso' ? 'Ingreso' : (catInfo?.label || 'Importe')}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{ fontSize: 20, fontWeight: 500, color: accentColor, opacity: 0.45 }}>€</span>
+              <input
+                type="number" inputMode="decimal" placeholder="0.00"
+                value={monto} onChange={e => setMonto(e.target.value)}
+                autoFocus
+                style={{
+                  background: 'transparent', border: 'none', outline: 'none',
+                  fontSize: 52, fontWeight: 800, color: accentColor,
+                  width: 210, textAlign: 'center',
+                  fontFamily: 'Inter, sans-serif', letterSpacing: '-0.04em',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* ── Cuerpo scrollable ── */}
+          <div className="custom-scroll" style={{ overflowY: 'auto', flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
           {/* SECCIÓN: Categoría (solo gasto) */}
           {tipo === 'egreso' && (
@@ -494,7 +576,7 @@ export function FABModal({ onClose }) {
                 style={{ fontSize: 11, padding: '7px 10px', borderRadius: 10, width: '100%' }}
               />
 
-              {/* ¿Quién? (dinámico desde perfiles_familia) */}
+              {/* ¿Quién? (dinámico desde perfiles del hogar) */}
               {opcionesQuien.length > 1 && (
                 <CustomSelect
                   value={quien}
@@ -636,7 +718,7 @@ export function FABModal({ onClose }) {
 
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -757,7 +839,7 @@ export default function AppShell({ children }) {
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
       <ToastDisplay />
-      <ProfilePanel open={showProfile} onClose={() => setShowProfile(false)} />
+      <ProfilePanel open={showProfile} onClose={() => setShowProfile(false)} onLogout={() => { setShowProfile(false); setConfirmLogout(true) }} />
       <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]"><Sidebar /></div>
       <main className="app-main flex-1 min-h-screen flex flex-col overflow-x-hidden">
 
@@ -770,7 +852,14 @@ export default function AppShell({ children }) {
             style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
             <div className="flex items-center gap-2">
               <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
-              <span className="font-script text-[25px]" style={{ color: 'var(--text-primary)' }}>{nombreHogar || 'Mi Familia'}</span>
+              <span className="font-script text-[25px]" style={{
+                color: 'var(--text-primary)',
+                maxWidth: '55vw',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'block',
+              }}>{nombreHogar || 'Mi Familia'}</span>
             </div>
             <div className="flex items-center gap-3">
               {perfilUsuario && (
@@ -790,41 +879,6 @@ export default function AppShell({ children }) {
                   {(perfilUsuario?.nombre || '?').charAt(0).toUpperCase()}
                 </button>
               )}
-              <div className="relative">
-              <button onClick={() => setConfirmLogout(true)} className="text-[var(--text-muted)] active:scale-90 transition-transform">
-                <LogOut size={18} />
-              </button>
-
-              {confirmLogout && (
-                <>
-                  <div className="fixed inset-0 z-[200]" onClick={() => setConfirmLogout(false)} />
-                  <div className="absolute top-full right-0 mt-2 z-[201]"
-                    style={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-glass)',
-                      borderRadius: 16,
-                      boxShadow: 'var(--shadow-lg)',
-                      padding: '14px 16px',
-                      width: 200,
-                    }}>
-                    <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>¿Cerrar sesión?</p>
-                    <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)' }}>Tendrás que volver a iniciar sesión.</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => setConfirmLogout(false)}
-                        className="flex-1 text-xs font-semibold py-1.5 rounded-xl transition-all active:scale-95"
-                        style={{ background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                        Cancelar
-                      </button>
-                      <button onClick={handleLogout}
-                        className="flex-1 text-xs font-semibold py-1.5 rounded-xl transition-all active:scale-95"
-                        style={{ background: 'color-mix(in srgb, var(--accent-rose) 15%, transparent)', border: 'none', cursor: 'pointer', color: 'var(--accent-rose)' }}>
-                        Salir
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
             </div>
           </div>
         </div>
@@ -835,7 +889,18 @@ export default function AppShell({ children }) {
       </main>
 
       <BottomNav onFABClick={() => setFabOpen(true)} />
+      {/* FAB flotante arrastrable — solo desktop, oculto cuando el modal está abierto */}
+      {!fabOpen && (
+        <div className="hidden lg:block">
+          <DraggableFAB onClick={() => setFabOpen(true)} />
+        </div>
+      )}
       {fabOpen && <FABModal onClose={() => setFabOpen(false)} />}
+      <ConfirmLogoutModal
+        open={confirmLogout}
+        onCancel={() => setConfirmLogout(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   )
 }

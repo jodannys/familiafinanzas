@@ -10,41 +10,42 @@
 }
 
 :root {
-  /* Fondos: Aclaramos ligeramente para mejor contraste, pero mantenemos la lógica */
-  --bg-primary:      #E6DFD6; /* Un lino más limpio que mantiene la calidez */
-  
-  /* Mantener opacidad para tus tarjetas glass, pero con fondo más claro */
-  --bg-card:         rgba(251, 248, 245, 0.7); 
-  --bg-secondary:    rgba(241, 233, 224, 0.84);
+  /* Valores del tema linen (default) — idénticos a THEMES.linen.vars en themes.js   */
+  /* El ThemeProvider sobreescribe estos valores vía JS al montar o cambiar de tema.  */
+  --bg-primary:      #C9BFB3;
+  --bg-secondary:    #E8DDD3;
+  --bg-card:         #F5EFE8;
   --bg-dark-card:    #2C241E;
-  --bg-glass:        rgba(251, 248, 245, 0.45);
-  --input-bg:        rgba(251, 248, 245, 0.3);
+  --bg-glass:        rgba(245,239,232,0.78);
+  --input-bg:        rgba(255,255,255,0.78);
+  --border-glass:    rgba(255,255,255,0.62);
+  --radius-xl:       28px;
+  --sidebar-bg:      #EDE4D8;
+  --sidebar-border:  rgba(120,100,82,0.28);
+  --progress-track:  #DDD0C2;
+  --glass-blur:      14px;
 
-  /* Acentos Generales (Paleta Tierra) */
-  --accent-main:     #D99E5C;
-  --accent-terra:    #D99E5C;
-  --accent-blue:     #4A6FA5;
-  --accent-rose:     #C0605A;
-  --accent-violet:   #7C6FAB;
-  --accent-gold:     #C17A3A;
-  --accent-green:    #2D7A5F;
-  --accent-danger:   #C0605A;
+  --accent-main:     #B07838;
+  --accent-terra:    #A85A28;
+  --accent-blue:     #4A6898;
+  --accent-rose:     #A85050;
+  --accent-violet:   #6858A0;
+  --accent-gold:     #A87028;
+  --accent-green:    #3D7A56;
+  --accent-danger:   #A83030;
 
-  /* Textos: Oscurecidos para legibilidad profesional */
   --text-primary:    #1A1410;
-  --text-secondary:  #4A3F35; /* Más oscuro que el original para mejor contraste */
-  --text-muted:      #7A6D62; /* Grisáceo pero legible */
-  --text-on-dark:    rgba(255, 255, 255, 0.95);
+  --text-secondary:  #4A3C30;
+  --text-muted:      #88786A;
+  --text-on-dark:    rgba(255,255,255,0.95);
 
-  /* Geometría: ESTO NO SE TOCA, TUS OVALADAS MANDAN */
-  --radius-xl:       32px; /* Mantenemos tu radio ovalado */
-  --border-glass:    rgba(255, 255, 255, 0.4);
-
-  /* Sistema de sombras: Tu color-mix es excelente */
   --shadow-sm:  0 1px 4px color-mix(in srgb, var(--bg-dark-card), transparent 88%);
   --shadow-md:  0 4px 16px color-mix(in srgb, var(--bg-dark-card), transparent 82%);
   --shadow-lg:  0 8px 32px color-mix(in srgb, var(--bg-dark-card), transparent 75%);
   --shadow-xl:  0 16px 48px color-mix(in srgb, var(--bg-dark-card), transparent 68%);
+
+  /* Borde sutil para modales, sheets y desplegables flotantes */
+  --border-subtle: color-mix(in srgb, var(--border-glass), transparent 55%);
 }
 
 
@@ -142,6 +143,16 @@ h1, h2, h3 {
   box-shadow: var(--shadow-xl);
 }
 
+/* ── Sheet / Popup / Dropdown flotante — borde sutil unificado ────────────── */
+/* Aplicar en modales, FABModal, panels y cualquier contenedor flotante        */
+.ff-sheet {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
 .dark-card {
   background: var(--bg-dark-card);
   color: var(--text-on-dark);
@@ -233,6 +244,11 @@ h1, h2, h3 {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Oculta flechas en inputs numéricos (Chrome/Safari/Firefox) */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Gráficas & Animaciones ───────────────────────────────────────────────── */
 

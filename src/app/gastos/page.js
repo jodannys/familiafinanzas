@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard, Minus, ChevronLeft, ChevronRight, Receipt } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, fechaHoy } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
@@ -28,10 +28,6 @@ const CAT_BLOQUE = {
   basicos: 'necesidades', deuda: 'necesidades',
   deseo: 'estilo',
   ahorro: 'futuro', inversion: 'futuro',
-}
-function fechaHoy() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
   if (!diaPago) return fechaCompra

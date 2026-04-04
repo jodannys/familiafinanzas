@@ -8,7 +8,7 @@ import {
   AlertTriangle, TrendingUp, Sprout, Search,
   X, ArrowDownRight, CreditCard, ChevronLeft, ChevronRight
 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, fechaHoy } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { supabase } from '@/lib/supabase'
 import { getPresupuestoMes } from '@/lib/presupuesto'
@@ -16,11 +16,6 @@ import { useQuien } from '@/lib/useQuien'
 import Modal from '@/components/ui/Modal'
 import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 
-// ── FIX FECHAS: usa fecha local para evitar desfase UTC ──────────────────────
-function fechaHoy() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 const ORIGENES = [
   { value: 'basicos', label: 'Básicos', color: 'var(--accent-blue)', desc: 'Súper, facturas...' },
@@ -97,6 +92,8 @@ export default function SobrePage() {
       setMetasData(metas || [])
       setInversionesData(inversiones || [])
     } catch (err) {
+      console.error('Error cargando sobres:', err)
+      toast('Error cargando datos de sobres')
     } finally {
       setLoading(false)
     }

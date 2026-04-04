@@ -10,7 +10,7 @@ import {
   AlertCircle, PlusCircle, History, Info,
   ChevronRight, SlidersHorizontal, X
 } from 'lucide-react'
-import { formatCurrency, calculateCompoundInterest } from '@/lib/utils'
+import { formatCurrency, calculateCompoundInterest, fechaHoy } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
@@ -84,10 +84,6 @@ function Tooltip4Pct({ colores }) {
   )
 }
 
-function fechaHoy() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 // ─── Modal de ayuda del módulo ────────────────────────────────────────────────
 function ModuleInfoModal({ open, onClose, colores }) {

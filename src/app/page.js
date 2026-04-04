@@ -2,87 +2,292 @@
 import { useState, useEffect, useMemo } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import {
-  Wallet, Target, Loader2, ArrowUpRight, ArrowDownRight,
-  TrendingUp, CircleDollarSign, ChevronRight
+  Target, TrendingUp, CircleDollarSign, ChevronRight, AlertTriangle,
+  CheckCircle2, Info, XCircle, TriangleAlert, Gauge,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, getFlagEmoji } from '@/lib/utils'
+import { formatCurrency, getFlagEmoji, diasHastaPago } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import { FinanceChart } from '@/components/ui/FinanceChart'
 import AgendaWidget from '@/components/agenda/AgendaWidget'
 import Link from 'next/link'
+import { generarInsights } from '@/lib/insights'
+
+// ── Constantes ────────────────────────────────────────────────────────────────
 
 const COLORES_CAT = {
-  basicos: 'var(--accent-blue)',
-  deseo: 'var(--accent-violet)',
-  ahorro: 'var(--accent-green)',
+  basicos:   'var(--accent-blue)',
+  deseo:     'var(--accent-violet)',
+  ahorro:    'var(--accent-green)',
   inversion: 'var(--accent-gold)',
-  deuda: 'var(--accent-rose)',
+  deuda:     'var(--accent-rose)',
 }
 
 const NOMBRES_CAT = {
-  basicos: 'Básicos',
-  deseo: 'Estilo de vida',
-  deuda: 'Deudas',
-  ahorro: 'Ahorro',
+  basicos:   'Básicos',
+  deseo:     'Estilo de vida',
+  deuda:     'Deudas',
+  ahorro:    'Ahorro',
   inversion: 'Inversión',
 }
+
+const EMOJI_CAT = {
+  basicos:   '🏠',
+  deseo:     '✨',
+  ahorro:    '💰',
+  inversion: '📈',
+  deuda:     '💳',
+  ingreso:   '💵',
+}
+
+const MESES_NOMBRE = [
+  'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+]
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function saludoBase(nombre) {
   const h = new Date().getHours()
   let saludo = ''
   let emoji = ''
-
-  if (h >= 6 && h < 12) {
-    saludo = 'buenos días'
-    emoji = '☕'
-  } else if (h >= 12 && h < 20) {
-    saludo = 'buenas tardes'
-    emoji = '☀️'
-  } else {
-    saludo = 'buenas noches'
-    emoji = (h >= 20 || h < 5) ? '🌙' : '✨'
-  }
-
-  // Si hay nombre, dice "Hola [Nombre], buenos días ☕"
-  // Si no, solo "Buenos días ☕"
+  if (h >= 6 && h < 12)       { saludo = 'buenos días';   emoji = '☕' }
+  else if (h >= 12 && h < 20) { saludo = 'buenas tardes'; emoji = '☀️' }
+  else                         { saludo = 'buenas noches'; emoji = (h >= 20 || h < 5) ? '🌙' : '✨' }
   return nombre
     ? `Hola ${nombre}, ${saludo} ${emoji}`
     : `${saludo.charAt(0).toUpperCase() + saludo.slice(1)} ${emoji}`
 }
 
-function diasHastaPago(d) {
-  if (!d?.dia_pago) return null
-  // Si ya se completaron todas las cuotas, no hay próximo pago
-  if (d.plazo_meses && (d.pagadas || 0) >= d.plazo_meses) return null
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
-  let fechaPago
-  if (d.fecha_primer_pago) {
-    const base = new Date(d.fecha_primer_pago + 'T12:00:00')
-    const targetMonth = base.getMonth() + (d.pagadas || 0)
-    const targetYear = base.getFullYear() + Math.floor(targetMonth / 12)
-    const targetMonthNorm = ((targetMonth % 12) + 12) % 12
-    const lastDay = new Date(targetYear, targetMonthNorm + 1, 0).getDate()
-    fechaPago = new Date(targetYear, targetMonthNorm, Math.min(base.getDate(), lastDay))
-  } else {
-    const diaHoy = hoy.getDate()
-    const offsetMes = d.dia_pago < diaHoy ? 1 : 0
-    const targetYear = hoy.getFullYear() + (hoy.getMonth() + offsetMes > 11 ? 1 : 0)
-    const targetMonth = (hoy.getMonth() + offsetMes + 12) % 12
-    const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate()
-    fechaPago = new Date(targetYear, targetMonth, Math.min(d.dia_pago, lastDay))
-  }
-  fechaPago.setHours(0, 0, 0, 0)
-  return Math.ceil((fechaPago - hoy) / (1000 * 60 * 60 * 24))
+function groupByDay(movs) {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const ayer = new Date(today); ayer.setDate(today.getDate() - 1)
+  const groups = {}
+  movs.forEach(m => {
+    const d = new Date(m.fecha + 'T00:00:00'); d.setHours(0, 0, 0, 0)
+    let label
+    if (d.getTime() === today.getTime()) label = 'Hoy'
+    else if (d.getTime() === ayer.getTime()) label = 'Ayer'
+    else label = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })
+    if (!groups[label]) groups[label] = []
+    groups[label].push(m)
+  })
+  return groups
 }
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function Sk({ w = '100%', h = 16, r = 10, style = {} }) {
+  return <div className="skeleton" style={{ width: w, height: h, borderRadius: r, flexShrink: 0, ...style }} />
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="flex flex-col gap-7">
+      {/* Header */}
+      <div className="flex flex-col gap-2 mb-3">
+        <Sk w="120px" h={10} />
+        <Sk w="220px" h={28} r={8} />
+      </div>
+
+      {/* Health bar */}
+      <Sk w="100%" h={36} r={16} />
+
+      {/* Patrimonio strip */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {[1,2,3].map(i => <Sk key={i} h={72} r={24} />)}
+      </div>
+
+      {/* Hero card */}
+      <Sk h={130} r={32} />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-3">
+        {[1,2,3,4].map(i => <Sk key={i} h={118} r={24} />)}
+      </div>
+
+      {/* Agenda */}
+      <Sk h={90} r={24} />
+
+      {/* Gráfico + movimientos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <Sk style={{ gridColumn: 'span 2' }} h={260} r={28} />
+        <Sk h={260} r={28} />
+      </div>
+
+      {/* Distribución + metas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <Sk h={200} r={28} />
+        <Sk style={{ gridColumn: 'span 2' }} h={200} r={28} />
+      </div>
+    </div>
+  )
+}
+
+// ── Panel de Insights ─────────────────────────────────────────────────────────
+
+const INSIGHT_ICON = {
+  ok:     CheckCircle2,
+  warn:   TriangleAlert,
+  danger: XCircle,
+  info:   Info,
+}
+
+const INSIGHT_COLOR = {
+  ok:     'var(--accent-green)',
+  warn:   'var(--accent-gold)',
+  danger: 'var(--accent-rose)',
+  info:   'var(--accent-blue)',
+}
+
+function InsightRow({ insight }) {
+  const Icon  = INSIGHT_ICON[insight.type] || Info
+  const color = INSIGHT_COLOR[insight.type] || 'var(--text-muted)'
+  return (
+    <div
+      className="flex items-start gap-3 px-5 py-3.5"
+      style={{ borderBottom: '1px solid var(--border-glass)' }}
+    >
+      <div
+        className="flex-shrink-0 mt-0.5"
+        style={{
+          width: 28, height: 28, borderRadius: 9,
+          background: `color-mix(in srgb, ${color} 12%, var(--bg-secondary))`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <Icon size={13} style={{ color }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+          {insight.titulo}
+        </p>
+        <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>
+          {insight.detalle}
+        </p>
+        {insight.accion && insight.href && (
+          <Link
+            href={insight.href}
+            style={{
+              display: 'inline-block', marginTop: 5,
+              fontSize: 9, fontWeight: 900, textTransform: 'uppercase',
+              letterSpacing: '0.1em', color,
+              textDecoration: 'none',
+            }}
+          >
+            {insight.accion} →
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function InsightsPanel({ movsMes, metas, deudas, inversiones }) {
+  const { insights, score, label, color } = useMemo(
+    () => generarInsights({ movsMes, metas, deudas, inversiones }),
+    [movsMes, metas, deudas, inversiones]
+  )
+
+  return (
+    <div
+      className="rounded-[28px] overflow-hidden mb-7 animate-enter"
+      style={{
+        animationDelay: '0.25s',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-glass)',
+      }}
+    >
+      {/* Cabecera con score */}
+      <div
+        className="flex items-center justify-between px-5 py-3.5"
+        style={{ borderBottom: '1px solid var(--border-glass)' }}
+      >
+        <div className="flex items-center gap-2">
+          <Gauge size={13} style={{ color: 'var(--text-muted)' }} />
+          <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-muted)' }}>
+            Salud financiera
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div
+            style={{
+              height: 4, width: 64, borderRadius: 999,
+              background: 'var(--progress-track)', overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%', width: `${score}%`,
+                background: color, borderRadius: 999,
+                transition: 'width 1.2s cubic-bezier(0.2,0,0.2,1)',
+              }}
+            />
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 900, color, letterSpacing: '-0.02em' }}>
+            {score}
+          </span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+            {label}
+          </span>
+        </div>
+      </div>
+
+      {/* Lista de insights */}
+      <div>
+        {insights.map(ins => (
+          <InsightRow key={ins.id} insight={ins} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Barra de salud financiera ─────────────────────────────────────────────────
+
+function HealthBar({ pctGastos, pctAhorro, pctDisp, saldoLibre, ingresosMes }) {
+  if (ingresosMes === 0) return null
+  const pctLibre = Math.max(0, 100 - pctGastos - pctAhorro)
+  const libreColor = saldoLibre >= 0 ? 'var(--accent-blue)' : 'var(--accent-rose)'
+
+  return (
+    <div className="mb-7 animate-enter" style={{ animationDelay: '0.08s' }}>
+      {/* Barra segmentada */}
+      <div style={{ height: 10, borderRadius: 999, overflow: 'hidden', display: 'flex', gap: 2, background: 'var(--bg-secondary)' }}>
+        <div style={{ width: `${pctGastos}%`, background: 'var(--accent-rose)', borderRadius: 999, transition: 'width 1s ease-out', flexShrink: 0 }} />
+        <div style={{ width: `${pctAhorro}%`, background: 'var(--accent-gold)',  borderRadius: 999, transition: 'width 1s ease-out 0.1s', flexShrink: 0 }} />
+        <div style={{ width: `${pctLibre}%`,  background: libreColor,            borderRadius: 999, transition: 'width 1s ease-out 0.2s', flexShrink: 0 }} />
+      </div>
+      {/* Leyenda */}
+      <div className="flex items-center gap-4 mt-2">
+        {[
+          { label: 'Gastos',  pct: pctGastos, color: 'var(--accent-rose)' },
+          { label: 'Ahorro',  pct: pctAhorro, color: 'var(--accent-gold)' },
+          { label: 'Libre',   pct: pctLibre,  color: libreColor },
+        ].map(({ label, pct, color }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+              {label} <span style={{ color, fontWeight: 900 }}>{pct}%</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
-  const [movs, setMovs] = useState([])
-  const [metas, setMetas] = useState([])
-  const [deudas, setDeudas] = useState([])
+  const [movs, setMovs]             = useState([])
+  const [metas, setMetas]           = useState([])
+  const [deudas, setDeudas]         = useState([])
   const [inversiones, setInversiones] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
-  const [nombre, setNombre] = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
+  const [mounted, setMounted]       = useState(false)
+  const [nombre, setNombre]         = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -104,6 +309,9 @@ export default function Dashboard() {
         setDeudas(d || [])
         setInversiones(inv || [])
       } catch (err) {
+        console.error('Error cargando dashboard:', err)
+        setError('No se pudieron cargar los datos. Revisa tu conexión e intenta de nuevo.')
+        toast('Error cargando datos del dashboard')
       } finally {
         setLoading(false)
       }
@@ -111,9 +319,10 @@ export default function Dashboard() {
     cargar()
   }, [])
 
-  const now = new Date()
+  const now       = new Date()
   const mesActual = now.getMonth()
   const añoActual = now.getFullYear()
+  const mesNombre = MESES_NOMBRE[mesActual]
 
   const movsMes = useMemo(() =>
     movs.filter(m => {
@@ -174,23 +383,32 @@ export default function Dashboard() {
       .map(d => ({ ...d, dias: diasHastaPago(d) }))
       .filter(d => d.dias !== null && d.dias <= 7 && !deudasPagadas.has(d.id))
       .sort((a, b) => a.dias - b.dias)
-    , [deudas, deudasPagadas])
+  , [deudas, deudasPagadas])
 
-  // Patrimonio
-  const totalAhorro = useMemo(() => metas.reduce((s, m) => s + (m.actual || 0), 0), [metas])
+  const totalAhorro      = useMemo(() => metas.reduce((s, m) => s + (m.actual || 0), 0), [metas])
   const totalInversiones = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
-  const totalDeudas = useMemo(() => deudas.reduce((s, d) => s + (d.pendiente || 0), 0), [deudas])
+  const totalDeudas      = useMemo(() => deudas.reduce((s, d) => s + (d.pendiente || 0), 0), [deudas])
 
   const pctGastos = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes / ingresosMes) * 100)) : 0
   const pctAhorro = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes / ingresosMes) * 100)) : 0
-  const pctDisp = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
+  const pctDisp   = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
+
+  const movsAgrupados = useMemo(() => groupByDay(ultimosMovs), [ultimosMovs])
 
   if (!mounted) return null
-  if (loading) return (
+  if (loading) return <AppShell><DashboardSkeleton /></AppShell>
+
+  if (error) return (
     <AppShell>
-      <div className="flex h-[70vh] items-center justify-center flex-col gap-6">
-        <Loader2 className="animate-spin" size={40} style={{ color: 'var(--accent-green)' }} />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] opacity-40">Cargando patrimonio...</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, padding: 24, textAlign: 'center' }}>
+        <AlertTriangle size={48} style={{ color: 'var(--accent-rose)' }} />
+        <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16 }}>{error}</p>
+        <button
+          onClick={() => { setError(null); setLoading(true); location.reload() }}
+          style={{ padding: '10px 24px', borderRadius: 12, background: 'var(--accent-blue)', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}
+        >
+          Reintentar
+        </button>
       </div>
     </AppShell>
   )
@@ -198,34 +416,36 @@ export default function Dashboard() {
   return (
     <AppShell>
 
-      {/* ── Header Principal ── */}
-      <div className="mb-10 animate-in fade-in slide-in-from-left-6 duration-1000">
-
-        {/* Fecha: Muy minimalista y separada */}
-        <p className="uppercase tracking-[0.3em] font-black opacity-70 mb-3"
-          style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+      {/* ── Header ── */}
+      <div className="mb-6 animate-enter">
+        <p className="uppercase tracking-[0.3em] font-black mb-2"
+          style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.7 }}>
           {now.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
-
-        {/* Saludo con fuente Sacramento */}
-        <h1 className="font-script tracking-normal"
-          style={{
-            fontSize: '30px', // Sacramento necesita ser un poco más grande para leerse bien
-            color: 'var(--text-primary)',
-            fontWeight: 400,
-            lineHeight: 1.1,
-            fontFamily: "'Sacramento', cursive" // Forzamos la fuente si la variable falla
-          }}>
+        <h1 className="font-script" style={{
+          fontSize: 32, color: 'var(--text-primary)',
+          fontWeight: 400, lineHeight: 1.1,
+          fontFamily: "'Sacramento', cursive",
+        }}>
           {saludoBase(nombre)}
         </h1>
       </div>
 
-      {/* ── Strip de Patrimonio (Separado del saludo) ── */}
-      <div className="grid grid-cols-3 gap-2.5 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+      {/* ── Barra de salud financiera ── */}
+      <HealthBar
+        pctGastos={pctGastos}
+        pctAhorro={pctAhorro}
+        pctDisp={pctDisp}
+        saldoLibre={saldoLibre}
+        ingresosMes={ingresosMes}
+      />
+
+      {/* ── Strip de patrimonio ── */}
+      <div className="grid grid-cols-3 gap-2.5 mb-7 animate-enter" style={{ animationDelay: '0.1s' }}>
         {[
-          { label: 'En metas', val: totalAhorro, color: 'var(--accent-green)', Icon: Target, href: '/metas' },
-          { label: 'Invertido', val: totalInversiones, color: 'var(--accent-violet)', Icon: TrendingUp, href: '/inversiones' },
-          { label: 'Deudas', val: totalDeudas, color: 'var(--accent-rose)', Icon: CircleDollarSign, href: '/deudas' },
+          { label: 'En metas',  val: totalAhorro,      color: 'var(--accent-green)',  Icon: Target,          href: '/metas' },
+          { label: 'Invertido', val: totalInversiones,  color: 'var(--accent-violet)', Icon: TrendingUp,      href: '/inversiones' },
+          { label: 'Deudas',    val: totalDeudas,       color: 'var(--accent-rose)',   Icon: CircleDollarSign,href: '/deudas' },
         ].map(({ label, val, color, Icon, href }) => (
           <Link key={label} href={href}
             className="flex flex-col gap-2 p-3.5 rounded-[24px] transition-all active:scale-95 border"
@@ -234,93 +454,87 @@ export default function Dashboard() {
               borderColor: `color-mix(in srgb, ${color} 12%, transparent)`,
               textDecoration: 'none',
             }}>
-            <div className="flex items-center gap-1.5 opacity-60">
+            <div className="flex items-center gap-1.5" style={{ opacity: 0.6 }}>
               <Icon size={10} style={{ color }} />
-              <span style={{ fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color }}>{label}</span>
+              <span style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color }}>{label}</span>
             </div>
-            <p className="font-sans font-bold tracking-tighter"
-              style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+            <p style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
               {formatCurrency(val)}
             </p>
           </Link>
         ))}
       </div>
 
-      {/* ── Alertas deuda ── */}
-      {
-        alertas.length > 0 && (
-          <div className="space-y-2 mb-7">
-            {alertas.map(d => {
-              const color = d.dias <= 3 ? 'var(--accent-rose)' : 'var(--accent-terra)'
-              return (
-                <div key={d.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                  style={{
-                    background: `color-mix(in srgb, ${color} 7%, var(--bg-card))`,
-                    border: `1px solid color-mix(in srgb, ${color} 18%, transparent)`,
-                  }}>
-                  <span className="text-base flex-shrink-0">{d.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
-                    <p style={{ fontSize: 10, color }}>
-                      {d.dias === 0 ? '¡Vence hoy!' : `Vence en ${d.dias} día${d.dias !== 1 ? 's' : ''}`}
-                    </p>
-                  </div>
-                  <span className="text-sm font-semibold flex-shrink-0" style={{ color }}>{formatCurrency(d.cuota)}</span>
-                </div>
-              )
-            })}
-          </div>
-        )
-      }
-
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
-        {[
-          { label: 'Ingresos', val: ingresosMes, col: 'var(--accent-green)', Icon: ArrowUpRight, signo: '+', pct: 100 },
-          { label: 'Gastos', val: gastosMes, col: 'var(--accent-rose)', Icon: ArrowDownRight, signo: '-', pct: pctGastos },
-          { label: 'Futuro', val: ahorroMes, col: 'var(--accent-gold)', Icon: Target, signo: '', pct: pctAhorro },
-          { label: 'Disponible', val: saldoLibre, col: saldoLibre >= 0 ? 'var(--accent-blue)' : 'var(--accent-rose)', Icon: Wallet, signo: '', pct: pctDisp },
-        ].map((k, i) => (
-          <div key={i} className="animate-enter"
-            style={{
-              background: 'var(--bg-card)',
-              borderRadius: 24,
-              padding: '18px 18px 14px',
-              minHeight: 118,
-              border: '1px solid var(--border-glass)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              animationDelay: `${i * 0.06}s`,
-            }}>
-
-            {/* Label e Icono */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-muted)' }}>
-                {k.label}
-              </span>
-              <div style={{
-                width: 26, height: 26, borderRadius: 9, flexShrink: 0,
-                background: `color-mix(in srgb, ${k.col} 14%, transparent)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <k.Icon size={12} style={{ color: k.col }} strokeWidth={2.5} />
-              </div>
+      {/* ── Hero card: Balance del mes ── */}
+      <div className="mb-7 animate-enter" style={{
+        animationDelay: '0.15s',
+        borderRadius: 'var(--radius-xl)',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-glass)',
+        padding: 24,
+        boxShadow: 'var(--shadow-sm)',
+      }}>
+        <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--text-muted)', marginBottom: 6 }}>
+          Ingresos — {mesNombre}
+        </p>
+        <p style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--text-primary)', marginBottom: 20 }}>
+          {formatCurrency(ingresosMes)}
+        </p>
+        <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border-glass)', paddingTop: 16 }}>
+          {[
+            { label: 'Gastos', val: gastosMes,            color: 'var(--accent-rose)',                                                prefix: '−' },
+            { label: 'Ahorro', val: ahorroMes,            color: 'var(--accent-gold)',                                                prefix: ''  },
+            { label: 'Libre',  val: Math.abs(saldoLibre), color: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',      prefix: saldoLibre < 0 ? '−' : '' },
+          ].map(({ label, val, color, prefix }, i) => (
+            <div key={label} style={{ flex: 1, paddingRight: i < 2 ? 16 : 0, borderRight: i < 2 ? '1px solid var(--border-glass)' : 'none', marginRight: i < 2 ? 16 : 0 }}>
+              <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-muted)', marginBottom: 4 }}>{label}</p>
+              <p style={{ fontSize: 14, fontWeight: 800, letterSpacing: '-0.03em', color }}>{prefix}{formatCurrency(val)}</p>
             </div>
-
-            {/* Monto y barra */}
-            <div>
-              <p style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 8, color: k.col }}>
-                {k.signo && <span style={{ marginRight: 3, opacity: 0.5 }}>{k.signo}</span>}
-                {formatCurrency(Math.abs(k.val))}
-              </p>
-              <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${k.pct}%`, background: k.col, borderRadius: 999, transition: 'width 1s ease-out' }} />
-              </div>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+
+      {/* ── Alerta saldo negativo ── */}
+      {saldoLibre < 0 && (
+        <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-7 animate-enter"
+          style={{
+            background: 'color-mix(in srgb, var(--accent-rose) 8%, var(--bg-card))',
+            border: '1px solid color-mix(in srgb, var(--accent-rose) 25%, transparent)',
+          }}>
+          <AlertTriangle size={16} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
+          <div className="flex-1">
+            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-rose)' }}>Saldo en rojo este mes</p>
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
+              Estás {formatCurrency(Math.abs(saldoLibre))} por encima de tus ingresos.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Alertas deuda ── */}
+      {alertas.length > 0 && (
+        <div className="space-y-2 mb-7">
+          {alertas.map(d => {
+            const color = d.dias <= 3 ? 'var(--accent-rose)' : 'var(--accent-terra)'
+            return (
+              <div key={d.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                style={{
+                  background: `color-mix(in srgb, ${color} 7%, var(--bg-card))`,
+                  border: `1px solid color-mix(in srgb, ${color} 18%, transparent)`,
+                }}>
+                <span className="text-base flex-shrink-0">{d.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{d.nombre}</p>
+                  <p style={{ fontSize: 10, color }}>
+                    {d.dias === 0 ? '¡Vence hoy!' : `Vence en ${d.dias} día${d.dias !== 1 ? 's' : ''}`}
+                  </p>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 900, flexShrink: 0, color }}>{formatCurrency(d.cuota)}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* ── Agenda widget ── */}
       <div className="mb-7">
@@ -334,7 +548,7 @@ export default function Dashboard() {
           <FinanceChart data={dataGrafico} />
         </div>
 
-        {/* Últimos movimientos */}
+        {/* Movimientos agrupados por día */}
         <div className="flex flex-col rounded-[28px] overflow-hidden"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
           <div className="flex items-center justify-between px-5 py-3.5"
@@ -346,35 +560,60 @@ export default function Dashboard() {
               <ChevronRight size={14} />
             </Link>
           </div>
-          <div className="flex-1">
-            {ultimosMovs.length === 0 ? (
-              <p className="text-center text-xs italic py-8" style={{ color: 'var(--text-muted)' }}>Sin movimientos este mes</p>
-            ) : ultimosMovs.map((m, idx) => (
-              <div key={m.id} className="flex items-center gap-3 px-5 py-2.5"
-                style={{ borderBottom: idx < ultimosMovs.length - 1 ? '1px solid var(--border-glass)' : 'none' }}>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: `color-mix(in srgb, ${m.tipo === 'ingreso' ? 'var(--accent-green)' : COLORES_CAT[m.categoria] || 'var(--text-muted)'} 12%, transparent)` }}>
-                  {m.tipo === 'ingreso'
-                    ? <ArrowUpRight size={12} style={{ color: 'var(--accent-green)' }} />
-                    : <ArrowDownRight size={12} style={{ color: COLORES_CAT[m.categoria] || 'var(--text-muted)' }} />
-                  }
+
+          {ultimosMovs.length === 0 ? (
+            <p className="text-center text-xs italic py-8" style={{ color: 'var(--text-muted)' }}>Sin movimientos este mes</p>
+          ) : (
+            <div className="flex-1">
+              {Object.entries(movsAgrupados).map(([dayLabel, items]) => (
+                <div key={dayLabel}>
+                  {/* Separador de día */}
+                  <div className="px-5 py-1.5" style={{ background: 'var(--bg-secondary)' }}>
+                    <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>
+                      {dayLabel}
+                    </p>
+                  </div>
+                  {items.map((m, idx) => {
+                    const catColor = m.tipo === 'ingreso' ? 'var(--accent-green)' : (COLORES_CAT[m.categoria] || 'var(--text-muted)')
+                    const emoji = m.tipo === 'ingreso' ? EMOJI_CAT.ingreso : (EMOJI_CAT[m.categoria] || '💸')
+                    return (
+                      <div key={m.id} className="flex items-center gap-3 px-5 py-2.5"
+                        style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                        <div className="flex items-center justify-center flex-shrink-0"
+                          style={{
+                            width: 32, height: 32, borderRadius: 12, fontSize: 15,
+                            background: `color-mix(in srgb, ${catColor} 10%, var(--bg-secondary))`,
+                          }}>
+                          {emoji}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                            {m.descripcion || NOMBRES_CAT[m.categoria] || m.categoria}
+                          </p>
+                          <p style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                            {NOMBRES_CAT[m.categoria] || m.categoria}
+                          </p>
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 900, flexShrink: 0, color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-primary)' }}>
+                          {m.tipo === 'ingreso' ? '+' : '−'}{formatCurrency(m.monto)}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                    {m.descripcion || NOMBRES_CAT[m.categoria] || m.categoria}
-                  </p>
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                    {new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                  </p>
-                </div>
-                <span style={{ fontSize: 11, fontWeight: 900, flexShrink: 0, color: m.tipo === 'ingreso' ? 'var(--accent-green)' : 'var(--text-primary)' }}>
-                  {m.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(m.monto)}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ── Panel de Insights ── */}
+      <InsightsPanel
+        movsMes={movsMes}
+        metas={metas}
+        deudas={deudas}
+        inversiones={inversiones}
+      />
 
       {/* ── Distribución + Metas ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
@@ -402,7 +641,7 @@ export default function Dashboard() {
                     <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-primary)' }}>{d.pct}%</span>
                   </div>
                 </div>
-                <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
+                <div style={{ height: 4, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${d.pct}%`, background: d.color, borderRadius: 999, transition: 'width 1s cubic-bezier(0.2,0,0.2,1)' }} />
                 </div>
               </div>
@@ -429,7 +668,7 @@ export default function Dashboard() {
               <div style={{ background: 'var(--bg-card)', padding: '28px 20px', textAlign: 'center', gridColumn: 'span 2' }}>
                 <p style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin metas activas</p>
               </div>
-            ) : metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).map((m, idx, arr) => {
+            ) : metas.filter(m => m.estado !== 'pausada' && (m.actual || 0) < m.meta).map(m => {
               const pct = Math.min(100, Math.round(((m.actual || 0) / (m.meta || 1)) * 100))
               return (
                 <div key={m.id} style={{ background: 'var(--bg-card)', padding: '18px 20px' }}>
@@ -449,7 +688,7 @@ export default function Dashboard() {
                     </div>
                     <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: '-0.04em', color: m.color, flexShrink: 0 }}>{pct}%</span>
                   </div>
-                  <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
+                  <div style={{ height: 4, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${pct}%`, background: m.color, borderRadius: 999, transition: 'width 1.2s cubic-bezier(0.2,0,0.2,1)' }} />
                   </div>
                 </div>
@@ -457,8 +696,8 @@ export default function Dashboard() {
             })}
           </div>
         </div>
-      </div>
 
-    </AppShell >
+      </div>
+    </AppShell>
   )
 }

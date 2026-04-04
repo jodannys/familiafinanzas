@@ -140,6 +140,8 @@ export default function PresupuestoPage() {
         setSub(prev => ({ ...prev, ...newSub }))
       }
     } catch (err) {
+      console.error('Error cargando presupuesto:', err)
+      toast('Error cargando datos del presupuesto')
     } finally {
       setLoading(false)
     }
@@ -299,21 +301,37 @@ export default function PresupuestoPage() {
             <button
               onClick={copiarMesAnterior}
               disabled={copiando}
-              className="ff-btn-ghost flex items-center gap-1.5"
-              style={{ padding: '4px 8px' }}
+              className="flex items-center gap-2 transition-all active:scale-95"
+              style={{
+                padding: '8px 14px',
+                borderRadius: 14,
+                border: '1px solid var(--border-glass)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
             >
-              {copiando ? <Loader2 size={11} className="animate-spin" /> : <Copy size={11} />}
-              <span className="text-[10px] font-bold uppercase tracking-wider">Copiar</span>
+              {copiando ? <Loader2 size={13} className="animate-spin" /> : <Copy size={13} />}
+              Copiar mes
             </button>
             <button
               onClick={iniciarEdicion}
-              className="ff-btn-ghost flex items-center gap-1.5"
-              style={{ padding: '4px 8px' }}
+              className="flex items-center gap-2 transition-all active:scale-95"
+              style={{
+                padding: '8px 14px',
+                borderRadius: 14,
+                border: '1px solid color-mix(in srgb, var(--accent-main) 30%, transparent)',
+                background: 'color-mix(in srgb, var(--accent-main) 8%, var(--bg-secondary))',
+                color: 'var(--accent-main)',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
             >
-              <Edit3 size={11} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                Distribución
-              </span>
+              <Edit3 size={13} />
+              Distribución
             </button>
           </div>
         )}
@@ -321,75 +339,116 @@ export default function PresupuestoPage() {
 
       {/* ── Panel de edición ─────────────────────────────────────────────────── */}
       {editando && (
-        <Card className="mb-5 animate-enter" style={{ border: '1px solid var(--accent-blue)' }}>
+        <div className="mb-5 animate-enter" style={{
+          borderRadius: 24,
+          border: '1px solid var(--border-glass)',
+          background: 'var(--bg-card)',
+          boxShadow: 'var(--shadow-md)',
+          overflow: 'hidden',
+        }}>
 
-          <div className="flex items-center gap-2 mb-4">
-            <Edit3 size={14} style={{ color: 'var(--accent-blue)' }} />
-            <p className="flex-1 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-              Distribución del ingreso
-            </p>
-            <button onClick={cancelarEdicion} style={{
-              color: 'var(--text-muted)', background: 'none', border: 'none',
-              cursor: 'pointer', padding: 4, lineHeight: 0,
+          {/* Cabecera */}
+          <div className="flex items-center gap-3 px-5 py-4"
+            style={{ borderBottom: '1px solid var(--border-glass)', background: 'var(--bg-secondary)' }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+              background: 'color-mix(in srgb, var(--accent-main) 12%, transparent)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <X size={16} />
+              <Edit3 size={14} style={{ color: 'var(--accent-main)' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                Distribución del ingreso
+              </p>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
+                Los porcentajes deben sumar 100%
+              </p>
+            </div>
+            <button onClick={cancelarEdicion} style={{
+              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+              background: 'var(--bg-card)', border: '1px solid var(--border-glass)',
+              color: 'var(--text-muted)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <X size={14} />
             </button>
           </div>
 
-          <div className="space-y-5">
-            {borradores.map(b => {
+          {/* Filas de bloques */}
+          <div style={{ padding: '8px 0' }}>
+            {borradores.map((b, idx) => {
               const BIcon = b.icon
               const bMonto = ingresoNum * ((parseInt(b.pct) || 0) / 100)
+              const pctVal = parseInt(b.pct) || 0
               return (
-                <div key={b.id}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: `color-mix(in srgb, ${b.color} 12%, transparent)` }}>
-                      <BIcon size={14} style={{ color: b.color }} />
+                <div key={b.id} style={{
+                  padding: '14px 20px',
+                  borderBottom: idx < borradores.length - 1 ? '1px solid var(--border-glass)' : 'none',
+                }}>
+                  {/* Fila principal */}
+                  <div className="flex items-center gap-3">
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 12, flexShrink: 0,
+                      background: `color-mix(in srgb, ${b.color} 12%, var(--bg-secondary))`,
+                      border: `1px solid color-mix(in srgb, ${b.color} 20%, transparent)`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <BIcon size={15} style={{ color: b.color }} />
                     </div>
+
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{b.nombre}</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                        {b.nombre}
+                      </p>
                       {ingresoNum > 0 && (
-                        <p className="text-xs" style={{ color: b.color }}>{formatCurrency(bMonto)}</p>
+                        <p style={{ fontSize: 11, color: b.color, fontWeight: 600, marginTop: 1 }}>
+                          {formatCurrency(bMonto)}
+                        </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+
+                    {/* Input % */}
+                    <div className="flex items-center gap-1 flex-shrink-0" style={{
+                      background: 'var(--bg-secondary)',
+                      borderRadius: 12,
+                      padding: '4px 10px 4px 6px',
+                    }}>
                       <input
-                        type="number"
-                        min="0"
-                        max="100"
+                        type="number" min="0" max="100"
                         value={b.pct}
                         onChange={e => cambiarPct(b.id, e.target.value)}
-                        className="ff-input text-center font-semibold w-10 p-1 rounded-lg"
                         style={{
-                          color: b.color,
-                          fontSize: 12, 
+                          width: 36, textAlign: 'center', background: 'none', border: 'none',
+                          outline: 'none', fontSize: 15, fontWeight: 800,
+                          color: b.color, fontFamily: 'Inter, sans-serif',
                         }}
                       />
-                      <span
-                        className="font-semibold"
-                        style={{
-                          color: 'var(--text-muted)',
-                          fontSize: 12
-                        }}
-                      >
-                        %
-                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>%</span>
                     </div>
                   </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
-                    <div className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${parseInt(b.pct) || 0}%`, background: b.color }} />
+
+                  {/* Barra */}
+                  <div style={{ marginTop: 10, height: 5, borderRadius: 999, overflow: 'hidden', background: 'var(--progress-track)' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 999,
+                      width: `${pctVal}%`, background: b.color,
+                      transition: 'width 0.35s ease-out',
+                    }} />
                   </div>
 
-                  {/* Sub-distribución metas/inversiones — solo Futuro */}
+                  {/* Sub-distribución Futuro */}
                   {b.id === 'futuro' && subBorrador && (
-                    <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${b.color}30` }}>
-                      <p className="text-[9px] font-semibold uppercase tracking-wider mb-3"
-                        style={{ color: 'var(--text-muted)' }}>
-                        Distribución interna — suma 100%
+                    <div style={{
+                      marginTop: 12, borderRadius: 14,
+                      background: 'var(--bg-secondary)',
+                      border: `1px solid color-mix(in srgb, ${b.color} 15%, var(--border-glass))`,
+                      padding: '12px 14px',
+                    }}>
+                      <p style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', marginBottom: 10 }}>
+                        Distribución interna del Futuro
                       </p>
-                      <div className="space-y-2">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {[
                           { key: 'metas', label: 'Metas de Ahorro', color: 'var(--accent-green)', emoji: '🎯' },
                           { key: 'inversiones', label: 'Inversiones', color: 'var(--accent-violet)', emoji: '📈' },
@@ -398,34 +457,43 @@ export default function PresupuestoPage() {
                           const sMonto = bMonto * (pct / 100)
                           return (
                             <div key={s.key}>
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs">{s.emoji}</span>
-                                <span className="flex-1 text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
+                              <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
+                                <span style={{ fontSize: 13 }}>{s.emoji}</span>
+                                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                  {s.label}
+                                </span>
                                 {ingresoNum > 0 && (
-                                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
                                     {formatCurrency(sMonto)}
                                   </span>
                                 )}
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1" style={{
+                                  background: 'var(--bg-card)',
+                                  borderRadius: 10, padding: '3px 8px 3px 4px',
+                                }}>
                                   <input type="number" min="0" max="100" value={subBorrador[s.key]}
                                     onChange={e => cambiarSubPct(s.key, e.target.value)}
-                                    className="ff-input text-center font-semibold"
-                                    style={{ color: s.color, fontSize: 13, width: 52, padding: '4px 6px' }} />
-                                  <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>%</span>
+                                    style={{
+                                      width: 30, textAlign: 'center', background: 'none', border: 'none',
+                                      outline: 'none', fontSize: 13, fontWeight: 800,
+                                      color: s.color, fontFamily: 'Inter, sans-serif',
+                                                }} />
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>%</span>
                                 </div>
                               </div>
-                              {/* Barra de progreso visual */}
-                              <div className="w-full h-1 rounded-full" style={{ background: 'var(--progress-track)' }}>
-                                <div className="h-full rounded-full transition-all duration-300"
-                                  style={{ width: `${Math.min(100, pct)}%`, background: s.color }} />
+                              <div style={{ height: 3, borderRadius: 999, background: 'var(--progress-track)', overflow: 'hidden' }}>
+                                <div style={{
+                                  height: '100%', borderRadius: 999, background: s.color,
+                                  width: `${Math.min(100, pct)}%`, transition: 'width 0.35s ease-out',
+                                }} />
                               </div>
                             </div>
                           )
                         })}
                       </div>
                       {!subOk && (
-                        <p className="text-[9px] font-semibold mt-2" style={{ color: 'var(--accent-rose)' }}>
-                          Suman {subTotalPct}% — deben ser exactamente 100%
+                        <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent-rose)', marginTop: 8 }}>
+                          ⚠ Suman {subTotalPct}% — deben ser exactamente 100%
                         </p>
                       )}
                     </div>
@@ -436,30 +504,35 @@ export default function PresupuestoPage() {
           </div>
 
           {/* Footer */}
-          <div className="mt-5 pt-4 flex items-center justify-between"
-            style={{ borderTop: '1px solid var(--border-glass)' }}>
+          <div className="flex items-center justify-between px-5 py-4"
+            style={{ borderTop: '1px solid var(--border-glass)', background: 'var(--bg-secondary)' }}>
             <div className="flex items-center gap-2">
               {panelOk
                 ? <CheckCircle size={14} style={{ color: 'var(--accent-green)' }} />
                 : <AlertTriangle size={14} style={{ color: 'var(--accent-rose)' }} />
               }
-              <span className="text-sm font-semibold"
-                style={{ color: panelOk ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: panelOk ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
                 {!totalOk
-                  ? `Bloques: ${totalPct}% — deben ser 100%`
+                  ? `Bloques: ${totalPct}% (faltan ${100 - totalPct}%)`
                   : !subOk
-                    ? `Futuro: ${subTotalPct}% — deben ser 100%`
-                    : 'Todo cuadra'}
+                    ? `Futuro: ${subTotalPct}% (deben ser 100%)`
+                    : 'Todo cuadra ✓'}
               </span>
             </div>
             <button onClick={guardarEdicion} disabled={!panelOk || saving}
-              className="ff-btn-primary text-sm py-1.5 px-4 flex items-center gap-1.5"
-              style={{ opacity: panelOk ? 1 : 0.5 }}>
+              className="flex items-center gap-2 transition-all active:scale-95"
+              style={{
+                padding: '9px 18px', borderRadius: 12, border: 'none', cursor: panelOk ? 'pointer' : 'not-allowed',
+                background: panelOk ? 'var(--accent-main)' : 'var(--bg-secondary)',
+                color: panelOk ? '#fff' : 'var(--text-muted)',
+                fontSize: 13, fontWeight: 700, opacity: panelOk ? 1 : 0.5,
+              }}>
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
               Guardar
             </button>
           </div>
-        </Card>
+
+        </div>
       )}
 
       {/* Selector de vista */}
@@ -925,7 +998,6 @@ export default function PresupuestoPage() {
                 const catsBloque = categoriasCfg.filter(c => c.bloque === bloque.id)
                 const esFuturo = bloque.id === 'futuro'
 
-                if (!esFuturo && catsBloque.length === 0) return null
                 if (esFuturo && catsBloque.length === 0 && metas.length === 0 && inversiones.length === 0) return null
 
                 return (
@@ -1113,6 +1185,21 @@ export default function PresupuestoPage() {
                       </div>
                     )}
 
+                    {/* Estado vacío — sin categorías configuradas */}
+                    {!esFuturo && catsBloque.length === 0 && (
+                      <div className="flex items-center justify-between px-1 py-2">
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          Sin categorías aún
+                        </p>
+                        <a href="/ajustes" style={{
+                          fontSize: 11, fontWeight: 700, color: bloque.color,
+                          textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
+                        }}>
+                          Configurar <ArrowRight size={11} />
+                        </a>
+                      </div>
+                    )}
+
                     {/* Categorías custom con inputs editables */}
                     {catsBloque.length > 0 && (
                       <div className="space-y-3">
@@ -1175,54 +1262,76 @@ export default function PresupuestoPage() {
                                     const montoPres = parseFloat(montosCats[sub.id]) || 0
                                     const difSub = montoPres - gastadoSub
                                     const pctSub = montoPres > 0 ? Math.min(100, (gastadoSub / montoPres) * 100) : 0
+                                    const overBudget = montoPres > 0 && gastadoSub > montoPres
 
                                     return (
-                                      <div key={sub.id} className="px-3 py-3">
-                                        <div className="flex items-center justify-between mb-2.5">
-                                          <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                                      <div key={sub.id} style={{ padding: '12px 14px' }}>
+                                        {/* Nombre + badge restante */}
+                                        <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                                          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
                                             {sub.nombre}
                                           </p>
-                                          {(montoPres > 0 || gastadoSub > 0) && (
-                                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                                              style={{
-                                                background: `color-mix(in srgb, ${difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 10%, transparent)`,
-                                                color: difSub >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
-                                              }}>
-                                              {difSub >= 0 ? '+' : ''}{formatCurrency(difSub)}
+                                          {montoPres > 0 && (
+                                            <span className="tabular-nums" style={{
+                                              fontSize: 10, fontWeight: 700,
+                                              padding: '2px 7px', borderRadius: 20,
+                                              background: `color-mix(in srgb, ${overBudget ? 'var(--accent-rose)' : 'var(--accent-green)'} 10%, transparent)`,
+                                              color: overBudget ? 'var(--accent-rose)' : 'var(--accent-green)',
+                                            }}>
+                                              {overBudget ? '−' : '+'}{formatCurrency(Math.abs(difSub))}
                                             </span>
                                           )}
                                         </div>
-                                        <div className="flex items-end gap-3">
-                                          <div className="flex-1">
-                                            <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
-                                              style={{ color: 'var(--text-muted)' }}>Presupuestado</p>
+                                        {/* Dos columnas */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                          <div style={{
+                                            borderRadius: 10, padding: '8px 10px',
+                                            background: 'var(--bg-secondary)',
+                                          }}>
+                                            <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 4 }}>
+                                              Presupuestado
+                                            </p>
                                             <input
                                               type="number" step="0.01" min="0" placeholder="0.00"
                                               value={montosCats[sub.id] ?? ''}
                                               onChange={e => setMontosCats(prev => ({ ...prev, [sub.id]: e.target.value }))}
                                               onBlur={e => guardarPresupuestoCat(sub.id, e.target.value)}
                                               onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-                                              className="ff-input w-full text-sm"
-                                              style={{ color: cat.color, fontWeight: 700 }}
+                                              style={{
+                                                width: '100%', background: 'none', border: 'none', outline: 'none',
+                                                fontSize: 13, fontWeight: 800, color: cat.color,
+                                                fontFamily: 'Inter, sans-serif', padding: 0,
+                                              }}
                                             />
                                           </div>
-                                          <div className="flex-1">
-                                            <p className="text-[9px] uppercase tracking-wider font-semibold mb-1"
-                                              style={{ color: 'var(--text-muted)' }}>Gastado real</p>
-                                            <div className="ff-input flex items-center text-sm font-semibold"
-                                              style={{
-                                                color: gastadoSub > 0 ? 'var(--accent-rose)' : 'var(--text-muted)',
-                                                background: 'var(--bg-secondary)', cursor: 'default',
-                                              }}>
+                                          <div style={{
+                                            borderRadius: 10, padding: '8px 10px',
+                                            background: overBudget
+                                              ? 'color-mix(in srgb, var(--accent-rose) 8%, var(--bg-secondary))'
+                                              : 'var(--bg-secondary)',
+                                          }}>
+                                            <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 4 }}>
+                                              Gastado
+                                            </p>
+                                            <p className="tabular-nums" style={{
+                                              fontSize: 13, fontWeight: 800,
+                                              color: gastadoSub > 0
+                                                ? (overBudget ? 'var(--accent-rose)' : 'var(--text-secondary)')
+                                                : 'var(--text-muted)',
+                                            }}>
                                               {gastadoSub > 0 ? formatCurrency(gastadoSub) : '—'}
-                                            </div>
+                                            </p>
                                           </div>
                                         </div>
+                                        {/* Barra */}
                                         {montoPres > 0 && (
-                                          <div className="mt-2 h-1.5 rounded-full overflow-hidden"
-                                            style={{ background: 'var(--progress-track)' }}>
-                                            <div className="h-full rounded-full transition-all duration-500"
-                                              style={{ width: `${pctSub}%`, background: pctSub >= 100 ? 'var(--accent-rose)' : cat.color }} />
+                                          <div style={{ marginTop: 8, height: 3, borderRadius: 999, overflow: 'hidden', background: 'var(--progress-track)' }}>
+                                            <div style={{
+                                              height: '100%', borderRadius: 999,
+                                              width: `${pctSub}%`,
+                                              background: overBudget ? 'var(--accent-rose)' : cat.color,
+                                              transition: 'width 0.4s ease-out',
+                                            }} />
                                           </div>
                                         )}
                                       </div>

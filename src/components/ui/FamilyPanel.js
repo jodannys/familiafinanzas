@@ -58,7 +58,7 @@ export default function FamilyPanel({ anchorRef, onClose, isMobile = false }) {
   useEffect(() => {
     if (!hogarId) return
     supabase
-      .from('perfiles_familia')
+      .from('perfiles')
       .select('id, nombre')
       .eq('hogar_id', hogarId)
       .order('nombre')

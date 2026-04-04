@@ -5,10 +5,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, Target, TrendingUp, PieChart,
   CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2,
-  CalendarDays, Home, Menu,
+  CalendarDays, Home, Menu, Palette, Check,
 } from 'lucide-react'
 import { supabase, signOut, getMisPermisos } from '@/lib/supabase'
-import { useTheme, getThemeColors } from '@/lib/themes'
+import ConfirmLogoutModal from '@/components/ui/ConfirmLogoutModal'
+import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import ProfilePanel from '@/components/ui/ProfilePanel'
 
 const W_EXP = 240
@@ -78,6 +79,7 @@ export default function Sidebar() {
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [tooltip, setTooltip] = useState(null)
+  const [openTheme, setOpenTheme] = useState(false)
   const [indicator, setIndicator] = useState({ top: 8, height: 36, visible: false })
   const [perfilNombre, setPerfilNombre] = useState('')
   const [nombreHogar, setNombreHogar] = useState('')
@@ -247,6 +249,9 @@ export default function Sidebar() {
                 fontSize: 20,
                 color: 'var(--text-primary)',
                 whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
               }}>
                 {nombreHogar || 'Mi Familia'}
               </p>
@@ -367,25 +372,38 @@ export default function Sidebar() {
                         }}
                       >
                         <div style={{
-                          width: 34, height: 34,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          borderRadius: 10, flexShrink: 0, position: 'relative',
-                          background: active
-                            ? 'color-mix(in srgb, var(--accent-main) 18%, transparent)'
-                            : 'transparent',
-                          transition: 'background 0.15s ease',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center',
+                          gap: 3, flexShrink: 0,
                         }}>
-                          <Icon
-                            size={15}
-                            strokeWidth={active ? 2.5 : 1.8}
-                            style={{ color: active ? 'var(--accent-main)' : 'var(--text-muted)' }}
-                          />
-                          {showBadge && (
-                            <span style={{
-                              position: 'absolute', top: -2, right: -2,
-                              width: 7, height: 7, borderRadius: '50%',
-                              background: 'var(--accent-rose)',
-                              border: '2px solid var(--sidebar-bg)',
+                          <div style={{
+                            width: 34, height: 34,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            borderRadius: 10, position: 'relative',
+                            background: active
+                              ? 'color-mix(in srgb, var(--accent-main) 18%, transparent)'
+                              : 'transparent',
+                            transition: 'background 0.15s ease',
+                          }}>
+                            <Icon
+                              size={15}
+                              strokeWidth={active ? 2.5 : 1.8}
+                              style={{ color: active ? 'var(--accent-main)' : 'var(--text-muted)' }}
+                            />
+                            {showBadge && (
+                              <span style={{
+                                position: 'absolute', top: -2, right: -2,
+                                width: 7, height: 7, borderRadius: '50%',
+                                background: 'var(--accent-rose)',
+                                border: '2px solid var(--sidebar-bg)',
+                              }} />
+                            )}
+                          </div>
+                          {/* Dot indicator — solo en modo colapsado */}
+                          {collapsed && (
+                            <div style={{
+                              width: active ? 4 : 0, height: 4, borderRadius: 9999,
+                              background: 'var(--accent-main)',
+                              transition: 'width 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
                             }} />
                           )}
                         </div>
@@ -481,15 +499,115 @@ export default function Sidebar() {
           </button>
 
           {/* ── ThemeSwitcher ── */}
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            gap: collapsed ? 0 : 10,
-            padding: collapsed ? '7px 6px' : '7px 8px',
-            borderRadius: 10,
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            transition: `gap ${TRANS}, padding ${TRANS}`,
-          }}>
-           
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setOpenTheme(o => !o)}
+              aria-label={collapsed ? 'Cambiar tema' : undefined}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center',
+                gap: collapsed ? 0 : 10,
+                padding: collapsed ? '7px 6px' : '7px 8px',
+                borderRadius: 10, justifyContent: collapsed ? 'center' : 'flex-start',
+                border: 'none', background: openTheme
+                  ? 'color-mix(in srgb, var(--accent-main) 8%, transparent)'
+                  : 'transparent',
+                cursor: 'pointer',
+                transition: `background 0.15s ease, gap ${TRANS}, padding ${TRANS}`,
+              }}
+              onMouseEnter={e => {
+                if (!openTheme) e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-main) 8%, transparent)'
+                if (collapsed) setTooltip({
+                  label: 'Cambiar tema',
+                  top: e.currentTarget.getBoundingClientRect().top + 14,
+                })
+              }}
+              onMouseLeave={e => {
+                if (!openTheme) e.currentTarget.style.background = 'transparent'
+                setTooltip(null)
+              }}
+            >
+              {/* Icono: mini grid de colores del tema activo */}
+              <div style={{
+                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                display: 'grid', gridTemplateColumns: '1fr 1fr',
+                gap: 2, padding: 6,
+                background: 'color-mix(in srgb, var(--accent-main) 10%, transparent)',
+              }}>
+                {(THEMES[theme]?.preview || []).slice(0, 4).map((c, i) => (
+                  <div key={i} style={{ borderRadius: 2, background: c }} />
+                ))}
+              </div>
+              <span style={{
+                fontSize: 12, fontWeight: 600,
+                color: 'var(--text-secondary)',
+                whiteSpace: 'nowrap', overflow: 'hidden',
+                maxWidth: collapsed ? 0 : 180,
+                opacity: collapsed ? 0 : 1,
+                transition: `max-width ${TRANS}, opacity 0.18s ease`,
+              }}>
+                Tema
+              </span>
+            </button>
+
+            {/* Dropdown de temas */}
+            {openTheme && (
+              <>
+                <div className="fixed inset-0 z-[200]" onClick={() => setOpenTheme(false)} />
+                <div style={{
+                  position: 'fixed',
+                  bottom: 70,
+                  left: collapsed ? W_COL + 8 : W_EXP + 8,
+                  zIndex: 201,
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-glass)',
+                  borderRadius: 20, boxShadow: 'var(--shadow-lg)',
+                  padding: 6, width: 180,
+                  backdropFilter: 'blur(12px)',
+                  transition: `left ${TRANS}`,
+                }}>
+                  <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-muted)', padding: '6px 10px 8px' }}>
+                    Temas
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {Object.entries(THEMES).map(([key, t]) => {
+                      const isActive = theme === key
+                      return (
+                        <button key={key}
+                          onClick={() => { setTheme(key); setOpenTheme(false) }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            width: '100%', padding: '8px 10px', borderRadius: 12,
+                            border: 'none', cursor: 'pointer',
+                            background: isActive ? 'var(--bg-secondary)' : 'transparent',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)' }}
+                          onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                        >
+                          <div style={{
+                            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                            background: t.preview[0],
+                            border: '2px solid var(--border-glass)',
+                          }} />
+                          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, textAlign: 'left', color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                            {t.name}
+                          </span>
+                          {isActive && (
+                            <div style={{
+                              width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+                              background: 'var(--accent-green)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <Check size={10} color="white" strokeWidth={4} />
+                            </div>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div style={{ position: 'relative' }}>
@@ -530,60 +648,16 @@ export default function Sidebar() {
               </span>
             </button>
 
-            {confirmLogout && (
-              <>
-                <div className="fixed inset-0 z-[200]" onClick={() => setConfirmLogout(false)} />
-                <div style={{
-                  position: 'fixed',
-                  bottom: 70,
-                  left: collapsed ? 16 : 24,
-                  zIndex: 201,
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-glass)',
-                  borderRadius: 16, boxShadow: 'var(--shadow-lg)',
-                  padding: '14px 16px', width: 210,
-                  transition: `left ${TRANS}`,
-                }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: 'var(--text-primary)' }}>
-                    ¿Cerrar sesión?
-                  </p>
-                  <p style={{ fontSize: 10, marginBottom: 12, color: 'var(--text-muted)' }}>
-                    Tendrás que volver a iniciar sesión.
-                  </p>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => setConfirmLogout(false)}
-                      style={{
-                        flex: 1, fontSize: 12, fontWeight: 600,
-                        padding: '6px 0', borderRadius: 10, border: 'none',
-                        cursor: 'pointer',
-                        background: 'var(--bg-secondary)',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      style={{
-                        flex: 1, fontSize: 12, fontWeight: 600,
-                        padding: '6px 0', borderRadius: 10, border: 'none',
-                        cursor: 'pointer',
-                        background: 'color-mix(in srgb, var(--accent-rose) 15%, transparent)',
-                        color: 'var(--accent-rose)',
-                      }}
-                    >
-                      Salir
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         </div>
       </aside>
 
-      <ProfilePanel open={showProfile} onClose={() => setShowProfile(false)} />
+      <ProfilePanel open={showProfile} onClose={() => setShowProfile(false)} onLogout={() => { setShowProfile(false); setConfirmLogout(true) }} />
+      <ConfirmLogoutModal
+        open={confirmLogout}
+        onCancel={() => setConfirmLogout(false)}
+        onConfirm={handleLogout}
+      />
     </>
   )
 }

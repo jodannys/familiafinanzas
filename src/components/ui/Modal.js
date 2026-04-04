@@ -73,8 +73,12 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex flex-col justify-center items-center p-4"
-      style={{ opacity: closing ? undefined : undefined }}>
+    <div
+      className="fixed inset-0 z-[9999] flex flex-col justify-center items-center"
+      style={{
+        padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))',
+      }}
+    >
 
       {/* Overlay */}
       <div
@@ -87,50 +91,51 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
         onClick={onClose}
       />
 
-      {/* Panel */}
+      {/* Panel — overflow:hidden contiene la scrollbar dentro del border-radius */}
       <div
-        className={`relative w-full sm:rounded-2xl ${closing ? 'animate-leave' : 'animate-enter'} ${sizes[size]}`}
+        className={`ff-sheet relative w-full ${closing ? 'animate-leave' : 'animate-enter'} ${sizes[size]}`}
         style={{
-          background:   'var(--bg-card)',
-          border:       '1px solid var(--border-glass)',
-          boxShadow:    'var(--shadow-xl)',
-          borderRadius: '20px',
-          maxHeight:    '92dvh',
-          display:      'flex',
+          maxHeight:     'min(88dvh, calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 32px)))',
+          display:       'flex',
           flexDirection: 'column',
         }}
       >
 
         {/* Handle móvil */}
         <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-glass)' }} />
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-subtle)' }} />
         </div>
 
-        {/* Header */}
+        {/* Header — no scrollea */}
         <div
-          className="flex items-center justify-between px-6 py-5 flex-shrink-0"
-          style={{ borderBottom: '1px solid var(--border-glass)' }}
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid var(--border-subtle)' }}
         >
-          <h3
-            className="text-base font-semibold"
-            style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
+          <p
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              letterSpacing: '0.01em',
+              fontFamily: "'Inter', sans-serif",
+            }}
           >
             {title}
-          </h3>
+          </p>
           {onClose && (
             <button
               onClick={onClose}
               style={{
-                width:        32,
-                height:       32,
-                borderRadius: 10,
-                flexShrink:   0,
-                display:      'flex',
-                alignItems:   'center',
+                width:          32,
+                height:         32,
+                borderRadius:   10,
+                flexShrink:     0,
+                display:        'flex',
+                alignItems:     'center',
                 justifyContent: 'center',
-                background:   'var(--bg-secondary)',
-                border:       'none',
-                cursor:       'pointer',
+                background:     'var(--bg-secondary)',
+                border:         'none',
+                cursor:         'pointer',
               }}
             >
               <X size={16} style={{ color: 'var(--text-secondary)' }} />
@@ -138,8 +143,8 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
           )}
         </div>
 
-        {/* Contenido scrollable */}
-        <div className="overflow-y-auto flex-1" style={{ padding: '24px 24px 40px' }}>
+        {/* Contenido scrollable — scrollbar queda dentro del border-radius */}
+        <div className="custom-scroll flex-1" style={{ overflowY: 'auto', padding: '24px 24px 32px' }}>
           {children}
         </div>
 

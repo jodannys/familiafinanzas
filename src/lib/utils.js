@@ -140,6 +140,41 @@ export function calculateCompoundInterest({ principal, monthlyContribution, annu
   }
 }
 
+/**
+ * Alias de getFechaLocal — devuelve hoy en formato YYYY-MM-DD
+ * Mantenido por retrocompatibilidad con módulos que usan este nombre
+ */
+export const fechaHoy = getFechaLocal
+
+/**
+ * Calcula los días restantes hasta el próximo pago de una deuda
+ * @param {Object} d - objeto deuda con dia_pago, plazo_meses, pagadas, fecha_primer_pago
+ * @returns {number|null} días restantes o null si no aplica
+ */
+export function diasHastaPago(d) {
+  if (!d?.dia_pago) return null
+  if (d.plazo_meses && (d.pagadas || 0) >= d.plazo_meses) return null
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+  let fechaPago
+  if (d.fecha_primer_pago) {
+    const base = new Date(d.fecha_primer_pago + 'T12:00:00')
+    const targetMonth = base.getMonth() + (d.pagadas || 0)
+    const targetYear = base.getFullYear() + Math.floor(targetMonth / 12)
+    const targetMonthNorm = ((targetMonth % 12) + 12) % 12
+    const lastDay = new Date(targetYear, targetMonthNorm + 1, 0).getDate()
+    fechaPago = new Date(targetYear, targetMonthNorm, Math.min(base.getDate(), lastDay))
+  } else {
+    const diaHoy = hoy.getDate()
+    const offsetMes = d.dia_pago < diaHoy ? 1 : 0
+    const targetYear = hoy.getFullYear() + (hoy.getMonth() + offsetMes > 11 ? 1 : 0)
+    const targetMonth = (hoy.getMonth() + offsetMes + 12) % 12
+    const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate()
+    fechaPago = new Date(targetYear, targetMonth, Math.min(d.dia_pago, lastDay))
+  }
+  fechaPago.setHours(0, 0, 0, 0)
+  return Math.ceil((fechaPago - hoy) / (1000 * 60 * 60 * 24))
+}
+
 // ─── CONFIGURACIONES Y OTROS ────────────────────────────────────────────────
 
 /**

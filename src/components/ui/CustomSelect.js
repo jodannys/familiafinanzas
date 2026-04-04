@@ -67,7 +67,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
           width: '100%', display: 'flex', alignItems: 'center', gap: 8,
           padding: '9px 12px', borderRadius: 12, cursor: 'pointer',
           background: selected ? `color-mix(in srgb, ${accent} 8%, var(--bg-secondary))` : 'var(--bg-secondary)',
-          border: `1px solid ${selected ? accent : 'var(--border-glass)'}`,
+          border: `1px solid ${selected ? accent : 'var(--border-subtle)'}`,
           color: selected ? 'var(--text-primary)' : 'var(--text-muted)',
           fontWeight: selected ? 600 : 400, fontSize: 12,
           transition: 'all 0.12s',
@@ -101,7 +101,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
             width: coords.width,
             zIndex: 99999,
             background: 'var(--bg-card)',
-            border: '1px solid var(--border-glass)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 14,
             boxShadow: 'var(--shadow-lg)',
             overflow: 'hidden',
@@ -115,7 +115,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
             style={{
               width: '100%', padding: '10px 14px', textAlign: 'left',
               background: !value ? 'var(--bg-secondary)' : 'transparent',
-              border: 'none', borderBottom: '1px solid var(--border-glass)',
+              border: 'none', borderBottom: '1px solid var(--border-subtle)',
               color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer',
             }}
           >{placeholder}</button>
@@ -126,7 +126,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
                 padding: '6px 14px 4px',
                 fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
                 textTransform: 'uppercase', color: 'var(--text-muted)',
-                borderBottom: '1px solid var(--border-glass)',
+                borderBottom: '1px solid var(--border-subtle)',
                 background: 'var(--bg-secondary)',
               }}>{o.label}</div>
             )
@@ -139,7 +139,7 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                   padding: '10px 14px', textAlign: 'left', cursor: 'pointer', border: 'none',
-                  borderBottom: i < options.length - 1 ? '1px solid var(--border-glass)' : 'none',
+                  borderBottom: i < options.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                   background: isSel ? `color-mix(in srgb, ${accent} 10%, var(--bg-secondary))` : 'transparent',
                   color: isSel ? accent : 'var(--text-primary)',
                   fontWeight: isSel ? 700 : 400, fontSize: 12,
