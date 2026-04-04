@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import Modal from '@/components/ui/Modal'
@@ -10,6 +11,8 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import { formatCurrency } from '@/lib/utils'
+
+
 
 const TIPOS = [
   { id: 'recordatorio', label: 'Recordatorio', color: 'var(--accent-terra)',  Icon: Bell },
