@@ -684,6 +684,7 @@ function ToastDisplay() {
 
 export default function AppShell({ children }) {
   const [fabOpen, setFabOpen] = useState(false)
+  const { theme } = useTheme()
   const themeColors = getThemeColors(theme);
   const [authReady, setAuthReady] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
