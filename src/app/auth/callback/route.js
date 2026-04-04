@@ -14,8 +14,11 @@ export async function GET(request) {
   }
 
   if (code) {
-    // 1. Redirigir a /login para que useAuthFlow detecte el usuario y muestre el formulario si es nuevo
-    const response = NextResponse.redirect(`${origin}/login`)
+    // Si es un flujo de recuperación de contraseña, pasar type=recovery para que
+    // el middleware no redirija al panel y useAuthFlow muestre el formulario de reset.
+    const type = searchParams.get('type')
+    const loginUrl = type === 'recovery' ? `${origin}/login?type=recovery` : `${origin}/login`
+    const response = NextResponse.redirect(loginUrl)
 
     // 2. Creamos el cliente usando la lógica de cookies recomendada para Next.js
     const supabase = createServerClient(

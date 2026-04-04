@@ -247,7 +247,9 @@ function LoginContent() {
                     <CheckCircle size={40} style={{ color: 'var(--accent-green)' }} aria-hidden="true" />
                   </div>
                   <div className="space-y-2">
-                    <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>Enlace Enviado</h2>
+                    <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                      Enlace enviado
+                    </h2>
                     <p className="text-[12px] opacity-60 leading-relaxed px-4">Revisa <span className="font-bold">{form.email}</span> para restablecer tu acceso.</p>
                   </div>
                   <button type="button" onClick={() => { setMode('login'); setSent(false) }}
@@ -322,7 +324,7 @@ function LoginContent() {
                   style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)', color: 'var(--accent-blue)' }}>
                   <UserCircle2 size={40} strokeWidth={1.5} aria-hidden="true" />
                 </div>
-                <h2 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                   ¡Bienvenido!
                 </h2>
                 <p className="text-[12px] opacity-60 leading-relaxed">Cuéntanos un poco sobre ti y tu familia</p>

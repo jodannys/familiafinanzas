@@ -64,11 +64,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && pathname === '/login') {
-    // Si el usuario no tiene 'nombre' en sus metadatos aún no completó el onboarding
-    // (ocurre con Google OAuth). Dejarlo pasar al /login para que useAuthFlow
-    // muestre el formulario de bienvenida.
     const nombreGuardado = user.user_metadata?.nombre
-    if (!nombreGuardado) {
+    const type = request.nextUrl.searchParams.get('type')
+    // Dejar pasar si: onboarding pendiente (Google) o flujo de recuperación de contraseña
+    if (!nombreGuardado || type === 'recovery') {
       return supabaseResponse
     }
 
