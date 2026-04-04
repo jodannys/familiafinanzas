@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import { formatCurrency } from '@/lib/utils'
+
 const TIPOS = [
   { id: 'recordatorio', label: 'Recordatorio', color: 'var(--accent-terra)',  Icon: Bell },
   { id: 'pago',         label: 'Pago',         color: 'var(--accent-rose)',   Icon: CreditCard },
