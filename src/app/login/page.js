@@ -322,7 +322,9 @@ function LoginContent() {
                   style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)', color: 'var(--accent-blue)' }}>
                   <UserCircle2 size={40} strokeWidth={1.5} aria-hidden="true" />
                 </div>
-                <h2 className="text-lg font-black uppercase tracking-tighter" style={{ color: 'var(--text-primary)' }}>¡Bienvenido!</h2>
+                <h2 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  ¡Bienvenido!
+                </h2>
                 <p className="text-[12px] opacity-60 leading-relaxed">Cuéntanos un poco sobre ti y tu familia</p>
               </div>
               <div className="space-y-1.5">
