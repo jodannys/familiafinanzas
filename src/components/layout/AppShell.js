@@ -15,6 +15,7 @@ import { getPresupuestoMes } from '@/lib/presupuesto'
 import CustomSelect from '@/components/ui/CustomSelect'
 import { useQuien } from '@/lib/useQuien'
 import { useTheme, getThemeColors } from '@/lib/themes'
+import ProfilePanel from '@/components/ui/ProfilePanel'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -688,6 +689,7 @@ export default function AppShell({ children }) {
   const themeColors = getThemeColors(theme);
   const [authReady, setAuthReady] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const [nombreHogar, setNombreHogar] = useState('')
   const [perfilUsuario, setPerfilUsuario] = useState(null)
   const router = useRouter()
@@ -737,6 +739,7 @@ export default function AppShell({ children }) {
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
       <ToastDisplay />
+      <ProfilePanel open={showProfile} onClose={() => setShowProfile(false)} />
       <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]"><Sidebar /></div>
       <main className="app-main flex-1 min-h-screen flex flex-col overflow-x-hidden">
 
@@ -752,9 +755,9 @@ export default function AppShell({ children }) {
               <span className="font-script text-[25px]" style={{ color: 'var(--text-primary)' }}>{nombreHogar || 'Mi Familia'}</span>
             </div>
             <div className="flex items-center gap-3">
-              {perfilUsuario?.rol === 'admin' && (
+              {perfilUsuario && (
                 <button
-                  onClick={() => router.push('/admin')}
+                  onClick={() => setShowProfile(true)}
                   className="active:scale-90 transition-transform"
                   style={{
                     width: 34, height: 34, borderRadius: '50%',
@@ -764,7 +767,7 @@ export default function AppShell({ children }) {
                     fontSize: 13, fontWeight: 700, color: '#fff',
                     userSelect: 'none', flexShrink: 0,
                   }}
-                  aria-label="Panel Admin"
+                  aria-label="Perfil"
                 >
                   {(perfilUsuario?.nombre || '?').charAt(0).toUpperCase()}
                 </button>
@@ -787,7 +790,7 @@ export default function AppShell({ children }) {
                       width: 200,
                     }}>
                     <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>¿Cerrar sesión?</p>
-                    <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)' }}>¿Desea cerrar sesión?</p>
+                    <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)' }}>Tendrás que volver a iniciar sesión.</p>
                     <div className="flex gap-2">
                       <button onClick={() => setConfirmLogout(false)}
                         className="flex-1 text-xs font-semibold py-1.5 rounded-xl transition-all active:scale-95"

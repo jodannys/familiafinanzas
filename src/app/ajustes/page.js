@@ -5,11 +5,10 @@ import { Card } from '@/components/ui/Card'
 import {
   Settings2, Plus, Trash2, Edit3, Save, X,
   ChevronDown, ChevronUp, Loader2, Home, Sparkles, Sprout,
-  Target, TrendingUp, ArrowRight, User, Palette, Check, Download
+  Target, TrendingUp, ArrowRight, Check, Download,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
-import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import { getFlagEmoji } from '@/lib/utils'
 import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 
@@ -20,18 +19,12 @@ const BLOQUES = [
 ]
 
 export default function AjustesPage() {
-  const { theme, setTheme } = useTheme()
-  const themeColors = getThemeColors(theme)
-
   const [categorias, setCategorias] = useState([])
   const [subcategorias, setSubcategorias] = useState([])
   const [metas, setMetas] = useState([])
   const [inversiones, setInversiones] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [nombrePerfil, setNombrePerfil]   = useState('')
-  const [editNombre,   setEditNombre]     = useState(false)
-  const [savingNombre, setSavingNombre]   = useState(false)
 
   // Expansión de categorías para ver subcategorías
   const [expandido, setExpandido] = useState(null)
@@ -57,35 +50,11 @@ export default function AjustesPage() {
   const [exportando, setExportando] = useState(false)
   const [bloqueCollapsed, setBloqueCollapsed] = useState({})
   const [hoveredCat, setHoveredCat] = useState(null)
-  const [showTemas, setShowTemas] = useState(false)
-
   const { confirmProps, showConfirm } = useConfirm()
 
   useEffect(() => {
     cargar()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setNombrePerfil(session?.user?.user_metadata?.nombre || '')
-    })
   }, [])
-
-  async function handleGuardarNombre() {
-    if (!nombrePerfil.trim()) return
-    setSavingNombre(true)
-    const nombre = nombrePerfil.trim()
-
-    // 1. Actualizar metadatos de Auth
-    const { error: authError } = await supabase.auth.updateUser({ data: { nombre } })
-    if (authError) { toast('Error al guardar nombre: ' + authError.message); setSavingNombre(false); return }
-
-    // 2. Sincronizar en la tabla perfiles (para Sidebar, permisos y lógica del hogar)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase.from('perfiles').update({ nombre }).eq('id', user.id)
-    }
-
-    setSavingNombre(false)
-    setEditNombre(false)
-  }
 
   async function cargar() {
     setLoading(true)
@@ -353,95 +322,6 @@ export default function AjustesPage() {
         </div>
       ) : (
         <div className="space-y-5">
-
-          {/* ── Perfil ── */}
-          <div className="animate-enter">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setEditNombre(v => !v)}
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', border: 'none', cursor: 'pointer' }}>
-                <User size={16} style={{ color: 'var(--accent-green)' }} />
-              </button>
-              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Perfil</p>
-            </div>
-            {editNombre && (
-              <div className="mt-3 flex gap-2">
-                <input
-                  type="text"
-                  value={nombrePerfil}
-                  onChange={e => setNombrePerfil(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleGuardarNombre()}
-                  autoFocus
-                  placeholder="Tu nombre"
-                  className="ff-input flex-1 text-sm"
-                />
-                <button onClick={handleGuardarNombre} disabled={savingNombre}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold"
-                  style={{ background: 'var(--accent-green)', color: 'var(--text-on-dark)', border: 'none', cursor: 'pointer' }}>
-                  {savingNombre ? <Loader2 size={12} className="animate-spin" /> : <Save size={13} />}
-                </button>
-                <button onClick={() => setEditNombre(false)}
-                  className="px-3 py-2 rounded-xl text-xs"
-                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
-                  <X size={13} />
-                </button>
-              </div>
-            )}
-
-            {/* ── Temas ── */}
-            <div className="mt-4">
-              <button
-                onClick={() => setShowTemas(v => !v)}
-                className="flex items-center gap-3"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'color-mix(in srgb, var(--accent-violet) 12%, transparent)' }}>
-                  <Palette size={16} style={{ color: 'var(--accent-violet)' }} />
-                </div>
-                <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Temas</p>
-                {showTemas
-                  ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
-                  : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
-              </button>
-
-              {showTemas && (
-                <div className="mt-3 space-y-1">
-                  {Object.entries(THEMES).map(([key, t]) => {
-                    const active = theme === key
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setTheme(key)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl"
-                        style={{
-                          background: active ? 'color-mix(in srgb, var(--accent-violet) 8%, var(--bg-secondary))' : 'var(--bg-secondary)',
-                          border: active ? '1px solid color-mix(in srgb, var(--accent-violet) 30%, transparent)' : '1px solid transparent',
-                          cursor: 'pointer',
-                        }}>
-                        <div style={{
-                          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                          background: `linear-gradient(135deg, ${t.preview[0]} 50%, ${t.preview[1]} 50%)`,
-                          border: '1px solid var(--border-glass)',
-                        }} />
-                        <span className="flex-1 text-left text-sm font-semibold"
-                          style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                          {t.name}
-                        </span>
-                        {active && (
-                          <div className="w-4 h-4 rounded-full flex items-center justify-center"
-                            style={{ background: 'var(--accent-violet)' }}>
-                            <Check size={10} color="white" strokeWidth={4} />
-                          </div>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
           {BLOQUES.map(bloque => {
             const catBloque = categorias.filter(c => c.bloque === bloque.id)
             const { Icon } = bloque

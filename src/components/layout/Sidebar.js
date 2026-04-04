@@ -7,8 +7,9 @@ import {
   CreditCard, Wallet, BarChart3, LogOut, CircleDollarSign, Settings2,
   CalendarDays, Home, Menu,
 } from 'lucide-react'
-import ThemeSwitcher from '@/components/ui/ThemeSwitcher'
 import { supabase, signOut, getMisPermisos } from '@/lib/supabase'
+import { useTheme, getThemeColors } from '@/lib/themes'
+import ProfilePanel from '@/components/ui/ProfilePanel'
 
 const W_EXP = 240
 const W_COL = 64
@@ -49,13 +50,6 @@ const MENU_GROUPS = [
   },
 ]
 
-function avatarColor(nombre) {
-  const COLORS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#FF6D00', '#46BDC6', '#7B61FF', '#E91E63']
-  if (!nombre) return COLORS[0]
-  let h = 0
-  for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff
-  return COLORS[h % COLORS.length]
-}
 
 function diasHastaPago(diaPago) {
   if (!diaPago) return null
@@ -69,9 +63,20 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const navRef = useRef(null)
+  const { theme } = useTheme()
+  const themeColors = getThemeColors(theme)
+
+  function avatarColor(nombre) {
+    if (!themeColors || themeColors.length === 0) return '#cccccc'
+    if (!nombre) return themeColors[0]
+    let h = 0
+    for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff
+    return themeColors[h % themeColors.length]
+  }
 
   const [deudasAlert, setDeudasAlert] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const [tooltip, setTooltip] = useState(null)
   const [indicator, setIndicator] = useState({ top: 8, height: 36, visible: false })
   const [miPermisos, setMiPermisos] = useState(null)
@@ -259,19 +264,17 @@ export default function Sidebar() {
               width: 32, height: 32,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: 8, border: 'none',
-              background: 'color-mix(in srgb, var(--text-muted) 8%, transparent)',
-              color: 'var(--text-muted)',
+              background: `color-mix(in srgb, ${bgColor} 12%, transparent)`,
+              color: bgColor,
               cursor: 'pointer', flexShrink: 0,
               margin: collapsed ? '0 auto' : '0',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-main) 12%, transparent)'
-              e.currentTarget.style.color = 'var(--accent-main)'
+              e.currentTarget.style.background = `color-mix(in srgb, ${bgColor} 22%, transparent)`
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'color-mix(in srgb, var(--text-muted) 8%, transparent)'
-              e.currentTarget.style.color = 'var(--text-muted)'
+              e.currentTarget.style.background = `color-mix(in srgb, ${bgColor} 12%, transparent)`
             }}
           >
             <Menu size={15} />
@@ -423,12 +426,7 @@ export default function Sidebar() {
 
           {/* ── Avatar del usuario (abre Panel Familiar si es admin) ── */}
           <button
-            onClick={() => {
-              if (rol === 'admin') {
-                setTooltip(null)
-                router.push('/admin')
-              }
-            }}
+            onClick={() => { setTooltip(null); setShowProfile(true) }}
             style={{
               width: '100%', display: 'flex', alignItems: 'center',
               gap: collapsed ? 0 : 10,
@@ -437,26 +435,21 @@ export default function Sidebar() {
               justifyContent: collapsed ? 'center' : 'flex-start',
               border: 'none',
               background: 'transparent',
-              cursor: rol === 'admin' ? 'pointer' : 'default',
+              cursor: 'pointer',
               transition: `background 0.15s ease, gap ${TRANS}, padding ${TRANS}`,
             }}
             onMouseEnter={e => {
-              if (rol === 'admin') {
-                e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-main) 8%, transparent)'
-              }
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-main) 8%, transparent)'
               if (collapsed && nombre) {
                 const rect = e.currentTarget.getBoundingClientRect()
-                setTooltip({
-                  label: rol === 'admin' ? 'Panel Admin' : nombre,
-                  top: rect.top + rect.height / 2,
-                })
+                setTooltip({ label: nombre, top: rect.top + rect.height / 2 })
               }
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'transparent'
               setTooltip(null)
             }}
-            aria-label={collapsed ? (rol === 'admin' ? 'Panel Admin' : nombre || 'Usuario') : undefined}
+            aria-label={collapsed ? (nombre || 'Perfil') : undefined}
           >
             {/* Círculo avatar */}
             <div style={{
@@ -519,18 +512,7 @@ export default function Sidebar() {
             justifyContent: collapsed ? 'center' : 'flex-start',
             transition: `gap ${TRANS}, padding ${TRANS}`,
           }}>
-            <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <ThemeSwitcher />
-            </div>
-            <span style={{
-              fontSize: 12, fontWeight: 600, color: 'var(--text-muted)',
-              whiteSpace: 'nowrap', overflow: 'hidden',
-              maxWidth: collapsed ? 0 : 180,
-              opacity: collapsed ? 0 : 1,
-              transition: `max-width ${TRANS}, opacity 0.18s ease`,
-            }}>
-              Tema
-            </span>
+           
           </div>
 
           <div style={{ position: 'relative' }}>
@@ -623,6 +605,8 @@ export default function Sidebar() {
           </div>
         </div>
       </aside>
+
+      <ProfilePanel open={showProfile} onClose={() => setShowProfile(false)} />
     </>
   )
 }
