@@ -444,11 +444,11 @@ export default function DeudasPage() {
           const nuevoPendiente = Math.max(0, (deudaOrigen.pendiente || 0) - monto)
           const nuevosPagados = (deudaOrigen.pagadas || 0) + 1
           const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
-          const { data: dmData, error: dmErr } = await supabase.from('deuda_movimientos').insert([{
-            deuda_id: f.deuda_origen_id, tipo: 'pago',
-            descripcion: f.nombre || `Cuota ${deudaOrigen.nombre}`,
-            monto, fecha: fechaHoy(), mes, año,
-          }]).select()
+          const { data: dmData, error: dmErr } = await supabase.rpc('registrar_deuda_movimiento', {
+            p_deuda_id: f.deuda_origen_id, p_tipo: 'pago',
+            p_descripcion: f.nombre || `Cuota ${deudaOrigen.nombre}`,
+            p_monto: monto, p_fecha: fechaHoy(), p_mes: mes, p_año: año,
+          })
           if (dmErr) { setError(dmErr.message); setSaving(false); return }
           const tipoMov = deudaOrigen.tipo === 'medeben' ? 'ingreso' : 'egreso'
           const { error: movErr } = await supabase.from('movimientos').insert([{
@@ -456,7 +456,7 @@ export default function DeudasPage() {
             descripcion: f.nombre || `Pago letra: ${deudaOrigen.nombre}`,
             monto, fecha: fechaHoy(), quien: 'Ambos',
             deuda_id: f.deuda_origen_id,
-            deuda_movimiento_id: dmData?.[0]?.id || null,
+            deuda_movimiento_id: dmData?.id || null,
           }])
           const { error: updErr } = await supabase.from('deudas').update({
             pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
@@ -499,11 +499,11 @@ export default function DeudasPage() {
     const nuevosPagados = (deuda.pagadas || 0) + 1
     const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
 
-    const { data: dmData, error: dmError } = await supabase.from('deuda_movimientos').insert([{
-      deuda_id: deuda.id, tipo: 'pago',
-      descripcion: `Cuota mensual: ${deuda.nombre}`,
-      monto, fecha: hoy, mes, año,
-    }]).select()
+    const { data: dmData, error: dmError } = await supabase.rpc('registrar_deuda_movimiento', {
+      p_deuda_id: deuda.id, p_tipo: 'pago',
+      p_descripcion: `Cuota mensual: ${deuda.nombre}`,
+      p_monto: monto, p_fecha: hoy, p_mes: mes, p_año: año,
+    })
 
     if (dmError) { setError(dmError.message); setSaving(false); return }
 
@@ -515,13 +515,13 @@ export default function DeudasPage() {
         : `Pago letra: ${deuda.nombre}`,
       monto, fecha: hoy, quien: 'Ambos',
       deuda_id: deuda.id,
-      deuda_movimiento_id: dmData?.[0]?.id || null,
+      deuda_movimiento_id: dmData?.id || null,
     }]).select()
 
     if (movError) {
       // Rollback paso 1: borrar el deuda_movimiento si el movimiento general falló
-      if (dmData?.[0]?.id) {
-        await supabase.from('deuda_movimientos').delete().eq('id', dmData[0].id)
+      if (dmData?.id) {
+        await supabase.from('deuda_movimientos').delete().eq('id', dmData.id)
       }
       setError(movError.message)
       setSaving(false)
@@ -537,8 +537,8 @@ export default function DeudasPage() {
       if (movData?.[0]?.id) {
         await supabase.from('movimientos').delete().eq('id', movData[0].id)
       }
-      if (dmData?.[0]?.id) {
-        await supabase.from('deuda_movimientos').delete().eq('id', dmData[0].id)
+      if (dmData?.id) {
+        await supabase.from('deuda_movimientos').delete().eq('id', dmData.id)
       }
       setError(deudaError.message)
       setSaving(false)
@@ -549,7 +549,7 @@ export default function DeudasPage() {
       ? { ...d, pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado } : d))
     setMovimientos(prev => ({
       ...prev,
-      [deuda.id]: [...(prev[deuda.id] || []), { ...dmData?.[0], tipo: 'pago', monto, fecha: hoy, mes, año, descripcion: `Cuota mensual: ${deuda.nombre}` }]
+      [deuda.id]: [...(prev[deuda.id] || []), { ...dmData, tipo: 'pago', monto, fecha: hoy, mes, año, descripcion: `Cuota mensual: ${deuda.nombre}` }]
     }))
     toast(nuevoEstado === 'pagada' ? `¡${deuda.nombre} saldada! 🎉` : 'Pago registrado', 'success')
     setSaving(false)
@@ -562,14 +562,14 @@ export default function DeudasPage() {
     const monto = parseFloat(formMov.monto)
     const deuda = deudas.find(d => d.id === modalMov)
 
-    const { data, error } = await supabase.from('deuda_movimientos').insert([{
-      deuda_id: modalMov, tipo: formMov.tipo,
-      descripcion: formMov.descripcion, monto,
-      fecha: formMov.fecha, mes, año,
-    }]).select()
+    const { data, error } = await supabase.rpc('registrar_deuda_movimiento', {
+      p_deuda_id: modalMov, p_tipo: formMov.tipo,
+      p_descripcion: formMov.descripcion, p_monto: monto,
+      p_fecha: formMov.fecha, p_mes: mes, p_año: año,
+    })
 
     if (!error && deuda) {
-      setMovimientos(prev => ({ ...prev, [modalMov]: [...(prev[modalMov] || []), data[0]] }))
+      setMovimientos(prev => ({ ...prev, [modalMov]: [...(prev[modalMov] || []), data] }))
       let nuevoPendiente = deuda.pendiente || 0
       let nuevosPagados = deuda.pagadas || 0
 

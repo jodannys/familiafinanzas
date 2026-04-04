@@ -255,15 +255,15 @@ export default function TarjetasPage() {
 
     const desc = formPago.descripcion || `Pago cuota: ${pagoDeuda.nombre}`
     const [{ error: errDM }, { error: errDeuda }] = await Promise.all([
-      supabase.from('deuda_movimientos').insert([{
-        deuda_id: pagoDeuda.id,
-        tipo: 'pago',
-        monto,
-        descripcion: desc,
-        fecha,
-        mes: mesNum,
-        año: añoNum,
-      }]),
+      supabase.rpc('registrar_deuda_movimiento', {
+        p_deuda_id: pagoDeuda.id,
+        p_tipo: 'pago',
+        p_monto: monto,
+        p_descripcion: desc,
+        p_fecha: fecha,
+        p_mes: mesNum,
+        p_año: añoNum,
+      }),
       supabase.from('deudas').update({
         pendiente: nuevoPendiente,
         ...(estaPagada ? { estado: 'pagada' } : {}),

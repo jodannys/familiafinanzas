@@ -241,14 +241,14 @@ export function FABModal({ onClose }) {
         const { error: e } = await supabase.from('inversiones').update({ capital: (selectedItem.capital || 0) + valor }).eq('id', selectedItem.id)
         if (e) { toast('Error al actualizar la inversión: ' + e.message); setSaving(false); return }
       } else if (catFinal === 'deuda') {
-        const { data: dmData, error: dmErr } = await supabase.from('deuda_movimientos').insert([{
-          deuda_id: selectedItem.id, tipo: 'pago',
-          descripcion: descFinal || `Pago ${selectedItem.nombre}`,
-          monto: valor, fecha, mes: fechaMes, año: fechaYear,
-        }]).select()
+        const { data: dmData, error: dmErr } = await supabase.rpc('registrar_deuda_movimiento', {
+          p_deuda_id: selectedItem.id, p_tipo: 'pago',
+          p_descripcion: descFinal || `Pago ${selectedItem.nombre}`,
+          p_monto: valor, p_fecha: fecha, p_mes: fechaMes, p_año: fechaYear,
+        })
         if (dmErr) { toast('Error al registrar el pago: ' + dmErr.message); setSaving(false); return }
-        if (dmData?.[0]?.id && movData?.[0]?.id) {
-          await supabase.from('movimientos').update({ deuda_movimiento_id: dmData[0].id }).eq('id', movData[0].id)
+        if (dmData?.id && movData?.[0]?.id) {
+          await supabase.from('movimientos').update({ deuda_movimiento_id: dmData.id }).eq('id', movData[0].id)
         }
         const nuevoPendiente = Math.max(0, parseFloat(selectedItem.pendiente || 0) - valor)
         const { error: deudaErr } = await supabase.from('deudas').update({

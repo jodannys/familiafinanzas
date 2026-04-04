@@ -181,15 +181,15 @@ const saldoInversiones = (montoInv || 0) - gastadoInv - traspasosInv + sobranteA
 
     if (tarjetaSeleccionada) {
       setSaving(true)
-      const { error } = await supabase.from('deuda_movimientos').insert([{
-        deuda_id: tarjetaSeleccionada,
-        tipo: 'cargo',
-        descripcion: form.descripcion,
-        monto,
-        fecha: fechaHoy(),
-        mes: filtroMes,
-        año: filtroAño,
-      }])
+      const { error } = await supabase.rpc('registrar_deuda_movimiento', {
+        p_deuda_id: tarjetaSeleccionada,
+        p_tipo: 'cargo',
+        p_descripcion: form.descripcion,
+        p_monto: monto,
+        p_fecha: fechaHoy(),
+        p_mes: filtroMes,
+        p_año: filtroAño,
+      })
       if (!error) {
         const tarjeta = tarjetasData.find(t => t.id === tarjetaSeleccionada)
         if (tarjeta) {

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import {
-  Users, UserPlus, Loader2, Copy, Check,
+  Users, UserPlus, Loader2, Copy, Check, Settings2,
 } from 'lucide-react'
 import {
   supabase,
@@ -52,6 +52,13 @@ export default function AdminPage() {
   const [movimientos, setMovimientos] = useState([])
   const [loadingMov, setLoadingMov] = useState(false)
 
+  // ── Sección 1b: Editar permisos de miembro existente ──────────────────────
+  const [editandoId, setEditandoId] = useState('')
+  const [permisosEdit, setPermisosEdit] = useState(() =>
+    Object.fromEntries(PERMISOS_OPCIONES.map(p => [p.key, false]))
+  )
+  const [guardandoEdit, setGuardandoEdit] = useState(false)
+
   // ── Sección 2: Invitar Miembro ─────────────────────────────────────────────
   const [email, setEmail] = useState('')
   const [rol, setRol] = useState('miembro')
@@ -82,7 +89,7 @@ useEffect(() => {
     if (!rolVerificado) return
     supabase
       .from('perfiles')
-      .select('id, nombre')
+      .select('id, nombre, rol, permisos')
       .order('nombre')
       .then(({ data }) => setMiembros(data || []))
   }, [rolVerificado])
@@ -119,6 +126,36 @@ useEffect(() => {
   const totalGastos = movimientos
     .filter(m => m.tipo === 'egreso')
     .reduce((s, m) => s + (m.monto || 0), 0)
+
+  // ── Editar permisos de miembro ─────────────────────────────────────────────
+  function seleccionarMiembroEdicion(id) {
+    setEditandoId(id)
+    const miembro = miembros.find(m => m.id === id)
+    if (miembro) {
+      const base = Object.fromEntries(PERMISOS_OPCIONES.map(p => [p.key, false]))
+      setPermisosEdit({ ...base, ...(miembro.permisos || {}) })
+    }
+  }
+
+  function togglePermisosEdit(key) {
+    setPermisosEdit(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  async function handleGuardarPermisos() {
+    if (!editandoId) return
+    setGuardandoEdit(true)
+    const { error } = await supabase
+      .from('perfiles')
+      .update({ permisos: permisosEdit })
+      .eq('id', editandoId)
+    setGuardandoEdit(false)
+    if (error) {
+      toast('Error al guardar: ' + error.message)
+    } else {
+      setMiembros(prev => prev.map(m => m.id === editandoId ? { ...m, permisos: permisosEdit } : m))
+      toast('Permisos actualizados')
+    }
+  }
 
   // ── Helpers de permisos ────────────────────────────────────────────────────
   function togglePermiso(key) {
@@ -351,6 +388,91 @@ useEffect(() => {
               </ul>
             )}
           </div>
+        </Card>
+
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* SECCIÓN 1b — Editar permisos de miembro                           */}
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        <Card>
+          <div className="flex items-center gap-3 mb-5">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'color-mix(in srgb, var(--accent-yellow) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-yellow) 20%, transparent)',
+              }}
+            >
+              <Settings2 size={18} style={{ color: 'var(--accent-yellow)' }} />
+            </div>
+            <div>
+              <h2
+                className="text-xl leading-tight"
+                style={{ color: 'var(--text-primary)', fontFamily: 'DM Serif Display, Georgia, serif' }}
+              >
+                Editar Miembro
+              </h2>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Ajusta los módulos a los que tiene acceso
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-5">
+            <label className="ff-label">Seleccionar miembro</label>
+            <CustomSelect
+              value={editandoId}
+              onChange={val => seleccionarMiembroEdicion(val ?? '')}
+              options={miembros.map(m => ({ id: m.id, label: `${m.nombre} · ${m.rol}` }))}
+              placeholder="Elige un miembro"
+            />
+          </div>
+
+          {editandoId && (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
+                {PERMISOS_OPCIONES.map(({ key, label, icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => togglePermisosEdit(key)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      border: 'none',
+                      cursor: 'pointer',
+                      width: '100%',
+                      textAlign: 'left',
+                      background: permisosEdit[key]
+                        ? 'color-mix(in srgb, var(--accent-yellow) 12%, transparent)'
+                        : 'color-mix(in srgb, var(--text-muted) 6%, transparent)',
+                      color: permisosEdit[key] ? 'var(--accent-yellow)' : 'var(--text-secondary)',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span style={{ fontSize: 14 }}>{icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, flex: 1, lineHeight: 1.3 }}>
+                      {label}
+                    </span>
+                    {permisosEdit[key] && (
+                      <Check size={13} style={{ color: 'var(--accent-yellow)', flexShrink: 0 }} />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                className="ff-btn-primary w-full"
+                onClick={handleGuardarPermisos}
+                disabled={guardandoEdit}
+                aria-busy={guardandoEdit}
+              >
+                {guardandoEdit ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                {guardandoEdit ? 'Guardando...' : 'Guardar permisos'}
+              </button>
+            </>
+          )}
         </Card>
 
         {/* ══════════════════════════════════════════════════════════════════ */}
