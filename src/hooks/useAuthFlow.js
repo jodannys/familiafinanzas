@@ -325,7 +325,7 @@ export function useAuthFlow() {
     if (!form.email) return
     setLoading(true); setError('')
     const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
     })
     setLoading(false)
     if (error) setError('No se pudo enviar el enlace. Verifica el correo.')
