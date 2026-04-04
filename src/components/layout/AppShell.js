@@ -14,6 +14,7 @@ import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import CustomSelect from '@/components/ui/CustomSelect'
 import { useQuien } from '@/lib/useQuien'
+import { useTheme, getThemeColors } from '@/lib/themes'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -683,19 +684,28 @@ function ToastDisplay() {
 
 export default function AppShell({ children }) {
   const [fabOpen, setFabOpen] = useState(false)
+  const themeColors = getThemeColors(theme);
   const [authReady, setAuthReady] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [nombreHogar, setNombreHogar] = useState('')
   const [perfilUsuario, setPerfilUsuario] = useState(null)
   const router = useRouter()
 
-  function avatarColor(nombre) {
-    const COLORS = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#FF6D00', '#46BDC6', '#7B61FF', '#E91E63']
-    if (!nombre) return COLORS[0]
-    let h = 0
-    for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff
-    return COLORS[h % COLORS.length]
+ function avatarColor(nombre) {
+  // Si no hay colores en el tema por alguna razón, devolvemos un color por defecto
+  if (!themeColors || themeColors.length === 0) return '#cccccc';
+  
+  // Si no hay nombre, devuelve el primer color del tema
+  if (!nombre) return themeColors[0];
+  
+  let h = 0;
+  for (let i = 0; i < nombre.length; i++) {
+    h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff;
   }
+  
+  // Devuelve un color dinámico basado en los colores de tu tema actual
+  return themeColors[h % themeColors.length];
+}
 
   useEffect(() => {
     supabase.auth.getSession()
