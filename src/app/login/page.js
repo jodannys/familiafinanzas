@@ -144,7 +144,7 @@ function LoginContent() {
               {invInfo && (
                 <div className="p-3 rounded-2xl text-[11px] font-medium text-center border"
                   style={{ background: 'color-mix(in srgb, var(--accent-green) 8%, transparent)', borderColor: 'color-mix(in srgb, var(--accent-green) 20%, transparent)', color: 'var(--text-secondary)' }}>
-                  Te invitaron a unirte a <span className="font-black" style={{ color: 'var(--accent-green)' }}>{invInfo.nombre_hogar}</span> como <span className="font-bold">{invInfo.rol_asignado}</span>
+                  Te invitaron a unirte a <span className="font-black" style={{ color: 'var(--accent-green)' }}>{invInfo.nombre_hogar}</span>
                 </div>
               )}
               {sent ? (

@@ -79,7 +79,8 @@ export default function Sidebar() {
   const [showProfile, setShowProfile] = useState(false)
   const [tooltip, setTooltip] = useState(null)
   const [indicator, setIndicator] = useState({ top: 8, height: 36, visible: false })
-  const [miPermisos, setMiPermisos] = useState(null)
+  const [perfilNombre, setPerfilNombre] = useState('')
+  const [nombreHogar, setNombreHogar] = useState('')
 
   // ── collapsed se inicializa directo desde localStorage, sin flash ──
   const [collapsed, setCollapsed] = useState(() => {
@@ -98,9 +99,14 @@ export default function Sidebar() {
     )
   }, [])
 
-  // ── Carga de permisos del usuario ──
+  // ── Carga de datos del usuario ──
   useEffect(() => {
-    getMisPermisos().then(({ data }) => setMiPermisos(data))
+    getMisPermisos().then(({ data }) => {
+      if (data) {
+        setPerfilNombre(data.nombre || '')
+        setNombreHogar(data.nombre_hogar || '')
+      }
+    })
   }, [])
 
   // ── Auth + deudas con realtime ──
@@ -165,17 +171,7 @@ export default function Sidebar() {
     router.replace('/login')
   }
 
-  function itemVisible(item) {
-    if (!miPermisos) return true
-    if (item.adminOnly) return miPermisos.rol === 'admin'
-    if (!item.permiso) return true
-    if (miPermisos.rol === 'admin') return true
-    return miPermisos.permisos?.[item.permiso] === true
-  }
-
-  const nombre = miPermisos?.nombre ?? ''
-  const rol = miPermisos?.rol ?? ''
-  const nombreHogar = miPermisos?.nombre_hogar ?? ''
+  const nombre = perfilNombre
   const initial = nombre ? nombre.charAt(0).toUpperCase() : '?'
   const bgColor = avatarColor(nombre)
 
@@ -306,9 +302,6 @@ export default function Sidebar() {
           )}
 
           {MENU_GROUPS.map((group, gIdx) => {
-            const visibleItems = group.items.filter(itemVisible)
-            if (visibleItems.length === 0) return null
-
             return (
               <div key={gIdx} style={{ marginTop: gIdx > 0 ? 14 : 4 }}>
 
@@ -337,7 +330,7 @@ export default function Sidebar() {
                 )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {visibleItems.map(({ href, label, icon: Icon, deudaBadge }) => {
+                  {group.items.map(({ href, label, icon: Icon, deudaBadge }) => {
                     const active = pathname === href
                     const showBadge = deudaBadge && deudasAlert
                     return (
@@ -468,9 +461,8 @@ export default function Sidebar() {
               {initial}
             </div>
 
-            {/* Nombre + badge de rol (solo expandido) */}
+            {/* Nombre (solo expandido) */}
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
               overflow: 'hidden',
               maxWidth: collapsed ? 0 : 180,
               opacity: collapsed ? 0 : 1,
@@ -481,25 +473,10 @@ export default function Sidebar() {
                 fontSize: 12, fontWeight: 600,
                 color: 'var(--text-secondary)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                maxWidth: rol ? 100 : 150,
+                display: 'block', maxWidth: 150,
               }}>
                 {nombre || 'Usuario'}
               </span>
-              {rol && (
-                <span style={{
-                  fontSize: 9, fontWeight: 700,
-                  padding: '2px 5px',
-                  borderRadius: 6,
-                  whiteSpace: 'nowrap',
-                  background: rol === 'admin'
-                    ? 'color-mix(in srgb, var(--accent-gold) 14%, transparent)'
-                    : 'color-mix(in srgb, var(--text-muted) 12%, transparent)',
-                  color: rol === 'admin' ? 'var(--accent-gold)' : 'var(--text-muted)',
-                  lineHeight: 1.4,
-                }}>
-                  {rol}
-                </span>
-              )}
             </div>
           </button>
 

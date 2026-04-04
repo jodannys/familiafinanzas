@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Edit3, Save, Mail, Lock, Eye, EyeOff, Palette, Check, Settings2, LogOut, Loader2 } from 'lucide-react'
+import { X, Edit3, Save, Mail, Lock, Eye, EyeOff, Palette, Check, Loader2 } from 'lucide-react'
 import { supabase, signOut } from '@/lib/supabase'
 import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import { toast } from '@/lib/toast'
@@ -14,7 +14,6 @@ export default function ProfilePanel({ open, onClose }) {
   const [user, setUser]           = useState(null)
   const [nombre, setNombre]       = useState('')
   const [email, setEmail]         = useState('')
-  const [rol, setRol]             = useState('')
   const [isGoogle, setIsGoogle]   = useState(false)
   const [bgColor, setBgColor]     = useState('')
 
@@ -45,7 +44,6 @@ export default function ProfilePanel({ open, onClose }) {
         (u.identities || []).some(i => i.provider === 'google')
       setIsGoogle(google)
     })
-    supabase.rpc('get_mis_permisos').then(({ data }) => { if (data?.rol) setRol(data.rol) })
   }, [open])
 
   useEffect(() => {
@@ -111,23 +109,17 @@ export default function ProfilePanel({ open, onClose }) {
       {/* Panel */}
       <div style={{
         position: 'fixed',
-        bottom: 0, left: 0, right: 0,
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
         zIndex: 501,
         background: 'var(--bg-primary)',
-        borderRadius: '24px 24px 0 0',
-        padding: '8px 20px 32px',
-        maxWidth: 480,
-        margin: '0 auto',
-        boxShadow: '0 -8px 40px rgba(0,0,0,0.25)',
+        borderRadius: 24,
+        padding: '24px 20px 28px',
+        width: 'min(440px, calc(100vw - 32px))',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
         maxHeight: '90dvh',
         overflowY: 'auto',
       }}>
-        {/* Handle */}
-        <div style={{
-          width: 36, height: 4, borderRadius: 2,
-          background: 'var(--border-glass)',
-          margin: '8px auto 20px',
-        }} />
 
         {/* Header — avatar + info + cerrar */}
         <div className="flex items-center gap-4 mb-6">
@@ -144,16 +136,6 @@ export default function ProfilePanel({ open, onClose }) {
               {nombre || 'Sin nombre'}
             </p>
             <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{email}</p>
-            {rol && (
-              <span style={{
-                display: 'inline-block', marginTop: 2,
-                fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 6,
-                background: rol === 'admin'
-                  ? 'color-mix(in srgb, var(--accent-gold) 14%, transparent)'
-                  : 'color-mix(in srgb, var(--text-muted) 12%, transparent)',
-                color: rol === 'admin' ? 'var(--accent-gold)' : 'var(--text-muted)',
-              }}>{rol}</span>
-            )}
           </div>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius: 10, border: 'none',
@@ -267,18 +249,6 @@ export default function ProfilePanel({ open, onClose }) {
           })}
         </div>
 
-        {/* ── Admin link ── */}
-        {rol === 'admin' && (
-          <>
-            <div style={{ borderTop: '1px solid var(--border-glass)', margin: '16px 0 12px' }} />
-            <button onClick={() => { onClose(); router.push('/admin') }}
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl"
-              style={{ background: 'color-mix(in srgb, var(--accent-gold) 8%, var(--bg-secondary))', border: '1px solid color-mix(in srgb, var(--accent-gold) 20%, transparent)', cursor: 'pointer' }}>
-              <Settings2 size={14} style={{ color: 'var(--accent-gold)' }} />
-              <span className="text-sm font-semibold flex-1 text-left" style={{ color: 'var(--accent-gold)' }}>Panel de Admin</span>
-            </button>
-          </>
-        )}
 
         {/* ── Logout ── */}
         <div style={{ borderTop: '1px solid var(--border-glass)', margin: '16px 0 12px' }} />

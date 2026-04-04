@@ -16,6 +16,7 @@ import CustomSelect from '@/components/ui/CustomSelect'
 import { useQuien } from '@/lib/useQuien'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import ProfilePanel from '@/components/ui/ProfilePanel'
+import PageTransition from '@/components/ui/PageTransition'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -641,6 +642,14 @@ export function FABModal({ onClose }) {
 
 // ── Toast System ──────────────────────────────────────────────────────────────
 
+const TOAST_DURATION = 3500
+
+const TOAST_COLORS = {
+  error:   { bg: 'color-mix(in srgb, var(--accent-rose)  12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-rose)  35%, transparent)', text: 'var(--accent-rose)',  bar: 'var(--accent-rose)',  Icon: AlertCircle },
+  success: { bg: 'color-mix(in srgb, var(--accent-green) 12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-green) 35%, transparent)', text: 'var(--accent-green)', bar: 'var(--accent-green)', Icon: CheckCircle },
+  warning: { bg: 'color-mix(in srgb, var(--accent-terra) 12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-terra) 35%, transparent)', text: 'var(--accent-terra)', bar: 'var(--accent-terra)', Icon: Info },
+}
+
 function ToastDisplay() {
   const [toasts, setToasts] = useState([])
 
@@ -648,17 +657,15 @@ function ToastDisplay() {
     function handler(e) {
       const { msg, type } = e.detail
       const id = Date.now() + Math.random()
-      setToasts(p => [...p, { id, msg, type }])
-      setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500)
+      setToasts(p => [...p.slice(-3), { id, msg, type }]) // máximo 4 toasts
+      setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), TOAST_DURATION)
     }
     window.addEventListener('ff-toast', handler)
     return () => window.removeEventListener('ff-toast', handler)
   }, [])
 
-  const COLORS = {
-    error:   { bg: 'color-mix(in srgb, var(--accent-rose)  12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-rose)  35%, transparent)', text: 'var(--accent-rose)',  Icon: AlertCircle },
-    success: { bg: 'color-mix(in srgb, var(--accent-green) 12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-green) 35%, transparent)', text: 'var(--accent-green)', Icon: CheckCircle },
-    warning: { bg: 'color-mix(in srgb, var(--accent-terra) 12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-terra) 35%, transparent)', text: 'var(--accent-terra)', Icon: Info },
+  function dismiss(id) {
+    setToasts(p => p.filter(t => t.id !== id))
   }
 
   if (!toasts.length) return null
@@ -667,13 +674,24 @@ function ToastDisplay() {
     <div className="fixed top-4 left-0 right-0 z-[999] flex flex-col items-center gap-2 px-4 pointer-events-none"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {toasts.map(t => {
-        const c = COLORS[t.type] || COLORS.error
+        const c = TOAST_COLORS[t.type] || TOAST_COLORS.error
         return (
           <div key={t.id}
-            className="flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg animate-enter pointer-events-auto"
+            onClick={() => dismiss(t.id)}
+            className="flex flex-col rounded-2xl shadow-lg animate-enter pointer-events-auto overflow-hidden cursor-pointer active:scale-95 transition-transform"
             style={{ background: c.bg, border: `1px solid ${c.border}`, maxWidth: 380, width: '100%' }}>
-            <c.Icon size={16} style={{ color: c.text, flexShrink: 0 }} />
-            <p className="text-xs font-semibold flex-1" style={{ color: c.text }}>{t.msg}</p>
+            <div className="flex items-center gap-3 px-4 pt-3 pb-2.5">
+              <c.Icon size={16} style={{ color: c.text, flexShrink: 0 }} />
+              <p className="text-xs font-semibold flex-1" style={{ color: c.text }}>{t.msg}</p>
+              <X size={12} style={{ color: c.text, opacity: 0.5, flexShrink: 0 }} />
+            </div>
+            {/* Barra de progreso que drena en TOAST_DURATION ms */}
+            <div className="h-[2px] w-full" style={{ background: `color-mix(in srgb, ${c.bar} 15%, transparent)` }}>
+              <div className="h-full toast-drain" style={{
+                background: c.bar,
+                animationDuration: `${TOAST_DURATION}ms`,
+              }} />
+            </div>
           </div>
         )
       })}
@@ -812,7 +830,7 @@ export default function AppShell({ children }) {
         </div>
 
         <div className="relative z-10 p-4 md:p-10 lg:p-12 max-w-[1600px] mx-auto w-full flex-1 pb-24 lg:pb-12">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </div>
       </main>
 

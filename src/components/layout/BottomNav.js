@@ -164,25 +164,34 @@ export default function BottomNav({ onFABClick }) {
               <NavTab key={tab.href} {...tab} active={pathname === tab.href} />
             ))}
 
-            <button
-              onClick={() => setShowMore(s => !s)}
-              className="flex-1 flex flex-col items-center justify-center gap-1 active:scale-90 transition-all"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', height: 64 }}>
-              <div style={{
-                width: 36, height: 28, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: showMore ? `color-mix(in srgb, var(--accent-main) 12%, transparent)` : 'transparent',
-                transition: 'background 0.2s',
-              }}>
-                <MoreHorizontal size={20} strokeWidth={1.8}
-                  style={{ color: showMore ? 'var(--accent-main)' : 'var(--text-muted)' }} />
-              </div>
-              <span style={{
-                fontSize: 9, fontWeight: showMore ? 800 : 500,
-                color: showMore ? 'var(--accent-main)' : 'var(--text-muted)',
-                letterSpacing: '0.02em',
-              }}>Más</span>
-            </button>
-          </div>
+            {/* Botón Más — muestra el módulo activo si estás en uno del drawer */}
+            {(() => {
+              const activeMore = MORE_ITEMS.find(item => pathname === item.href)
+              const Icon = activeMore ? activeMore.icon : MoreHorizontal
+              const label = activeMore ? activeMore.label : 'Más'
+              const isActive = !!activeMore || showMore
+
+              return (
+                <button
+                  onClick={() => setShowMore(s => !s)}
+                  className="flex-1 flex flex-col items-center justify-center gap-1 active:scale-90 transition-all"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', height: 64 }}>
+                  <div style={{
+                    width: 36, height: 28, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isActive ? `color-mix(in srgb, var(--accent-main) 12%, transparent)` : 'transparent',
+                    transition: 'background 0.2s',
+                  }}>
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8}
+                      style={{ color: isActive ? 'var(--accent-main)' : 'var(--text-muted)' }} />
+                  </div>
+                  <span style={{
+                    fontSize: 9, fontWeight: isActive ? 800 : 500,
+                    color: isActive ? 'var(--accent-main)' : 'var(--text-muted)',
+                    letterSpacing: '0.02em',
+                  }}>{label}</span>
+                </button>
+              )
+            })()}</div>
 
 
         </div>

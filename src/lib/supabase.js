@@ -35,7 +35,7 @@ export async function getUser() {
 
 /**
  * Valida un token de invitación sin necesitar sesión activa.
- * @returns {{ valida, email, rol_asignado, permisos_asignados, nombre_hogar, error }}
+ * @returns {{ valida, email, nombre_hogar, error }}
  */
 export async function validarTokenInvitacion(token) {
   const { data, error } = await supabase.rpc('validar_token_invitacion', { p_token: token })
@@ -69,23 +69,18 @@ export async function aceptarInvitacion(token, nombre) {
 }
 
 /**
- * El admin crea un link de invitación para un email.
+ * Crea un link de invitación para un email.
  * @returns {{ ok, token, link, error }}
  */
-export async function crearInvitacion(email, rol = 'miembro', permisos = {}) {
+export async function crearInvitacion(email) {
   const { data, error } = await supabase.rpc('crear_invitacion', {
     p_email: email,
-    p_rol: rol,
-    p_permisos: permisos,
   })
   return { data, error }
 }
 
-// ── Permisos ──────────────────────────────────────────────────────
-
 /**
- * Devuelve { rol, permisos, hogar_id, nombre } del usuario autenticado.
- * Usar para mostrar/ocultar módulos en el sidebar.
+ * Devuelve { hogar_id, nombre, nombre_hogar } del usuario autenticado.
  */
 export async function getMisPermisos() {
   const { data, error } = await supabase.rpc('get_mis_permisos')

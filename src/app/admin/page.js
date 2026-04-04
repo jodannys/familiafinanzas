@@ -1,34 +1,17 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import {
-  Users, UserPlus, Loader2, Copy, Check, Settings2,
+  Users, UserPlus, Loader2, Copy, Check,
 } from 'lucide-react'
 import {
   supabase,
-  getMisPermisos,
   crearInvitacion,
 } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import CustomSelect from '@/components/ui/CustomSelect'
-
-// ── Permisos disponibles ───────────────────────────────────────────────────────
-
-const PERMISOS_OPCIONES = [
-  { key: 'gastos', label: 'Registro de gastos', icon: '💸' },
-  { key: 'presupuesto', label: 'Presupuesto', icon: '📊' },
-  { key: 'agenda', label: 'Agenda', icon: '📅' },
-  { key: 'sobres', label: 'Sobres', icon: '👛' },
-  { key: 'metas', label: 'Metas de Ahorro', icon: '🎯' },
-  { key: 'inversiones', label: 'Inversiones', icon: '📈' },
-  { key: 'deudas', label: 'Deudas', icon: '💳' },
-  { key: 'inmuebles', label: 'Inmuebles', icon: '🏠' },
-  { key: 'tarjetas', label: 'Mis Tarjetas', icon: '💳' },
-  { key: 'reportes', label: 'Reportes', icon: '📋' },
-]
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -43,56 +26,26 @@ function formatFechaDDMM(fechaStr) {
 // ── Componente principal ───────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const router = useRouter()
-  const [rolVerificado, setRolVerificado] = useState(false)
-
   // ── Sección 1: Panel Familiar ──────────────────────────────────────────────
   const [miembros, setMiembros] = useState([])
   const [seleccionado, setSeleccionado] = useState('')
   const [movimientos, setMovimientos] = useState([])
   const [loadingMov, setLoadingMov] = useState(false)
 
-  // ── Sección 1b: Editar permisos de miembro existente ──────────────────────
-  const [editandoId, setEditandoId] = useState('')
-  const [permisosEdit, setPermisosEdit] = useState(() =>
-    Object.fromEntries(PERMISOS_OPCIONES.map(p => [p.key, false]))
-  )
-  const [guardandoEdit, setGuardandoEdit] = useState(false)
-
   // ── Sección 2: Invitar Miembro ─────────────────────────────────────────────
   const [email, setEmail] = useState('')
-  const [rol, setRol] = useState('miembro')
-  const [permisos, setPermisos] = useState(() =>
-    Object.fromEntries(PERMISOS_OPCIONES.map(p => [p.key, true]))
-  )
   const [linkGenerado, setLinkGenerado] = useState('')
   const [generando, setGenerando] = useState(false)
   const [copiado, setCopiado] = useState(false)
 
-  // ── Verificar rol admin ────────────────────────────────────────────────────
- const [hogarId, setHogarId] = useState(null)
-
-// 2. En el efecto de verificar rol, guarda también el hogar_id
-useEffect(() => {
-  getMisPermisos().then(({ data }) => {
-    if (data && data.rol !== 'admin') {
-      router.replace('/')
-      return
-    }
-    setHogarId(data.hogar_id) // <--- Guarda el hogar_id aquí
-    setRolVerificado(true)
-  })
-}, [router])
-
-  // ── Cargar miembros del hogar (perfiles = usuarios registrados en el hogar) ──
+  // ── Cargar miembros del hogar ──────────────────────────────────────────────
   useEffect(() => {
-    if (!rolVerificado) return
     supabase
       .from('perfiles')
-      .select('id, nombre, rol, permisos')
+      .select('id, nombre')
       .order('nombre')
       .then(({ data }) => setMiembros(data || []))
-  }, [rolVerificado])
+  }, [])
   
 
   // ── Cargar movimientos cuando cambia el miembro seleccionado ──────────────
@@ -127,49 +80,6 @@ useEffect(() => {
     .filter(m => m.tipo === 'egreso')
     .reduce((s, m) => s + (m.monto || 0), 0)
 
-  // ── Editar permisos de miembro ─────────────────────────────────────────────
-  function seleccionarMiembroEdicion(id) {
-    setEditandoId(id)
-    const miembro = miembros.find(m => m.id === id)
-    if (miembro) {
-      const base = Object.fromEntries(PERMISOS_OPCIONES.map(p => [p.key, false]))
-      setPermisosEdit({ ...base, ...(miembro.permisos || {}) })
-    }
-  }
-
-  function togglePermisosEdit(key) {
-    setPermisosEdit(prev => ({ ...prev, [key]: !prev[key] }))
-  }
-
-  async function handleGuardarPermisos() {
-    if (!editandoId) return
-    setGuardandoEdit(true)
-    const { error } = await supabase
-      .from('perfiles')
-      .update({ permisos: permisosEdit })
-      .eq('id', editandoId)
-    setGuardandoEdit(false)
-    if (error) {
-      toast('Error al guardar: ' + error.message)
-    } else {
-      setMiembros(prev => prev.map(m => m.id === editandoId ? { ...m, permisos: permisosEdit } : m))
-      toast('Permisos actualizados')
-    }
-  }
-
-  // ── Helpers de permisos ────────────────────────────────────────────────────
-  function togglePermiso(key) {
-    setPermisos(prev => ({ ...prev, [key]: !prev[key] }))
-  }
-
-  const todosActivos = PERMISOS_OPCIONES.every(p => permisos[p.key])
-  const ningunoActivo = PERMISOS_OPCIONES.every(p => !permisos[p.key])
-
-  function toggleTodos() {
-    const nuevoEstado = !todosActivos
-    setPermisos(Object.fromEntries(PERMISOS_OPCIONES.map(p => [p.key, nuevoEstado])))
-  }
-
   // ── Generar invitación ─────────────────────────────────────────────────────
   async function handleGenerar() {
     if (!email.trim()) {
@@ -177,44 +87,21 @@ useEffect(() => {
       return
     }
     setGenerando(true)
-    const { data, error } = await crearInvitacion(email.trim(), rol, permisos)
+    const { data, error } = await crearInvitacion(email.trim())
     setGenerando(false)
     if (error || !data?.ok) {
       toast('Error: ' + (error?.message || data?.error || 'No se pudo generar la invitación'))
       return
     }
-   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-    const token = data.token || data // Depende de qué devuelva exactamente tu RPC
-
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    const token = data.token || data
     setLinkGenerado(`${baseUrl}/login?token=${token}`)
-
   }
 
   async function handleCopiar() {
     await navigator.clipboard.writeText(linkGenerado)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
-  }
-
-  // ── Guardia de verificación ────────────────────────────────────────────────
-  if (!rolVerificado) {
-    return (
-      <div
-        style={{
-          minHeight: '100dvh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-primary)',
-        }}
-      >
-        <Loader2
-          size={32}
-          className="animate-spin"
-          style={{ color: 'var(--accent-main)' }}
-        />
-      </div>
-    )
   }
 
   return (
@@ -391,91 +278,6 @@ useEffect(() => {
         </Card>
 
         {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* SECCIÓN 1b — Editar permisos de miembro                           */}
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        <Card>
-          <div className="flex items-center gap-3 mb-5">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{
-                background: 'color-mix(in srgb, var(--accent-yellow) 12%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--accent-yellow) 20%, transparent)',
-              }}
-            >
-              <Settings2 size={18} style={{ color: 'var(--accent-yellow)' }} />
-            </div>
-            <div>
-              <h2
-                className="text-xl leading-tight"
-                style={{ color: 'var(--text-primary)', fontFamily: 'DM Serif Display, Georgia, serif' }}
-              >
-                Editar Miembro
-              </h2>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Ajusta los módulos a los que tiene acceso
-              </p>
-            </div>
-          </div>
-
-          <div className="mb-5">
-            <label className="ff-label">Seleccionar miembro</label>
-            <CustomSelect
-              value={editandoId}
-              onChange={val => seleccionarMiembroEdicion(val ?? '')}
-              options={miembros.map(m => ({ id: m.id, label: `${m.nombre} · ${m.rol}` }))}
-              placeholder="Elige un miembro"
-            />
-          </div>
-
-          {editandoId && (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
-                {PERMISOS_OPCIONES.map(({ key, label, icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => togglePermisosEdit(key)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '8px 12px',
-                      borderRadius: 10,
-                      border: 'none',
-                      cursor: 'pointer',
-                      width: '100%',
-                      textAlign: 'left',
-                      background: permisosEdit[key]
-                        ? 'color-mix(in srgb, var(--accent-yellow) 12%, transparent)'
-                        : 'color-mix(in srgb, var(--text-muted) 6%, transparent)',
-                      color: permisosEdit[key] ? 'var(--accent-yellow)' : 'var(--text-secondary)',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <span style={{ fontSize: 14 }}>{icon}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, flex: 1, lineHeight: 1.3 }}>
-                      {label}
-                    </span>
-                    {permisosEdit[key] && (
-                      <Check size={13} style={{ color: 'var(--accent-yellow)', flexShrink: 0 }} />
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                className="ff-btn-primary w-full"
-                onClick={handleGuardarPermisos}
-                disabled={guardandoEdit}
-                aria-busy={guardandoEdit}
-              >
-                {guardandoEdit ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                {guardandoEdit ? 'Guardando...' : 'Guardar permisos'}
-              </button>
-            </>
-          )}
-        </Card>
-
-        {/* ══════════════════════════════════════════════════════════════════ */}
         {/* SECCIÓN 2 — Invitar Miembro                                       */}
         {/* ══════════════════════════════════════════════════════════════════ */}
         <Card>
@@ -498,13 +300,13 @@ useEffect(() => {
                 Invitar Miembro
               </h2>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Genera un link personalizado con permisos a medida
+                Genera un link de invitación para un nuevo integrante
               </p>
             </div>
           </div>
 
           {/* Email */}
-          <div className="mb-4">
+          <div className="mb-6">
             <label className="ff-label">Email del invitado</label>
             <input
               type="email"
@@ -514,77 +316,6 @@ useEffect(() => {
               onChange={e => setEmail(e.target.value)}
               autoComplete="off"
             />
-          </div>
-
-          {/* Rol */}
-          <div className="mb-5">
-            <label className="ff-label">Rol</label>
-            <CustomSelect
-              value={rol}
-              onChange={val => setRol(val ?? 'miembro')}
-              options={[
-                { id: 'miembro', label: 'Miembro' },
-                { id: 'admin',   label: 'Admin'   },
-              ]}
-              placeholder="Seleccionar rol"
-            />
-          </div>
-
-          {/* Permisos — encabezado con toggle global */}
-          <div className="flex items-center justify-between mb-3">
-            <label className="ff-label" style={{ margin: 0 }}>Acceso a módulos</label>
-            <button
-              onClick={toggleTodos}
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'var(--accent-main)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '2px 6px',
-                borderRadius: 8,
-              }}
-            >
-              {todosActivos ? 'Deseleccionar todos' : 'Seleccionar todos'}
-            </button>
-          </div>
-
-          {/* Grid de permisos */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
-            {PERMISOS_OPCIONES.map(({ key, label, icon }) => (
-              <button
-                key={key}
-                onClick={() => togglePermiso(key)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 12px',
-                  borderRadius: 10,
-                  border: 'none',
-                  cursor: 'pointer',
-                  width: '100%',
-                  textAlign: 'left',
-                  background: permisos[key]
-                    ? 'color-mix(in srgb, var(--accent-main) 12%, transparent)'
-                    : 'color-mix(in srgb, var(--text-muted) 6%, transparent)',
-                  color: permisos[key] ? 'var(--accent-main)' : 'var(--text-secondary)',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span style={{ fontSize: 14 }}>{icon}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, flex: 1, lineHeight: 1.3 }}>
-                  {label}
-                </span>
-                {permisos[key] && (
-                  <Check
-                    size={13}
-                    style={{ color: 'var(--accent-main)', flexShrink: 0 }}
-                  />
-                )}
-              </button>
-            ))}
           </div>
 
           {/* Botón generar */}

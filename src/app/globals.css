@@ -301,6 +301,17 @@ h1, h2, h3 {
   animation: leave 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
+/* ── Toast progress drain ────────────────────────────────────────────────── */
+
+@keyframes toast-drain {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+.toast-drain {
+  animation: toast-drain linear forwards;
+}
+
 /* ── Skeleton loader ──────────────────────────────────────────────────────── */
 
 @keyframes shimmer {
