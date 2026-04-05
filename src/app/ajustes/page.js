@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getFlagEmoji } from '@/lib/utils'
 import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
+import { getThemeColors, useTheme } from '@/lib/themes'
 
 const BLOQUES = [
   { id: 'necesidades', nombre: 'Necesidades', color: 'var(--accent-blue)', Icon: Home },
@@ -51,6 +52,8 @@ export default function AjustesPage() {
   const [bloqueCollapsed, setBloqueCollapsed] = useState({})
   const [hoveredCat, setHoveredCat] = useState(null)
   const { confirmProps, showConfirm } = useConfirm()
+  const { theme } = useTheme()
+  const themeColors = getThemeColors(theme)
 
   useEffect(() => {
     cargar()

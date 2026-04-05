@@ -34,11 +34,13 @@ export const ITP_POR_CCAA = {
   'Castilla-La Mancha':     9.0,
   'Castilla y León':        8.0,
   'Cataluña':              10.0,
+  'Ceuta':                  6.0,   // Tipo estatal supletorio
   'Comunidad Valenciana':  10.0,
   'Extremadura':            8.0,
   'Galicia':               10.0,
   'La Rioja':               7.0,
   'Madrid':                 6.0,
+  'Melilla':                6.0,   // Tipo estatal supletorio
   'Murcia':                 8.0,
   'Navarra':                6.0,
   'País Vasco':             4.0,
@@ -97,6 +99,7 @@ export function calcularGastosCompraLegales({
   incluirBroker = false,
   incluirTasacion = true,
   tasacionCents = null,  // null → auto: 45000 (≤300k€) | 54000 (>300k€)
+  itpPctManual = null,   // null → usar tabla por CCAA; número → override manual
 }) {
   const desglose = {}
 
@@ -112,9 +115,12 @@ export function calcularGastosCompraLegales({
     const ajdRate = ccaa === 'Madrid' ? 0.75 : 1.0
     desglose['AJD'] = Math.round(precioCents * ajdRate / 100)
   } else {
-    // Segunda mano: ITP
-    const itpRate = ITP_POR_CCAA[ccaa] ?? 8.0
-    desglose[`ITP (${itpRate}%) — ${ccaa}`] = Math.round(precioCents * itpRate / 100)
+    // Segunda mano: ITP — manual si hay reducción (jóvenes, familia numerosa, discapacidad, etc.)
+    const itpRate = itpPctManual != null ? parseFloat(itpPctManual) : (ITP_POR_CCAA[ccaa] ?? 8.0)
+    const label = itpPctManual != null
+      ? `ITP (${itpRate}% reducido) — ${ccaa}`
+      : `ITP (${itpRate}%) — ${ccaa}`
+    desglose[label] = Math.round(precioCents * itpRate / 100)
   }
 
   // 2. Notaría (arancel notarial)
@@ -881,9 +887,15 @@ export async function getInmueble(id) {
 export async function createInmueble(payload) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
+  const { data: perfil, error: perfilError } = await supabase
+    .from('perfiles')
+    .select('hogar_id')
+    .eq('id', user.id)
+    .single()
+  if (perfilError || !perfil?.hogar_id) throw new Error('No se pudo obtener el hogar del usuario')
   const { data, error } = await supabase
     .from('inmuebles')
-    .insert({ ...payload, user_id: user.id })
+    .insert({ ...payload, user_id: user.id, hogar_id: perfil.hogar_id })
     .select()
     .single()
   if (error) throw error

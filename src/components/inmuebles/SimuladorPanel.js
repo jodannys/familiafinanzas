@@ -1,6 +1,6 @@
 'use client'
 import { useMemo, useState, useEffect } from 'react'
-import { Edit3, Trash2, CheckCircle, AlertTriangle, TrendingUp, Home, Building2, Percent, Wallet, Calendar, FileDown, RefreshCw, Sliders, BarChart2, Receipt } from 'lucide-react'
+import { Edit3, Trash2, CheckCircle, AlertTriangle, TrendingUp, Home, Building2, Percent, Wallet, Calendar, FileDown, RefreshCw, Sliders, BarChart2, Receipt, Plus, ArrowDownCircle, ArrowUpCircle, Activity } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
@@ -42,6 +42,13 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
   const [gastosReales, setGastosReales] = useState([])
   const [tipoMarginal, setTipoMarginal] = useState(30)
   const [inquilinoVH, setInquilinoVH] = useState(true)
+  // ── Modo real (inversión) ──
+  const [estadoAlquiler, setEstadoAlquiler] = useState(inmueble.estado_alquiler || 'ocupado')
+  const [rentasReales, setRentasReales] = useState([])    // tipo_inmueble = 'renta_cobrada'
+  const [gastosInmueble, setGastosInmueble] = useState([]) // tipo_inmueble = 'gasto_inmueble'
+  const [registrando, setRegistrando] = useState(null)    // null | 'renta' | 'gasto'
+  const [formReal, setFormReal] = useState({ monto: '', descripcion: '', fecha: new Date().toISOString().slice(0, 10) })
+  const [guardandoReal, setGuardandoReal] = useState(false)
 
   const { datos_compra: dc, hipoteca: hip, alquiler_config: al, tipo, estado } = inmueble
   const fi = hip
@@ -148,21 +155,24 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
     ? generarCasosDeCompra({ precioCents, interesAnual, plazoMeses, gastosCompraCents, reformaCents })
     : null
 
-  // ── Gastos reales vinculados ──
-  useEffect(() => {
-    async function cargarGastos() {
-      try {
-        const { data } = await supabase
-          .from('movimientos')
-          .select('id, descripcion, monto, fecha, categoria')
-          .eq('inmueble_id', inmueble.id)
-          .order('fecha', { ascending: false })
-          .limit(20)
-        setGastosReales(data || [])
-      } catch { /* sin vinculación en BD */ }
-    }
-    cargarGastos()
-  }, [inmueble.id])
+  // ── Movimientos reales vinculados al inmueble ──
+  async function cargarMovimientosReales() {
+    try {
+      const { data, error } = await supabase
+        .from('movimientos')
+        .select('id, descripcion, monto, fecha, tipo_inmueble')
+        .eq('inmueble_id', inmueble.id)
+        .order('fecha', { ascending: false })
+        .limit(50)
+      if (error) return
+      const todos = data || []
+      setRentasReales(todos.filter(m => m.tipo_inmueble === 'renta_cobrada'))
+      setGastosInmueble(todos.filter(m => m.tipo_inmueble === 'gasto_inmueble'))
+      setGastosReales(todos)
+    } catch (e) { console.warn('[inmuebles] movimientos:', e?.message) }
+  }
+
+  useEffect(() => { cargarMovimientosReales() }, [inmueble.id])
 
   // ── Alerta LTV < 80% ──
   const mesBajoEl80 = useMemo(() => {
@@ -181,6 +191,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
     { id: 'amortizacion', label: 'Cuotas',      icon: Calendar },
     ...(tipo === 'vivienda_habitual' ? [{ id: 'casos',     label: 'Casos',     icon: BarChart2 }] : []),
     ...(tipo === 'inversion'         ? [{ id: 'inversion', label: 'Inversión', icon: TrendingUp }] : []),
+    ...(tipo === 'inversion'         ? [{ id: 'real',      label: 'Real',      icon: Activity }] : []),
     { id: 'fiscal',      label: 'Fiscal',       icon: Receipt },
     { id: 'patrimonio',  label: 'Patrimonio',   icon: BarChart2 },
     { id: 'refin',       label: 'Refinanciar',  icon: RefreshCw },
@@ -205,6 +216,42 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
     window.print()
   }
 
+  async function handleToggleEstadoAlquiler() {
+    const nuevo = estadoAlquiler === 'ocupado' ? 'vacante' : 'ocupado'
+    setEstadoAlquiler(nuevo)
+    await supabase.from('inmuebles').update({ estado_alquiler: nuevo }).eq('id', inmueble.id)
+  }
+
+  async function handleGuardarMovReal() {
+    if (!formReal.monto || parseFloat(formReal.monto) <= 0) return
+    setGuardandoReal(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { toast('No autenticado'); return }
+      const esRenta = registrando === 'renta'
+      const { error } = await supabase.from('movimientos').insert({
+        monto:         parseFloat(formReal.monto),
+        descripcion:   formReal.descripcion || (esRenta ? 'Renta cobrada' : 'Gasto inmueble'),
+        fecha:         formReal.fecha,
+        tipo:          esRenta ? 'ingreso' : 'gasto',
+        categoria:     esRenta ? 'inversion' : 'necesidades',
+        quien:         'Ambos',
+        inmueble_id:   inmueble.id,
+        tipo_inmueble: esRenta ? 'renta_cobrada' : 'gasto_inmueble',
+        user_id:       user.id,
+      })
+      if (error) { toast(error.message); return }
+      toast(esRenta ? 'Renta registrada' : 'Gasto registrado', 'success')
+      setRegistrando(null)
+      setFormReal({ monto: '', descripcion: '', fecha: new Date().toISOString().slice(0, 10) })
+      cargarMovimientosReales()
+    } catch (e) {
+      toast(e.message || 'Error al guardar')
+    } finally {
+      setGuardandoReal(false)
+    }
+  }
+
   return (
     <div>
 
@@ -212,7 +259,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
       <div className="flex items-center justify-between gap-2 mb-4">
         <div className="flex flex-wrap items-center gap-3">
           <StatusTag dot={estado === 'comprado' ? 'var(--accent-green)' : 'var(--accent-gold)'}
-            label={estado === 'comprado' ? 'Comprado' : 'Simulación'} />
+            label={estado === 'comprado' ? 'Comprado' : 'En análisis'} />
           {usarAvalICO && <StatusTag dot="var(--accent-violet)" label="Aval ICO" />}
           {usarDual    && <StatusTag dot="var(--accent-violet)" label="Dual 0%" />}
           {comisionAgenteActiva && <StatusTag dot="var(--accent-terra)" label={`Bróker ${comisionAgentePct}%`} />}
@@ -616,6 +663,143 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
             )}
           </div>
         )}
+
+        {/* Tab: Real (inversión) */}
+        {tab === 'real' && tipo === 'inversion' && (() => {
+          const anio = new Date().getFullYear()
+          const rentasAnio = rentasReales.filter(r => r.fecha?.startsWith(String(anio)))
+          const gastosAnio = gastosInmueble.filter(g => g.fecha?.startsWith(String(anio)))
+          const rentaRealCents = rentasAnio.reduce((s, r) => s + toCents(r.monto), 0)
+          const gastoRealCents = gastosAnio.reduce((s, g) => s + toCents(g.monto), 0)
+          const cashflowRealCents = rentaRealCents - gastoRealCents
+          const mesActual = new Date().getMonth() + 1
+          const rentaProyYtdCents = noi ? Math.round(noi.noiMensualCents * mesActual) : 0
+          const rentaBrutaProyYtdCents = al ? toCents(al.renta_mensual || 0) * mesActual : 0
+          return (
+            <div className="space-y-4">
+              {/* Estado alquiler */}
+              <div className="rounded-xl p-4 border flex items-center justify-between"
+                style={{ borderColor: 'var(--border-glass)', background: 'var(--bg-card)' }}>
+                <div>
+                  <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>Estado del inmueble</p>
+                  <p className="text-xs mt-0.5" style={{ color: estadoAlquiler === 'ocupado' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                    {estadoAlquiler === 'ocupado' ? '● Ocupado — inquilino activo' : '○ Vacante — sin inquilino'}
+                  </p>
+                </div>
+                <button type="button" onClick={handleToggleEstadoAlquiler}
+                  className="relative w-12 h-6 rounded-full transition-all flex-shrink-0"
+                  style={{ background: estadoAlquiler === 'ocupado' ? 'var(--accent-green)' : 'var(--progress-track)', border: 'none', cursor: 'pointer' }}>
+                  <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
+                    style={{ background: 'white', left: estadoAlquiler === 'ocupado' ? 'calc(100% - 22px)' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                </button>
+              </div>
+
+              {/* Resumen YTD */}
+              <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-blue), transparent 75%)', background: 'color-mix(in srgb, var(--accent-blue), transparent 94%)' }}>
+                <p className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--accent-blue)', letterSpacing: '0.12em' }}>Real {anio} — {mesActual} meses</p>
+                <div className="space-y-2">
+                  {/* Rentas */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span style={{ color: 'var(--text-secondary)' }}>Rentas cobradas</span>
+                      <span className="font-black" style={{ color: rentaRealCents >= rentaBrutaProyYtdCents ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                        {formatCurrency(fromCents(rentaRealCents))} / {formatCurrency(fromCents(rentaBrutaProyYtdCents))}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                      <div className="h-full rounded-full" style={{ width: `${rentaBrutaProyYtdCents > 0 ? Math.min(100, Math.round(rentaRealCents / rentaBrutaProyYtdCents * 100)) : 0}%`, background: 'var(--accent-green)' }} />
+                    </div>
+                  </div>
+                  {/* Gastos */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span style={{ color: 'var(--text-secondary)' }}>Gastos reales</span>
+                      <span className="font-black" style={{ color: 'var(--accent-rose)' }}>{formatCurrency(fromCents(gastoRealCents))}</span>
+                    </div>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between" style={{ borderColor: 'color-mix(in srgb, var(--accent-blue), transparent 75%)' }}>
+                    <span className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>Cashflow real neto</span>
+                    <span className="text-sm font-black" style={{ color: cashflowRealCents >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                      {formatCurrency(fromCents(cashflowRealCents))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: 'var(--text-muted)' }}>NOI proyectado YTD</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(fromCents(rentaProyYtdCents))}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => { setRegistrando('renta'); setFormReal({ monto: String(al?.renta_mensual || ''), descripcion: 'Renta cobrada', fecha: new Date().toISOString().slice(0, 10) }) }}
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black"
+                  style={{ background: 'color-mix(in srgb, var(--accent-green), transparent 88%)', color: 'var(--accent-green)', border: 'none', cursor: 'pointer' }}>
+                  <ArrowDownCircle size={15} /> Registrar renta
+                </button>
+                <button type="button" onClick={() => { setRegistrando('gasto'); setFormReal({ monto: '', descripcion: '', fecha: new Date().toISOString().slice(0, 10) }) }}
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black"
+                  style={{ background: 'color-mix(in srgb, var(--accent-rose), transparent 88%)', color: 'var(--accent-rose)', border: 'none', cursor: 'pointer' }}>
+                  <ArrowUpCircle size={15} /> Registrar gasto
+                </button>
+              </div>
+
+              {/* Mini formulario inline */}
+              {registrando && (
+                <div className="rounded-xl p-4 border space-y-3" style={{ borderColor: registrando === 'renta' ? 'color-mix(in srgb, var(--accent-green), transparent 70%)' : 'color-mix(in srgb, var(--accent-rose), transparent 70%)', background: 'var(--bg-card)' }}>
+                  <p className="text-xs font-black" style={{ color: registrando === 'renta' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                    {registrando === 'renta' ? '+ Renta cobrada' : '− Gasto del inmueble'}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="relative">
+                      <input type="number" placeholder="Importe" min={0} step={1} className="ff-input w-full pr-7"
+                        value={formReal.monto} onChange={e => setFormReal(p => ({ ...p, monto: e.target.value }))} />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>€</span>
+                    </div>
+                    <input type="date" className="ff-input w-full"
+                      value={formReal.fecha} onChange={e => setFormReal(p => ({ ...p, fecha: e.target.value }))} />
+                  </div>
+                  <input type="text" placeholder="Descripción (opcional)" className="ff-input w-full"
+                    value={formReal.descripcion} onChange={e => setFormReal(p => ({ ...p, descripcion: e.target.value }))} />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleGuardarMovReal} disabled={guardandoReal}
+                      className="flex-1 py-2 rounded-lg text-xs font-black"
+                      style={{ background: registrando === 'renta' ? 'var(--accent-green)' : 'var(--accent-rose)', color: '#fff', border: 'none', cursor: 'pointer', opacity: guardandoReal ? 0.6 : 1 }}>
+                      {guardandoReal ? 'Guardando…' : 'Guardar'}
+                    </button>
+                    <button type="button" onClick={() => setRegistrando(null)}
+                      className="px-4 py-2 rounded-lg text-xs font-semibold"
+                      style={{ background: 'var(--progress-track)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Historial */}
+              {(rentasReales.length > 0 || gastosInmueble.length > 0) && (
+                <div className="space-y-2">
+                  <p className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Historial</p>
+                  {[...rentasReales, ...gastosInmueble]
+                    .sort((a, b) => b.fecha?.localeCompare(a.fecha))
+                    .slice(0, 15)
+                    .map(m => (
+                      <div key={m.id} className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: 'var(--border-glass)' }}>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{m.descripcion}</p>
+                          <p style={{ fontSize: 9, color: 'var(--text-muted)' }}>{m.fecha}</p>
+                        </div>
+                        <p className="text-xs font-black flex-shrink-0 ml-2"
+                          style={{ color: m.tipo_inmueble === 'renta_cobrada' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                          {m.tipo_inmueble === 'renta_cobrada' ? '+' : '−'}{formatCurrency(m.monto)}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Tab: Fiscal (inversión) */}
         {tab === 'fiscal' && tipo === 'inversion' && noi && irpf && (

@@ -54,7 +54,7 @@ const MODOS_FINANCIACION = [
   },
 ]
 
-export default function FormInmueble({ inmueble = null, metas = [], onSave, onClose }) {
+export default function FormInmueble({ inmueble = null, metas = [], inmuebles = [], onSave, onClose }) {
   const esEdicion = !!inmueble
 
   // ── Estado del formulario ──
@@ -76,6 +76,9 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
   const [incluirBroker,  setIncluirBroker]  = useState(false)
   const [incluirTasacion,setIncluirTasacion]= useState(true)
   const [desglosAbierto, setDesglosAbierto] = useState(false)
+  // ITP manual (reducción por edad, familia numerosa, discapacidad, etc.)
+  const [itpManual,    setItpManual]    = useState(dc.itp_pct_manual != null)
+  const [itpPctManual, setItpPctManual] = useState(dc.itp_pct_manual ?? '')
 
   // Hipoteca
   const hip = inmueble?.hipoteca || {}
@@ -111,6 +114,7 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
   // Comisión bróker inmobiliario
   const [usarComisionAgente, setUsarComisionAgente] = useState(fi.comision_agente?.activo ?? false)
   const [comisionAgentePct,  setComisionAgentePct]  = useState(fi.comision_agente?.pct    ?? 3)
+  const [comisionInput,      setComisionInput]      = useState(String(fi.comision_agente?.pct ?? 3))
 
   // Meta vinculada
   const [metaId, setMetaId] = useState(inmueble?.meta_id || null)
@@ -146,6 +150,7 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
     incluirBroker,
     incluirTasacion,
     tasacionCents: tasacionCentsLive,
+    itpPctManual: itpManual && itpPctManual !== '' ? parseFloat(itpPctManual) : null,
   })
   const gastosCompra = fromCents(gastosPreview.total)
 
@@ -199,6 +204,7 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
         tasacion:           parseFloat(tasacion)   || 450,
         ccaa,
         tipo_transmision: tipoTransmision,
+        itp_pct_manual: itpManual && itpPctManual !== '' ? parseFloat(itpPctManual) : null,
       },
       hipoteca: {
         principal:        principalBancoCents / 100,
@@ -254,7 +260,7 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
       {/* ── Nombre + Tipo ── */}
       <div className="space-y-3">
         <div>
-          <label className="ff-label">Nombre de la simulación</label>
+          <label className="ff-label">Nombre del inmueble</label>
           <input
             type="text"
             value={nombre}
@@ -313,14 +319,17 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
             </div>
           </div>
-          {sinFinanciacion && (
-            <div>
-              <label className="ff-label">Entrada (cash aportado)</label>
-              <div className="relative">
+        </div>
+
+        {sinFinanciacion && (
+          <div>
+            <label className="ff-label">Entrada (cash aportado)</label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <input
                   type="number"
                   className="ff-input w-full"
-                  style={{ paddingRight: 72 }}
+                  style={{ paddingRight: 36 }}
                   placeholder="0"
                   min={0}
                   step={entradaModo === 'pct' ? 1 : 1000}
@@ -338,32 +347,37 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
                     }
                   }}
                 />
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex rounded-lg overflow-hidden"
-                  style={{ background: 'var(--progress-track)' }}>
-                  {['eur', 'pct'].map(m => (
-                    <button key={m} type="button"
-                      onClick={() => setEntradaModo(m)}
-                      className="px-2 py-1 text-xs font-black transition-all"
-                      style={{
-                        background: entradaModo === m ? 'var(--accent-terra)' : 'transparent',
-                        color: entradaModo === m ? '#fff' : 'var(--text-muted)',
-                      }}>
-                      {m === 'eur' ? '€' : '%'}
-                    </button>
-                  ))}
-                </div>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold pointer-events-none"
+                  style={{ color: 'var(--text-muted)' }}>
+                  {entradaModo === 'eur' ? '€' : '%'}
+                </span>
               </div>
-              {precioCentsLive > 0 && (parseFloat(aportacion) || 0) > 0 && (
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                  {entradaModo === 'pct'
-                    ? `= ${formatCurrency(parseFloat(aportacion) || 0)}`
-                    : `= ${+((parseFloat(aportacion) || 0) / fromCents(precioCentsLive) * 100).toFixed(1)}% del precio`
-                  }
-                </p>
-              )}
+              <div className="flex rounded-xl overflow-hidden flex-shrink-0" style={{ background: 'var(--progress-track)' }}>
+                {['eur', 'pct'].map(m => (
+                  <button key={m} type="button"
+                    onClick={() => setEntradaModo(m)}
+                    className="text-sm font-black transition-all"
+                    style={{
+                      width: 48, height: '100%',
+                      background: entradaModo === m ? 'var(--accent-terra)' : 'transparent',
+                      color: entradaModo === m ? '#fff' : 'var(--text-muted)',
+                      border: 'none', cursor: 'pointer',
+                    }}>
+                    {m === 'eur' ? '€' : '%'}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
-        </div>
+            {precioCentsLive > 0 && (parseFloat(aportacion) || 0) > 0 && (
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                {entradaModo === 'pct'
+                  ? `= ${formatCurrency(parseFloat(aportacion) || 0)}`
+                  : `= ${+((parseFloat(aportacion) || 0) / fromCents(precioCentsLive) * 100).toFixed(1)}% del precio`
+                }
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Gastos de compra — cálculo automático */}
         <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 78%)' }}>
@@ -385,12 +399,44 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
                 <label className="ff-label">Tipo de transmisión</label>
                 <CustomSelect
                   value={tipoTransmision}
-                  onChange={v => setTipoTransmision(v || 'segunda_mano')}
+                  onChange={v => { setTipoTransmision(v || 'segunda_mano'); setItpManual(false) }}
                   options={TIPO_TRANSMISION_OPTIONS}
                   color="var(--accent-gold)"
                 />
               </div>
             </div>
+
+            {/* ITP manual — solo segunda mano */}
+            {tipoTransmision === 'segunda_mano' && (
+              <div className="mb-3">
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <input type="checkbox" checked={itpManual} onChange={e => setItpManual(e.target.checked)} className="rounded" />
+                  <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                    Tipo reducido de ITP
+                    <span className="font-normal ml-1" style={{ color: 'var(--text-muted)' }}>(jóvenes, familia numerosa, discapacidad…)</span>
+                  </span>
+                </label>
+                {itpManual && (
+                  <div className="flex items-center gap-2 pl-6">
+                    <div className="relative w-28">
+                      <input
+                        type="number"
+                        className="ff-input w-full pr-7 text-sm"
+                        min={0} max={20} step={0.5}
+                        placeholder={String(ITP_POR_CCAA[ccaa] ?? 8)}
+                        value={itpPctManual}
+                        onChange={e => setItpPctManual(e.target.value)}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>%</span>
+                    </div>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      Estándar: {ITP_POR_CCAA[ccaa] ?? 8}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 mb-2">
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input type="checkbox" checked={incluirTasacion} onChange={e => setIncluirTasacion(e.target.checked)} className="rounded" />
@@ -465,15 +511,28 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
           </div>
           <div>
             <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Comisión bróker inmobiliario</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>3-5% del precio · se suma a la inversión total y reduce el ROI</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Habitual 3-5% · se suma a la inversión total y reduce el ROI</p>
           </div>
         </label>
         {usarComisionAgente && (
           <div className="flex items-center gap-3 mt-3 pl-12">
-            <input type="range" min={3} max={5} step={0.5} value={comisionAgentePct}
-              onChange={e => setComisionAgentePct(parseFloat(e.target.value))}
+            <input type="range" min={0} max={10} step={0.5} value={comisionAgentePct}
+              onChange={e => { const v = parseFloat(e.target.value); setComisionAgentePct(v); setComisionInput(String(v)) }}
               className="flex-1" style={{ accentColor: 'var(--accent-terra)' }} />
-            <span className="text-xs font-black w-8" style={{ color: 'var(--accent-terra)' }}>{comisionAgentePct}%</span>
+            <div className="relative w-16">
+              <input
+                type="number" min={0} max={10} step={0.5}
+                className="ff-input w-full pr-5 text-xs font-black text-center py-1"
+                style={{ color: 'var(--accent-terra)' }}
+                value={comisionInput}
+                onChange={e => {
+                  setComisionInput(e.target.value)
+                  const v = parseFloat(e.target.value)
+                  if (!isNaN(v) && v >= 0 && v <= 10) setComisionAgentePct(v)
+                }}
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>%</span>
+            </div>
             <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
               {formatCurrency(fromCents(comisionAgenteCents))}
             </span>
@@ -721,6 +780,8 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
             color="var(--accent-terra)"
           />
           {metaId && (() => {
+            // Advertir si otro inmueble ya usa esta meta
+            const conflicto = inmuebles.find(i => i.meta_id === metaId && i.id !== inmueble?.id)
             const m = metas.find(x => x.id === metaId)
             if (!m) return null
             const necesarioCents = toCents(aportacion) + toCents(gastosCompra) + toCents(reforma) + comisionAgenteCents
@@ -728,7 +789,19 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
             const falta = necesarioCents - actualCents
             const pct = necesarioCents > 0 ? Math.min(100, Math.round((actualCents / necesarioCents) * 100)) : 0
             return (
-              <div className="mt-2 rounded-xl p-3 border" style={{
+              <div className="space-y-2 mt-2">
+              {conflicto && (
+                <div className="rounded-xl p-3 border flex items-start gap-2" style={{
+                  borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 60%)',
+                  background:  'color-mix(in srgb, var(--accent-gold), transparent 90%)',
+                }}>
+                  <AlertTriangle size={14} style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: 1 }} />
+                  <p className="text-xs" style={{ color: 'var(--accent-gold)' }}>
+                    Esta hucha ya está vinculada a <strong>"{conflicto.nombre}"</strong>. El saldo se mostrará completo en ambos inmuebles — no se divide.
+                  </p>
+                </div>
+              )}
+              <div className="rounded-xl p-3 border" style={{
                 borderColor: falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 70%)' : 'color-mix(in srgb, var(--accent-terra), transparent 70%)',
                 background:  falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 93%)' : 'color-mix(in srgb, var(--accent-terra), transparent 93%)',
               }}>
@@ -741,6 +814,7 @@ export default function FormInmueble({ inmueble = null, metas = [], onSave, onCl
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
                   <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-terra)' }} />
                 </div>
+              </div>
               </div>
             )
           })()}

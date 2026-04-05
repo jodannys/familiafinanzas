@@ -22,6 +22,7 @@ import {
   calcularCashflow,
   calcularAvalICO,
   calcularFinanciacionDual,
+  calcularComisionAgente,
 } from '@/lib/inmuebles'
 import FormInmueble from '@/components/inmuebles/FormInmueble'
 import SimuladorPanel from '@/components/inmuebles/SimuladorPanel'
@@ -58,11 +59,11 @@ export default function InmueblesPage() {
       if (editando) {
         const actualizado = await updateInmueble(editando.id, payload)
         setInmuebles(prev => prev.map(i => i.id === editando.id ? actualizado : i))
-        toast('Simulación actualizada', 'success')
+        toast('Inmueble actualizado', 'success')
       } else {
         const nuevo = await createInmueble(payload)
         setInmuebles(prev => [nuevo, ...prev])
-        toast('Simulación creada', 'success')
+        toast('Inmueble creado', 'success')
       }
       setFormAbierto(false)
       setEditando(null)
@@ -76,7 +77,7 @@ export default function InmueblesPage() {
       await deleteInmueble(id)
       setInmuebles(prev => prev.filter(i => i.id !== id))
       if (panelInmueble?.id === id) setPanelInmueble(null)
-      toast('Simulación eliminada', 'success')
+      toast('Inmueble eliminado', 'success')
     } catch (e) {
       toast(e.message || 'Error al eliminar')
     }
@@ -100,9 +101,14 @@ export default function InmueblesPage() {
   // ── Inmueble de referencia para la meta (el 1er de vivienda habitual en simulación) ──
   const inmueblemeta = inmuebles.find(i => i.tipo === 'vivienda_habitual' && i.estado === 'simulacion')
   const dc = inmueblemeta?.datos_compra
-  // Objetivo = entrada + gastos compra + reforma (igual que FormInmueble y SimuladorPanel)
+  // Objetivo = entrada + gastos compra + reforma + comisión agente (igual que SimuladorPanel)
+  const _hip = inmueblemeta?.hipoteca
+  const _comisionActiva = _hip?.comision_agente?.activo === true
+  const _comisionAgenteCents = _comisionActiva
+    ? calcularComisionAgente(toCents(dc?.precio || 0), _hip?.comision_agente?.pct ?? 0)
+    : 0
   const entradaObjetivoCents = inmueblemeta
-    ? toCents(dc?.aportacion_inicial || 0) + toCents(dc?.gastos_compra || 0) + toCents(dc?.reforma || 0)
+    ? toCents(dc?.aportacion_inicial || 0) + toCents(dc?.gastos_compra || 0) + toCents(dc?.reforma || 0) + _comisionAgenteCents
     : 0
   // Actual = hucha vinculada si existe, si no suma total de todas las metas
   const metaVinculada = metas.find(m => m.id === inmueblemeta?.meta_id)
@@ -198,13 +204,13 @@ export default function InmueblesPage() {
             {inmuebles.length === 0 && (
               <div className="glass-card flex flex-col items-center justify-center py-16 text-center">
                 <Home size={40} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
-                <h3 className="font-serif text-xl mb-2" style={{ color: 'var(--text-primary)' }}>Sin simulaciones aún</h3>
+                <h3 className="font-serif text-xl mb-2" style={{ color: 'var(--text-primary)' }}>Sin inmuebles aún</h3>
                 <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--text-muted)' }}>
-                  Crea tu primera simulación para replicar el análisis del Excel en la app.
+                  Añade tu primera vivienda o inmueble de inversión.
                 </p>
                 <button onClick={handleAbrirForm} className="ff-btn-terra">
                   <Plus size={16} className="inline mr-2" />
-                  Nueva simulación
+                  Añadir inmueble
                 </button>
               </div>
             )}
@@ -272,10 +278,11 @@ export default function InmueblesPage() {
       <Modal
         open={formAbierto}
         onClose={() => { setFormAbierto(false); setEditando(null) }}
-        title={editando ? 'Editar inmueble' : 'Nueva simulación'}>
+        title={editando ? 'Editar inmueble' : 'Nuevo inmueble'}>
         <FormInmueble
           inmueble={editando}
           metas={metas}
+          inmuebles={inmuebles}
           onSave={handleGuardar}
           onClose={() => { setFormAbierto(false); setEditando(null) }}
         />
