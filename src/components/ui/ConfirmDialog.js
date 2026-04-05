@@ -32,24 +32,43 @@ export function useConfirm() {
 }
 
 export default function ConfirmDialog({ open, message, onConfirm, onCancel, labelConfirm = 'Eliminar', labelCancel = 'Cancelar' }) {
+  const [visible, setVisible] = useState(false)
+  const [closing, setClosing] = useState(false)
+
   useEffect(() => {
-    if (!open) return
+    if (open) {
+      setClosing(false)
+      setVisible(true)
+    } else if (visible) {
+      setClosing(true)
+      const t = setTimeout(() => { setVisible(false); setClosing(false) }, 200)
+      return () => clearTimeout(t)
+    }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!visible) return
     const handler = (e) => { if (e.key === 'Escape') onCancel() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [open, onCancel])
+  }, [visible, onCancel])
 
-  if (!open) return null
+  if (!visible) return null
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       <div
         className="absolute inset-0"
-        style={{ background: 'color-mix(in srgb, var(--bg-dark-card), transparent 50%)', backdropFilter: 'blur(4px)', touchAction: 'none' }}
+        style={{
+          background: 'color-mix(in srgb, var(--bg-dark-card), transparent 50%)',
+          backdropFilter: 'blur(4px)',
+          touchAction: 'none',
+          animation: closing ? 'overlay-out 0.2s ease forwards' : 'overlay-in 0.2s ease forwards',
+        }}
         onClick={onCancel}
       />
       <div
-        className="relative w-full max-w-xs animate-enter"
+        className={`relative w-full max-w-xs ${closing ? 'animate-leave' : 'animate-enter'}`}
         style={{
           background: 'var(--bg-card)',
           border: '1px solid var(--border-glass)',

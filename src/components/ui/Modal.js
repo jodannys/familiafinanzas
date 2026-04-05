@@ -25,35 +25,11 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
 
   useEffect(() => {
     if (visible) {
-      const scrollY = window.scrollY
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${scrollY}px`
-      document.body.style.left = '0'
-      document.body.style.right = '0'
-      if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
-      // Guardar scrollY para restaurar al cerrar
-      document.body.dataset.scrollY = scrollY
+      document.documentElement.style.overflow = 'hidden'
     } else {
-      const scrollY = parseInt(document.body.dataset.scrollY || '0', 10)
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.left = ''
-      document.body.style.right = ''
-      document.body.style.paddingRight = ''
-      delete document.body.dataset.scrollY
-      window.scrollTo(0, scrollY)
+      document.documentElement.style.overflow = ''
     }
-    return () => {
-      const scrollY = parseInt(document.body.dataset.scrollY || '0', 10)
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.left = ''
-      document.body.style.right = ''
-      document.body.style.paddingRight = ''
-      delete document.body.dataset.scrollY
-      if (scrollY) window.scrollTo(0, scrollY)
-    }
+    return () => { document.documentElement.style.overflow = '' }
   }, [visible])
 
   useEffect(() => {

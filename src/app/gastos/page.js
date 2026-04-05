@@ -162,6 +162,12 @@ export default function GastosPage() {
     cargarMovimientos(false, visMes, visAño)
   }, [visMes, visAño])
 
+  useEffect(() => {
+    function onMovGuardado() { cargarMovimientos(false, visMes, visAño, true) }
+    window.addEventListener('ff:movimiento-guardado', onMovGuardado)
+    return () => window.removeEventListener('ff:movimiento-guardado', onMovGuardado)
+  }, [visMes, visAño])
+
   async function cargarMovimientos(cargarTodos = false, mesV, añoV, silencioso = false) {
     // 1. Obtenemos mes y año (si no vienen, usamos los del estado/vista)
     const m = mesV ?? visMes
