@@ -162,7 +162,7 @@ export default function GastosPage() {
     cargarMovimientos(false, visMes, visAño)
   }, [visMes, visAño])
 
-  async function cargarMovimientos(cargarTodos = false, mesV, añoV) {
+  async function cargarMovimientos(cargarTodos = false, mesV, añoV, silencioso = false) {
     // 1. Obtenemos mes y año (si no vienen, usamos los del estado/vista)
     const m = mesV ?? visMes
     const a = añoV ?? visAño
@@ -170,7 +170,8 @@ export default function GastosPage() {
     // 2. Usamos la nueva utilidad para obtener el rango exacto (YYYY-MM-DD)
     const { inicio, fin } = getRangoMes(m, a)
 
-    setLoading(true)
+    // Solo mostrar skeleton en carga inicial o cambio de mes; no en recargas silenciosas
+    if (!silencioso) setLoading(true)
     setError(null)
 
     // 3. Aplicamos el rango a la query de Supabase
@@ -349,9 +350,9 @@ export default function GastosPage() {
         const { data: movRow } = await supabase
           .from('movimientos').select('*').eq('id', movId).single();
         if (movRow) setMovs(prev => [movRow, ...prev]);
-        else await cargarMovimientos(false, visMes, visAño);
+        else await cargarMovimientos(false, visMes, visAño, true);
       } else {
-        await cargarMovimientos(false, visMes, visAño);
+        await cargarMovimientos(false, visMes, visAño, true);
       }
 
       // Sincronizar estado local de metas, inversiones y deudas

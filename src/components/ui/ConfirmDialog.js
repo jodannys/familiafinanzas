@@ -34,16 +34,9 @@ export function useConfirm() {
 export default function ConfirmDialog({ open, message, onConfirm, onCancel, labelConfirm = 'Eliminar', labelCancel = 'Cancelar' }) {
   useEffect(() => {
     if (!open) return
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
-    document.documentElement.style.overflow = 'hidden'
-    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
     const handler = (e) => { if (e.key === 'Escape') onCancel() }
     window.addEventListener('keydown', handler)
-    return () => {
-      window.removeEventListener('keydown', handler)
-      document.documentElement.style.overflow = ''
-      document.body.style.paddingRight = ''
-    }
+    return () => window.removeEventListener('keydown', handler)
   }, [open, onCancel])
 
   if (!open) return null
@@ -52,7 +45,7 @@ export default function ConfirmDialog({ open, message, onConfirm, onCancel, labe
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       <div
         className="absolute inset-0"
-        style={{ background: 'color-mix(in srgb, var(--bg-dark-card), transparent 50%)', backdropFilter: 'blur(4px)' }}
+        style={{ background: 'color-mix(in srgb, var(--bg-dark-card), transparent 50%)', backdropFilter: 'blur(4px)', touchAction: 'none' }}
         onClick={onCancel}
       />
       <div
