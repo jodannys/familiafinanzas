@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, validarTokenInvitacion, inicializarHogar, aceptarInvitacion } from '@/lib/supabase'
 
 export function useAuthFlow() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const handlingLogin = useRef(false)
 
   const [mode, setMode] = useState('login')
   const [loading, setLoading] = useState(false)
@@ -164,9 +165,9 @@ export function useAuthFlow() {
       }
 
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        // Si handleLogin ya está manejando el redirect, ignorar este evento
+        if (handlingLogin.current) return
         // Si hay token de invitación en la URL, checkSession() maneja todo el flujo.
-        // Evitar la race condition donde onAuthStateChange llama inicializarHogar
-        // antes de que checkSession pueda llamar aceptarInvitacion.
         if (searchParams.get('token')) {
           console.log('[AuthFlow] Evento SIGNED_IN/INITIAL_SESSION con token de invitación -> delegando a checkSession')
           return
@@ -213,7 +214,7 @@ export function useAuthFlow() {
       } else {
         const nombreGuardado = data?.user?.user_metadata?.nombre
         console.log('[AuthFlow] Nombre guardado en metadata:', nombreGuardado)
-        
+
         if (!nombreGuardado) {
           console.log('[AuthFlow] Falta nombre, cambiando a modo nombre')
           setMode('nombre')
@@ -221,13 +222,14 @@ export function useAuthFlow() {
           console.log('[AuthFlow] Buscando rpc get_mis_permisos tras login...')
           const { data: perfil, error: rpcError } = await supabase.rpc('get_mis_permisos')
           console.log('[AuthFlow] Resultado rpc post-login:', { perfil, rpcError })
-          
+
           if (!perfil) {
             const nombreHogarMeta = data.user.user_metadata?.nombre_hogar || 'Mi Familia'
             console.log('[AuthFlow] Sin perfil post-login. Inicializando hogar:', nombreHogarMeta)
             await inicializarHogar(nombreGuardado, nombreHogarMeta)
           }
           console.log('[AuthFlow] 🚀 Login exitoso. Redirigiendo a /')
+          handlingLogin.current = true
           router.replace('/')
         }
       }
