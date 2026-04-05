@@ -48,7 +48,7 @@ function LoginContent() {
   )
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden"
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden"
       style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary), var(--bg-dark-card) 12%) 100%)' }}>
 
       {/* Blob 1 — arriba-derecha */}
@@ -61,19 +61,19 @@ function LoginContent() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-[0.05] blur-[120px]"
         style={{ background: 'var(--accent-violet)' }} />
 
-      <div className="w-full max-w-sm relative z-10">
-        <div className="ff-sheet animate-enter p-8">
+      <div className="w-full max-w-sm sm:max-w-md lg:max-w-xl relative z-10">
+        <div className="ff-sheet animate-enter p-8 lg:p-14">
 
           {/* Header */}
-          <div className="flex flex-col items-center mb-8 text-center">
-            <div className="w-20 h-20 rounded-[28px] flex items-center justify-center mb-6 shadow-sm"
+          <div className="flex flex-col items-center mb-8 lg:mb-10 text-center">
+            <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-[28px] lg:rounded-[32px] flex items-center justify-center mb-6 shadow-sm"
               style={{
                 background: 'color-mix(in srgb, var(--accent-main) 12%, var(--bg-card))',
                 border: '1px solid var(--border-subtle)',
               }}>
-              <img src="/icon.svg" alt="Logo" className="w-10 h-10" />
+              <img src="/icon.svg" alt="Logo" className="w-10 h-10 lg:w-12 lg:h-12" />
             </div>
-            <h1 className="font-script text-[38px] leading-none mb-2" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="font-script text-[38px] lg:text-[52px] leading-none mb-2" style={{ color: 'var(--text-primary)' }}>
               Economía del Hogar
             </h1>
             <p className="text-[10px] uppercase tracking-[0.25em] font-black opacity-40">
@@ -83,19 +83,19 @@ function LoginContent() {
 
           {/* ── LOGIN ── */}
           {mode === 'login' && (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4 lg:space-y-5">
               <div className="space-y-1.5">
                 <label htmlFor="login-email" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Email</label>
                 <input id="login-email" name="email" type="email" placeholder="nombre@Gmail.com"
                   value={form.email} onChange={e => updateForm('email', e.target.value)}
-                  className="ff-input w-full" autoFocus />
+                  className="ff-input w-full lg:py-4 lg:text-[15px]" autoFocus />
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="login-password" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
                 <div className="relative">
                   <input id="login-password" name="password" type={showPwd ? 'text' : 'password'} placeholder="••••••••"
                     value={form.password} onChange={e => updateForm('password', e.target.value)}
-                    className="ff-input w-full pr-12" />
+                    className="ff-input w-full pr-12 lg:py-4 lg:text-[15px]" />
                   <button type="button" onClick={() => setShowPwd(!showPwd)}
                     aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
@@ -111,7 +111,7 @@ function LoginContent() {
               )}
 
               <button type="submit" disabled={loading || !form.email || !form.password}
-                className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
+                className="w-full py-4 lg:py-5 rounded-2xl font-black text-sm lg:text-base uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
                 style={{
                   background: form.email && form.password ? 'var(--accent-main)' : 'var(--bg-secondary)',
                   color: form.email && form.password ? 'var(--text-on-dark)' : 'var(--text-muted)',
@@ -121,7 +121,7 @@ function LoginContent() {
 
               {/* Google */}
               <button type="button" onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
+                className="w-full flex items-center justify-center gap-3 py-3.5 lg:py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
                 style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
                 <GoogleIcon />
                 Continuar con Google
@@ -139,7 +139,7 @@ function LoginContent() {
               </div>
 
               <button type="button" onClick={() => { setMode('register'); setError(''); updateForm('password', ''); updateForm('confirmPwd', '') }}
-                className="w-full py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
+                className="w-full py-3.5 lg:py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
                 style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 Crear cuenta nueva
               </button>
@@ -367,7 +367,7 @@ function LoginContent() {
           )}
         </div>
 
-        <div className="flex items-center justify-center gap-2 mt-10 opacity-30" aria-hidden="true">
+        <div className="flex items-center justify-center gap-2 mt-10 lg:mt-12 opacity-30" aria-hidden="true">
           <Lock size={10} />
           <p className="text-[9px] font-black uppercase tracking-[0.4em]">Acceso Privado · 2026</p>
         </div>
