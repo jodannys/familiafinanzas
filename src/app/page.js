@@ -252,23 +252,27 @@ function HealthBar({ pctGastos, pctAhorro, pctDisp, saldoLibre, ingresosMes }) {
 
   return (
     <div className="mb-7 animate-enter" style={{ animationDelay: '0.08s' }}>
-      {/* Barra segmentada */}
-      <div style={{ height: 10, borderRadius: 999, overflow: 'hidden', display: 'flex', gap: 2, background: 'var(--bg-secondary)' }}>
-        <div style={{ width: `${pctGastos}%`, background: 'var(--accent-rose)', borderRadius: 999, transition: 'width 1s ease-out', flexShrink: 0 }} />
-        <div style={{ width: `${pctAhorro}%`, background: 'var(--accent-gold)',  borderRadius: 999, transition: 'width 1s ease-out 0.1s', flexShrink: 0 }} />
-        <div style={{ width: `${pctLibre}%`,  background: libreColor,            borderRadius: 999, transition: 'width 1s ease-out 0.2s', flexShrink: 0 }} />
+      {/* Barra segmentada — sin gaps, transición fluida */}
+      <div style={{
+        height: 5, borderRadius: 999, overflow: 'hidden', display: 'flex',
+        background: 'var(--bg-secondary)',
+      }}>
+        <div style={{ width: `${pctGastos}%`, background: 'var(--accent-rose)', opacity: 0.75, transition: 'width 1s ease-out', flexShrink: 0 }} />
+        <div style={{ width: `${pctAhorro}%`, background: 'var(--accent-gold)', opacity: 0.75, transition: 'width 1s ease-out 0.1s', flexShrink: 0 }} />
+        <div style={{ width: `${pctLibre}%`,  background: libreColor,           opacity: 0.75, transition: 'width 1s ease-out 0.2s', flexShrink: 0 }} />
       </div>
       {/* Leyenda */}
-      <div className="flex items-center gap-4 mt-2">
+      <div className="flex items-center gap-5 mt-2">
         {[
-          { label: 'Gastos',  pct: pctGastos, color: 'var(--accent-rose)' },
-          { label: 'Ahorro',  pct: pctAhorro, color: 'var(--accent-gold)' },
-          { label: 'Libre',   pct: pctLibre,  color: libreColor },
+          { label: 'Gastos', pct: pctGastos, color: 'var(--accent-rose)' },
+          { label: 'Ahorro', pct: pctAhorro, color: 'var(--accent-gold)' },
+          { label: 'Libre',  pct: pctLibre,  color: libreColor },
         ].map(({ label, pct, color }) => (
           <div key={label} className="flex items-center gap-1.5">
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-              {label} <span style={{ color, fontWeight: 900 }}>{pct}%</span>
+            <div style={{ width: 5, height: 5, borderRadius: 2, background: color, opacity: 0.8, flexShrink: 0 }} />
+            <span style={{ fontSize: 9, fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+              {label}{' '}
+              <span style={{ color, fontWeight: 700, opacity: 0.9 }}>{pct}%</span>
             </span>
           </div>
         ))}
@@ -317,6 +321,8 @@ export default function Dashboard() {
       }
     }
     cargar()
+    window.addEventListener('ff:movimiento-guardado', cargar)
+    return () => window.removeEventListener('ff:movimiento-guardado', cargar)
   }, [])
 
   const now       = new Date()

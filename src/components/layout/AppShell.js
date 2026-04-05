@@ -309,7 +309,7 @@ export function FABModal({ onClose }) {
       setSaving(false)
       if (tcError) { toast('Error al registrar la compra: ' + tcError.message); return }
       toast(`Compra registrada · ${cuotas === 1 ? 'Pago único' : `${cuotas}x de ${formatCurrency(cuotaMensual)}`}`, 'success')
-      onClose(); router.refresh(); return
+      onClose(); router.refresh(); window.dispatchEvent(new Event('ff:movimiento-guardado')); return
     }
 
     const { data: movData, error } = await supabase.from('movimientos').insert([{
@@ -350,7 +350,7 @@ export function FABModal({ onClose }) {
     }
 
     toast(tipo === 'ingreso' ? 'Ingreso registrado' : 'Gasto registrado', 'success')
-    setSaving(false); onClose(); router.refresh()
+    setSaving(false); onClose(); router.refresh(); window.dispatchEvent(new Event('ff:movimiento-guardado'))
   }
 
   // ── Colores dinámicos ────────────────────────────────────────────────────────
