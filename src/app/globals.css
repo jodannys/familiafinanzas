@@ -58,13 +58,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 html, body {
   /* Fondo dinámico compatible con colores sólidos o patrones de imagen */
   background: var(--bg-primary) !important;
   background-repeat: repeat !important;
   background-size: var(--bg-pattern-size, 360px) !important;
   background-attachment: fixed !important;
-  
+
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
