@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { ChevronDown, Loader2, X, Users } from 'lucide-react'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 function formatFechaDDMM(fechaStr) {
   if (!fechaStr) return ''
@@ -207,23 +208,13 @@ export default function FamilyPanel({ anchorRef, onClose, isMobile = false }) {
           gap: 16,
         }}>
           {/* Selector */}
-          <div style={{ position: 'relative' }}>
-            <select
-              className="ff-input w-full"
-              style={{ appearance: 'none', paddingRight: 40, height: 46, fontSize: 14 }}
-              value={seleccionado}
-              onChange={e => setSeleccionado(e.target.value)}
-            >
-              <option value="">Todos los miembros</option>
-              {miembros.map(m => (
-                <option key={m.id} value={m.nombre}>{m.nombre}</option>
-              ))}
-            </select>
-            <ChevronDown size={16} style={{
-              position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-              color: 'var(--text-muted)', pointerEvents: 'none'
-            }} />
-          </div>
+          <CustomSelect
+            value={seleccionado || null}
+            onChange={v => setSeleccionado(v || '')}
+            options={miembros.map(m => ({ id: m.nombre, label: m.nombre }))}
+            placeholder="Todos los miembros"
+            color="var(--accent-main)"
+          />
 
           {/* Resumen KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
