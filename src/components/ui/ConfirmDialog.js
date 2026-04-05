@@ -60,8 +60,7 @@ export default function ConfirmDialog({ open, message, onConfirm, onCancel, labe
       <div
         className="absolute inset-0"
         style={{
-          background: 'color-mix(in srgb, var(--bg-dark-card), transparent 50%)',
-          backdropFilter: 'blur(4px)',
+          background: 'color-mix(in srgb, var(--bg-dark-card), transparent 35%)',
           touchAction: 'none',
           animation: closing ? 'overlay-out 0.2s ease forwards' : 'overlay-in 0.2s ease forwards',
         }}

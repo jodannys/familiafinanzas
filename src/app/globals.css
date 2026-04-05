@@ -58,10 +58,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html {
-  scrollbar-gutter: stable;
-}
-
 html, body {
   /* Fondo dinámico compatible con colores sólidos o patrones de imagen */
   background: var(--bg-primary) !important;
