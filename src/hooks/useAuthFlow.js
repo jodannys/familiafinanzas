@@ -200,6 +200,7 @@ export function useAuthFlow() {
     
     setLoading(true)
     setError('')
+    handlingLogin.current = true
     try {
       console.log('[AuthFlow] Llamando a supabase.auth.signInWithPassword...')
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -210,6 +211,7 @@ export function useAuthFlow() {
 
       if (error) {
         console.error('[AuthFlow] ❌ Error de credenciales:', error.message)
+        handlingLogin.current = false
         setError('Credenciales no válidas')
       } else {
         const nombreGuardado = data?.user?.user_metadata?.nombre
@@ -217,6 +219,7 @@ export function useAuthFlow() {
 
         if (!nombreGuardado) {
           console.log('[AuthFlow] Falta nombre, cambiando a modo nombre')
+          handlingLogin.current = false
           setMode('nombre')
         } else {
           console.log('[AuthFlow] Buscando rpc get_mis_permisos tras login...')
@@ -229,12 +232,12 @@ export function useAuthFlow() {
             await inicializarHogar(nombreGuardado, nombreHogarMeta)
           }
           console.log('[AuthFlow] 🚀 Login exitoso. Redirigiendo a /')
-          handlingLogin.current = true
           router.replace('/')
         }
       }
     } catch (err) {
       console.error('[AuthFlow] ❌ Excepción en handleLogin:', err)
+      handlingLogin.current = false
       setError('Error de conexión. Intenta de nuevo.')
     } finally {
       setLoading(false)
