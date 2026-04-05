@@ -344,11 +344,14 @@ export default function GastosPage() {
       // ── 4. ACTUALIZAR ESTADO LOCAL ────────────────────────────────────────────
       // Recargamos el movimiento real desde DB para tener deuda_movimiento_id
       // y descripcion final que la RPC pudo haber guardado.
-      const movId = rpcData?.mov_id;
+      const movId = Array.isArray(rpcData) ? rpcData?.[0]?.mov_id : rpcData?.mov_id;
       if (movId) {
         const { data: movRow } = await supabase
           .from('movimientos').select('*').eq('id', movId).single();
         if (movRow) setMovs(prev => [movRow, ...prev]);
+        else await cargarMovimientos(false, visMes, visAño);
+      } else {
+        await cargarMovimientos(false, visMes, visAño);
       }
 
       // Sincronizar estado local de metas, inversiones y deudas
