@@ -557,7 +557,7 @@ export function generarCasosDeCompra({ precioCents, interesAnual, plazoMeses, ga
   const ltvs = [
     { label: 'Caso 1 – 80%', pct: 0.80, color: 'var(--accent-green)' },
     { label: 'Caso 2 – 90%', pct: 0.90, color: 'var(--accent-gold)' },
-    { label: 'Caso 3 – 100% (ICO)', pct: 1.00, color: 'var(--accent-terra)' },
+    { label: 'Caso 3 – 100% (ICO)', pct: 1.00, color: 'var(--accent-main)' },
   ]
 
   return ltvs.map(({ label, pct, color }) => {

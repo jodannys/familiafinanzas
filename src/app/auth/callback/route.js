@@ -17,7 +17,15 @@ export async function GET(request) {
     // Si es un flujo de recuperación de contraseña, pasar type=recovery para que
     // el middleware no redirija al panel y useAuthFlow muestre el formulario de reset.
     const type = searchParams.get('type')
-    const loginUrl = type === 'recovery' ? `${origin}/login?type=recovery` : `${origin}/login`
+    const invToken = searchParams.get('token')
+    let loginUrl
+    if (invToken) {
+      loginUrl = `${origin}/login?token=${invToken}`
+    } else if (type === 'recovery') {
+      loginUrl = `${origin}/login?type=recovery`
+    } else {
+      loginUrl = `${origin}/login`
+    }
     const response = NextResponse.redirect(loginUrl)
 
     // 2. Creamos el cliente usando la lógica de cookies recomendada para Next.js

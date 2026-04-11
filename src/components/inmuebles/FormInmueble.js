@@ -284,9 +284,9 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 onClick={() => handleTipoChange(id)}
                 className="flex items-center gap-2 p-3 rounded-xl border text-left transition-all"
                 style={{
-                  borderColor: tipo === id ? 'var(--accent-terra)' : 'var(--border-glass)',
-                  background:  tipo === id ? 'color-mix(in srgb, var(--accent-terra), transparent 92%)' : 'var(--input-bg)',
-                  color:       tipo === id ? 'var(--accent-terra)' : 'var(--text-muted)',
+                  borderColor: tipo === id ? 'var(--accent-main)' : 'var(--border-glass)',
+                  background:  tipo === id ? 'color-mix(in srgb, var(--accent-main), transparent 92%)' : 'var(--input-bg)',
+                  color:       tipo === id ? 'var(--accent-main)' : 'var(--text-muted)',
                 }}>
                 <Icon size={14} />
                 <span className="text-xs font-bold">{label}</span>
@@ -359,8 +359,8 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                     className="text-sm font-black transition-all"
                     style={{
                       width: 48, height: '100%',
-                      background: entradaModo === m ? 'var(--accent-terra)' : 'transparent',
-                      color: entradaModo === m ? '#fff' : 'var(--text-muted)',
+                      background: entradaModo === m ? 'var(--accent-main)' : 'transparent',
+                      color: entradaModo === m ? 'var(--text-on-dark)' : 'var(--text-muted)',
                       border: 'none', cursor: 'pointer',
                     }}>
                     {m === 'eur' ? '€' : '%'}
@@ -380,9 +380,9 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
         )}
 
         {/* Gastos de compra — cálculo automático */}
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 78%)' }}>
-          <div className="p-3" style={{ background: 'color-mix(in srgb, var(--accent-gold), transparent 94%)' }}>
-            <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent-gold)', marginBottom: 8 }}>
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 78%)' }}>
+          <div className="p-3" style={{ background: 'color-mix(in srgb, var(--accent-main), transparent 94%)' }}>
+            <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent-main)', marginBottom: 8 }}>
               Gastos de compra — cálculo automático
             </p>
             <div className="grid grid-cols-2 gap-2 mb-2">
@@ -392,7 +392,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                   value={ccaa}
                   onChange={v => setCcaa(v || 'Madrid')}
                   options={CCAA_OPTIONS}
-                  color="var(--accent-gold)"
+                  color="var(--accent-main)"
                 />
               </div>
               <div>
@@ -401,7 +401,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                   value={tipoTransmision}
                   onChange={v => { setTipoTransmision(v || 'segunda_mano'); setItpManual(false) }}
                   options={TIPO_TRANSMISION_OPTIONS}
-                  color="var(--accent-gold)"
+                  color="var(--accent-main)"
                 />
               </div>
             </div>
@@ -460,7 +460,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 </div>
                 {precioAlto && (
                   <p className="text-xs px-2 py-1.5 rounded-lg mt-1 flex items-center gap-1.5"
-                    style={{ background: 'color-mix(in srgb, var(--accent-gold), transparent 85%)', color: 'var(--accent-gold)' }}>
+                    style={{ background: 'color-mix(in srgb, var(--accent-main), transparent 85%)', color: 'var(--accent-main)' }}>
                     <AlertTriangle size={11} />
                     Precio &gt; 300k€ — tasación estimada ~540€ (+20%)
                   </p>
@@ -469,7 +469,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
             )}
 
             <div className="w-full py-2 px-3 rounded-xl flex items-center justify-between text-xs font-black"
-              style={{ background: 'var(--accent-gold)', color: '#fff' }}>
+              style={{ background: 'var(--accent-main)', color: 'var(--text-on-dark)' }}>
               <span className="flex items-center gap-1.5"><Calculator size={13} /> Total calculado (auto)</span>
               <span>{formatCurrency(fromCents(gastosPreview.total))}</span>
             </div>
@@ -477,21 +477,21 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
             {/* Desglose */}
             <button type="button" onClick={() => setDesglosAbierto(v => !v)}
               className="w-full flex items-center justify-center gap-1 mt-2 text-xs font-semibold"
-              style={{ color: 'var(--accent-gold)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              style={{ color: 'var(--accent-main)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
               {desglosAbierto ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
               {desglosAbierto ? 'Ocultar desglose' : 'Ver desglose'}
             </button>
             {desglosAbierto && (
-              <div className="mt-2 pt-2 border-t space-y-1" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 75%)' }}>
+              <div className="mt-2 pt-2 border-t space-y-1" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 75%)' }}>
                 {Object.entries(gastosPreview.desglose).map(([concepto, cents]) => (
                   <div key={concepto} className="flex justify-between">
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{concepto}</span>
                     <span className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(fromCents(cents))}</span>
                   </div>
                 ))}
-                <div className="flex justify-between pt-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 75%)' }}>
+                <div className="flex justify-between pt-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 75%)' }}>
                   <span className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>Total gastos</span>
-                  <span className="text-xs font-black" style={{ color: 'var(--accent-gold)' }}>{formatCurrency(fromCents(gastosPreview.total))}</span>
+                  <span className="text-xs font-black" style={{ color: 'var(--accent-main)' }}>{formatCurrency(fromCents(gastosPreview.total))}</span>
                 </div>
               </div>
             )}
@@ -500,14 +500,14 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
       </div>
 
       {/* ── Comisión bróker inmobiliario ── */}
-      <div className="rounded-xl border p-3" style={{ borderColor: 'color-mix(in srgb, var(--accent-terra), transparent 78%)', background: 'color-mix(in srgb, var(--accent-terra), transparent 96%)' }}>
+      <div className="rounded-xl border p-3" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 78%)', background: 'color-mix(in srgb, var(--accent-main), transparent 96%)' }}>
         <label className="flex items-start gap-3 cursor-pointer">
           <div className="relative mt-0.5 flex-shrink-0">
             <input type="checkbox" checked={usarComisionAgente} onChange={e => setUsarComisionAgente(e.target.checked)} className="sr-only peer" />
             <div className="w-9 h-5 rounded-full transition-colors"
-              style={{ background: usarComisionAgente ? 'var(--accent-terra)' : 'var(--progress-track)' }} />
-            <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
-              style={{ transform: usarComisionAgente ? 'translateX(16px)' : 'translateX(0)' }} />
+              style={{ background: usarComisionAgente ? 'var(--accent-main)' : 'var(--progress-track)' }} />
+            <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full shadow transition-transform"
+              style={{ transform: usarComisionAgente ? 'translateX(16px)' : 'translateX(0)', background: 'var(--bg-card)' }} />
           </div>
           <div>
             <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Comisión bróker inmobiliario</p>
@@ -518,12 +518,12 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
           <div className="flex items-center gap-3 mt-3 pl-12">
             <input type="range" min={0} max={10} step={0.5} value={comisionAgentePct}
               onChange={e => { const v = parseFloat(e.target.value); setComisionAgentePct(v); setComisionInput(String(v)) }}
-              className="flex-1" style={{ accentColor: 'var(--accent-terra)' }} />
+              className="flex-1" style={{ accentColor: 'var(--accent-main)' }} />
             <div className="relative w-16">
               <input
                 type="number" min={0} max={10} step={0.5}
                 className="ff-input w-full pr-5 text-xs font-black text-center py-1"
-                style={{ color: 'var(--accent-terra)' }}
+                style={{ color: 'var(--accent-main)' }}
                 value={comisionInput}
                 onChange={e => {
                   setComisionInput(e.target.value)
@@ -573,7 +573,8 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                   <div className="flex items-center gap-2">
                     <input type="range" min={50} max={80} step={5} value={Math.round(ltvBanco * 100)}
                       onChange={e => { const v = parseInt(e.target.value) / 100; setLtvBanco(v); setLtvPublico(+(1 - v).toFixed(2)) }}
-                      className="flex-1 accent-violet-500" />
+                      className="flex-1"
+                      style={{ accentColor: 'var(--accent-violet)' }} />
                     <span className="text-xs font-black w-8 text-right" style={{ color: 'var(--accent-violet)' }}>{Math.round(ltvBanco * 100)}%</span>
                   </div>
                 </div>
@@ -705,7 +706,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 value={mesesOcupados}
                 onChange={v => setMesesOcupados(v || '11')}
                 options={MESES_OCUPADOS_OPTIONS}
-                color="var(--accent-gold)"
+                color="var(--accent-main)"
               />
             </div>
             <div>
@@ -777,7 +778,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
             onChange={v => setMetaId(v || null)}
             options={metaOptions}
             placeholder="— Sin vincular —"
-            color="var(--accent-terra)"
+            color="var(--accent-main)"
           />
           {metaId && (() => {
             // Advertir si otro inmueble ya usa esta meta
@@ -792,27 +793,27 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
               <div className="space-y-2 mt-2">
               {conflicto && (
                 <div className="rounded-xl p-3 border flex items-start gap-2" style={{
-                  borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 60%)',
-                  background:  'color-mix(in srgb, var(--accent-gold), transparent 90%)',
+                  borderColor: 'color-mix(in srgb, var(--accent-main), transparent 60%)',
+                  background:  'color-mix(in srgb, var(--accent-main), transparent 90%)',
                 }}>
-                  <AlertTriangle size={14} style={{ color: 'var(--accent-gold)', flexShrink: 0, marginTop: 1 }} />
-                  <p className="text-xs" style={{ color: 'var(--accent-gold)' }}>
+                  <AlertTriangle size={14} style={{ color: 'var(--accent-main)', flexShrink: 0, marginTop: 1 }} />
+                  <p className="text-xs" style={{ color: 'var(--accent-main)' }}>
                     Esta hucha ya está vinculada a <strong>"{conflicto.nombre}"</strong>. El saldo se mostrará completo en ambos inmuebles — no se divide.
                   </p>
                 </div>
               )}
               <div className="rounded-xl p-3 border" style={{
-                borderColor: falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 70%)' : 'color-mix(in srgb, var(--accent-terra), transparent 70%)',
-                background:  falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 93%)' : 'color-mix(in srgb, var(--accent-terra), transparent 93%)',
+                borderColor: falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 70%)' : 'color-mix(in srgb, var(--accent-main), transparent 70%)',
+                background:  falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 93%)' : 'color-mix(in srgb, var(--accent-main), transparent 93%)',
               }}>
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-xs font-bold" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-terra)' }}>
+                  <span className="text-xs font-bold" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }}>
                     {falta <= 0 ? '¡Listo para comprar!' : `Faltan ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(fromCents(falta))}`}
                   </span>
-                  <span className="text-xs font-black" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-terra)' }}>{pct}%</span>
+                  <span className="text-xs font-black" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }}>{pct}%</span>
                 </div>
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-terra)' }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }} />
                 </div>
               </div>
               </div>
@@ -834,7 +835,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
       </div>
 
       {/* ── Preview calculado ── */}
-      <div className="rounded-xl p-3 border" style={{ background: 'color-mix(in srgb, var(--accent-terra), transparent 94%)', borderColor: 'color-mix(in srgb, var(--accent-terra), transparent 82%)' }}>
+      <div className="rounded-xl p-3 border" style={{ background: 'color-mix(in srgb, var(--accent-main), transparent 94%)', borderColor: 'color-mix(in srgb, var(--accent-main), transparent 82%)' }}>
         <div className="flex flex-col gap-1.5">
           {[
             { label: esDual ? 'Cuota total (2 deudas)' : 'Cuota / mes', value: formatCurrency(fromCents(cuotaCents)), accent: true },
@@ -843,7 +844,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
           ].map(({ label, value, accent }) => (
             <div key={label} className="flex items-center justify-between">
               <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</p>
-              <p className="text-sm font-black" style={{ color: accent ? 'var(--accent-terra)' : 'var(--text-primary)', letterSpacing: '-0.02em' }}>{value}</p>
+              <p className="text-sm font-black" style={{ color: accent ? 'var(--accent-main)' : 'var(--text-primary)', letterSpacing: '-0.02em' }}>{value}</p>
             </div>
           ))}
         </div>
@@ -852,7 +853,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
       {/* ── Botones ── */}
       <div className="flex gap-3">
         <button type="button" onClick={onClose} className="ff-btn-ghost flex-1">Cancelar</button>
-        <button type="submit" disabled={saving || !nombre.trim() || !precio || parseFloat(precio) <= 0} className="ff-btn-terra flex-1">
+        <button type="submit" disabled={saving || !nombre.trim() || !precio || parseFloat(precio) <= 0} className="ff-btn-primary flex-1">
           {saving ? 'Guardando...' : esEdicion ? 'Actualizar' : 'Crear'}
         </button>
       </div>

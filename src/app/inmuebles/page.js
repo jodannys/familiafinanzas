@@ -146,26 +146,26 @@ export default function InmueblesPage() {
         <div className="space-y-6">
           {/* ── Meta: Entrada para la casa ── */}
           {entradaObjetivoCents > 0 && (
-            <Card glow="terra">
+            <Card glow="main">
               {/* Header */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'color-mix(in srgb, var(--accent-terra), transparent 88%)', border: '1px solid color-mix(in srgb, var(--accent-terra), transparent 78%)' }}>
-                  <Target size={18} style={{ color: 'var(--accent-terra)' }} />
+                  style={{ background: 'color-mix(in srgb, var(--accent-main), transparent 88%)', border: '1px solid color-mix(in srgb, var(--accent-main), transparent 78%)' }}>
+                  <Target size={18} style={{ color: 'var(--accent-main)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Objetivo de compra</p>
                   <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>{inmueblemeta?.nombre}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-2xl font-black" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.04em', lineHeight: 1 }}>{progressPct}%</p>
+                  <p className="text-2xl font-black" style={{ color: 'var(--accent-main)', letterSpacing: '-0.04em', lineHeight: 1 }}>{progressPct}%</p>
                   <p style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>completado</p>
                 </div>
               </div>
 
               {/* Barra más gruesa */}
               <div className="h-3 rounded-full overflow-hidden mb-4" style={{ background: 'var(--progress-track)' }}>
-                <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: 'var(--accent-terra)' }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: 'var(--accent-main)' }} />
               </div>
 
               {/* Amounts */}
@@ -185,9 +185,9 @@ export default function InmueblesPage() {
               {/* Estado */}
               {entradaObjetivoCents > ahorroReferenceCents ? (
                 <div className="rounded-xl px-3 py-2 flex items-center justify-between"
-                  style={{ background: 'color-mix(in srgb, var(--accent-terra), transparent 90%)' }}>
+                  style={{ background: 'color-mix(in srgb, var(--accent-main), transparent 90%)' }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>Aún te faltan</p>
-                  <p className="text-sm font-black" style={{ color: 'var(--accent-terra)' }}>
+                  <p className="text-sm font-black" style={{ color: 'var(--accent-main)' }}>
                     {formatCurrency(fromCents(entradaObjetivoCents - ahorroReferenceCents))}
                   </p>
                 </div>
@@ -208,7 +208,7 @@ export default function InmueblesPage() {
                 <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--text-muted)' }}>
                   Añade tu primera vivienda o inmueble de inversión.
                 </p>
-                <button onClick={handleAbrirForm} className="ff-btn-terra">
+                <button onClick={handleAbrirForm} className="ff-btn-primary">
                   <Plus size={16} className="inline mr-2" />
                   Añadir inmueble
                 </button>
@@ -226,7 +226,7 @@ export default function InmueblesPage() {
             {/* ── Vivienda habitual ── */}
             {viviendas.length > 0 && (
               <section className="space-y-2">
-                <SectionHeader icon={Home} label="Vivienda habitual" count={viviendas.length} color="var(--accent-blue)" />
+                <SectionHeader icon={Home} label="Vivienda habitual" count={viviendas.length} color="var(--accent-main)" />
                 {viviendas.map(inmueble => (
                   <InmuebleItem
                     key={inmueble.id}
@@ -244,7 +244,7 @@ export default function InmueblesPage() {
             {/* ── Inversiones ── */}
             {inversiones.length > 0 && (
               <section className="space-y-2">
-                <SectionHeader icon={Building2} label="Inversión / Alquiler" count={inversiones.length} color="var(--accent-gold)" />
+                <SectionHeader icon={Building2} label="Inversión / Alquiler" count={inversiones.length} color="var(--text-secondary)" />
                 {inversiones.map(inmueble => (
                   <InmuebleItem
                     key={inmueble.id}
@@ -325,7 +325,7 @@ function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
     cashflowLabel = { cents: cf, positive: cf >= 0 }
   }
 
-  const accentColor = tipo === 'inversion' ? 'var(--accent-gold)' : 'var(--accent-blue)'
+  const accentColor = tipo === 'inversion' ? 'var(--text-secondary)' : 'var(--accent-main)'
 
   const ltvColor = ltvInicial > 90 ? 'var(--accent-rose)' : ltvInicial > 80 ? 'var(--accent-gold)' : 'var(--accent-green)'
   const enComparador = comparando.includes(inmueble.id)
@@ -381,15 +381,15 @@ function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
               className="font-black px-1.5 py-1 rounded-lg transition-all cursor-pointer"
               style={{
                 fontSize: 8, letterSpacing: '0.08em',
-                background: enComparador ? 'var(--accent-terra)' : 'var(--progress-track)',
-                color: enComparador ? '#fff' : 'var(--text-muted)',
+                background: enComparador ? 'var(--accent-main)' : 'var(--progress-track)',
+                color: enComparador ? 'var(--text-on-dark)' : 'var(--text-muted)',
               }}>
               {enComparador ? '✓' : '+'}
             </div>
           )}
 
           <div className="text-right">
-            <p className="text-sm font-black" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <p className="text-sm font-black" style={{ color: 'var(--accent-main)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               {formatCurrency(fromCents(cuotaCents))}
             </p>
             {cashflowLabel ? (

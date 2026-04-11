@@ -271,8 +271,8 @@ export function useAuthFlow() {
     setLoading(true); setError('')
 
     const redirectTo = invToken
-      ? `${window.location.origin}/login?token=${invToken}`
-      : `${window.location.origin}/login`
+      ? `${window.location.origin}/auth/callback?token=${invToken}`
+      : `${window.location.origin}/auth/callback`
     console.log('[AuthFlow] URL de redirección configurada:', redirectTo)
 
     console.log('[AuthFlow] Llamando a supabase.auth.signUp...')

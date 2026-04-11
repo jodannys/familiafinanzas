@@ -162,9 +162,9 @@ function CompRow({ label, a, b, fn, menor, mayor, colored }) {
     const isPos = colored && !isNaN(numVal) && numVal > 0
     return (
       <div className={`px-3 py-2 text-right ${better ? 'font-black' : ''}`}
-        style={{ background: 'var(--bg-card)', color: isNeg ? 'var(--accent-rose)' : isPos ? 'var(--accent-green)' : better ? 'var(--accent-terra)' : 'var(--text-primary)' }}>
+        style={{ background: 'var(--bg-card)', color: isNeg ? 'var(--accent-rose)' : isPos ? 'var(--accent-green)' : better ? 'var(--accent-main)' : 'var(--text-primary)' }}>
         <p className="text-xs">{val}</p>
-        {better && <span style={{ fontSize: 7, fontWeight: 900, color: 'var(--accent-terra)' }}>✓ MEJOR</span>}
+        {better && <span style={{ fontSize: 7, fontWeight: 900, color: 'var(--accent-main)' }}>✓ MEJOR</span>}
       </div>
     )
   }

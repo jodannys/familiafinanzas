@@ -258,13 +258,13 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
       {/* ── Subheader ── */}
       <div className="flex items-center justify-between gap-2 mb-4">
         <div className="flex flex-wrap items-center gap-3">
-          <StatusTag dot={estado === 'comprado' ? 'var(--accent-green)' : 'var(--accent-gold)'}
+          <StatusTag dot={estado === 'comprado' ? 'var(--accent-green)' : 'var(--accent-main)'}
             label={estado === 'comprado' ? 'Comprado' : 'En análisis'} />
           {usarAvalICO && <StatusTag dot="var(--accent-violet)" label="Aval ICO" />}
           {usarDual    && <StatusTag dot="var(--accent-violet)" label="Dual 0%" />}
-          {comisionAgenteActiva && <StatusTag dot="var(--accent-terra)" label={`Bróker ${comisionAgentePct}%`} />}
+          {comisionAgenteActiva && <StatusTag dot="var(--accent-main)" label={`Bróker ${comisionAgentePct}%`} />}
           {mesBajoEl80 && (
-            <StatusTag dot="var(--accent-gold)"
+            <StatusTag dot="var(--accent-main)"
               label={`LTV < 80% en mes ${mesBajoEl80}`} />
           )}
         </div>
@@ -292,7 +292,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                     style={{ background: 'var(--progress-track)', color: 'var(--text-muted)' }}>No</button>
                   <button onClick={() => onDelete(inmueble.id)}
                     className="px-2 h-7 rounded-lg text-xs font-black"
-                    style={{ background: 'var(--accent-rose)', color: '#fff' }}>Borrar</button>
+                    style={{ background: 'var(--accent-rose)', color: 'var(--text-on-dark)' }}>Borrar</button>
                 </div>
               )}
             </>
@@ -309,7 +309,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
         const diferencia = actualCents - necesarioCents
         const viable = diferencia >= 0
         const pct = necesarioCents > 0 ? Math.min(100, Math.round((actualCents / necesarioCents) * 100)) : 0
-        const color = viable ? 'var(--accent-green)' : 'var(--accent-terra)'
+        const color = viable ? 'var(--accent-green)' : 'var(--accent-main)'
         return (
           <div className="rounded-xl p-4 border mb-4"
             style={{ borderColor: `color-mix(in srgb, ${color}, transparent 70%)`, background: `color-mix(in srgb, ${color}, transparent 93%)` }}>
@@ -350,12 +350,12 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
 
       {/* ── Métricas principales ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl overflow-hidden mb-4" style={{ background: 'var(--border-glass)' }}>
-        <MetricCell icon={Wallet} label="Cuota mensual" value={formatCurrency(fromCents(cuotaCents))} color="var(--accent-terra)" />
+        <MetricCell icon={Wallet} label="Cuota mensual" value={formatCurrency(fromCents(cuotaCents))} color="var(--accent-main)" />
         <MetricCell icon={Percent} label="LTV inicial" value={`${ltvInicial}%`} color={ltvInicial > 80 ? 'var(--accent-rose)' : 'var(--accent-green)'} />
         <MetricCell icon={Calendar} label="Hito 20%"
           value={mes20 ? `${Math.floor(mes20 / 12)}a ${mes20 % 12}m` : 'N/A'}
           sub={mes20 ? `mes ${mes20}` : undefined}
-          color="var(--accent-gold)" />
+          color="var(--accent-main)" />
         {tipo === 'inversion' && cashflowMensualCents !== null
           ? <MetricCell icon={TrendingUp} label="CF post-IRPF"
               value={cashflowPostIrpfMensualCents !== null ? formatCurrency(fromCents(cashflowPostIrpfMensualCents)) : formatCurrency(fromCents(cashflowMensualCents))}
@@ -372,8 +372,8 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
             style={{
               letterSpacing: '0.07em',
               background: tab === t.id ? 'var(--bg-card)' : 'transparent',
-              color: tab === t.id ? 'var(--accent-terra)' : 'var(--text-muted)',
-              boxShadow: tab === t.id ? 'var(--shadow-sm, 0 1px 4px rgba(0,0,0,0.10))' : 'none',
+              color: tab === t.id ? 'var(--accent-main)' : 'var(--text-muted)',
+              boxShadow: tab === t.id ? 'var(--shadow-sm)' : 'none',
             }}>
             {t.label}
           </button>
@@ -446,12 +446,12 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
             )}
             {comisionAgenteActiva && (
               <div className="rounded-xl px-4 py-3 flex items-center justify-between border"
-                style={{ borderColor: 'color-mix(in srgb, var(--accent-terra), transparent 78%)', background: 'color-mix(in srgb, var(--accent-terra), transparent 94%)' }}>
+                style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 78%)', background: 'color-mix(in srgb, var(--accent-main), transparent 94%)' }}>
                 <div>
-                  <p className="text-xs font-black" style={{ color: 'var(--accent-terra)' }}>Comisión bróker inmobiliario ({comisionAgentePct}%)</p>
+                  <p className="text-xs font-black" style={{ color: 'var(--accent-main)' }}>Comisión bróker inmobiliario ({comisionAgentePct}%)</p>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sumada a la inversión total · Reduce ROI</p>
                 </div>
-                <p className="text-sm font-black" style={{ color: 'var(--accent-terra)' }}>{formatCurrency(fromCents(comisionAgenteCents))}</p>
+                <p className="text-sm font-black" style={{ color: 'var(--accent-main)' }}>{formatCurrency(fromCents(comisionAgenteCents))}</p>
               </div>
             )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -471,8 +471,8 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
             {/* Alerta LTV < 80% */}
             {mesBajoEl80 && (
               <div className="rounded-xl px-4 py-3 border"
-                style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 70%)', background: 'color-mix(in srgb, var(--accent-gold), transparent 92%)' }}>
-                <p className="text-xs font-black" style={{ color: 'var(--accent-gold)' }}>💡 Hito: LTV baja del 80% en el mes {mesBajoEl80} ({Math.floor(mesBajoEl80 / 12)} años)</p>
+                style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 70%)', background: 'color-mix(in srgb, var(--accent-main), transparent 92%)' }}>
+                <p className="text-xs font-black" style={{ color: 'var(--accent-main)' }}>💡 Hito: LTV baja del 80% en el mes {mesBajoEl80} ({Math.floor(mesBajoEl80 / 12)} años)</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
                   A partir de ese momento puedes negociar mejores condiciones con el banco (reducción de diferencial, cancelación de vinculaciones).
                 </p>
@@ -531,12 +531,12 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                 </div>
                 <div className="p-3 text-center" style={{ background: 'var(--bg-card)' }}>
                   <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Rentab. neta</p>
-                  <p className="text-lg font-black mt-1" style={{ color: 'var(--accent-gold)', letterSpacing: '-0.03em' }}>{tresCapas.netaPct}%</p>
+                  <p className="text-lg font-black mt-1" style={{ color: 'var(--accent-main)', letterSpacing: '-0.03em' }}>{tresCapas.netaPct}%</p>
                   <p style={{ fontSize: 8, color: 'var(--text-muted)' }}>NOI / Inversión</p>
                 </div>
                 <div className="p-3 text-center" style={{ background: 'var(--bg-card)' }}>
                   <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Cash-on-Cash</p>
-                  <p className="text-lg font-black mt-1" style={{ color: 'var(--accent-terra)', letterSpacing: '-0.03em' }}>{tresCapas.cocPct}%</p>
+                  <p className="text-lg font-black mt-1" style={{ color: 'var(--accent-main)', letterSpacing: '-0.03em' }}>{tresCapas.cocPct}%</p>
                   <p style={{ fontSize: 8, color: 'var(--text-muted)' }}>CF / Efectivo</p>
                 </div>
               </div>
@@ -566,20 +566,20 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
             )}
 
             {/* NOI */}
-            <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 80%)', background: 'color-mix(in srgb, var(--accent-gold), transparent 94%)' }}>
-              <p className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--accent-gold)', letterSpacing: '0.12em' }}>NOI — Net Operating Income</p>
+            <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 80%)', background: 'color-mix(in srgb, var(--accent-main), transparent 94%)' }}>
+              <p className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--accent-main)', letterSpacing: '0.12em' }}>NOI — Net Operating Income</p>
               <div className="space-y-1">
                 <CasoRow label="Renta mensual bruta" value={formatCurrency(fromCents(toCents(al?.renta_mensual || 0)))} />
                 <CasoRow label="Meses ocupados / año" value={`${al?.meses_ocupados || 11} meses`} />
-                <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 80%)' }} />
+                <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 80%)' }} />
                 <CasoRow label="Ingresos brutos anuales" value={formatCurrency(fromCents(noi.ingresosBrutosCents))} bold />
                 <CasoRow label="Gastos operativos anuales" value={formatCurrency(fromCents(noi.gastosTotalesCents))} />
                 {noi.gestionAnualCents > 0 && <CasoRow label="  · Gestión agencia" value={formatCurrency(fromCents(noi.gestionAnualCents))} />}
-                <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 80%)' }} />
+                <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 80%)' }} />
                 <CasoRow label="NOI anual" value={formatCurrency(fromCents(noi.noiAnualCents))} bold />
                 <CasoRow label="NOI mensual (media)" value={formatCurrency(fromCents(noi.noiMensualCents))} bold />
               </div>
-              <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 80%)' }}>
+              <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 80%)' }}>
                 <div className="rounded-lg px-3 py-2" style={{ background: 'color-mix(in srgb, var(--accent-green), transparent 90%)' }}>
                   <p style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 2 }}>Mes con inquilino</p>
                   <p className="text-sm font-black" style={{ color: 'var(--accent-green)' }}>
@@ -690,7 +690,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                   className="relative w-12 h-6 rounded-full transition-all flex-shrink-0"
                   style={{ background: estadoAlquiler === 'ocupado' ? 'var(--accent-green)' : 'var(--progress-track)', border: 'none', cursor: 'pointer' }}>
                   <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
-                    style={{ background: 'white', left: estadoAlquiler === 'ocupado' ? 'calc(100% - 22px)' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    style={{ background: 'var(--bg-card)', left: estadoAlquiler === 'ocupado' ? 'calc(100% - 22px)' : '2px', boxShadow: 'var(--shadow-sm)' }} />
                 </button>
               </div>
 
@@ -764,7 +764,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                   <div className="flex gap-2">
                     <button type="button" onClick={handleGuardarMovReal} disabled={guardandoReal}
                       className="flex-1 py-2 rounded-lg text-xs font-black"
-                      style={{ background: registrando === 'renta' ? 'var(--accent-green)' : 'var(--accent-rose)', color: '#fff', border: 'none', cursor: 'pointer', opacity: guardandoReal ? 0.6 : 1 }}>
+                      style={{ background: registrando === 'renta' ? 'var(--accent-green)' : 'var(--accent-rose)', color: 'var(--text-on-dark)', border: 'none', cursor: 'pointer', opacity: guardandoReal ? 0.6 : 1 }}>
                       {guardandoReal ? 'Guardando…' : 'Guardar'}
                     </button>
                     <button type="button" onClick={() => setRegistrando(null)}
@@ -817,7 +817,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                   className="flex-shrink-0 relative w-10 h-6 rounded-full transition-all"
                   style={{ background: inquilinoVH ? 'var(--accent-green)' : 'var(--progress-track)', border: 'none', cursor: 'pointer' }}>
                   <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
-                    style={{ background: 'white', left: inquilinoVH ? 'calc(100% - 22px)' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    style={{ background: 'var(--bg-card)', left: inquilinoVH ? 'calc(100% - 22px)' : '2px', boxShadow: 'var(--shadow-sm)' }} />
                 </button>
               </div>
               <div>
@@ -848,13 +848,13 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
               </div>
             </div>
 
-            <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-terra), transparent 75%)', background: 'color-mix(in srgb, var(--accent-terra), transparent 94%)' }}>
-              <p className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--accent-terra)', letterSpacing: '0.12em' }}>Amortización Fiscal del Inmueble</p>
+            <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 75%)', background: 'color-mix(in srgb, var(--accent-main), transparent 94%)' }}>
+              <p className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--accent-main)', letterSpacing: '0.12em' }}>Amortización Fiscal del Inmueble</p>
               <div className="space-y-1">
                 <CasoRow label="Precio + gastos compra" value={formatCurrency(fromCents(precioCents + gastosCompraCents))} />
                 <CasoRow label="% valor construcción (70%)" value={formatCurrency(fromCents(amortFiscal?.baseAmortizacion || 0))} />
                 <CasoRow label="Tasa amortización anual" value="3%" />
-                <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-terra), transparent 75%)' }} />
+                <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 75%)' }} />
                 <CasoRow label="Deducción anual" value={formatCurrency(fromCents(amortFiscal?.amortizacionAnualCents || 0))} bold />
               </div>
               <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
@@ -912,8 +912,8 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
             </div>
 
             {/* Gastos reales (informativos, no deducibles) */}
-            <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-gold), transparent 80%)', background: 'color-mix(in srgb, var(--accent-gold), transparent 94%)' }}>
-              <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--accent-gold)', letterSpacing: '0.12em' }}>Gastos de propiedad — no deducibles</p>
+            <div className="rounded-2xl p-4 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 80%)', background: 'color-mix(in srgb, var(--accent-main), transparent 94%)' }}>
+              <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--accent-main)', letterSpacing: '0.12em' }}>Gastos de propiedad — no deducibles</p>
               <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
                 No reducen tu IRPF, pero son costes reales que debes presupuestar cada año:
               </p>
@@ -926,8 +926,8 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
             </div>
 
             {/* Tip: si la alquilas en el futuro */}
-            <div className="rounded-xl px-4 py-3 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-terra), transparent 78%)', background: 'color-mix(in srgb, var(--accent-terra), transparent 94%)' }}>
-              <p className="text-xs font-black" style={{ color: 'var(--accent-terra)' }}>💡 Si en el futuro la alquilas</p>
+            <div className="rounded-xl px-4 py-3 border" style={{ borderColor: 'color-mix(in srgb, var(--accent-main), transparent 78%)', background: 'color-mix(in srgb, var(--accent-main), transparent 94%)' }}>
+              <p className="text-xs font-black" style={{ color: 'var(--accent-main)' }}>💡 Si en el futuro la alquilas</p>
               <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
                 Pasarías a generar rendimientos de capital inmobiliario sujetos a IRPF. Cambia el tipo a <strong>Inversión</strong> para ver el análisis fiscal completo: deducibles, amortización fiscal y cashflow post-impuestos.
               </p>
@@ -969,7 +969,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
           {!confirmandoCompra ? (
             <button onClick={() => setConfirmandoCompra(true)}
               className="w-full py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all"
-              style={{ background: 'var(--accent-terra)', color: '#fff' }}>
+              style={{ background: 'var(--accent-main)', color: 'var(--text-on-dark)' }}>
               <CheckCircle size={16} />
               Registrar compra real
             </button>
@@ -989,7 +989,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                 <button onClick={() => setConfirmandoCompra(false)} className="ff-btn-ghost flex-1 text-xs py-2">Cancelar</button>
                 <button onClick={handleRegistrarCompra} disabled={procesando}
                   className="flex-1 py-2 rounded-xl font-black text-xs"
-                  style={{ background: 'var(--accent-rose)', color: '#fff', opacity: procesando ? 0.7 : 1 }}>
+                  style={{ background: 'var(--accent-rose)', color: 'var(--text-on-dark)', opacity: procesando ? 0.7 : 1 }}>
                   {procesando ? 'Procesando...' : 'Confirmar compra'}
                 </button>
               </div>
@@ -1025,11 +1025,12 @@ function PatrimonioTab({ evolucion, precioCents, tabla }) {
       <div className="rounded-xl p-4 border" style={{ borderColor: 'var(--border-glass)', background: 'var(--bg-card)' }}>
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Revalorización anual estimada</p>
-          <p className="text-sm font-black" style={{ color: 'var(--accent-terra)' }}>{revalPct}%</p>
+          <p className="text-sm font-black" style={{ color: 'var(--accent-main)' }}>{revalPct}%</p>
         </div>
         <input type="range" min={0} max={8} step={0.5} value={revalPct}
           onChange={e => setRevalPct(parseFloat(e.target.value))}
-          className="w-full accent-[var(--accent-terra)]" />
+          className="w-full"
+          style={{ accentColor: 'var(--accent-main)' }} />
         <div className="flex justify-between mt-1">
           <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>0%</span>
           <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>8%</span>
@@ -1199,7 +1200,7 @@ function VentaTab({ precioCents, gastosCompraCents, reformaCents, tabla, plazoMe
               className="flex-shrink-0 relative w-10 h-6 rounded-full transition-all"
               style={{ background: reinvierteVH ? 'var(--accent-green)' : 'var(--progress-track)', border: 'none', cursor: 'pointer' }}>
               <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
-                style={{ background: 'white', left: reinvierteVH ? 'calc(100% - 22px)' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                style={{ background: 'var(--bg-card)', left: reinvierteVH ? 'calc(100% - 22px)' : '2px', boxShadow: 'var(--shadow-sm)' }} />
             </button>
           </div>
           <div className="flex items-center justify-between gap-3">
@@ -1211,7 +1212,7 @@ function VentaTab({ precioCents, gastosCompraCents, reformaCents, tabla, plazoMe
               className="flex-shrink-0 relative w-10 h-6 rounded-full transition-all"
               style={{ background: mayores65 ? 'var(--accent-green)' : 'var(--progress-track)', border: 'none', cursor: 'pointer' }}>
               <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
-                style={{ background: 'white', left: mayores65 ? 'calc(100% - 22px)' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                style={{ background: 'var(--bg-card)', left: mayores65 ? 'calc(100% - 22px)' : '2px', boxShadow: 'var(--shadow-sm)' }} />
             </button>
           </div>
           {irpfExento && resultado && (
@@ -1289,7 +1290,7 @@ function InfoRow({ label, value, accent }) {
   return (
     <div className="py-2 border-b" style={{ borderColor: 'var(--progress-track)' }}>
       <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 2 }}>{label}</p>
-      <p className="text-sm font-bold" style={{ color: accent ? 'var(--accent-terra)' : 'var(--text-primary)' }}>{value}</p>
+      <p className="text-sm font-bold" style={{ color: accent ? 'var(--accent-main)' : 'var(--text-primary)' }}>{value}</p>
     </div>
   )
 }

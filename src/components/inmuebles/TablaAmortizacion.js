@@ -135,7 +135,7 @@ export default function TablaAmortizacion({ principalCents, interesAnual, plazoM
                 type="button"
                 onClick={agregarExtra}
                 className="px-3 rounded-xl flex items-center gap-1 text-xs font-bold transition-all"
-                style={{ background: 'var(--accent-green)', color: '#fff' }}>
+                style={{ background: 'var(--accent-green)', color: 'var(--text-on-dark)' }}>
                 <Plus size={14} /> Añadir
               </button>
             </div>
@@ -186,7 +186,10 @@ export default function TablaAmortizacion({ principalCents, interesAnual, plazoM
                   <button
                     type="button"
                     onClick={() => setAñoExpandido(abierto ? null : año)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors">
+                    className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+                    style={{ '--tw-hover-bg': 'transparent' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--text-primary), transparent 96%)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-black" style={{ color: 'var(--text-muted)' }}>{año}</span>
                       <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
