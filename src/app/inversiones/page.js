@@ -413,6 +413,7 @@ export default function InversionesPage() {
       if (error) { setError(error.message); setSaving(false); return }
       setInversiones(prev => [...prev, data[0]])
       setSelected(data[0])
+
     }
 
     setSaving(false)
