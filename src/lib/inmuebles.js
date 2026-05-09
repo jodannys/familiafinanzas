@@ -25,41 +25,41 @@ export function fromCents(cents) {
  * Fuente: tipos vigentes 2024-2025
  */
 export const ITP_POR_CCAA = {
-  'Andalucía':              7.0,
-  'Aragón':                 8.0,
-  'Asturias':               8.0,
-  'Baleares':               8.0,
-  'Canarias':               6.5,   // IGIC (no ITP)
-  'Cantabria':             10.0,
-  'Castilla-La Mancha':     9.0,
-  'Castilla y León':        8.0,
-  'Cataluña':              10.0,
-  'Ceuta':                  6.0,   // Tipo estatal supletorio
-  'Comunidad Valenciana':  10.0,
-  'Extremadura':            8.0,
-  'Galicia':               10.0,
-  'La Rioja':               7.0,
-  'Madrid':                 6.0,
-  'Melilla':                6.0,   // Tipo estatal supletorio
-  'Murcia':                 8.0,
-  'Navarra':                6.0,
-  'País Vasco':             4.0,
+  'Andalucía': 7.0,
+  'Aragón': 8.0,
+  'Asturias': 8.0,
+  'Baleares': 8.0,
+  'Canarias': 6.5,   // IGIC (no ITP)
+  'Cantabria': 10.0,
+  'Castilla-La Mancha': 9.0,
+  'Castilla y León': 8.0,
+  'Cataluña': 10.0,
+  'Ceuta': 6.0,   // Tipo estatal supletorio
+  'Comunidad Valenciana': 10.0,
+  'Extremadura': 8.0,
+  'Galicia': 10.0,
+  'La Rioja': 7.0,
+  'Madrid': 6.0,
+  'Melilla': 6.0,   // Tipo estatal supletorio
+  'Murcia': 8.0,
+  'Navarra': 6.0,
+  'País Vasco': 4.0,
 }
 
 /**
  * Calcula el arancel notarial estimado para escritura de compraventa
  * Basado en el Real Decreto 1427/1989 (arancel notarial)
- * Para 180.000€ → ~700€ aprox
+ * Para 180.000 → ~700 aprox
  */
 function calcularArancelNotarial(precioCents) {
   const p = precioCents / 100 // euros
   let base = 0
-  if (p <= 6010)           base = 90
-  else if (p <= 30050)     base = 27  + (p - 6010)   * 0.0045
-  else if (p <= 60101)     base = 135 + (p - 30050)  * 0.0015
-  else if (p <= 150253)    base = 180 + (p - 60101)  * 0.001
-  else if (p <= 601012)    base = 270 + (p - 150253) * 0.0005
-  else                     base = 495 + (p - 601012) * 0.0003
+  if (p <= 6010) base = 90
+  else if (p <= 30050) base = 27 + (p - 6010) * 0.0045
+  else if (p <= 60101) base = 135 + (p - 30050) * 0.0015
+  else if (p <= 150253) base = 180 + (p - 60101) * 0.001
+  else if (p <= 601012) base = 270 + (p - 150253) * 0.0005
+  else base = 495 + (p - 601012) * 0.0003
   // Añadir copias, folios y otros conceptos (aprox +60%)
   const total = Math.round(base * 1.6)
   return toCents(Math.max(450, Math.min(1800, total)))
@@ -72,12 +72,12 @@ function calcularArancelNotarial(precioCents) {
 function calcularArancelRegistro(precioCents) {
   const p = precioCents / 100
   let base = 0
-  if (p <= 6010)           base = 24.04
-  else if (p <= 30050)     base = 24.04  + (p - 6010)   * 0.00175
-  else if (p <= 60101)     base = 66.07  + (p - 30050)  * 0.00125
-  else if (p <= 150253)    base = 103.55 + (p - 60101)  * 0.001
-  else if (p <= 601012)    base = 193.68 + (p - 150253) * 0.00075
-  else                     base = 531.72 + (p - 601012) * 0.0003
+  if (p <= 6010) base = 24.04
+  else if (p <= 30050) base = 24.04 + (p - 6010) * 0.00175
+  else if (p <= 60101) base = 66.07 + (p - 30050) * 0.00125
+  else if (p <= 150253) base = 103.55 + (p - 60101) * 0.001
+  else if (p <= 601012) base = 193.68 + (p - 150253) * 0.00075
+  else base = 531.72 + (p - 601012) * 0.0003
   return toCents(Math.max(100, Math.min(600, Math.round(base * 1.2))))
 }
 
@@ -98,7 +98,7 @@ export function calcularGastosCompraLegales({
   tipoTransmision = 'segunda_mano',
   incluirBroker = false,
   incluirTasacion = true,
-  tasacionCents = null,  // null → auto: 45000 (≤300k€) | 54000 (>300k€)
+  tasacionCents = null,  // null → auto: 45000 (≤300k) | 54000 (>300k)
   itpPctManual = null,   // null → usar tabla por CCAA; número → override manual
 }) {
   const desglose = {}
@@ -132,7 +132,7 @@ export function calcularGastosCompraLegales({
   // 4. Gestoría (honorarios fijos estimados)
   desglose['Gestoría'] = toCents(400)
 
-  // 5. Tasación — editable; default 450€ / auto +20% si precio >300k€
+  // 5. Tasación — editable; default 450 / auto +20% si precio >300k
   if (incluirTasacion) {
     const autoTasacion = precioCents > toCents(300000) ? toCents(540) : toCents(450)
     desglose['Tasación'] = tasacionCents != null ? tasacionCents : autoTasacion
@@ -449,9 +449,9 @@ export function calcularFinanciacionDual({
   ltvCreditoPublico = 0.20,
   interesCreditoPublico = 0,
 }) {
-  const principalBancoCents   = Math.round(precioCents * ltvBanco)
+  const principalBancoCents = Math.round(precioCents * ltvBanco)
   const principalPublicoCents = Math.round(precioCents * ltvCreditoPublico)
-  const entradaCashCents      = Math.max(0, precioCents - principalBancoCents - principalPublicoCents)
+  const entradaCashCents = Math.max(0, precioCents - principalBancoCents - principalPublicoCents)
 
   const cuotaBancoCents = calcularCuotaHipoteca(principalBancoCents, interesAnual, plazoMeses)
 
@@ -467,11 +467,11 @@ export function calcularFinanciacionDual({
   const { totalInteresCents: interesesBancoCents } = calcularResumenHipoteca(tablaBanco, principalBancoCents)
 
   // Comparativa vs. hipoteca 100% bancaria
-  const cuota100BancoCents   = calcularCuotaHipoteca(precioCents, interesAnual, plazoMeses)
-  const tabla100             = generarTablaAmortizacion({ principalCents: precioCents, interesAnual, plazoMeses })
+  const cuota100BancoCents = calcularCuotaHipoteca(precioCents, interesAnual, plazoMeses)
+  const tabla100 = generarTablaAmortizacion({ principalCents: precioCents, interesAnual, plazoMeses })
   const { totalInteresCents: intereses100 } = calcularResumenHipoteca(tabla100, precioCents)
-  const ahorroCuotaMensualCents  = cuota100BancoCents - cuotaTotalCents
-  const ahorroInteresesCents     = intereses100 - interesesBancoCents
+  const ahorroCuotaMensualCents = cuota100BancoCents - cuotaTotalCents
+  const ahorroInteresesCents = intereses100 - interesesBancoCents
 
   return {
     // Fuentes de financiación
@@ -659,8 +659,8 @@ export function calcularAmortizacionFiscal({
  * - IRPF sobre la ganancia patrimonial (escala 2024)
  *
  * Escala IRPF ganancia patrimonial 2024:
- *   0–6.000€ → 19%  |  6.000–50.000€ → 21%  |  50.000–200.000€ → 23%
- *   200.000–300.000€ → 27%  |  >300.000€ → 28%
+ *   0–6.000 → 19%  |  6.000–50.000 → 21%  |  50.000–200.000 → 23%
+ *   200.000–300.000 → 27%  |  >300.000 → 28%
  *
  * @param {object} config
  * @param {number} config.precioCents              - Precio de compra
@@ -697,11 +697,11 @@ export function calcularPlusvaliaVenta({
   function calcIRPFGanancia(cents) {
     const euros = cents / 100
     let impuesto = 0
-    if (euros <= 6000)                            impuesto = euros * 0.19
-    else if (euros <= 50000)  impuesto = 6000 * 0.19  + (euros - 6000)   * 0.21
-    else if (euros <= 200000) impuesto = 6000 * 0.19  + 44000 * 0.21     + (euros - 50000)  * 0.23
-    else if (euros <= 300000) impuesto = 6000 * 0.19  + 44000 * 0.21     + 150000 * 0.23   + (euros - 200000) * 0.27
-    else                      impuesto = 6000 * 0.19  + 44000 * 0.21     + 150000 * 0.23   + 100000 * 0.27   + (euros - 300000) * 0.28
+    if (euros <= 6000) impuesto = euros * 0.19
+    else if (euros <= 50000) impuesto = 6000 * 0.19 + (euros - 6000) * 0.21
+    else if (euros <= 200000) impuesto = 6000 * 0.19 + 44000 * 0.21 + (euros - 50000) * 0.23
+    else if (euros <= 300000) impuesto = 6000 * 0.19 + 44000 * 0.21 + 150000 * 0.23 + (euros - 200000) * 0.27
+    else impuesto = 6000 * 0.19 + 44000 * 0.21 + 150000 * 0.23 + 100000 * 0.27 + (euros - 300000) * 0.28
     return Math.round(impuesto * 100)
   }
 
@@ -796,7 +796,7 @@ export function calcularRefinanciacion({
   costeSubrogacionCents = null,
 }) {
   const cuotaActualCents = calcularCuotaHipoteca(saldoPendienteCents, interesActual, mesesRestantes)
-  const cuotaNuevaCents  = calcularCuotaHipoteca(saldoPendienteCents, interesNuevo, mesesRestantes)
+  const cuotaNuevaCents = calcularCuotaHipoteca(saldoPendienteCents, interesNuevo, mesesRestantes)
   const ahorrMensualCents = cuotaActualCents - cuotaNuevaCents
 
   const coste = costeSubrogacionCents ?? Math.round(saldoPendienteCents * 0.01)
@@ -805,7 +805,7 @@ export function calcularRefinanciacion({
 
   // Intereses totales con tipo actual vs nuevo
   const tablaActual = generarTablaAmortizacion({ principalCents: saldoPendienteCents, interesAnual: interesActual, plazoMeses: mesesRestantes })
-  const tablaNueva  = generarTablaAmortizacion({ principalCents: saldoPendienteCents, interesAnual: interesNuevo,  plazoMeses: mesesRestantes })
+  const tablaNueva = generarTablaAmortizacion({ principalCents: saldoPendienteCents, interesAnual: interesNuevo, plazoMeses: mesesRestantes })
   const interesesActualCents = tablaActual.reduce((s, f) => s + f.interesCents, 0)
   const interesesNuevosCents = tablaNueva.reduce((s, f) => s + f.interesCents, 0)
   const ahorroInteresesCents = interesesActualCents - interesesNuevosCents

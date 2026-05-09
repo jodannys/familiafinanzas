@@ -6,7 +6,8 @@ import {
   CheckCircle2, Info, XCircle, TriangleAlert, Gauge,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, getFlagEmoji, diasHastaPago } from '@/lib/utils'
+import { getFlagEmoji, diasHastaPago } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { toast } from '@/lib/toast'
 import { FinanceChart } from '@/components/ui/FinanceChart'
 import AgendaWidget from '@/components/agenda/AgendaWidget'
@@ -16,33 +17,33 @@ import { generarInsights } from '@/lib/insights'
 // ── Constantes ────────────────────────────────────────────────────────────────
 
 const COLORES_CAT = {
-  basicos:   'var(--accent-blue)',
-  deseo:     'var(--accent-violet)',
-  ahorro:    'var(--accent-green)',
+  basicos: 'var(--accent-blue)',
+  deseo: 'var(--accent-violet)',
+  ahorro: 'var(--accent-green)',
   inversion: 'var(--accent-gold)',
-  deuda:     'var(--accent-rose)',
+  deuda: 'var(--accent-rose)',
 }
 
 const NOMBRES_CAT = {
-  basicos:   'Básicos',
-  deseo:     'Estilo de vida',
-  deuda:     'Deudas',
-  ahorro:    'Ahorro',
+  basicos: 'Básicos',
+  deseo: 'Estilo de vida',
+  deuda: 'Deudas',
+  ahorro: 'Ahorro',
   inversion: 'Inversión',
 }
 
 const EMOJI_CAT = {
-  basicos:   '🏠',
-  deseo:     '✨',
-  ahorro:    '💰',
+  basicos: '🏠',
+  deseo: '✨',
+  ahorro: '💰',
   inversion: '📈',
-  deuda:     '💳',
-  ingreso:   '💵',
+  deuda: '💳',
+  ingreso: '💵',
 }
 
 const MESES_NOMBRE = [
-  'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -51,9 +52,9 @@ function saludoBase(nombre) {
   const h = new Date().getHours()
   let saludo = ''
   let emoji = ''
-  if (h >= 6 && h < 12)       { saludo = 'buenos días';   emoji = '☕' }
+  if (h >= 6 && h < 12) { saludo = 'buenos días'; emoji = '☕' }
   else if (h >= 12 && h < 20) { saludo = 'buenas tardes'; emoji = '☀️' }
-  else                         { saludo = 'buenas noches'; emoji = (h >= 20 || h < 5) ? '🌙' : '✨' }
+  else { saludo = 'buenas noches'; emoji = (h >= 20 || h < 5) ? '🌙' : '✨' }
   return nombre
     ? `Hola ${nombre}, ${saludo} ${emoji}`
     : `${saludo.charAt(0).toUpperCase() + saludo.slice(1)} ${emoji}`
@@ -95,7 +96,7 @@ function DashboardSkeleton() {
 
       {/* Patrimonio strip */}
       <div className="grid grid-cols-3 gap-2.5">
-        {[1,2,3].map(i => <Sk key={i} h={72} r={24} />)}
+        {[1, 2, 3].map(i => <Sk key={i} h={72} r={24} />)}
       </div>
 
       {/* Hero card */}
@@ -103,7 +104,7 @@ function DashboardSkeleton() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3">
-        {[1,2,3,4].map(i => <Sk key={i} h={118} r={24} />)}
+        {[1, 2, 3, 4].map(i => <Sk key={i} h={118} r={24} />)}
       </div>
 
       {/* Agenda */}
@@ -127,21 +128,21 @@ function DashboardSkeleton() {
 // ── Panel de Insights ─────────────────────────────────────────────────────────
 
 const INSIGHT_ICON = {
-  ok:     CheckCircle2,
-  warn:   TriangleAlert,
+  ok: CheckCircle2,
+  warn: TriangleAlert,
   danger: XCircle,
-  info:   Info,
+  info: Info,
 }
 
 const INSIGHT_COLOR = {
-  ok:     'var(--accent-green)',
-  warn:   'var(--accent-gold)',
+  ok: 'var(--accent-green)',
+  warn: 'var(--accent-gold)',
   danger: 'var(--accent-rose)',
-  info:   'var(--accent-blue)',
+  info: 'var(--accent-blue)',
 }
 
 function InsightRow({ insight }) {
-  const Icon  = INSIGHT_ICON[insight.type] || Info
+  const Icon = INSIGHT_ICON[insight.type] || Info
   const color = INSIGHT_COLOR[insight.type] || 'var(--text-muted)'
   return (
     <div
@@ -183,10 +184,10 @@ function InsightRow({ insight }) {
   )
 }
 
-function InsightsPanel({ movsMes, metas, deudas, inversiones }) {
+function InsightsPanel({ movsMes, metas, deudas, inversiones, formatCurrency }) {
   const { insights, score, label, color } = useMemo(
-    () => generarInsights({ movsMes, metas, deudas, inversiones }),
-    [movsMes, metas, deudas, inversiones]
+    () => generarInsights({ movsMes, metas, deudas, inversiones, formatCurrency}),
+    [movsMes, metas, deudas, inversiones, formatCurrency]
   )
 
   return (
@@ -259,14 +260,14 @@ function HealthBar({ pctGastos, pctAhorro, pctDisp, saldoLibre, ingresosMes }) {
       }}>
         <div style={{ width: `${pctGastos}%`, background: 'var(--accent-rose)', opacity: 0.75, transition: 'width 1s ease-out', flexShrink: 0 }} />
         <div style={{ width: `${pctAhorro}%`, background: 'var(--accent-gold)', opacity: 0.75, transition: 'width 1s ease-out 0.1s', flexShrink: 0 }} />
-        <div style={{ width: `${pctLibre}%`,  background: libreColor,           opacity: 0.75, transition: 'width 1s ease-out 0.2s', flexShrink: 0 }} />
+        <div style={{ width: `${pctLibre}%`, background: libreColor, opacity: 0.75, transition: 'width 1s ease-out 0.2s', flexShrink: 0 }} />
       </div>
       {/* Leyenda */}
       <div className="flex items-center gap-5 mt-2">
         {[
           { label: 'Gastos', pct: pctGastos, color: 'var(--accent-rose)' },
           { label: 'Ahorro', pct: pctAhorro, color: 'var(--accent-gold)' },
-          { label: 'Libre',  pct: pctLibre,  color: libreColor },
+          { label: 'Libre', pct: pctLibre, color: libreColor },
         ].map(({ label, pct, color }) => (
           <div key={label} className="flex items-center gap-1.5">
             <div style={{ width: 5, height: 5, borderRadius: 2, background: color, opacity: 0.8, flexShrink: 0 }} />
@@ -284,14 +285,15 @@ function HealthBar({ pctGastos, pctAhorro, pctDisp, saldoLibre, ingresosMes }) {
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const [movs, setMovs]             = useState([])
-  const [metas, setMetas]           = useState([])
-  const [deudas, setDeudas]         = useState([])
+  const [movs, setMovs] = useState([])
+  const [metas, setMetas] = useState([])
+  const [deudas, setDeudas] = useState([])
   const [inversiones, setInversiones] = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState(null)
-  const [mounted, setMounted]       = useState(false)
-  const [nombre, setNombre]         = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [mounted, setMounted] = useState(false)
+  const [nombre, setNombre] = useState('')
+  const formatCurrency = useFormatCurrency() 
 
   useEffect(() => {
     setMounted(true)
@@ -325,7 +327,7 @@ export default function Dashboard() {
     return () => window.removeEventListener('ff:movimiento-guardado', cargar)
   }, [])
 
-  const now       = new Date()
+  const now = new Date()
   const mesActual = now.getMonth()
   const añoActual = now.getFullYear()
   const mesNombre = MESES_NOMBRE[mesActual]
@@ -389,15 +391,15 @@ export default function Dashboard() {
       .map(d => ({ ...d, dias: diasHastaPago(d) }))
       .filter(d => d.dias !== null && d.dias <= 7 && !deudasPagadas.has(d.id))
       .sort((a, b) => a.dias - b.dias)
-  , [deudas, deudasPagadas])
+    , [deudas, deudasPagadas])
 
-  const totalAhorro      = useMemo(() => metas.reduce((s, m) => s + (m.actual || 0), 0), [metas])
+  const totalAhorro = useMemo(() => metas.reduce((s, m) => s + (m.actual || 0), 0), [metas])
   const totalInversiones = useMemo(() => inversiones.reduce((s, i) => s + (i.capital || 0), 0), [inversiones])
-  const totalDeudas      = useMemo(() => deudas.reduce((s, d) => s + (d.pendiente || 0), 0), [deudas])
+  const totalDeudas = useMemo(() => deudas.reduce((s, d) => s + (d.pendiente || 0), 0), [deudas])
 
   const pctGastos = ingresosMes > 0 ? Math.min(100, Math.round((gastosMes / ingresosMes) * 100)) : 0
   const pctAhorro = ingresosMes > 0 ? Math.min(100, Math.round((ahorroMes / ingresosMes) * 100)) : 0
-  const pctDisp   = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
+  const pctDisp = ingresosMes > 0 ? Math.min(100, Math.round((Math.abs(saldoLibre) / ingresosMes) * 100)) : 0
 
   const movsAgrupados = useMemo(() => groupByDay(ultimosMovs), [ultimosMovs])
 
@@ -449,9 +451,9 @@ export default function Dashboard() {
       {/* ── Strip de patrimonio ── */}
       <div className="grid grid-cols-3 gap-2.5 mb-7 animate-enter" style={{ animationDelay: '0.1s' }}>
         {[
-          { label: 'En metas',  val: totalAhorro,      color: 'var(--accent-green)',  Icon: Target,          href: '/metas' },
-          { label: 'Invertido', val: totalInversiones,  color: 'var(--accent-violet)', Icon: TrendingUp,      href: '/inversiones' },
-          { label: 'Deudas',    val: totalDeudas,       color: 'var(--accent-rose)',   Icon: CircleDollarSign,href: '/deudas' },
+          { label: 'En metas', val: totalAhorro, color: 'var(--accent-green)', Icon: Target, href: '/metas' },
+          { label: 'Invertido', val: totalInversiones, color: 'var(--accent-violet)', Icon: TrendingUp, href: '/inversiones' },
+          { label: 'Deudas', val: totalDeudas, color: 'var(--accent-rose)', Icon: CircleDollarSign, href: '/deudas' },
         ].map(({ label, val, color, Icon, href }) => (
           <Link key={label} href={href}
             className="flex flex-col gap-2 p-3.5 rounded-[24px] transition-all active:scale-95 border"
@@ -488,9 +490,9 @@ export default function Dashboard() {
         </p>
         <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border-glass)', paddingTop: 16 }}>
           {[
-            { label: 'Gastos', val: gastosMes,            color: 'var(--accent-rose)',                                                prefix: '−' },
-            { label: 'Ahorro', val: ahorroMes,            color: 'var(--accent-gold)',                                                prefix: ''  },
-            { label: 'Libre',  val: Math.abs(saldoLibre), color: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',      prefix: saldoLibre < 0 ? '−' : '' },
+            { label: 'Gastos', val: gastosMes, color: 'var(--accent-rose)', prefix: '−' },
+            { label: 'Ahorro', val: ahorroMes, color: 'var(--accent-gold)', prefix: '' },
+            { label: 'Libre', val: Math.abs(saldoLibre), color: saldoLibre >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)', prefix: saldoLibre < 0 ? '−' : '' },
           ].map(({ label, val, color, prefix }, i) => (
             <div key={label} style={{ flex: 1, paddingRight: i < 2 ? 16 : 0, borderRight: i < 2 ? '1px solid var(--border-glass)' : 'none', marginRight: i < 2 ? 16 : 0 }}>
               <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-muted)', marginBottom: 4 }}>{label}</p>
@@ -619,6 +621,7 @@ export default function Dashboard() {
         metas={metas}
         deudas={deudas}
         inversiones={inversiones}
+        formatCurrency={formatCurrency} 
       />
 
       {/* ── Distribución + Metas ── */}

@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import { Plus, ArrowUpRight, ArrowDownRight, Search, Loader2, Trash2, CreditCard, Minus, ChevronLeft, ChevronRight, Receipt } from 'lucide-react'
-import { formatCurrency, fechaHoy } from '@/lib/utils'
+import { fechaHoy } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
@@ -15,6 +15,7 @@ import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 import { getRangoMes, getFechaLocal } from '@/lib/utils'
 import { getCurrentMonth } from '@/lib/utils' // Importamos la utilidad
 import DatePicker from '@/components/temaCalendario/DatePicker'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 
 
 const CATS = [
@@ -43,6 +44,7 @@ function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
   }
 }
 export default function GastosPage() {
+    const formatCurrency = useFormatCurrency()
   const { opcionesQuien, defaultQuien } = useQuien()
   const { confirmProps, showConfirm } = useConfirm()
   const [movs, setMovs] = useState([])
@@ -1035,7 +1037,7 @@ export default function GastosPage() {
             {(sugerenciasRicas.length === 0 || metaSeleccionada || form.descripcion) && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="ff-label">Monto (€)</label>
+                  <label className="ff-label">Monto</label>
                   <input className="ff-input h-12 text-sm font-semibold" type="number" step="0.01" placeholder="0.00" required
                     style={{ color: colores.terra }}
                     value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} />

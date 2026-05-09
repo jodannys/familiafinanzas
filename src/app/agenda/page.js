@@ -9,7 +9,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors } from '@/lib/themes'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import DatePicker from '@/components/temaCalendario/DatePicker'
 
 
@@ -74,6 +74,7 @@ function formatFechaRelativa(fechaStr) {
 }
 
 export default function AgendaPage() {
+  const formatCurrency = useFormatCurrency()
   const hoy = new Date()
   const [año, setAño] = useState(hoy.getFullYear())
   const [mes, setMes] = useState(hoy.getMonth())

@@ -7,7 +7,7 @@ import {
   Loader2, AlertTriangle, List, LayoutGrid, ArrowRight, Target, TrendingUp, CircleDollarSign, Copy,
   ChevronDown, ChevronUp
 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
@@ -50,6 +50,8 @@ export default function PresupuestoPage() {
   const [aportesInvEsteMes, setAportesInvEsteMes] = useState(0)
   const [deudas, setDeudas] = useState([])
   const [bloquesCerrados, setBloquesCerrados] = useState(new Set())
+  const formatCurrency = useFormatCurrency()
+
   function toggleBloque(id) {
     setBloquesCerrados(prev => {
       const next = new Set(prev)
@@ -477,7 +479,7 @@ export default function PresupuestoPage() {
                                       width: 30, textAlign: 'center', background: 'none', border: 'none',
                                       outline: 'none', fontSize: 13, fontWeight: 800,
                                       color: s.color, fontFamily: 'Inter, sans-serif',
-                                                }} />
+                                    }} />
                                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>%</span>
                                 </div>
                               </div>
@@ -993,490 +995,490 @@ export default function PresupuestoPage() {
               </div>
             ) : (
               <>
-              {BLOQUES_META.map(bloque => {
-                const Icon = bloque.icon
-                const catsBloque = categoriasCfg.filter(c => c.bloque === bloque.id)
-                const esFuturo = bloque.id === 'futuro'
+                {BLOQUES_META.map(bloque => {
+                  const Icon = bloque.icon
+                  const catsBloque = categoriasCfg.filter(c => c.bloque === bloque.id)
+                  const esFuturo = bloque.id === 'futuro'
 
-                if (esFuturo && catsBloque.length === 0 && metas.length === 0 && inversiones.length === 0) return null
+                  if (esFuturo && catsBloque.length === 0 && metas.length === 0 && inversiones.length === 0) return null
 
-                return (
-                  <Card key={bloque.id} className="animate-enter">
-                    {/* Cabecera de bloque */}
+                  return (
+                    <Card key={bloque.id} className="animate-enter">
+                      {/* Cabecera de bloque */}
+                      <div
+                        className="flex items-center gap-3 cursor-pointer select-none"
+                        style={{ marginBottom: bloquesCerrados.has(bloque.id) ? 0 : 16 }}
+                        onClick={() => toggleBloque(bloque.id)}
+                      >
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ background: `color-mix(in srgb, ${bloque.color} 12%, transparent)` }}>
+                          <Icon size={16} style={{ color: bloque.color }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
+                          {ingresoNum > 0 && (
+                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                              {formatCurrency(ingresoNum * (bloque.pct / 100))} del ingreso
+                              {esFuturo && ` · ${sub.metas}% metas · ${sub.inversiones}% inversiones`}
+                            </p>
+                          )}
+                        </div>
+                        {bloquesCerrados.has(bloque.id)
+                          ? <ChevronDown size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                          : <ChevronUp size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        }
+                      </div>
+
+                      <div className={`collapsible-content ${bloquesCerrados.has(bloque.id) ? 'closed' : 'open'}`}>
+                        {/* FUTURO: metas e inversiones de solo lectura */}
+                        {esFuturo && (
+                          <div className="space-y-3 mb-4">
+
+                            {/* Metas */}
+                            {metas.length > 0 && (
+                              <div className="rounded-xl overflow-hidden"
+                                style={{ border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)' }}>
+                                <div className="flex items-center justify-between px-3 py-2.5"
+                                  style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, var(--bg-secondary))' }}>
+                                  <div className="flex items-center gap-2">
+                                    <Target size={12} style={{ color: 'var(--accent-green)' }} />
+                                    <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {ingresoNum > 0 && (
+                                      <span className="text-xs font-semibold" style={{ color: 'var(--accent-green)' }}>
+                                        {sub.metas}% · {formatCurrency(montoMetas)}
+                                      </span>
+                                    )}
+                                    <a href="/metas" className="text-[9px] font-semibold flex items-center gap-0.5"
+                                      style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
+                                      Editar <ArrowRight size={9} />
+                                    </a>
+                                  </div>
+                                </div>
+                                <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+                                  {metas.map(m => {
+                                    const metaMensual = (m.pct_mensual / 100) * montoMetas
+                                    const pctCompletada = Math.min(100, Math.round(((m.actual || 0) / m.meta) * 100))
+                                    return (
+                                      <div key={m.id} className="px-3 py-2.5">
+                                        <div className="flex items-center gap-2.5">
+                                          <span className="text-base flex-shrink-0">{m.emoji}</span>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
+                                              {m.nombre}
+                                            </p>
+                                            <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                              {pctCompletada}% completada · {m.pct_mensual}% del presup. metas
+                                            </p>
+                                          </div>
+                                          {ingresoNum > 0 && (
+                                            <span className="text-xs font-semibold flex-shrink-0"
+                                              style={{ color: 'var(--accent-green)' }}>
+                                              {formatCurrency(metaMensual)}/mes
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                  {/* Total asignado */}
+                                  {(() => {
+                                    const totalPctMetas = metas.filter(m => m.estado === 'activa').reduce((s, m) => s + (m.pct_mensual || 0), 0)
+                                    const libre = 100 - totalPctMetas
+                                    return (
+                                      <div className="flex items-center justify-between px-3 py-2"
+                                        style={{ background: 'var(--bg-secondary)' }}>
+                                        <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                                          {totalPctMetas}% asignado · {libre}% libre
+                                        </span>
+                                        {ingresoNum > 0 && (
+                                          <span className="text-[10px] font-semibold" style={{ color: libre > 0 ? 'var(--text-muted)' : 'var(--accent-green)' }}>
+                                            {formatCurrency((libre / 100) * montoMetas)} sin asignar
+                                          </span>
+                                        )}
+                                      </div>
+                                    )
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Inversiones */}
+                            {inversiones.length > 0 && (
+                              <div className="rounded-xl overflow-hidden"
+                                style={{ border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
+                                <div className="flex items-center justify-between px-3 py-2.5"
+                                  style={{ background: 'color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))' }}>
+                                  <div className="flex items-center gap-2">
+                                    <TrendingUp size={12} style={{ color: 'var(--accent-violet)' }} />
+                                    <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {ingresoNum > 0 && (
+                                      <span className="text-xs font-semibold" style={{ color: 'var(--accent-violet)' }}>
+                                        {sub.inversiones}% · {formatCurrency(montoInversiones)}
+                                      </span>
+                                    )}
+                                    <a href="/inversiones" className="text-[9px] font-semibold flex items-center gap-0.5"
+                                      style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
+                                      Editar <ArrowRight size={9} />
+                                    </a>
+                                  </div>
+                                </div>
+                                <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+                                  {inversiones.map(inv => {
+                                    const invMensual = ((inv.pct_mensual || 0) / 100) * montoInversiones
+                                    return (
+                                      <div key={inv.id} className="px-3 py-2.5">
+                                        <div className="flex items-center gap-2.5">
+                                          <span className="text-base flex-shrink-0">{inv.emoji}</span>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
+                                              {inv.nombre}
+                                            </p>
+                                            {inv.pct_mensual > 0 && (
+                                              <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                                {inv.pct_mensual}% del presup. inversiones
+                                              </p>
+                                            )}
+                                          </div>
+                                          {ingresoNum > 0 && inv.pct_mensual > 0 && (
+                                            <span className="text-xs font-semibold flex-shrink-0"
+                                              style={{ color: 'var(--accent-violet)' }}>
+                                              {formatCurrency(invMensual)}/mes
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                  {/* Total aportado real vs presupuesto */}
+                                  {(() => {
+                                    const totalPctInv = inversiones.reduce((s, i) => s + (i.pct_mensual || 0), 0)
+                                    const libre = 100 - totalPctInv
+                                    const pctUsado = montoInversiones > 0 ? Math.min(100, (aportesInvEsteMes / montoInversiones) * 100) : 0
+                                    const diff = montoInversiones - aportesInvEsteMes
+                                    return (
+                                      <div className="px-3 py-2" style={{ background: 'var(--bg-secondary)' }}>
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                                            {totalPctInv}% asignado · {libre > 0 ? `${libre}% libre` : 'Completo'}
+                                          </span>
+                                          {ingresoNum > 0 && (
+                                            <span className="text-[10px] font-semibold"
+                                              style={{ color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                                              {formatCurrency(aportesInvEsteMes)} aportado / {formatCurrency(montoInversiones)}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {ingresoNum > 0 && (
+                                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                                            <div className="h-full rounded-full transition-all"
+                                              style={{ width: `${pctUsado}%`, background: pctUsado > 100 ? 'var(--accent-rose)' : 'var(--accent-violet)' }} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Estado vacío — sin categorías configuradas */}
+                        {!esFuturo && catsBloque.length === 0 && (
+                          <div className="flex items-center justify-between px-1 py-2">
+                            <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              Sin categorías aún
+                            </p>
+                            <a href="/ajustes" style={{
+                              fontSize: 11, fontWeight: 700, color: bloque.color,
+                              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
+                            }}>
+                              Configurar <ArrowRight size={11} />
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Categorías custom con inputs editables */}
+                        {catsBloque.length > 0 && (
+                          <div className="space-y-3">
+                            {esFuturo && (metas.length > 0 || inversiones.length > 0) && (
+                              <p className="text-[9px] font-semibold uppercase tracking-wider"
+                                style={{ color: 'var(--text-muted)' }}>Otras categorías</p>
+                            )}
+                            {catsBloque.map(cat => {
+                              const subs = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
+                              const totalPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
+                              const totalGast = subs.reduce((s, sub) =>
+                                s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0), 0)
+                              const diff = totalPres - totalGast
+                              const pctUsado = totalPres > 0 ? Math.min(100, (totalGast / totalPres) * 100) : 0
+
+                              return (
+                                <div key={cat.id} className="rounded-xl overflow-hidden"
+                                  style={{ border: `1px solid color-mix(in srgb, ${cat.color} 20%, transparent)` }}>
+
+                                  <div className="px-3 py-2.5"
+                                    style={{ background: `color-mix(in srgb, ${cat.color} 8%, var(--bg-secondary))` }}>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                                      <p className="flex-1 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
+                                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                        style={{
+                                          background: `color-mix(in srgb, ${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 12%, transparent)`,
+                                          color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                        }}>
+                                        {diff >= 0 ? 'Disp. ' : 'Excede '}{formatCurrency(Math.abs(diff))}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1 ml-4">
+                                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                        Pres: <span className="font-semibold" style={{ color: cat.color }}>{formatCurrency(totalPres)}</span>
+                                      </span>
+                                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                        Gastado: <span className="font-semibold">{formatCurrency(totalGast)}</span>
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {totalPres > 0 && (
+                                    <div className="h-1.5" style={{ background: 'var(--progress-track)' }}>
+                                      <div className="h-full transition-all duration-500"
+                                        style={{ width: `${pctUsado}%`, background: pctUsado >= 100 ? 'var(--accent-rose)' : cat.color }} />
+                                    </div>
+                                  )}
+
+                                  {subs.length === 0 ? (
+                                    <p className="text-xs italic px-3 py-3" style={{ color: 'var(--text-muted)' }}>
+                                      Sin subcategorías — añade en Configuración
+                                    </p>
+                                  ) : (
+                                    <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+                                      {subs.map(sub => {
+                                        const gastadoSub = movs
+                                          .filter(m => m.subcategoria_id === sub.id)
+                                          .reduce((s, m) => s + parseFloat(m.monto), 0)
+                                        const montoPres = parseFloat(montosCats[sub.id]) || 0
+                                        const difSub = montoPres - gastadoSub
+                                        const pctSub = montoPres > 0 ? Math.min(100, (gastadoSub / montoPres) * 100) : 0
+                                        const overBudget = montoPres > 0 && gastadoSub > montoPres
+
+                                        return (
+                                          <div key={sub.id} style={{ padding: '12px 14px' }}>
+                                            {/* Nombre + badge restante */}
+                                            <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                                              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                                {sub.nombre}
+                                              </p>
+                                              {montoPres > 0 && (
+                                                <span className="tabular-nums" style={{
+                                                  fontSize: 10, fontWeight: 700,
+                                                  padding: '2px 7px', borderRadius: 20,
+                                                  background: `color-mix(in srgb, ${overBudget ? 'var(--accent-rose)' : 'var(--accent-green)'} 10%, transparent)`,
+                                                  color: overBudget ? 'var(--accent-rose)' : 'var(--accent-green)',
+                                                }}>
+                                                  {overBudget ? '−' : '+'}{formatCurrency(Math.abs(difSub))}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {/* Dos columnas */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                              <div style={{
+                                                borderRadius: 10, padding: '8px 10px',
+                                                background: 'var(--bg-secondary)',
+                                              }}>
+                                                <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 4 }}>
+                                                  Presupuestado
+                                                </p>
+                                                <input
+                                                  type="number" step="0.01" min="0" placeholder="0.00"
+                                                  value={montosCats[sub.id] ?? ''}
+                                                  onChange={e => setMontosCats(prev => ({ ...prev, [sub.id]: e.target.value }))}
+                                                  onBlur={e => guardarPresupuestoCat(sub.id, e.target.value)}
+                                                  onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+                                                  style={{
+                                                    width: '100%', background: 'none', border: 'none', outline: 'none',
+                                                    fontSize: 13, fontWeight: 800, color: cat.color,
+                                                    fontFamily: 'Inter, sans-serif', padding: 0,
+                                                  }}
+                                                />
+                                              </div>
+                                              <div style={{
+                                                borderRadius: 10, padding: '8px 10px',
+                                                background: overBudget
+                                                  ? 'color-mix(in srgb, var(--accent-rose) 8%, var(--bg-secondary))'
+                                                  : 'var(--bg-secondary)',
+                                              }}>
+                                                <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 4 }}>
+                                                  Gastado
+                                                </p>
+                                                <p className="tabular-nums" style={{
+                                                  fontSize: 13, fontWeight: 800,
+                                                  color: gastadoSub > 0
+                                                    ? (overBudget ? 'var(--accent-rose)' : 'var(--text-secondary)')
+                                                    : 'var(--text-muted)',
+                                                }}>
+                                                  {gastadoSub > 0 ? formatCurrency(gastadoSub) : '—'}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            {/* Barra */}
+                                            {montoPres > 0 && (
+                                              <div style={{ marginTop: 8, height: 3, borderRadius: 999, overflow: 'hidden', background: 'var(--progress-track)' }}>
+                                                <div style={{
+                                                  height: '100%', borderRadius: 999,
+                                                  width: `${pctSub}%`,
+                                                  background: overBudget ? 'var(--accent-rose)' : cat.color,
+                                                  transition: 'width 0.4s ease-out',
+                                                }} />
+                                              </div>
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  )
+                })}
+                {/* ─── BLOQUE DEUDAS en vista detallada ─── */}
+                {deudas.length > 0 && (
+                  <Card className="animate-enter">
                     <div
                       className="flex items-center gap-3 cursor-pointer select-none"
-                      style={{ marginBottom: bloquesCerrados.has(bloque.id) ? 0 : 16 }}
-                      onClick={() => toggleBloque(bloque.id)}
+                      style={{ marginBottom: bloquesCerrados.has('deudas') ? 0 : 16 }}
+                      onClick={() => toggleBloque('deudas')}
                     >
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: `color-mix(in srgb, ${bloque.color} 12%, transparent)` }}>
-                        <Icon size={16} style={{ color: bloque.color }} />
+                        style={{ background: 'color-mix(in srgb, var(--accent-rose) 12%, transparent)' }}>
+                        <CircleDollarSign size={16} style={{ color: 'var(--accent-rose)' }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{bloque.nombre}</p>
+                        <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Deudas activas</p>
                         {ingresoNum > 0 && (
                           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            {formatCurrency(ingresoNum * (bloque.pct / 100))} del ingreso
-                            {esFuturo && ` · ${sub.metas}% metas · ${sub.inversiones}% inversiones`}
+                            Compromisos fijos del mes
                           </p>
                         )}
                       </div>
-                      {bloquesCerrados.has(bloque.id)
+                      <a href="/deudas" className="text-[9px] font-semibold flex items-center gap-0.5"
+                        style={{ color: 'var(--accent-rose)', textDecoration: 'none' }}
+                        onClick={e => e.stopPropagation()}>
+                        Ver <ArrowRight size={9} />
+                      </a>
+                      {bloquesCerrados.has('deudas')
                         ? <ChevronDown size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                         : <ChevronUp size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                       }
                     </div>
 
-                    <div className={`collapsible-content ${bloquesCerrados.has(bloque.id) ? 'closed' : 'open'}`}>
-                    {/* FUTURO: metas e inversiones de solo lectura */}
-                    {esFuturo && (
-                      <div className="space-y-3 mb-4">
-
-                        {/* Metas */}
-                        {metas.length > 0 && (
-                          <div className="rounded-xl overflow-hidden"
-                            style={{ border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)' }}>
-                            <div className="flex items-center justify-between px-3 py-2.5"
-                              style={{ background: 'color-mix(in srgb, var(--accent-green) 6%, var(--bg-secondary))' }}>
-                              <div className="flex items-center gap-2">
-                                <Target size={12} style={{ color: 'var(--accent-green)' }} />
-                                <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Metas de Ahorro</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {ingresoNum > 0 && (
-                                  <span className="text-xs font-semibold" style={{ color: 'var(--accent-green)' }}>
-                                    {sub.metas}% · {formatCurrency(montoMetas)}
+                    <div className={`collapsible-content ${bloquesCerrados.has('deudas') ? 'closed' : 'open'}`}>
+                      <div className="rounded-xl overflow-hidden"
+                        style={{ border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)' }}>
+                        <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
+                          {deudas.map(d => {
+                            const movsDeuda = deudaMovs.filter(m => m.deuda_id === d.id)
+                            const pagadaEsteMes = movsDeuda.some(m => m.tipo === 'pago')
+                            const montoPagado = movsDeuda.filter(m => m.tipo === 'pago').reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+                            return (
+                              <div key={d.id} className="px-3 py-2.5 flex items-center gap-2.5"
+                                style={{ background: pagadaEsteMes ? 'color-mix(in srgb, var(--accent-green) 4%, transparent)' : 'transparent' }}>
+                                <span className="text-base flex-shrink-0">{d.emoji}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>{d.nombre}</p>
+                                  {pagadaEsteMes && montoPagado > 0 && (
+                                    <p className="text-[9px]" style={{ color: 'var(--accent-green)' }}>
+                                      Abonado {formatCurrency(montoPagado)}
+                                    </p>
+                                  )}
+                                </div>
+                                {pagadaEsteMes ? (
+                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                    style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', color: 'var(--accent-green)' }}>
+                                    ✓ pagado
                                   </span>
-                                )}
-                                <a href="/metas" className="text-[9px] font-semibold flex items-center gap-0.5"
-                                  style={{ color: 'var(--accent-green)', textDecoration: 'none' }}>
-                                  Editar <ArrowRight size={9} />
-                                </a>
-                              </div>
-                            </div>
-                            <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
-                              {metas.map(m => {
-                                const metaMensual = (m.pct_mensual / 100) * montoMetas
-                                const pctCompletada = Math.min(100, Math.round(((m.actual || 0) / m.meta) * 100))
-                                return (
-                                  <div key={m.id} className="px-3 py-2.5">
-                                    <div className="flex items-center gap-2.5">
-                                      <span className="text-base flex-shrink-0">{m.emoji}</span>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
-                                          {m.nombre}
-                                        </p>
-                                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                                          {pctCompletada}% completada · {m.pct_mensual}% del presup. metas
-                                        </p>
-                                      </div>
-                                      {ingresoNum > 0 && (
-                                        <span className="text-xs font-semibold flex-shrink-0"
-                                          style={{ color: 'var(--accent-green)' }}>
-                                          {formatCurrency(metaMensual)}/mes
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                              {/* Total asignado */}
-                              {(() => {
-                                const totalPctMetas = metas.filter(m => m.estado === 'activa').reduce((s, m) => s + (m.pct_mensual || 0), 0)
-                                const libre = 100 - totalPctMetas
-                                return (
-                                  <div className="flex items-center justify-between px-3 py-2"
-                                    style={{ background: 'var(--bg-secondary)' }}>
-                                    <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                                      {totalPctMetas}% asignado · {libre}% libre
+                                ) : (
+                                  d.cuota > 0 && (
+                                    <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: 'var(--accent-rose)' }}>
+                                      {formatCurrency(d.cuota)}/mes
                                     </span>
-                                    {ingresoNum > 0 && (
-                                      <span className="text-[10px] font-semibold" style={{ color: libre > 0 ? 'var(--text-muted)' : 'var(--accent-green)' }}>
-                                        {formatCurrency((libre / 100) * montoMetas)} sin asignar
-                                      </span>
-                                    )}
-                                  </div>
-                                )
-                              })()}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Inversiones */}
-                        {inversiones.length > 0 && (
-                          <div className="rounded-xl overflow-hidden"
-                            style={{ border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
-                            <div className="flex items-center justify-between px-3 py-2.5"
-                              style={{ background: 'color-mix(in srgb, var(--accent-violet) 6%, var(--bg-secondary))' }}>
-                              <div className="flex items-center gap-2">
-                                <TrendingUp size={12} style={{ color: 'var(--accent-violet)' }} />
-                                <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Carteras de Inversión</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {ingresoNum > 0 && (
-                                  <span className="text-xs font-semibold" style={{ color: 'var(--accent-violet)' }}>
-                                    {sub.inversiones}% · {formatCurrency(montoInversiones)}
-                                  </span>
+                                  )
                                 )}
-                                <a href="/inversiones" className="text-[9px] font-semibold flex items-center gap-0.5"
-                                  style={{ color: 'var(--accent-violet)', textDecoration: 'none' }}>
-                                  Editar <ArrowRight size={9} />
-                                </a>
                               </div>
-                            </div>
-                            <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
-                              {inversiones.map(inv => {
-                                const invMensual = ((inv.pct_mensual || 0) / 100) * montoInversiones
-                                return (
-                                  <div key={inv.id} className="px-3 py-2.5">
-                                    <div className="flex items-center gap-2.5">
-                                      <span className="text-base flex-shrink-0">{inv.emoji}</span>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
-                                          {inv.nombre}
-                                        </p>
-                                        {inv.pct_mensual > 0 && (
-                                          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                                            {inv.pct_mensual}% del presup. inversiones
-                                          </p>
-                                        )}
-                                      </div>
-                                      {ingresoNum > 0 && inv.pct_mensual > 0 && (
-                                        <span className="text-xs font-semibold flex-shrink-0"
-                                          style={{ color: 'var(--accent-violet)' }}>
-                                          {formatCurrency(invMensual)}/mes
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                              {/* Total aportado real vs presupuesto */}
-                              {(() => {
-                                const totalPctInv = inversiones.reduce((s, i) => s + (i.pct_mensual || 0), 0)
-                                const libre = 100 - totalPctInv
-                                const pctUsado = montoInversiones > 0 ? Math.min(100, (aportesInvEsteMes / montoInversiones) * 100) : 0
-                                const diff = montoInversiones - aportesInvEsteMes
-                                return (
-                                  <div className="px-3 py-2" style={{ background: 'var(--bg-secondary)' }}>
-                                    <div className="flex items-center justify-between mb-1">
-                                      <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                                        {totalPctInv}% asignado · {libre > 0 ? `${libre}% libre` : 'Completo'}
-                                      </span>
-                                      {ingresoNum > 0 && (
-                                        <span className="text-[10px] font-semibold"
-                                          style={{ color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                                          {formatCurrency(aportesInvEsteMes)} aportado / {formatCurrency(montoInversiones)}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {ingresoNum > 0 && (
-                                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
-                                        <div className="h-full rounded-full transition-all"
-                                          style={{ width: `${pctUsado}%`, background: pctUsado > 100 ? 'var(--accent-rose)' : 'var(--accent-violet)' }} />
-                                      </div>
-                                    )}
-                                  </div>
-                                )
-                              })()}
-                            </div>
-                          </div>
-                        )}
+                            )
+                          })}
+                        </div>
+                        <div className="px-3 py-2 flex items-center justify-between"
+                          style={{ background: 'var(--bg-secondary)' }}>
+                          <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>Total cuotas</span>
+                          <span className="text-xs font-semibold" style={{ color: 'var(--accent-rose)' }}>
+                            {formatCurrency(deudas.reduce((s, d) => s + (d.cuota || 0), 0))}
+                          </span>
+                        </div>
                       </div>
-                    )}
+                    </div>
+                  </Card>
+                )}
 
-                    {/* Estado vacío — sin categorías configuradas */}
-                    {!esFuturo && catsBloque.length === 0 && (
-                      <div className="flex items-center justify-between px-1 py-2">
-                        <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                          Sin categorías aún
-                        </p>
-                        <a href="/ajustes" style={{
-                          fontSize: 11, fontWeight: 700, color: bloque.color,
-                          textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
-                        }}>
-                          Configurar <ArrowRight size={11} />
-                        </a>
-                      </div>
-                    )}
+                {/* ─── RESUMEN TOTAL ─── */}
+                {ingresoNum > 0 && (() => {
+                  const totalPresupuestado = Object.values(montosCats).reduce((s, v) => s + (parseFloat(v) || 0), 0)
+                    + deudas.reduce((s, d) => s + (d.cuota || 0), 0)
+                    + metas.filter(m => m.estado === 'activa').reduce((s, m) => s + ((m.pct_mensual / 100) * montoMetas), 0)
+                    + inversiones.reduce((s, i) => s + (parseFloat(i.aporte) || 0), 0)
+                  const totalGastado = movs.filter(m => m.tipo === 'egreso').reduce((s, m) => s + parseFloat(m.monto), 0)
+                  const sinAsignar = ingresoNum - totalPresupuestado
+                  const pctAsignado = ingresoNum > 0 ? Math.min(100, (totalPresupuestado / ingresoNum) * 100) : 0
 
-                    {/* Categorías custom con inputs editables */}
-                    {catsBloque.length > 0 && (
+                  return (
+                    <Card className="animate-enter">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-4"
+                        style={{ color: 'var(--text-muted)' }}>Resumen mensual</p>
                       <div className="space-y-3">
-                        {esFuturo && (metas.length > 0 || inversiones.length > 0) && (
-                          <p className="text-[9px] font-semibold uppercase tracking-wider"
-                            style={{ color: 'var(--text-muted)' }}>Otras categorías</p>
-                        )}
-                        {catsBloque.map(cat => {
-                          const subs = subcategoriasCfg.filter(s2 => s2.categoria_id === cat.id)
-                          const totalPres = subs.reduce((s, sub) => s + (parseFloat(montosCats[sub.id]) || 0), 0)
-                          const totalGast = subs.reduce((s, sub) =>
-                            s + movs.filter(m => m.subcategoria_id === sub.id).reduce((ss, m) => ss + parseFloat(m.monto), 0), 0)
-                          const diff = totalPres - totalGast
-                          const pctUsado = totalPres > 0 ? Math.min(100, (totalGast / totalPres) * 100) : 0
 
-                          return (
-                            <div key={cat.id} className="rounded-xl overflow-hidden"
-                              style={{ border: `1px solid color-mix(in srgb, ${cat.color} 20%, transparent)` }}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Total presupuestado</span>
+                          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            {formatCurrency(totalPresupuestado)}
+                          </span>
+                        </div>
 
-                              <div className="px-3 py-2.5"
-                                style={{ background: `color-mix(in srgb, ${cat.color} 8%, var(--bg-secondary))` }}>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                                  <p className="flex-1 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{cat.nombre}</p>
-                                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                    style={{
-                                      background: `color-mix(in srgb, ${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} 12%, transparent)`,
-                                      color: diff >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)',
-                                    }}>
-                                    {diff >= 0 ? 'Disp. ' : 'Excede '}{formatCurrency(Math.abs(diff))}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-3 mt-1 ml-4">
-                                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                                    Pres: <span className="font-semibold" style={{ color: cat.color }}>{formatCurrency(totalPres)}</span>
-                                  </span>
-                                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                                    Gastado: <span className="font-semibold">{formatCurrency(totalGast)}</span>
-                                  </span>
-                                </div>
-                              </div>
+                        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                          <div className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${pctAsignado}%`, background: pctAsignado > 100 ? 'var(--accent-rose)' : 'var(--accent-blue)' }} />
+                        </div>
 
-                              {totalPres > 0 && (
-                                <div className="h-1.5" style={{ background: 'var(--progress-track)' }}>
-                                  <div className="h-full transition-all duration-500"
-                                    style={{ width: `${pctUsado}%`, background: pctUsado >= 100 ? 'var(--accent-rose)' : cat.color }} />
-                                </div>
-                              )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Gastado real</span>
+                          <span className="text-sm font-semibold" style={{ color: 'var(--accent-rose)' }}>
+                            {formatCurrency(totalGastado)}
+                          </span>
+                        </div>
 
-                              {subs.length === 0 ? (
-                                <p className="text-xs italic px-3 py-3" style={{ color: 'var(--text-muted)' }}>
-                                  Sin subcategorías — añade en Configuración
-                                </p>
-                              ) : (
-                                <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
-                                  {subs.map(sub => {
-                                    const gastadoSub = movs
-                                      .filter(m => m.subcategoria_id === sub.id)
-                                      .reduce((s, m) => s + parseFloat(m.monto), 0)
-                                    const montoPres = parseFloat(montosCats[sub.id]) || 0
-                                    const difSub = montoPres - gastadoSub
-                                    const pctSub = montoPres > 0 ? Math.min(100, (gastadoSub / montoPres) * 100) : 0
-                                    const overBudget = montoPres > 0 && gastadoSub > montoPres
+                        <div className="h-px" style={{ background: 'var(--border-glass)' }} />
 
-                                    return (
-                                      <div key={sub.id} style={{ padding: '12px 14px' }}>
-                                        {/* Nombre + badge restante */}
-                                        <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-                                          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                            {sub.nombre}
-                                          </p>
-                                          {montoPres > 0 && (
-                                            <span className="tabular-nums" style={{
-                                              fontSize: 10, fontWeight: 700,
-                                              padding: '2px 7px', borderRadius: 20,
-                                              background: `color-mix(in srgb, ${overBudget ? 'var(--accent-rose)' : 'var(--accent-green)'} 10%, transparent)`,
-                                              color: overBudget ? 'var(--accent-rose)' : 'var(--accent-green)',
-                                            }}>
-                                              {overBudget ? '−' : '+'}{formatCurrency(Math.abs(difSub))}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {/* Dos columnas */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                          <div style={{
-                                            borderRadius: 10, padding: '8px 10px',
-                                            background: 'var(--bg-secondary)',
-                                          }}>
-                                            <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 4 }}>
-                                              Presupuestado
-                                            </p>
-                                            <input
-                                              type="number" step="0.01" min="0" placeholder="0.00"
-                                              value={montosCats[sub.id] ?? ''}
-                                              onChange={e => setMontosCats(prev => ({ ...prev, [sub.id]: e.target.value }))}
-                                              onBlur={e => guardarPresupuestoCat(sub.id, e.target.value)}
-                                              onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-                                              style={{
-                                                width: '100%', background: 'none', border: 'none', outline: 'none',
-                                                fontSize: 13, fontWeight: 800, color: cat.color,
-                                                fontFamily: 'Inter, sans-serif', padding: 0,
-                                              }}
-                                            />
-                                          </div>
-                                          <div style={{
-                                            borderRadius: 10, padding: '8px 10px',
-                                            background: overBudget
-                                              ? 'color-mix(in srgb, var(--accent-rose) 8%, var(--bg-secondary))'
-                                              : 'var(--bg-secondary)',
-                                          }}>
-                                            <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 4 }}>
-                                              Gastado
-                                            </p>
-                                            <p className="tabular-nums" style={{
-                                              fontSize: 13, fontWeight: 800,
-                                              color: gastadoSub > 0
-                                                ? (overBudget ? 'var(--accent-rose)' : 'var(--text-secondary)')
-                                                : 'var(--text-muted)',
-                                            }}>
-                                              {gastadoSub > 0 ? formatCurrency(gastadoSub) : '—'}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        {/* Barra */}
-                                        {montoPres > 0 && (
-                                          <div style={{ marginTop: 8, height: 3, borderRadius: 999, overflow: 'hidden', background: 'var(--progress-track)' }}>
-                                            <div style={{
-                                              height: '100%', borderRadius: 999,
-                                              width: `${pctSub}%`,
-                                              background: overBudget ? 'var(--accent-rose)' : cat.color,
-                                              transition: 'width 0.4s ease-out',
-                                            }} />
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            {sinAsignar >= 0 ? 'Sin asignar' : 'Sobre presupuesto'}
+                          </span>
+                          <span className="text-base font-semibold"
+                            style={{ color: sinAsignar >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                            {sinAsignar >= 0 ? '+' : ''}{formatCurrency(sinAsignar)}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                    </div>
-                  </Card>
-                )
-              })}
-              {/* ─── BLOQUE DEUDAS en vista detallada ─── */}
-              {deudas.length > 0 && (
-                <Card className="animate-enter">
-                  <div
-                    className="flex items-center gap-3 cursor-pointer select-none"
-                    style={{ marginBottom: bloquesCerrados.has('deudas') ? 0 : 16 }}
-                    onClick={() => toggleBloque('deudas')}
-                  >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'color-mix(in srgb, var(--accent-rose) 12%, transparent)' }}>
-                      <CircleDollarSign size={16} style={{ color: 'var(--accent-rose)' }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Deudas activas</p>
-                      {ingresoNum > 0 && (
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                          Compromisos fijos del mes
-                        </p>
-                      )}
-                    </div>
-                    <a href="/deudas" className="text-[9px] font-semibold flex items-center gap-0.5"
-                      style={{ color: 'var(--accent-rose)', textDecoration: 'none' }}
-                      onClick={e => e.stopPropagation()}>
-                      Ver <ArrowRight size={9} />
-                    </a>
-                    {bloquesCerrados.has('deudas')
-                      ? <ChevronDown size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                      : <ChevronUp size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                    }
-                  </div>
-
-                  <div className={`collapsible-content ${bloquesCerrados.has('deudas') ? 'closed' : 'open'}`}>
-                  <div className="rounded-xl overflow-hidden"
-                    style={{ border: '1px solid color-mix(in srgb, var(--accent-rose) 20%, transparent)' }}>
-                    <div className="divide-y" style={{ borderColor: 'var(--border-glass)' }}>
-                      {deudas.map(d => {
-                        const movsDeuda = deudaMovs.filter(m => m.deuda_id === d.id)
-                        const pagadaEsteMes = movsDeuda.some(m => m.tipo === 'pago')
-                        const montoPagado = movsDeuda.filter(m => m.tipo === 'pago').reduce((s, m) => s + parseFloat(m.monto || 0), 0)
-                        return (
-                          <div key={d.id} className="px-3 py-2.5 flex items-center gap-2.5"
-                            style={{ background: pagadaEsteMes ? 'color-mix(in srgb, var(--accent-green) 4%, transparent)' : 'transparent' }}>
-                            <span className="text-base flex-shrink-0">{d.emoji}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>{d.nombre}</p>
-                              {pagadaEsteMes && montoPagado > 0 && (
-                                <p className="text-[9px]" style={{ color: 'var(--accent-green)' }}>
-                                  Abonado {formatCurrency(montoPagado)}
-                                </p>
-                              )}
-                            </div>
-                            {pagadaEsteMes ? (
-                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                                style={{ background: 'color-mix(in srgb, var(--accent-green) 12%, transparent)', color: 'var(--accent-green)' }}>
-                                ✓ pagado
-                              </span>
-                            ) : (
-                              d.cuota > 0 && (
-                                <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: 'var(--accent-rose)' }}>
-                                  {formatCurrency(d.cuota)}/mes
-                                </span>
-                              )
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div className="px-3 py-2 flex items-center justify-between"
-                      style={{ background: 'var(--bg-secondary)' }}>
-                      <span className="text-[9px] font-semibold" style={{ color: 'var(--text-muted)' }}>Total cuotas</span>
-                      <span className="text-xs font-semibold" style={{ color: 'var(--accent-rose)' }}>
-                        {formatCurrency(deudas.reduce((s, d) => s + (d.cuota || 0), 0))}
-                      </span>
-                    </div>
-                  </div>
-                  </div>
-                </Card>
-              )}
-
-              {/* ─── RESUMEN TOTAL ─── */}
-              {ingresoNum > 0 && (() => {
-                const totalPresupuestado = Object.values(montosCats).reduce((s, v) => s + (parseFloat(v) || 0), 0)
-                  + deudas.reduce((s, d) => s + (d.cuota || 0), 0)
-                  + metas.filter(m => m.estado === 'activa').reduce((s, m) => s + ((m.pct_mensual / 100) * montoMetas), 0)
-                  + inversiones.reduce((s, i) => s + (parseFloat(i.aporte) || 0), 0)
-                const totalGastado = movs.filter(m => m.tipo === 'egreso').reduce((s, m) => s + parseFloat(m.monto), 0)
-                const sinAsignar = ingresoNum - totalPresupuestado
-                const pctAsignado = ingresoNum > 0 ? Math.min(100, (totalPresupuestado / ingresoNum) * 100) : 0
-
-                return (
-                  <Card className="animate-enter">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-4"
-                      style={{ color: 'var(--text-muted)' }}>Resumen mensual</p>
-                    <div className="space-y-3">
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Total presupuestado</span>
-                        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                          {formatCurrency(totalPresupuestado)}
-                        </span>
-                      </div>
-
-                      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
-                        <div className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${pctAsignado}%`, background: pctAsignado > 100 ? 'var(--accent-rose)' : 'var(--accent-blue)' }} />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Gastado real</span>
-                        <span className="text-sm font-semibold" style={{ color: 'var(--accent-rose)' }}>
-                          {formatCurrency(totalGastado)}
-                        </span>
-                      </div>
-
-                      <div className="h-px" style={{ background: 'var(--border-glass)' }} />
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                          {sinAsignar >= 0 ? 'Sin asignar' : 'Sobre presupuesto'}
-                        </span>
-                        <span className="text-base font-semibold"
-                          style={{ color: sinAsignar >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                          {sinAsignar >= 0 ? '+' : ''}{formatCurrency(sinAsignar)}
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                )
-              })()}
+                    </Card>
+                  )
+                })()}
               </>
             )}
           </div>

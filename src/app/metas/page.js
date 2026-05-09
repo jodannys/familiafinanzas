@@ -8,7 +8,8 @@ import { Plus, Minus, Loader2, Trash2, Pencil, Pause, Play, Check, Target, Trend
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
-import { formatCurrency, getFlagEmoji, fechaHoy } from '@/lib/utils'
+import { getFlagEmoji, fechaHoy } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -48,6 +49,7 @@ function IconBtn({ onClick, title, bg, color, children }) {
 }
 
 export default function MetasPage() {
+  const formatCurrency = useFormatCurrency()
   const { theme } = useTheme()
   const themeColors = getThemeColors(theme)
   const { confirmProps, showConfirm } = useConfirm()
@@ -286,13 +288,13 @@ export default function MetasPage() {
     doUpdate()
   }
 
-  const activas    = metas.filter(m => m.estado === 'activa')
-  const pausadas   = metas.filter(m => m.estado === 'pausada')
+  const activas = metas.filter(m => m.estado === 'activa')
+  const pausadas = metas.filter(m => m.estado === 'pausada')
   const completadas = metas.filter(m => m.estado === 'completada')
-  const totalAhorrado  = metas.reduce((s, m) => s + (m.actual || 0), 0)
-  const totalObjetivo  = metas.reduce((s, m) => s + (m.meta || 0), 0)
+  const totalAhorrado = metas.reduce((s, m) => s + (m.actual || 0), 0)
+  const totalObjetivo = metas.reduce((s, m) => s + (m.meta || 0), 0)
   const totalPctAsignado = [...activas, ...pausadas].reduce((s, m) => s + (m.pct_mensual || 0), 0)
-  const pctDisponible  = Math.max(0, 100 - totalPctAsignado)
+  const pctDisponible = Math.max(0, 100 - totalPctAsignado)
   const montoMetasDisponible = Math.max(0, (presupuesto?.montoMetas || 0) - traspasosDeMetas)
 
   const metasActivas = metas.filter(m => ['activa', 'pausada'].includes(m.estado))
@@ -341,40 +343,40 @@ export default function MetasPage() {
         </div>
       )}
 
-     {/* KPIs — Altura fija para evitar descuadre */}
-<div className="grid grid-cols-2 gap-2 mb-5 animate-enter">
+      {/* KPIs — Altura fija para evitar descuadre */}
+      <div className="grid grid-cols-2 gap-2 mb-5 animate-enter">
 
-  {/* Caja 1 */}
-<div className="glass-card p-2 flex flex-col justify-center rounded-lg" style={{ height: 60 }}> 
-  {/* Añadí rounded-lg para que sea menos ovalada */}
-  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Ahorrado</p>
-  <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--accent-green)' }}>
-    {formatCurrency(totalAhorrado)}
-  </p>
-  {totalObjetivo > 0 ? (
-    <p className="text-[8px] mt-0.5 opacity-70" style={{ color: 'var(--text-muted)' }}>
-      de {formatCurrency(totalObjetivo)}
-    </p>
-  ) : (
-    <div className="h-[10px]" /> 
-  )}
-</div>
+        {/* Caja 1 */}
+        <div className="glass-card p-2 flex flex-col justify-center rounded-lg" style={{ height: 60 }}>
+          {/* Añadí rounded-lg para que sea menos ovalada */}
+          <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Ahorrado</p>
+          <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--accent-green)' }}>
+            {formatCurrency(totalAhorrado)}
+          </p>
+          {totalObjetivo > 0 ? (
+            <p className="text-[8px] mt-0.5 opacity-70" style={{ color: 'var(--text-muted)' }}>
+              de {formatCurrency(totalObjetivo)}
+            </p>
+          ) : (
+            <div className="h-[10px]" />
+          )}
+        </div>
 
-{/* Caja 2 */}
-<div className="glass-card p-2 flex flex-col justify-center rounded-lg" style={{ height: 60 }}>
-  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Mensual</p>
-  <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--accent-violet)' }}>
-    {presupuesto ? formatCurrency(montoMetasDisponible) : '—'}
-  </p>
-  {pctDisponible > 0 && activas.length > 0 ? (
-    <p className="text-[8px] mt-0.5 opacity-70" style={{ color: 'var(--text-muted)' }}>
-      {pctDisponible}% libre
-    </p>
-  ) : (
-    <div className="h-[10px]" />
-  )}
-</div>
-</div>
+        {/* Caja 2 */}
+        <div className="glass-card p-2 flex flex-col justify-center rounded-lg" style={{ height: 60 }}>
+          <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-muted)' }}>Mensual</p>
+          <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--accent-violet)' }}>
+            {presupuesto ? formatCurrency(montoMetasDisponible) : '—'}
+          </p>
+          {pctDisponible > 0 && activas.length > 0 ? (
+            <p className="text-[8px] mt-0.5 opacity-70" style={{ color: 'var(--text-muted)' }}>
+              {pctDisponible}% libre
+            </p>
+          ) : (
+            <div className="h-[10px]" />
+          )}
+        </div>
+      </div>
       {/* Mensaje distribución */}
       {!loading && activas.length > 0 && (() => {
         const totalPct = activas.reduce((s, m) => s + (m.pct_mensual || 0), 0)
@@ -403,7 +405,7 @@ export default function MetasPage() {
       {/* Lista */}
       {loading ? (
         <div className="space-y-3 py-2">
-          {[1,2,3].map(i => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="rounded-2xl p-4 space-y-3" style={{ border: '1px solid var(--border-glass)' }}>
               <div className="flex items-center gap-3">
                 <div className="skeleton w-10 h-10 rounded-2xl flex-shrink-0" />
@@ -418,249 +420,249 @@ export default function MetasPage() {
           ))}
         </div>
       ) : metas.length === 0 ? (
-  /* Agregamos flex flex-col e items-center para asegurar el eje central */
-  <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-    
-    {/* Icono centrado por el padre flex-col */}
-    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-      style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)' }}>
-      <Target size={28} style={{ color: 'var(--accent-green)' }} />
-    </div>
+        /* Agregamos flex flex-col e items-center para asegurar el eje central */
+        <div className="flex flex-col items-center justify-center text-center py-20 px-6">
 
-    <p className="font-serif text-lg mb-1" style={{ color: 'var(--text-primary)' }}>
-      Sin metas aún
-    </p>
-    
-    <p className="text-sm mb-6 max-w-[240px] opacity-60" style={{ color: 'var(--text-muted)' }}>
-      Define hacia dónde va tu ahorro
-    </p>
+          {/* Icono centrado por el padre flex-col */}
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)' }}>
+            <Target size={28} style={{ color: 'var(--accent-green)' }} />
+          </div>
 
-    {/* El botón ahora se mantendrá en el centro gracias a items-center del padre */}
-    <button 
-      onClick={() => setModal(true)} 
-      className="ff-btn-primary !w-auto min-w-[200px] shadow-lg"
-    >
-      Crear primera meta
-    </button>
-    
-  </div>
-) : (
+          <p className="font-serif text-lg mb-1" style={{ color: 'var(--text-primary)' }}>
+            Sin metas aún
+          </p>
+
+          <p className="text-sm mb-6 max-w-[240px] opacity-60" style={{ color: 'var(--text-muted)' }}>
+            Define hacia dónde va tu ahorro
+          </p>
+
+          {/* El botón ahora se mantendrá en el centro gracias a items-center del padre */}
+          <button
+            onClick={() => setModal(true)}
+            className="ff-btn-primary !w-auto min-w-[200px] shadow-lg"
+          >
+            Crear primera meta
+          </button>
+
+        </div>
+      ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={metasActivas.map(m => m.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
-          {metasActivas.map((meta, i) => {
-            const isSelected = selectedMetaId === meta.id
-            const pct = meta.meta > 0 ? Math.min(100, Math.round(((meta.actual || 0) / meta.meta) * 100)) : 0
-            const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0, montoMetasDisponible)
-            const isPausada = meta.estado === 'pausada'
-            const aporteMensual = (meta.pct_mensual / 100) * montoMetasDisponible
+            <div className="space-y-2">
+              {metasActivas.map((meta, i) => {
+                const isSelected = selectedMetaId === meta.id
+                const pct = meta.meta > 0 ? Math.min(100, Math.round(((meta.actual || 0) / meta.meta) * 100)) : 0
+                const tiempo = mesesRestantes(meta.actual || 0, meta.meta, meta.pct_mensual || 0, montoMetasDisponible)
+                const isPausada = meta.estado === 'pausada'
+                const aporteMensual = (meta.pct_mensual / 100) * montoMetasDisponible
 
-            return (
-              <SortableItem key={meta.id} id={meta.id}>
-                {(dragListeners, isDragging) => (
-              <Card
-                className="animate-enter cursor-pointer select-none"
-                onClick={() => setSelectedMetaId(isSelected ? null : meta.id)}
-                style={{
-                  animationDelay: `${i * 0.04}s`,
-                  padding: '14px 16px',
-                  opacity: isDragging ? 0.45 : isPausada ? 0.75 : 1,
-                  border: isSelected ? `1.5px solid ${meta.color}50` : '1.5px solid transparent',
-                }}>
-
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: `${meta.color}15` }}>
-                    {getFlagEmoji(meta.emoji)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-                        {meta.nombre}
-                      </p>
-                      {isPausada && (
-                        <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                          style={{ background: 'color-mix(in srgb, var(--accent-terra) 12%, transparent)', color: 'var(--accent-terra)' }}>
-                          PAUSADA
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {tiempo && (
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          ⏱ {tiempo}
-                        </span>
-                      )}
-                      {aporteMensual > 0 && meta.estado === 'activa' && (
-                        <span className="text-[10px] font-semibold"
-                          style={{ color: meta.color }}>
-                          {formatCurrency(aporteMensual)}/mes
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-lg font-semibold leading-none" style={{ color: meta.color }}>
-                      {pct}%
-                    </p>
-                  </div>
-                  <button
-                    {...dragListeners}
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      touchAction: 'none', cursor: 'grab',
-                      background: 'none', border: 'none', padding: 4,
-                      color: 'var(--text-muted)', opacity: 0.35, flexShrink: 0,
-                      display: 'flex', alignItems: 'center',
-                    }}
-                  >
-                    <GripVertical size={14} />
-                  </button>
-                </div>
-
-                <div className="mb-2">
-                  <ProgressBar value={meta.actual || 0} max={meta.meta} color={meta.color} />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xs font-semibold tabular-nums" style={{ color: meta.color }}>
-                      {formatCurrency(meta.actual || 0)}
-                    </span>
-                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                      / {formatCurrency(meta.meta)}
-                    </span>
-                  </div>
-                
-                </div>
-
-                {/* Acciones expandibles */}
-                {isSelected && (
-                  <div className="mt-3 pt-3 flex items-center gap-2 flex-wrap"
-                    style={{ borderTop: '1px solid var(--border-glass)' }}>
-                    {meta.estado === 'activa' && (
-                      <button
-                        onClick={e => { e.stopPropagation(); abrirModalAporte(meta) }}
-                        disabled={saving}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all"
+                return (
+                  <SortableItem key={meta.id} id={meta.id}>
+                    {(dragListeners, isDragging) => (
+                      <Card
+                        className="animate-enter cursor-pointer select-none"
+                        onClick={() => setSelectedMetaId(isSelected ? null : meta.id)}
                         style={{
-                          background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
-                          color: 'var(--accent-green)', border: 'none', cursor: 'pointer',
+                          animationDelay: `${i * 0.04}s`,
+                          padding: '14px 16px',
+                          opacity: isDragging ? 0.45 : isPausada ? 0.75 : 1,
+                          border: isSelected ? `1.5px solid ${meta.color}50` : '1.5px solid transparent',
                         }}>
-                        <Plus size={11} strokeWidth={2.5} />
-                        Aportar {aporteMensual > 0 ? formatCurrency(aporteMensual) : ''}
-                      </button>
-                    )}
-                    {meta.estado === 'activa' && (meta.actual || 0) > 0 && (
-                      <button
-                        onClick={e => { e.stopPropagation(); setModalRetiro(meta); setMontoRetiro('') }}
-                        disabled={saving}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all"
-                        style={{
-                          background: 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
-                          color: 'var(--accent-rose)', border: 'none', cursor: 'pointer',
-                        }}>
-                        <Minus size={11} strokeWidth={2.5} />
-                        Retirar
-                      </button>
-                    )}
-                    {meta.estado === 'activa' && (
-                      <IconBtn onClick={e => { e.stopPropagation(); handleEstado(meta.id, 'pausada') }}
-                        title="Pausar"
-                        bg="color-mix(in srgb, var(--accent-terra) 10%, transparent)"
-                        color="var(--accent-terra)">
-                        <Pause size={13} strokeWidth={2} />
-                      </IconBtn>
-                    )}
-                    {meta.estado === 'pausada' && (
-                      <IconBtn onClick={e => { e.stopPropagation(); handleEstado(meta.id, 'activa') }}
-                        title="Activar"
-                        bg="color-mix(in srgb, var(--accent-green) 10%, transparent)"
-                        color="var(--accent-green)">
-                        <Play size={13} strokeWidth={2} />
-                      </IconBtn>
-                    )}
-                    {meta.estado !== 'completada' && (
-                      <IconBtn onClick={e => { e.stopPropagation(); handleEstado(meta.id, 'completada') }}
-                        title="Marcar completada"
-                        bg="color-mix(in srgb, var(--accent-blue) 10%, transparent)"
-                        color="var(--accent-blue)">
-                        <Check size={13} strokeWidth={2} />
-                      </IconBtn>
-                    )}
-                    <IconBtn onClick={e => { e.stopPropagation(); cargarHistorialMeta(meta) }}
-                      title="Historial de aportes"
-                      bg="color-mix(in srgb, var(--accent-terra) 10%, transparent)"
-                      color="var(--accent-terra)">
-                      <History size={12} />
-                    </IconBtn>
-                    <IconBtn onClick={e => { e.stopPropagation(); prepareEdit(meta) }}
-                      title="Editar"
-                      bg="var(--bg-secondary)"
-                      color="var(--text-muted)">
-                      <Pencil size={12} />
-                    </IconBtn>
-                    <IconBtn onClick={e => { e.stopPropagation(); handleDelete(meta.id) }}
-                      title="Eliminar"
-                      bg="color-mix(in srgb, var(--accent-rose) 8%, transparent)"
-                      color="var(--accent-rose)">
-                      <Trash2 size={12} />
-                    </IconBtn>
-                    {/* EL PORCENTAJE EN LA ESQUINA */}
-                      <span className="text-[10px] font-bold px-2 py-1.5 rounded-lg ml-1"
-                        style={{ 
-                          background: `color-mix(in srgb, ${meta.color} 15%, transparent)`, 
-                          color: meta.color 
-                        }}>
-                        {meta.pct_mensual}%
-                      </span>
-                  </div>
-                )}
-              </Card>
-                )}
-              </SortableItem>
-            )
-          })}
 
-          {/* Completadas */}
-          {completadas.length > 0 && (
-            <div className="mt-4">
-              <p className="text-[9px] font-semibold uppercase tracking-widest mb-2 px-1"
-                style={{ color: 'var(--text-muted)' }}>
-                Completadas · {completadas.length}
-              </p>
-              <div className="space-y-1.5">
-                {completadas.map((meta, i) => (
-                  <div key={meta.id}
-                    className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                    style={{
-                      background: 'color-mix(in srgb, var(--accent-green) 6%, transparent)',
-                      border: '1px solid color-mix(in srgb, var(--accent-green) 15%, transparent)',
-                    }}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
-                      style={{ background: `${meta.color}15` }}>
-                      {getFlagEmoji(meta.emoji)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{meta.nombre}</p>
-                      <p className="text-[10px]" style={{ color: 'var(--accent-green)' }}>
-                        {formatCurrency(meta.actual || 0)} ahorrado
-                      </p>
-                    </div>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'var(--accent-green)' }}>
-                      <Check size={12} color="white" strokeWidth={3} />
-                    </div>
-                    <button onClick={() => handleDelete(meta.id)}
-                      style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                      <Trash2 size={12} />
-                    </button>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                            style={{ background: `${meta.color}15` }}>
+                            {getFlagEmoji(meta.emoji)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                                {meta.nombre}
+                              </p>
+                              {isPausada && (
+                                <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                  style={{ background: 'color-mix(in srgb, var(--accent-terra) 12%, transparent)', color: 'var(--accent-terra)' }}>
+                                  PAUSADA
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {tiempo && (
+                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                  ⏱ {tiempo}
+                                </span>
+                              )}
+                              {aporteMensual > 0 && meta.estado === 'activa' && (
+                                <span className="text-[10px] font-semibold"
+                                  style={{ color: meta.color }}>
+                                  {formatCurrency(aporteMensual)}/mes
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-lg font-semibold leading-none" style={{ color: meta.color }}>
+                              {pct}%
+                            </p>
+                          </div>
+                          <button
+                            {...dragListeners}
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              touchAction: 'none', cursor: 'grab',
+                              background: 'none', border: 'none', padding: 4,
+                              color: 'var(--text-muted)', opacity: 0.35, flexShrink: 0,
+                              display: 'flex', alignItems: 'center',
+                            }}
+                          >
+                            <GripVertical size={14} />
+                          </button>
+                        </div>
+
+                        <div className="mb-2">
+                          <ProgressBar value={meta.actual || 0} max={meta.meta} color={meta.color} />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xs font-semibold tabular-nums" style={{ color: meta.color }}>
+                              {formatCurrency(meta.actual || 0)}
+                            </span>
+                            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                              / {formatCurrency(meta.meta)}
+                            </span>
+                          </div>
+
+                        </div>
+
+                        {/* Acciones expandibles */}
+                        {isSelected && (
+                          <div className="mt-3 pt-3 flex items-center gap-2 flex-wrap"
+                            style={{ borderTop: '1px solid var(--border-glass)' }}>
+                            {meta.estado === 'activa' && (
+                              <button
+                                onClick={e => { e.stopPropagation(); abrirModalAporte(meta) }}
+                                disabled={saving}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all"
+                                style={{
+                                  background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
+                                  color: 'var(--accent-green)', border: 'none', cursor: 'pointer',
+                                }}>
+                                <Plus size={11} strokeWidth={2.5} />
+                                Aportar {aporteMensual > 0 ? formatCurrency(aporteMensual) : ''}
+                              </button>
+                            )}
+                            {meta.estado === 'activa' && (meta.actual || 0) > 0 && (
+                              <button
+                                onClick={e => { e.stopPropagation(); setModalRetiro(meta); setMontoRetiro('') }}
+                                disabled={saving}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all"
+                                style={{
+                                  background: 'color-mix(in srgb, var(--accent-rose) 10%, transparent)',
+                                  color: 'var(--accent-rose)', border: 'none', cursor: 'pointer',
+                                }}>
+                                <Minus size={11} strokeWidth={2.5} />
+                                Retirar
+                              </button>
+                            )}
+                            {meta.estado === 'activa' && (
+                              <IconBtn onClick={e => { e.stopPropagation(); handleEstado(meta.id, 'pausada') }}
+                                title="Pausar"
+                                bg="color-mix(in srgb, var(--accent-terra) 10%, transparent)"
+                                color="var(--accent-terra)">
+                                <Pause size={13} strokeWidth={2} />
+                              </IconBtn>
+                            )}
+                            {meta.estado === 'pausada' && (
+                              <IconBtn onClick={e => { e.stopPropagation(); handleEstado(meta.id, 'activa') }}
+                                title="Activar"
+                                bg="color-mix(in srgb, var(--accent-green) 10%, transparent)"
+                                color="var(--accent-green)">
+                                <Play size={13} strokeWidth={2} />
+                              </IconBtn>
+                            )}
+                            {meta.estado !== 'completada' && (
+                              <IconBtn onClick={e => { e.stopPropagation(); handleEstado(meta.id, 'completada') }}
+                                title="Marcar completada"
+                                bg="color-mix(in srgb, var(--accent-blue) 10%, transparent)"
+                                color="var(--accent-blue)">
+                                <Check size={13} strokeWidth={2} />
+                              </IconBtn>
+                            )}
+                            <IconBtn onClick={e => { e.stopPropagation(); cargarHistorialMeta(meta) }}
+                              title="Historial de aportes"
+                              bg="color-mix(in srgb, var(--accent-terra) 10%, transparent)"
+                              color="var(--accent-terra)">
+                              <History size={12} />
+                            </IconBtn>
+                            <IconBtn onClick={e => { e.stopPropagation(); prepareEdit(meta) }}
+                              title="Editar"
+                              bg="var(--bg-secondary)"
+                              color="var(--text-muted)">
+                              <Pencil size={12} />
+                            </IconBtn>
+                            <IconBtn onClick={e => { e.stopPropagation(); handleDelete(meta.id) }}
+                              title="Eliminar"
+                              bg="color-mix(in srgb, var(--accent-rose) 8%, transparent)"
+                              color="var(--accent-rose)">
+                              <Trash2 size={12} />
+                            </IconBtn>
+                            {/* EL PORCENTAJE EN LA ESQUINA */}
+                            <span className="text-[10px] font-bold px-2 py-1.5 rounded-lg ml-1"
+                              style={{
+                                background: `color-mix(in srgb, ${meta.color} 15%, transparent)`,
+                                color: meta.color
+                              }}>
+                              {meta.pct_mensual}%
+                            </span>
+                          </div>
+                        )}
+                      </Card>
+                    )}
+                  </SortableItem>
+                )
+              })}
+
+              {/* Completadas */}
+              {completadas.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-[9px] font-semibold uppercase tracking-widest mb-2 px-1"
+                    style={{ color: 'var(--text-muted)' }}>
+                    Completadas · {completadas.length}
+                  </p>
+                  <div className="space-y-1.5">
+                    {completadas.map((meta, i) => (
+                      <div key={meta.id}
+                        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                        style={{
+                          background: 'color-mix(in srgb, var(--accent-green) 6%, transparent)',
+                          border: '1px solid color-mix(in srgb, var(--accent-green) 15%, transparent)',
+                        }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                          style={{ background: `${meta.color}15` }}>
+                          {getFlagEmoji(meta.emoji)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{meta.nombre}</p>
+                          <p className="text-[10px]" style={{ color: 'var(--accent-green)' }}>
+                            {formatCurrency(meta.actual || 0)} ahorrado
+                          </p>
+                        </div>
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'var(--accent-green)' }}>
+                          <Check size={12} color="white" strokeWidth={3} />
+                        </div>
+                        <button onClick={() => handleDelete(meta.id)}
+                          style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
           </SortableContext>
         </DndContext>
       )}

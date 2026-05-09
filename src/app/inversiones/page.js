@@ -10,7 +10,7 @@ import {
   AlertCircle, PlusCircle, History, Info,
   ChevronRight, SlidersHorizontal, X
 } from 'lucide-react'
-import { formatCurrency, calculateCompoundInterest, fechaHoy } from '@/lib/utils'
+import { calculateCompoundInterest, fechaHoy } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
@@ -20,6 +20,8 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts'
 import DatePicker from '@/components/temaCalendario/DatePicker'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
+
 
 // ─── Tooltip del gráfico ─────────────────────────────────────────────────────
 
@@ -161,6 +163,7 @@ function ModuleInfoModal({ open, onClose, colores }) {
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function InversionesPage() {
+  const formatCurrency = useFormatCurrency()
   const { theme } = useTheme()
 
   const [inversiones, setInversiones] = useState([])
@@ -1368,7 +1371,7 @@ export default function InversionesPage() {
                         onChange={e => setSimAporte(Number(e.target.value))}
                         className="w-full accent-violet-400" />
                       <div className="flex justify-between mt-0.5">
-                        <span className="text-[9px]" style={{ color: colores.muted }}>€0</span>
+                        <span className="text-[9px]" style={{ color: colores.muted }}>0</span>
                         <span className="text-[9px]" style={{ color: colores.muted }}>
                           actual: {formatCurrency(selected.aporte || 0)}
                         </span>
@@ -2039,7 +2042,7 @@ export default function InversionesPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ff-label">Capital inicial (€)</label>
+              <label className="ff-label">Capital inicial</label>
               <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00"
                 value={form.capital} onChange={e => setForm(p => ({ ...p, capital: e.target.value }))} />
             </div>

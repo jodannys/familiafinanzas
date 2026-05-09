@@ -9,10 +9,11 @@
 
 // ── Constantes de referencia ────────────────────────────────────────────────
 
+
 const REGLA_50_30_20 = {
   necesidades: 50,
-  deseo:       30,
-  futuro:      20,
+  deseo: 30,
+  futuro: 20,
 }
 
 // Umbral máximo aceptable de deuda sobre ingresos (ratio DTI)
@@ -20,11 +21,11 @@ const DTI_LIMITE = 0.36
 
 // Puntuación base y pesos por categoría de insight
 const SCORE_PESOS = {
-  ahorro:      25,  // máx 25 pts — ahorra algo este mes
-  gasto:       25,  // máx 25 pts — gastos bajo control
-  deuda:       20,  // máx 20 pts — ratio deuda/ingresos sano
-  metas:       15,  // máx 15 pts — tiene metas activas con progreso
-  inversion:   15,  // máx 15 pts — invierte algo
+  ahorro: 25,  // máx 25 pts — ahorra algo este mes
+  gasto: 25,  // máx 25 pts — gastos bajo control
+  deuda: 20,  // máx 20 pts — ratio deuda/ingresos sano
+  metas: 15,  // máx 15 pts — tiene metas activas con progreso
+  inversion: 15,  // máx 15 pts — invierte algo
 }
 
 // ── Tipos de severidad ───────────────────────────────────────────────────────
@@ -64,7 +65,8 @@ function round2(n) {
  * @param {Array}  params.inversiones   — inversiones activas
  * @returns {{ insights: Insight[], score: number, label: string, color: string }}
  */
-export function generarInsights({ movsMes = [], metas = [], deudas = [], inversiones = [] }) {
+export function generarInsights({ movsMes = [], metas = [], deudas = [], inversiones = [], formatCurrency }) {
+
   const insights = []
   let score = 0
 
@@ -103,39 +105,39 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
 
     if (ahorroMes === 0) {
       insights.push({
-        id:      'ahorro-cero',
-        type:    'danger',
-        titulo:  'No hay ahorro registrado este mes',
+        id: 'ahorro-cero',
+        type: 'danger',
+        titulo: 'No hay ahorro registrado este mes',
         detalle: 'Intenta reservar al menos un 10% de tus ingresos antes de gastar.',
-        accion:  'Ver metas',
-        href:    '/metas',
+        accion: 'Ver metas',
+        href: '/metas',
       })
       // 0 pts
     } else if (pctAhorro < 10) {
       score += Math.round(SCORE_PESOS.ahorro * 0.4)
       insights.push({
-        id:      'ahorro-bajo',
-        type:    'warn',
-        titulo:  `Ahorrando solo el ${pctAhorro}% de tus ingresos`,
+        id: 'ahorro-bajo',
+        type: 'warn',
+        titulo: `Ahorrando solo el ${pctAhorro}% de tus ingresos`,
         detalle: `La regla 50/30/20 recomienda destinar el 20% al futuro. Te faltan ${20 - pctAhorro} puntos porcentuales.`,
-        accion:  'Ver presupuesto',
-        href:    '/presupuesto',
+        accion: 'Ver presupuesto',
+        href: '/presupuesto',
       })
     } else if (pctAhorro >= 20) {
       score += SCORE_PESOS.ahorro
       insights.push({
-        id:      'ahorro-optimo',
-        type:    'ok',
-        titulo:  `Ahorro excelente: ${pctAhorro}% de tus ingresos`,
+        id: 'ahorro-optimo',
+        type: 'ok',
+        titulo: `Ahorro excelente: ${pctAhorro}% de tus ingresos`,
         detalle: 'Estás cumpliendo la regla del 20% para el futuro. Buen trabajo.',
       })
     } else {
       score += Math.round(SCORE_PESOS.ahorro * 0.75)
       insights.push({
-        id:      'ahorro-bien',
-        type:    'ok',
-        titulo:  `Ahorrando el ${pctAhorro}% este mes`,
-        detalle: `Buen ritmo. Para llegar al 20% necesitas ahorrar ${round2(ingresosMes * 0.20 - ahorroMes)} € más.`,
+        id: 'ahorro-bien',
+        type: 'ok',
+        titulo: `Ahorrando el ${pctAhorro}% este mes`,
+        detalle: `Buen ritmo. Para llegar al 20% necesitas ahorrar ${formatCurrency ? formatCurrency(round2(ingresosMes * 0.20 - ahorroMes)) : round2(ingresosMes * 0.20 - ahorroMes)} más.`,
       })
     }
   }
@@ -144,17 +146,17 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
 
   if (ingresosMes > 0) {
     const pctBasicos = pct(gastoBasicos, ingresosMes)
-    const pctDeseo   = pct(gastoDeseo,   ingresosMes)
+    const pctDeseo = pct(gastoDeseo, ingresosMes)
 
     // Gastos básicos: máx 50%
     if (pctBasicos > REGLA_50_30_20.necesidades + 10) {
       insights.push({
-        id:      'basicos-alto',
-        type:    'warn',
-        titulo:  `Gastos básicos al ${pctBasicos}% — sobre el límite`,
+        id: 'basicos-alto',
+        type: 'warn',
+        titulo: `Gastos básicos al ${pctBasicos}% — sobre el límite`,
         detalle: `La regla recomienda que los básicos no superen el 50% del ingreso. Revisa suscripciones y gastos fijos.`,
-        accion:  'Ver gastos',
-        href:    '/gastos',
+        accion: 'Ver gastos',
+        href: '/gastos',
       })
     } else if (pctBasicos <= REGLA_50_30_20.necesidades) {
       score += Math.round(SCORE_PESOS.gasto * 0.5)
@@ -163,24 +165,24 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
     // Estilo de vida: máx 30%
     if (pctDeseo > REGLA_50_30_20.deseo + 5) {
       insights.push({
-        id:      'deseo-alto',
-        type:    'warn',
-        titulo:  `Estilo de vida al ${pctDeseo}% — por encima del 30%`,
+        id: 'deseo-alto',
+        type: 'warn',
+        titulo: `Estilo de vida al ${pctDeseo}% — por encima del 30%`,
         detalle: `Llevas ${pctDeseo - 30} puntos de más en gastos de deseo. Pequeños recortes tienen gran impacto.`,
-        accion:  'Ver sobres',
-        href:    '/sobres',
+        accion: 'Ver sobres',
+        href: '/sobres',
       })
     } else if (pctDeseo <= REGLA_50_30_20.deseo) {
       score += Math.round(SCORE_PESOS.gasto * 0.5)
     }
   } else {
     insights.push({
-      id:      'sin-ingresos',
-      type:    'info',
-      titulo:  'No se han registrado ingresos este mes',
+      id: 'sin-ingresos',
+      type: 'info',
+      titulo: 'No se han registrado ingresos este mes',
       detalle: 'Registra tus ingresos para que el análisis sea preciso.',
-      accion:  'Registrar ingreso',
-      href:    '/gastos',
+      accion: 'Registrar ingreso',
+      href: '/gastos',
     })
   }
 
@@ -193,39 +195,39 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
 
     if (dti > DTI_LIMITE) {
       insights.push({
-        id:      'dti-alto',
-        type:    'danger',
-        titulo:  `Carga de deuda: ${pct(cuotasTotales, ingresosMes)}% de tus ingresos`,
+        id: 'dti-alto',
+        type: 'danger',
+        titulo: `Carga de deuda: ${pct(cuotasTotales, ingresosMes)}% de tus ingresos`,
         detalle: `El límite recomendado es 36%. Tu ratio actual (${Math.round(dti * 100)}%) puede comprometer tu liquidez.`,
-        accion:  'Ver deudas',
-        href:    '/deudas',
+        accion: 'Ver deudas',
+        href: '/deudas',
       })
       // 0 pts en deuda
     } else if (dti > 0.20) {
       score += Math.round(SCORE_PESOS.deuda * 0.6)
       insights.push({
-        id:      'dti-medio',
-        type:    'info',
-        titulo:  `Deudas al ${Math.round(dti * 100)}% — manejable`,
+        id: 'dti-medio',
+        type: 'info',
+        titulo: `Deudas al ${Math.round(dti * 100)}% — manejable`,
         detalle: `Estás dentro del límite. Considera acelerar el pago de la deuda con mayor interés.`,
-        accion:  'Ver deudas',
-        href:    '/deudas',
+        accion: 'Ver deudas',
+        href: '/deudas',
       })
     } else {
       score += SCORE_PESOS.deuda
       insights.push({
-        id:      'dti-ok',
-        type:    'ok',
-        titulo:  `Carga de deuda sana: ${Math.round(dti * 100)}%`,
+        id: 'dti-ok',
+        type: 'ok',
+        titulo: `Carga de deuda sana: ${Math.round(dti * 100)}%`,
         detalle: `Tus cuotas representan menos del 20% de tus ingresos. Excelente control.`,
       })
     }
   } else if (deudas.length === 0) {
     score += SCORE_PESOS.deuda
     insights.push({
-      id:      'sin-deudas',
-      type:    'ok',
-      titulo:  'Sin deudas activas',
+      id: 'sin-deudas',
+      type: 'ok',
+      titulo: 'Sin deudas activas',
       detalle: 'Llevas tus finanzas sin compromisos de deuda este mes.',
     })
   }
@@ -236,12 +238,12 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
 
   if (metasActivas.length === 0) {
     insights.push({
-      id:      'sin-metas',
-      type:    'info',
-      titulo:  'No tienes metas de ahorro activas',
+      id: 'sin-metas',
+      type: 'info',
+      titulo: 'No tienes metas de ahorro activas',
       detalle: 'Crear una meta concreta aumenta la probabilidad de alcanzarla en un 40%.',
-      accion:  'Crear meta',
-      href:    '/metas',
+      accion: 'Crear meta',
+      href: '/metas',
     })
     // 0 pts en metas
   } else {
@@ -255,12 +257,12 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
 
     score += metaConMasProgreso ? SCORE_PESOS.metas : 0
     insights.push({
-      id:      'metas-activas',
-      type:    'ok',
-      titulo:  `${metasActivas.length} meta${metasActivas.length > 1 ? 's' : ''} activa${metasActivas.length > 1 ? 's' : ''}`,
+      id: 'metas-activas',
+      type: 'ok',
+      titulo: `${metasActivas.length} meta${metasActivas.length > 1 ? 's' : ''} activa${metasActivas.length > 1 ? 's' : ''}`,
       detalle: `Tu meta "${metaConMasProgreso.nombre}" va al ${pctMeta}% — la más avanzada.`,
-      accion:  'Ver metas',
-      href:    '/metas',
+      accion: 'Ver metas',
+      href: '/metas',
     })
   }
 
@@ -268,23 +270,23 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
 
   if (inversiones.length === 0) {
     insights.push({
-      id:      'sin-inversiones',
-      type:    'info',
-      titulo:  'Sin inversiones registradas',
+      id: 'sin-inversiones',
+      type: 'info',
+      titulo: 'Sin inversiones registradas',
       detalle: 'Invertir el 10–15% de tus ingresos hoy puede transformar tu patrimonio a largo plazo.',
-      accion:  'Ver inversiones',
-      href:    '/inversiones',
+      accion: 'Ver inversiones',
+      href: '/inversiones',
     })
   } else {
     const capitalTotal = inversiones.reduce((s, i) => s + (i.capital || 0), 0)
     score += SCORE_PESOS.inversion
     insights.push({
-      id:      'inversiones-ok',
-      type:    'ok',
-      titulo:  `${inversiones.length} inversión${inversiones.length > 1 ? 'es' : ''} activa${inversiones.length > 1 ? 's' : ''}`,
-      detalle: `Capital total invertido: ${capitalTotal.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}.`,
-      accion:  'Ver inversiones',
-      href:    '/inversiones',
+      id: 'inversiones-ok',
+      type: 'ok',
+      titulo: `${inversiones.length} inversión${inversiones.length > 1 ? 'es' : ''} activa${inversiones.length > 1 ? 's' : ''}`,
+      detalle: `Capital total invertido: ${formatCurrency ? formatCurrency(capitalTotal) : capitalTotal}.`,
+      accion: 'Ver inversiones',
+      href: '/inversiones',
     })
   }
 
@@ -292,12 +294,12 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
 
   if (ingresosMes > 0 && saldoLibre < 0) {
     insights.push({
-      id:      'saldo-negativo',
-      type:    'danger',
-      titulo:  'Gastas más de lo que ingresas',
-      detalle: `Te sobrepasas por ${Math.abs(saldoLibre).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })} este mes. Revisa tus gastos de inmediato.`,
-      accion:  'Ver gastos',
-      href:    '/gastos',
+      id: 'saldo-negativo',
+      type: 'danger',
+      titulo: 'Gastas más de lo que ingresas',
+    detalle: `Te sobrepasas por ${formatCurrency ? formatCurrency(Math.abs(saldoLibre)) : Math.abs(saldoLibre)} este mes. Revisa tus gastos de inmediato.`,
+      accion: 'Ver gastos',
+      href: '/gastos',
     })
   }
 
@@ -320,9 +322,9 @@ export function generarInsights({ movsMes = [], metas = [], deudas = [], inversi
  * @returns {{ label: string, color: string }}
  */
 export function getScoreLabel(score) {
-  if (score >= 80) return { label: 'Salud excelente',   color: 'var(--accent-green)'  }
-  if (score >= 60) return { label: 'Buena salud',       color: 'var(--accent-blue)'   }
-  if (score >= 40) return { label: 'Mejorable',         color: 'var(--accent-gold)'   }
-  if (score >= 20) return { label: 'Requiere atención', color: 'var(--accent-terra)'  }
-  return              { label: 'Situación crítica',  color: 'var(--accent-rose)'   }
+  if (score >= 80) return { label: 'Salud excelente', color: 'var(--accent-green)' }
+  if (score >= 60) return { label: 'Buena salud', color: 'var(--accent-blue)' }
+  if (score >= 40) return { label: 'Mejorable', color: 'var(--accent-gold)' }
+  if (score >= 20) return { label: 'Requiere atención', color: 'var(--accent-terra)' }
+  return { label: 'Situación crítica', color: 'var(--accent-rose)' }
 }

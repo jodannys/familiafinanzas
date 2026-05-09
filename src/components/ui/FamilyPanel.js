@@ -2,7 +2,7 @@
 import { createPortal } from 'react-dom'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { ChevronDown, Loader2, X, Users } from 'lucide-react'
 import CustomSelect from '@/components/ui/CustomSelect'
 
@@ -13,6 +13,7 @@ function formatFechaDDMM(fechaStr) {
 }
 
 export default function FamilyPanel({ anchorRef, onClose, isMobile = false }) {
+  const formatCurrency = useFormatCurrency()
   const [mounted, setMounted] = useState(false)
   const [miembros, setMiembros] = useState([])
   const [seleccionado, setSeleccionado] = useState('')
@@ -69,11 +70,11 @@ export default function FamilyPanel({ anchorRef, onClose, isMobile = false }) {
   // 5. Cargar Movimientos (Lógica de Admin)
   useEffect(() => {
     if (!hogarId) return
-    
+
     setLoading(true)
     const hoy = new Date()
     const desde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`
-    
+
     let q = supabase
       .from('movimientos')
       .select('id, fecha, tipo, categoria, descripcion, monto, quien')
@@ -127,20 +128,20 @@ export default function FamilyPanel({ anchorRef, onClose, isMobile = false }) {
           zIndex: 300,
           ...(isMobile
             ? {
-                bottom: 0,
-                left: 0,
-                right: 0,
-                borderRadius: '28px 28px 0 0',
-                maxHeight: '85dvh',
-                width: '100vw', // Ocupa todo el ancho en móvil
-              }
+              bottom: 0,
+              left: 0,
+              right: 0,
+              borderRadius: '28px 28px 0 0',
+              maxHeight: '85dvh',
+              width: '100vw', // Ocupa todo el ancho en móvil
+            }
             : {
-                left: pos.left,
-                bottom: pos.bottom,
-                width: 340,
-                borderRadius: 20,
-                maxHeight: '74dvh',
-              }),
+              left: pos.left,
+              bottom: pos.bottom,
+              width: 340,
+              borderRadius: 20,
+              maxHeight: '74dvh',
+            }),
           background: 'var(--bg-card)',
           backdropFilter: 'blur(30px)',
           WebkitBackdropFilter: 'blur(30px)',
@@ -149,8 +150,8 @@ export default function FamilyPanel({ anchorRef, onClose, isMobile = false }) {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          animation: isMobile 
-            ? 'slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)' 
+          animation: isMobile
+            ? 'slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
             : 'panel-in 0.22s cubic-bezier(0.34, 1.2, 0.64, 1)',
         }}
       >

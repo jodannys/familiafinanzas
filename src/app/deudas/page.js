@@ -10,7 +10,8 @@ import {
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Pencil, MessageCircle,
   ArrowDownRight, ArrowUpRight, Calendar, Check, AlertCircle, Table2, GripVertical
 } from 'lucide-react'
-import { formatCurrency, fechaHoy, diasHastaPago } from '@/lib/utils'
+import { fechaHoy, diasHastaPago } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -127,6 +128,7 @@ function TipoDeudorToggle({ value, onChange }) {
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function DeudasPage() {
+  const formatCurrency = useFormatCurrency()
   const { theme } = useTheme()
   const themeColors = getThemeColors(theme)
 
@@ -1261,7 +1263,7 @@ export default function DeudasPage() {
               <CategoriaToggle value={formTarjeta.categoria} onChange={v => setFormTarjeta(p => ({ ...p, categoria: v }))} />
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="ff-label">Monto Total (€)</label>
+                  <label className="ff-label">Monto Total</label>
                   <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
                     value={formTarjeta.monto_compra}
                     onChange={e => setFormTarjeta(p => ({ ...p, monto_compra: e.target.value }))} />
@@ -1329,7 +1331,7 @@ export default function DeudasPage() {
                 <CategoriaToggle value={formPrestamo.categoria} onChange={v => setFormPrestamo(p => ({ ...p, categoria: v }))} />
               )}
               <div>
-                <label className="ff-label">Capital prestado (€)</label>
+                <label className="ff-label">Capital prestado</label>
                 <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
                   value={formPrestamo.capital}
                   onChange={e => setFormPrestamo(p => ({ ...p, capital: e.target.value }))} />
@@ -1497,7 +1499,7 @@ export default function DeudasPage() {
               <CategoriaToggle value={formCuota.categoria} onChange={v => setFormCuota(p => ({ ...p, categoria: v }))} />
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="ff-label">Monto de la letra (€)</label>
+                  <label className="ff-label">Monto de la letra</label>
                   <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
                     value={formCuota.monto}
                     onChange={e => setFormCuota(p => ({ ...p, monto: e.target.value }))} />
@@ -1603,7 +1605,7 @@ export default function DeudasPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="ff-label">Monto (€)</label>
+                  <label className="ff-label">Monto</label>
                   <input className="ff-input text-lg font-semibold" type="number" step="0.01" placeholder="0.00" required
                     value={formMov.monto}
                     onChange={e => setFormMov(p => ({ ...p, monto: e.target.value }))} />

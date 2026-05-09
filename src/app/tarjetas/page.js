@@ -7,7 +7,7 @@ import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 import { Plus, Loader2, Trash2, Pencil, Pause, Play, CreditCard, Save, AlertTriangle, DollarSign } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import DatePicker from '@/components/temaCalendario/DatePicker'
 
@@ -38,6 +38,8 @@ export default function TarjetasPage() {
   const [pagoDeuda, setPagoDeuda] = useState(null)
   const [formPago, setFormPago] = useState({ monto: '', descripcion: '', fecha: '' })
   const [savingPago, setSavingPago] = useState(false)
+  const formatCurrency = useFormatCurrency()
+
 
   const [form, setForm] = useState({
     nombre_tarjeta: '', banco: '', limite_credito: '',
@@ -640,7 +642,7 @@ export default function TarjetasPage() {
           </div>
 
           <div>
-            <label className="ff-label">Límite de crédito (€)</label>
+            <label className="ff-label">Límite de crédito</label>
             <input className="ff-input" type="number" min="0" step="0.01" placeholder="0.00" required
               value={form.limite_credito}
               onChange={e => setForm(p => ({ ...p, limite_credito: e.target.value }))} />

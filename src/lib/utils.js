@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-
+import { MONEDAS } from '@/lib/monedas'
 /**
  * Utilidad para combinar clases de Tailwind de forma segura
  */
@@ -12,12 +12,13 @@ export function cn(...inputs) {
 
 /**
  * Formatea un número como moneda (por defecto EUR)
- * Maneja null, undefined y NaN devolviendo 0,00 €
+ * Maneja null, undefined y NaN devolviendo 0,00 
  */
 export function formatCurrency(amount, currency = 'EUR') {
   const num = parseFloat(amount)
-  if (isNaN(num)) return '0,00 €'
-  return new Intl.NumberFormat('es-ES', {
+  if (isNaN(num)) return '—'
+  const moneda = MONEDAS.find(m => m.code === currency)
+  return new Intl.NumberFormat(moneda?.locale || 'es-ES', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -39,7 +40,7 @@ export function getMonthName(month) {
   // Los meses en JS suelen ser 0-11, pero si pasas 1-12 restamos 1
   const index = month > 0 ? month - 1 : 0
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
   return months[index]
 }
 
@@ -59,14 +60,14 @@ export function getCurrentMonth() {
  */
 export function getRangoMes(month, year) {
   const pad = (n) => String(n).padStart(2, '0')
-  
+
   // Primer día del mes
   const inicio = `${year}-${pad(month)}-01`
-  
+
   // Último día del mes (usando el día 0 del mes siguiente)
   const ultimoDia = new Date(year, month, 0).getDate()
   const fin = `${year}-${pad(month)}-${pad(ultimoDia)}`
-  
+
   return { inicio, fin }
 }
 
@@ -86,14 +87,14 @@ export function getFechaLocal() {
  * Calcula el interés compuesto con aportaciones mensuales
  */
 export function calculateCompoundInterest({ principal, monthlyContribution, annualRate, years, compound = true }) {
-  const p  = parseFloat(principal) || 0
+  const p = parseFloat(principal) || 0
   const mc = parseFloat(monthlyContribution) || 0
-  const r  = (parseFloat(annualRate) || 0) / 100
-  const y  = Math.max(1, parseInt(years) || 10)
+  const r = (parseFloat(annualRate) || 0) / 100
+  const y = Math.max(1, parseInt(years) || 10)
 
-  let currentBalance   = p
+  let currentBalance = p
   let totalContributed = p
-  let totalInterest    = 0
+  let totalInterest = 0
 
   const history = [{ year: 0, balance: p, contributed: p, interest: 0 }]
 
@@ -110,14 +111,14 @@ export function calculateCompoundInterest({ principal, monthlyContribution, annu
         const balanceAtStart = currentBalance
         const factor = Math.pow(1 + rm, 12)
         const balanceFromPrincipal = currentBalance * factor
-        const balanceFromContribs  = mc * (factor - 1) / rm
+        const balanceFromContribs = mc * (factor - 1) / rm
         currentBalance = balanceFromPrincipal + balanceFromContribs
         interestForYear = currentBalance - balanceAtStart - yearlyContribution
-        totalInterest  += interestForYear
+        totalInterest += interestForYear
       }
     } else {
       const interestThisYear = (totalContributed + (yearlyContribution / 2)) * r
-      totalInterest  += interestThisYear
+      totalInterest += interestThisYear
       currentBalance += yearlyContribution + interestThisYear
       interestForYear = interestThisYear
     }
@@ -125,15 +126,15 @@ export function calculateCompoundInterest({ principal, monthlyContribution, annu
     totalContributed += yearlyContribution
 
     history.push({
-      year:        i,
-      balance:     currentBalance,
+      year: i,
+      balance: currentBalance,
       contributed: totalContributed,
-      interest:    interestForYear,
+      interest: interestForYear,
     })
   }
 
   return {
-    finalBalance:     currentBalance,
+    finalBalance: currentBalance,
     totalContributed,
     totalInterest,
     history,
@@ -181,11 +182,11 @@ export function diasHastaPago(d) {
  * Configuración visual de las categorías usando variables CSS del tema
  */
 export const CATEGORY_CONFIG = {
-  basicos:   { label: 'Básicos',         color: 'var(--accent-blue)',   icon: 'Home'       },
-  deseo:     { label: 'Estilo de vida', color: 'var(--accent-violet)', icon: 'Sparkles'   },
-  ahorro:    { label: 'Ahorro / Metas', color: 'var(--accent-green)',  icon: 'PiggyBank'  },
-  inversion: { label: 'Inversión',      color: 'var(--accent-gold)',   icon: 'TrendingUp' },
-  deuda:     { label: 'Deudas',          color: 'var(--accent-rose)',   icon: 'CreditCard' },
+  basicos: { label: 'Básicos', color: 'var(--accent-blue)', icon: 'Home' },
+  deseo: { label: 'Estilo de vida', color: 'var(--accent-violet)', icon: 'Sparkles' },
+  ahorro: { label: 'Ahorro / Metas', color: 'var(--accent-green)', icon: 'PiggyBank' },
+  inversion: { label: 'Inversión', color: 'var(--accent-gold)', icon: 'TrendingUp' },
+  deuda: { label: 'Deudas', color: 'var(--accent-rose)', icon: 'CreditCard' },
 }
 
 /**

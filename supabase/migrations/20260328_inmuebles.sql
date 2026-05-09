@@ -176,19 +176,19 @@ VALUES
    'Piso principal — Caso 80%', 'vivienda_habitual',
    '{"precio":180000,"gastos_compra":16014,"reforma":20000,"aportacion_inicial":36000}',
    '{"principal":144000,"interes_anual":3.0,"plazo_meses":360,"fecha_inicio":"2026-06"}',
-   'Cuota 607€/mes — Total desembolso inicial ~71,814€'),
+   'Cuota 607/mes — Total desembolso inicial ~71,814'),
 
   -- Hoja "1-Alquiler piso"
   ('00000000-0000-0000-0000-000000000000',
    'Piso alquiler 70k', 'inversion',
    '{"precio":70000,"gastos_compra":15000,"reforma":10000,"aportacion_inicial":21000}',
    '{"principal":49000,"interes_anual":3.0,"plazo_meses":360,"fecha_inicio":"2026-06"}',
-   'CF mensual ~528€, Rentabilidad 6.67%'),
+   'CF mensual ~528, Rentabilidad 6.67%'),
 
   -- Hoja "2-Alquiler piso"
   ('00000000-0000-0000-0000-000000000000',
    'Piso alquiler 100k', 'inversion',
    '{"precio":100000,"gastos_compra":15000,"reforma":10000,"aportacion_inicial":30000}',
    '{"principal":70000,"interes_anual":3.0,"plazo_meses":360,"fecha_inicio":"2026-06"}',
-   'CF mensual ~601€, Rentabilidad 5.77%');
+   'CF mensual ~601, Rentabilidad 5.77%');
 */

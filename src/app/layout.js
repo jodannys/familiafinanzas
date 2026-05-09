@@ -1,5 +1,6 @@
 import './globals.css'
 import { ThemeProvider } from '@/lib/themes'
+import { CurrencyProvider } from '@/lib/CurrencyContext'
 
 export const metadata = {
   title:       ' Economía del Hogar',
@@ -63,9 +64,12 @@ export default function RootLayout({ children }) {
 `}} />
       </head>
 
+     
       <body suppressHydrationWarning>
         <ThemeProvider>
-          {children}
+          <CurrencyProvider>
+            {children}
+          </CurrencyProvider>
         </ThemeProvider>
       </body>
     </html>

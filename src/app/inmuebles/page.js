@@ -4,7 +4,8 @@ import { Plus, Home, Building2, Target, Loader2 } from 'lucide-react'
 import AppShell from '@/components/layout/AppShell'
 import Modal from '@/components/ui/Modal'
 import { Card, Badge, ProgressBar } from '@/components/ui/Card'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
+
 import { toast } from '@/lib/toast'
 import {
   getInmuebles,
@@ -29,6 +30,7 @@ import SimuladorPanel from '@/components/inmuebles/SimuladorPanel'
 import ComparadorInmuebles from '@/components/inmuebles/ComparadorInmuebles'
 
 export default function InmueblesPage() {
+  const formatCurrency = useFormatCurrency()
   const [inmuebles, setInmuebles] = useState([])
   const [loading, setLoading] = useState(true)
   const [totalAhorradoCents, setTotalAhorradoCents] = useState(0)
@@ -37,6 +39,7 @@ export default function InmueblesPage() {
   const [formAbierto, setFormAbierto] = useState(false)
   const [editando, setEditando] = useState(null)
   const [comparando, setComparando] = useState([]) // max 2 ids
+
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -200,64 +203,64 @@ export default function InmueblesPage() {
             </Card>
           )}
 
-            {/* ── Lista vacía ── */}
-            {inmuebles.length === 0 && (
-              <div className="glass-card flex flex-col items-center justify-center py-16 text-center">
-                <Home size={40} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
-                <h3 className="font-serif text-xl mb-2" style={{ color: 'var(--text-primary)' }}>Sin inmuebles aún</h3>
-                <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--text-muted)' }}>
-                  Añade tu primera vivienda o inmueble de inversión.
-                </p>
-                <button onClick={handleAbrirForm} className="ff-btn-primary">
-                  <Plus size={16} className="inline mr-2" />
-                  Añadir inmueble
-                </button>
-              </div>
-            )}
+          {/* ── Lista vacía ── */}
+          {inmuebles.length === 0 && (
+            <div className="glass-card flex flex-col items-center justify-center py-16 text-center">
+              <Home size={40} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
+              <h3 className="font-serif text-xl mb-2" style={{ color: 'var(--text-primary)' }}>Sin inmuebles aún</h3>
+              <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--text-muted)' }}>
+                Añade tu primera vivienda o inmueble de inversión.
+              </p>
+              <button onClick={handleAbrirForm} className="ff-btn-primary">
+                <Plus size={16} className="inline mr-2" />
+                Añadir inmueble
+              </button>
+            </div>
+          )}
 
-            {/* ── Comparador ── */}
-            {comparando.length === 2 && (
-              <ComparadorInmuebles
-                inmuebles={inmuebles.filter(i => comparando.includes(i.id))}
-                onCerrar={() => setComparando([])}
-              />
-            )}
+          {/* ── Comparador ── */}
+          {comparando.length === 2 && (
+            <ComparadorInmuebles
+              inmuebles={inmuebles.filter(i => comparando.includes(i.id))}
+              onCerrar={() => setComparando([])}
+            />
+          )}
 
-            {/* ── Vivienda habitual ── */}
-            {viviendas.length > 0 && (
-              <section className="space-y-2">
-                <SectionHeader icon={Home} label="Vivienda habitual" count={viviendas.length} color="var(--accent-main)" />
-                {viviendas.map(inmueble => (
-                  <InmuebleItem
-                    key={inmueble.id}
-                    inmueble={inmueble}
-                    onOpen={() => setPanelInmueble(inmueble)}
-                    comparando={comparando}
-                    onToggleComparar={id => setComparando(prev =>
-                      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 2 ? [...prev, id] : prev
-                    )}
-                  />
-                ))}
-              </section>
-            )}
+          {/* ── Vivienda habitual ── */}
+          {viviendas.length > 0 && (
+            <section className="space-y-2">
+              <SectionHeader icon={Home} label="Vivienda habitual" count={viviendas.length} color="var(--accent-main)" />
+              {viviendas.map(inmueble => (
+                <InmuebleItem
+                  key={inmueble.id}
+                  inmueble={inmueble}
+                  onOpen={() => setPanelInmueble(inmueble)}
+                  comparando={comparando}
+                  onToggleComparar={id => setComparando(prev =>
+                    prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 2 ? [...prev, id] : prev
+                  )}
+                />
+              ))}
+            </section>
+          )}
 
-            {/* ── Inversiones ── */}
-            {inversiones.length > 0 && (
-              <section className="space-y-2">
-                <SectionHeader icon={Building2} label="Inversión / Alquiler" count={inversiones.length} color="var(--text-secondary)" />
-                {inversiones.map(inmueble => (
-                  <InmuebleItem
-                    key={inmueble.id}
-                    inmueble={inmueble}
-                    onOpen={() => setPanelInmueble(inmueble)}
-                    comparando={comparando}
-                    onToggleComparar={id => setComparando(prev =>
-                      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 2 ? [...prev, id] : prev
-                    )}
-                  />
-                ))}
-              </section>
-            )}
+          {/* ── Inversiones ── */}
+          {inversiones.length > 0 && (
+            <section className="space-y-2">
+              <SectionHeader icon={Building2} label="Inversión / Alquiler" count={inversiones.length} color="var(--text-secondary)" />
+              {inversiones.map(inmueble => (
+                <InmuebleItem
+                  key={inmueble.id}
+                  inmueble={inmueble}
+                  onOpen={() => setPanelInmueble(inmueble)}
+                  comparando={comparando}
+                  onToggleComparar={id => setComparando(prev =>
+                    prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 2 ? [...prev, id] : prev
+                  )}
+                />
+              ))}
+            </section>
+          )}
         </div>
       )}
 
@@ -306,8 +309,8 @@ function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
   const cuotaCents = modoFin === 'aval_ico'
     ? calcularAvalICO({ precioCents, interesAnual, plazoMeses }).cuotaCents
     : modoFin === 'dual'
-    ? calcularFinanciacionDual({ precioCents, interesAnual, plazoMeses, ltvBanco: fi?.ltv_banco ?? 0.80, ltvCreditoPublico: fi?.credito_publico?.ltv ?? 0.20, interesCreditoPublico: fi?.credito_publico?.interes_anual ?? 0 }).cuotaTotalCents
-    : calcularCuotaHipoteca(principalCents, interesAnual, plazoMeses)
+      ? calcularFinanciacionDual({ precioCents, interesAnual, plazoMeses, ltvBanco: fi?.ltv_banco ?? 0.80, ltvCreditoPublico: fi?.credito_publico?.ltv ?? 0.20, interesCreditoPublico: fi?.credito_publico?.interes_anual ?? 0 }).cuotaTotalCents
+      : calcularCuotaHipoteca(principalCents, interesAnual, plazoMeses)
 
   const ltvInicial = calcularLTV(principalCents, precioCents)
 

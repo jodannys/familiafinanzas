@@ -7,13 +7,16 @@ import {
   calcularRentabilidadNeta, calcularInversionTotal, calcularComisionAgente,
   calcularAvalICO, calcularFinanciacionDual, calcularTresCapasRentabilidad,
 } from '@/lib/inmuebles'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
+
 
 /**
  * Compara dos inmuebles en paralelo.
  * Muestra las métricas clave de cada uno lado a lado.
  */
+
 export default function ComparadorInmuebles({ inmuebles, onCerrar }) {
+  const formatCurrency = useFormatCurrency()
   if (inmuebles.length < 2) return null
   const [a, b] = inmuebles
 

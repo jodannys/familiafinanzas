@@ -7,14 +7,17 @@ import {
   toCents,
   fromCents,
 } from '@/lib/inmuebles'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
+
 
 /**
  * Componente: Tabla de Amortización colapsable
  * Replica la hoja "Desglose de cuotas" del Excel
  * Soporta amortizaciones extra y compara el impacto vs. plan original.
  */
+
 export default function TablaAmortizacion({ principalCents, interesAnual, plazoMeses, fechaInicio }) {
+  const formatCurrency = useFormatCurrency()
   const [abierta, setAbierta] = useState(false)
   const [extras, setExtras] = useState([]) // [{ mes, montoCents }]
   const [inputMes, setInputMes] = useState('')
@@ -124,7 +127,7 @@ export default function TablaAmortizacion({ principalCents, interesAnual, plazoM
               <div className="flex-1">
                 <input
                   type="number"
-                  placeholder="Importe €"
+                  placeholder="Importe "
                   value={inputMonto}
                   onChange={e => setInputMonto(e.target.value)}
                   min={0}

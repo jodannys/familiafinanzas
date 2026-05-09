@@ -4,36 +4,42 @@ import { X, Edit3, Save, Mail, Lock, Eye, EyeOff, Palette, Check, Loader2, LogOu
 import { supabase, crearInvitacion } from '@/lib/supabase'
 import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import { toast } from '@/lib/toast'
+import CustomSelect from '@/components/ui/CustomSelect'
+import { useCurrency } from '@/lib/CurrencyContext'
+
 
 export default function ProfilePanel({ open, onClose, onLogout }) {
   const { theme, setTheme } = useTheme()
   const themeColors = getThemeColors(theme)
 
-  const [user, setUser]         = useState(null)
-  const [nombre, setNombre]     = useState('')
-  const [email, setEmail]       = useState('')
+  const [user, setUser] = useState(null)
+  const [nombre, setNombre] = useState('')
+  const [email, setEmail] = useState('')
   const [isGoogle, setIsGoogle] = useState(false)
-  const [bgColor, setBgColor]   = useState('')
+  const [bgColor, setBgColor] = useState('')
 
-  const [editNombre, setEditNombre]     = useState(false)
-  const [nombreVal, setNombreVal]       = useState('')
+  const [editNombre, setEditNombre] = useState(false)
+  const [nombreVal, setNombreVal] = useState('')
   const [savingNombre, setSavingNombre] = useState(false)
 
-  const [editEmail, setEditEmail]     = useState(false)
-  const [newEmail, setNewEmail]       = useState('')
+  const [editEmail, setEditEmail] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
   const [savingEmail, setSavingEmail] = useState(false)
 
-  const [editPwd, setEditPwd]   = useState(false)
-  const [newPwd, setNewPwd]     = useState('')
-  const [showPwd, setShowPwd]   = useState(false)
+  const [editPwd, setEditPwd] = useState(false)
+  const [newPwd, setNewPwd] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
   const [savingPwd, setSavingPwd] = useState(false)
 
   // ── Invitación (solo admin) ─────────────────────────────────────────────────
-  const [isAdmin, setIsAdmin]         = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteLink, setInviteLink]   = useState('')
-  const [generando, setGenerando]     = useState(false)
-  const [copiado, setCopiado]         = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
+  const [generando, setGenerando] = useState(false)
+  const [copiado, setCopiado] = useState(false)
+  const [editMoneda, setEditMoneda] = useState(false)
+  const { currency, cambiarMoneda, MONEDAS } = useCurrency()
+
 
   useEffect(() => {
     if (!open) return
@@ -160,240 +166,265 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
           flexDirection: 'column',
         }}>
 
-        {/* ── Cabecera con avatar — fondo de acento sutil, no scrollea ── */}
-        <div style={{
-          background: `color-mix(in srgb, ${avatarBg} 10%, var(--bg-card))`,
-          borderBottom: '1px solid var(--border-subtle)',
-          padding: '24px 20px 20px',
-          flexShrink: 0,
-        }}>
-          <div className="flex items-center gap-4">
-            {/* Avatar */}
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
-              background: avatarBg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 22, fontWeight: 700, color: '#fff', userSelect: 'none',
-              boxShadow: `0 4px 14px color-mix(in srgb, ${avatarBg} 45%, transparent)`,
-              border: '3px solid color-mix(in srgb, var(--bg-card) 60%, transparent)',
-            }}>
-              {initial}
-            </div>
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }} className="truncate">
-                {nombre || 'Sin nombre'}
-              </p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }} className="truncate">
-                {email}
-              </p>
-            </div>
-            {/* Cerrar */}
-            <button onClick={onClose} style={{
-              width: 32, height: 32, borderRadius: 10, border: 'none', flexShrink: 0,
-              background: 'color-mix(in srgb, var(--bg-dark-card) 8%, transparent)',
-              color: 'var(--text-muted)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <X size={15} />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Contenido scrolleable — scrollbar queda dentro del panel ── */}
-        <div className="custom-scroll" style={{
-          overflowY: 'auto',
-          background: 'var(--bg-primary)',
-          padding: '20px 20px 28px',
-          flex: 1,
-        }}>
-
-          {/* ── Nombre ── */}
-          <Row icon={<Edit3 size={14} style={{ color: 'var(--accent-green)' }} />}
-            label="Nombre" value={nombre}
-            onEdit={() => { setEditNombre(v => !v); setEditEmail(false); setEditPwd(false) }}
-          />
-          {editNombre && (
-            <InlineEdit
-              value={nombreVal} onChange={setNombreVal}
-              onSave={handleGuardarNombre} saving={savingNombre}
-              onCancel={() => setEditNombre(false)}
-              placeholder="Tu nombre" type="text"
-              accentVar="var(--accent-green)"
-            />
-          )}
-
-          {/* ── Correo ── */}
-          <Row icon={<Mail size={14} style={{ color: 'var(--accent-blue)' }} />}
-            label="Correo" value={email}
-            onEdit={isGoogle ? null : () => { setEditEmail(v => !v); setEditNombre(false); setEditPwd(false) }}
-            disabled={isGoogle} disabledLabel="Google"
-          />
-          {editEmail && !isGoogle && (
-            <InlineEdit
-              value={newEmail} onChange={setNewEmail}
-              onSave={handleGuardarEmail} saving={savingEmail}
-              onCancel={() => { setEditEmail(false); setNewEmail('') }}
-              placeholder="Nuevo correo" type="email"
-              accentVar="var(--accent-blue)"
-            />
-          )}
-
-          {/* ── Contraseña ── */}
-          <Row icon={<Lock size={14} style={{ color: 'var(--accent-violet)' }} />}
-            label="Contraseña" value="••••••••"
-            onEdit={isGoogle ? null : () => { setEditPwd(v => !v); setEditNombre(false); setEditEmail(false) }}
-            disabled={isGoogle} disabledLabel="Google"
-          />
-          {editPwd && !isGoogle && (
-            <div className="mb-3 flex gap-2">
-              <div className="relative flex-1">
-                <input type={showPwd ? 'text' : 'password'} value={newPwd}
-                  onChange={e => setNewPwd(e.target.value)} autoFocus
-                  placeholder="Mínimo 6 caracteres" className="ff-input w-full pr-10 text-sm" />
-                <button type="button" onClick={() => setShowPwd(v => !v)} style={{
-                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-muted)', padding: 0,
-                }}>
-                  {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
+          {/* ── Cabecera con avatar — fondo de acento sutil, no scrollea ── */}
+          <div style={{
+            background: `color-mix(in srgb, ${avatarBg} 10%, var(--bg-card))`,
+            borderBottom: '1px solid var(--border-subtle)',
+            padding: '24px 20px 20px',
+            flexShrink: 0,
+          }}>
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
+                background: avatarBg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 22, fontWeight: 700, color: '#fff', userSelect: 'none',
+                boxShadow: `0 4px 14px color-mix(in srgb, ${avatarBg} 45%, transparent)`,
+                border: '3px solid color-mix(in srgb, var(--bg-card) 60%, transparent)',
+              }}>
+                {initial}
               </div>
-              <button onClick={handleGuardarPwd} disabled={savingPwd || newPwd.length < 6}
-                className="px-3 py-2 rounded-xl text-xs font-semibold"
-                style={{
-                  background: newPwd.length >= 6 ? 'var(--accent-violet)' : 'var(--bg-secondary)',
-                  color: newPwd.length >= 6 ? '#fff' : 'var(--text-muted)',
-                  border: 'none', cursor: 'pointer',
-                }}>
-                {savingPwd ? <Loader2 size={12} className="animate-spin" /> : <Save size={13} />}
-              </button>
-              <button onClick={() => { setEditPwd(false); setNewPwd('') }}
-                className="px-3 py-2 rounded-xl"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
-                <X size={13} />
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }} className="truncate">
+                  {nombre || 'Sin nombre'}
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }} className="truncate">
+                  {email}
+                </p>
+              </div>
+              {/* Cerrar */}
+              <button onClick={onClose} style={{
+                width: 32, height: 32, borderRadius: 10, border: 'none', flexShrink: 0,
+                background: 'color-mix(in srgb, var(--bg-dark-card) 8%, transparent)',
+                color: 'var(--text-muted)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <X size={15} />
               </button>
             </div>
-          )}
-
-          {/* ── Temas ── */}
-          <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
-          <div className="flex items-center gap-2 mb-3">
-            <Palette size={14} style={{ color: 'var(--accent-violet)' }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Tema</span>
-          </div>
-          <div className="space-y-1">
-            {Object.entries(THEMES).map(([key, t]) => {
-              const active = theme === key
-              return (
-                <button key={key} onClick={() => setTheme(key)}
-                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all active:scale-[0.98]"
-                  style={{
-                    background: active
-                      ? 'color-mix(in srgb, var(--accent-violet) 8%, var(--bg-secondary))'
-                      : 'var(--bg-secondary)',
-                    border: active
-                      ? '1px solid color-mix(in srgb, var(--accent-violet) 30%, transparent)'
-                      : '1px solid transparent',
-                    cursor: 'pointer',
-                  }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                    background: `linear-gradient(135deg, ${t.preview[0]} 50%, ${t.preview[1]} 50%)`,
-                    border: '1px solid var(--border-glass)',
-                  }} />
-                  <span className="flex-1 text-left text-sm font-semibold"
-                    style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                    {t.name}
-                  </span>
-                  {active && (
-                    <div style={{
-                      width: 16, height: 16, borderRadius: '50%',
-                      background: 'var(--accent-violet)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <Check size={10} color="white" strokeWidth={4} />
-                    </div>
-                  )}
-                </button>
-              )
-            })}
           </div>
 
-          {/* ── Invitar miembro (solo admin) ── */}
-          {isAdmin && (
-            <>
-              <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
-              <div className="flex items-center gap-2 mb-3">
-                <UserPlus size={14} style={{ color: 'var(--accent-main)' }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Invitar miembro
-                </span>
-              </div>
+          {/* ── Contenido scrolleable — scrollbar queda dentro del panel ── */}
+          <div className="custom-scroll" style={{
+            overflowY: 'auto',
+            background: 'var(--bg-primary)',
+            padding: '20px 20px 28px',
+            flex: 1,
+          }}>
 
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={e => { setInviteEmail(e.target.value); setInviteLink('') }}
-                  placeholder="email@ejemplo.com"
-                  className="ff-input flex-1 text-sm"
-                  autoComplete="off"
+
+            {/* ── Moneda ── */}
+            <Row
+              icon={<span style={{ fontSize: 14, color: 'var(--accent-gold)' }}>
+                {MONEDAS.find(m => m.code === currency)?.simbolo || '€'}
+              </span>}
+              label="Moneda"
+              value={MONEDAS.find(m => m.code === currency)?.label || 'Euro'}
+              onEdit={() => setEditMoneda(v => !v)}
+            />
+            {editMoneda && (
+              <div className="mb-3">
+                <CustomSelect
+                  value={currency}
+                  onChange={v => { cambiarMoneda(v || 'EUR'); setEditMoneda(false) }}
+                  color="var(--accent-gold)"
+                  options={MONEDAS.map(m => ({
+                    id: m.code,
+                    label: m.label,
+                    sub: m.simbolo,
+                  }))}
+                  placeholder="Seleccionar moneda"
                 />
-                <button
-                  onClick={handleGenerarInvitacion}
-                  disabled={generando}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1"
+              </div>
+            )}
+            {/* ── Nombre ── */}
+            <Row icon={<Edit3 size={14} style={{ color: 'var(--accent-green)' }} />}
+              label="Nombre" value={nombre}
+              onEdit={() => { setEditNombre(v => !v); setEditEmail(false); setEditPwd(false) }}
+            />
+            {editNombre && (
+              <InlineEdit
+                value={nombreVal} onChange={setNombreVal}
+                onSave={handleGuardarNombre} saving={savingNombre}
+                onCancel={() => setEditNombre(false)}
+                placeholder="Tu nombre" type="text"
+                accentVar="var(--accent-green)"
+              />
+            )}
+
+            {/* ── Correo ── */}
+            <Row icon={<Mail size={14} style={{ color: 'var(--accent-blue)' }} />}
+              label="Correo" value={email}
+              onEdit={isGoogle ? null : () => { setEditEmail(v => !v); setEditNombre(false); setEditPwd(false) }}
+              disabled={isGoogle} disabledLabel="Google"
+            />
+            {editEmail && !isGoogle && (
+              <InlineEdit
+                value={newEmail} onChange={setNewEmail}
+                onSave={handleGuardarEmail} saving={savingEmail}
+                onCancel={() => { setEditEmail(false); setNewEmail('') }}
+                placeholder="Nuevo correo" type="email"
+                accentVar="var(--accent-blue)"
+              />
+            )}
+
+            {/* ── Contraseña ── */}
+            <Row icon={<Lock size={14} style={{ color: 'var(--accent-violet)' }} />}
+              label="Contraseña" value="••••••••"
+              onEdit={isGoogle ? null : () => { setEditPwd(v => !v); setEditNombre(false); setEditEmail(false) }}
+              disabled={isGoogle} disabledLabel="Google"
+            />
+            {editPwd && !isGoogle && (
+              <div className="mb-3 flex gap-2">
+                <div className="relative flex-1">
+                  <input type={showPwd ? 'text' : 'password'} value={newPwd}
+                    onChange={e => setNewPwd(e.target.value)} autoFocus
+                    placeholder="Mínimo 6 caracteres" className="ff-input w-full pr-10 text-sm" />
+                  <button type="button" onClick={() => setShowPwd(v => !v)} style={{
+                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-muted)', padding: 0,
+                  }}>
+                    {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                <button onClick={handleGuardarPwd} disabled={savingPwd || newPwd.length < 6}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold"
                   style={{
-                    background: 'var(--accent-main)',
-                    color: 'var(--text-on-dark)',
-                    border: 'none', cursor: 'pointer', flexShrink: 0,
-                  }}
-                >
-                  {generando
-                    ? <Loader2 size={13} className="animate-spin" />
-                    : <UserPlus size={13} />
-                  }
+                    background: newPwd.length >= 6 ? 'var(--accent-violet)' : 'var(--bg-secondary)',
+                    color: newPwd.length >= 6 ? '#fff' : 'var(--text-muted)',
+                    border: 'none', cursor: 'pointer',
+                  }}>
+                  {savingPwd ? <Loader2 size={12} className="animate-spin" /> : <Save size={13} />}
+                </button>
+                <button onClick={() => { setEditPwd(false); setNewPwd('') }}
+                  className="px-3 py-2 rounded-xl"
+                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+                  <X size={13} />
                 </button>
               </div>
+            )}
 
-              {inviteLink && (
-                <button
-                  onClick={handleCopiarLink}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left"
-                  style={{
-                    background: 'color-mix(in srgb, var(--accent-green) 8%, var(--bg-secondary))',
-                    border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span className="flex-1 text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
-                    {inviteLink}
+            {/* ── Temas ── */}
+            <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
+            <div className="flex items-center gap-2 mb-3">
+              <Palette size={14} style={{ color: 'var(--accent-violet)' }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Tema</span>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(THEMES).map(([key, t]) => {
+                const active = theme === key
+                return (
+                  <button key={key} onClick={() => setTheme(key)}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all active:scale-[0.98]"
+                    style={{
+                      background: active
+                        ? 'color-mix(in srgb, var(--accent-violet) 8%, var(--bg-secondary))'
+                        : 'var(--bg-secondary)',
+                      border: active
+                        ? '1px solid color-mix(in srgb, var(--accent-violet) 30%, transparent)'
+                        : '1px solid transparent',
+                      cursor: 'pointer',
+                    }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                      background: `linear-gradient(135deg, ${t.preview[0]} 50%, ${t.preview[1]} 50%)`,
+                      border: '1px solid var(--border-glass)',
+                    }} />
+                    <span className="flex-1 text-left text-sm font-semibold"
+                      style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                      {t.name}
+                    </span>
+                    {active && (
+                      <div style={{
+                        width: 16, height: 16, borderRadius: '50%',
+                        background: 'var(--accent-violet)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Check size={10} color="white" strokeWidth={4} />
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* ── Invitar miembro (solo admin) ── */}
+            {isAdmin && (
+              <>
+                <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
+                <div className="flex items-center gap-2 mb-3">
+                  <UserPlus size={14} style={{ color: 'var(--accent-main)' }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Invitar miembro
                   </span>
-                  {copiado
-                    ? <Check size={13} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
-                    : <Copy size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                  }
-                </button>
-              )}
-            </>
-          )}
+                </div>
 
-          {/* ── Cerrar sesión ── */}
-          <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
-          <button
-            onClick={() => onLogout?.()}
-            className="flex items-center gap-3 w-full px-3 py-3 rounded-xl transition-all active:scale-[0.98]"
-            style={{
-              background: 'color-mix(in srgb, var(--accent-danger) 6%, var(--bg-secondary))',
-              border: '1px solid color-mix(in srgb, var(--accent-danger) 15%, transparent)',
-              color: 'var(--accent-danger)', cursor: 'pointer',
-            }}>
-            <LogOut size={15} />
-            <span style={{ fontSize: 13, fontWeight: 700 }}>Cerrar sesión</span>
-          </button>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={e => { setInviteEmail(e.target.value); setInviteLink('') }}
+                    placeholder="email@ejemplo.com"
+                    className="ff-input flex-1 text-sm"
+                    autoComplete="off"
+                  />
+                  <button
+                    onClick={handleGenerarInvitacion}
+                    disabled={generando}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1"
+                    style={{
+                      background: 'var(--accent-main)',
+                      color: 'var(--text-on-dark)',
+                      border: 'none', cursor: 'pointer', flexShrink: 0,
+                    }}
+                  >
+                    {generando
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <UserPlus size={13} />
+                    }
+                  </button>
+                </div>
 
-        </div>
+                {inviteLink && (
+                  <button
+                    onClick={handleCopiarLink}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left"
+                    style={{
+                      background: 'color-mix(in srgb, var(--accent-green) 8%, var(--bg-secondary))',
+                      border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span className="flex-1 text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                      {inviteLink}
+                    </span>
+                    {copiado
+                      ? <Check size={13} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
+                      : <Copy size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    }
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* ── Cerrar sesión ── */}
+            <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
+            <button
+              onClick={() => onLogout?.()}
+              className="flex items-center gap-3 w-full px-3 py-3 rounded-xl transition-all active:scale-[0.98]"
+              style={{
+                background: 'color-mix(in srgb, var(--accent-danger) 6%, var(--bg-secondary))',
+                border: '1px solid color-mix(in srgb, var(--accent-danger) 15%, transparent)',
+                color: 'var(--accent-danger)', cursor: 'pointer',
+              }}>
+              <LogOut size={15} />
+              <span style={{ fontSize: 13, fontWeight: 700 }}>Cerrar sesión</span>
+            </button>
+
+          </div>
         </div>
       </div>
     </>

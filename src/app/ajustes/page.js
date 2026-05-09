@@ -12,6 +12,9 @@ import { toast } from '@/lib/toast'
 import { getFlagEmoji } from '@/lib/utils'
 import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 import { getThemeColors, useTheme } from '@/lib/themes'
+import CustomSelect from '@/components/ui/CustomSelect'
+import { useCurrency } from '@/lib/CurrencyContext'
+
 
 const BLOQUES = [
   { id: 'necesidades', nombre: 'Necesidades', color: 'var(--accent-blue)', Icon: Home },
@@ -26,6 +29,7 @@ export default function AjustesPage() {
   const [inversiones, setInversiones] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  
 
   // Expansión de categorías para ver subcategorías
   const [expandido, setExpandido] = useState(null)
@@ -54,6 +58,9 @@ export default function AjustesPage() {
   const { confirmProps, showConfirm } = useConfirm()
   const { theme } = useTheme()
   const themeColors = getThemeColors(theme)
+
+  const { currency, cambiarMoneda, MONEDAS } = useCurrency()
+console.log('[Ajustes] currency del contexto:', currency)
 
   useEffect(() => {
     cargar()
@@ -320,7 +327,6 @@ export default function AjustesPage() {
           </p>
         </div>
       </div>
-
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 size={24} className="animate-spin" style={{ color: 'var(--text-muted)' }} />

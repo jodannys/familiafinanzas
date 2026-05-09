@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ChevronRight, CalendarDays } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 
 function pad(n) { return String(n).padStart(2, '0') }
 
@@ -19,6 +19,7 @@ function formatFechaCorta(fechaStr) {
 }
 
 export default function AgendaWidget() {
+
   const [eventos, setEventos] = useState([])
 
   useEffect(() => {
@@ -115,7 +116,7 @@ export default function AgendaWidget() {
             </div>
             {ev._cuota > 0 && (
               <span style={{ fontSize: 11, fontWeight: 900, flexShrink: 0, color: 'var(--text-primary)' }}>
-                {formatCurrency(ev._cuota)}
+                {useFormatCurrency(ev._cuota)}
               </span>
             )}
           </div>

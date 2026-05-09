@@ -9,7 +9,7 @@ import {
   supabase,
   crearInvitacion,
 } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { toast } from '@/lib/toast'
 import CustomSelect from '@/components/ui/CustomSelect'
 
@@ -26,6 +26,8 @@ function formatFechaDDMM(fechaStr) {
 // ── Componente principal ───────────────────────────────────────────────────────
 
 export default function AdminPage() {
+    const formatCurrency = useFormatCurrency()
+  
   // ── Sección 1: Panel Familiar ──────────────────────────────────────────────
   const [miembros, setMiembros] = useState([])
   const [seleccionado, setSeleccionado] = useState('')
@@ -38,6 +40,7 @@ export default function AdminPage() {
   const [generando, setGenerando] = useState(false)
   const [copiado, setCopiado] = useState(false)
 
+
   // ── Cargar miembros del hogar ──────────────────────────────────────────────
   useEffect(() => {
     supabase
@@ -46,7 +49,7 @@ export default function AdminPage() {
       .order('nombre')
       .then(({ data }) => setMiembros(data || []))
   }, [])
-  
+
 
   // ── Cargar movimientos cuando cambia el miembro seleccionado ──────────────
   useEffect(() => {
@@ -106,7 +109,7 @@ export default function AdminPage() {
 
   return (
     <AppShell>
-    <div className="flex flex-col gap-6 pb-24 px-2 sm:px-4 pt-6 w-full max-w-2xl mx-auto">
+      <div className="flex flex-col gap-6 pb-24 px-2 sm:px-4 pt-6 w-full max-w-2xl mx-auto">
 
         {/* ── Cabecera de página ───────────────────────────────────────────── */}
         <div>

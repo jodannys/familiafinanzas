@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
-import { formatCurrency, fechaHoy } from '@/lib/utils'
+import { fechaHoy } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 
 export function useInversiones() {
+  const formatCurrency = useFormatCurrency()
   const [inversiones, setInversiones] = useState([])
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -55,10 +57,10 @@ export function useInversiones() {
     if (err) return
 
     const porMes = {}
-    ;(data || []).forEach(m => {
-      const key = m.fecha.slice(0, 7)
-      porMes[key] = (porMes[key] || 0) + parseFloat(m.monto || 0)
-    })
+      ; (data || []).forEach(m => {
+        const key = m.fecha.slice(0, 7)
+        porMes[key] = (porMes[key] || 0) + parseFloat(m.monto || 0)
+      })
     const meses = Object.values(porMes)
     if (!meses.length) return
     setGastosMes(meses.reduce((s, v) => s + v, 0) / meses.length)

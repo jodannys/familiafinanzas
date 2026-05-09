@@ -12,9 +12,11 @@ import {
   calcularComisionAgente,
   ITP_POR_CCAA,
 } from '@/lib/inmuebles'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import CustomSelect from '@/components/ui/CustomSelect'
 import MonthPicker from '@/components/temaCalendario/MonthPicker'
+import { useCurrency } from '@/lib/CurrencyContext'
+import { MONEDAS } from '@/lib/monedas'
 
 
 // ── Opciones para CustomSelect ────────────────────────────────────────────────
@@ -57,8 +59,10 @@ const MODOS_FINANCIACION = [
 ]
 
 export default function FormInmueble({ inmueble = null, metas = [], inmuebles = [], onSave, onClose }) {
+  const formatCurrency = useFormatCurrency()
+  const { currency } = useCurrency()
+  const simbolo = MONEDAS.find(m => m.code === currency)?.simbolo || '€'
   const esEdicion = !!inmueble
-
   // ── Estado del formulario ──
   const [nombre, setNombre] = useState(inmueble?.nombre || '')
   const [tipo, setTipo] = useState(inmueble?.tipo || 'vivienda_habitual')
@@ -253,7 +257,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
   const metaOptions = metas.map(m => ({
     id: m.id,
     label: `${m.emoji ? m.emoji + ' ' : ''}${m.nombre}`,
-    sub: new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(m.actual),
+    sub: formatCurrency(m.actual),
   }))
 
   return (
@@ -309,7 +313,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
               <input type="number" className="ff-input w-full pr-8"
                 placeholder="0" min={0} step={1000}
                 value={precio} onChange={e => setPrecio(e.target.value)} />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
             </div>
           </div>
           <div>
@@ -318,7 +322,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
               <input type="number" className="ff-input w-full pr-8"
                 placeholder="0" min={0} step={500}
                 value={reforma} onChange={e => setReforma(e.target.value)} />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
             </div>
           </div>
         </div>
@@ -351,7 +355,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold pointer-events-none"
                   style={{ color: 'var(--text-muted)' }}>
-                  {entradaModo === 'eur' ? '€' : '%'}
+                  {entradaModo === 'eur' ? '' : '%'}
                 </span>
               </div>
               <div className="flex rounded-xl overflow-hidden flex-shrink-0" style={{ background: 'var(--progress-track)' }}>
@@ -365,7 +369,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                       color: entradaModo === m ? 'var(--text-on-dark)' : 'var(--text-muted)',
                       border: 'none', cursor: 'pointer',
                     }}>
-                    {m === 'eur' ? '€' : '%'}
+                    {m === 'eur' ? simbolo : '%'}
                   </button>
                 ))}
               </div>
@@ -458,13 +462,13 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                   <input type="number" className="ff-input w-full pr-8"
                     placeholder="450" min={100} step={50}
                     value={tasacion} onChange={e => setTasacion(e.target.value)} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
                 </div>
                 {precioAlto && (
                   <p className="text-xs px-2 py-1.5 rounded-lg mt-1 flex items-center gap-1.5"
                     style={{ background: 'color-mix(in srgb, var(--accent-main), transparent 85%)', color: 'var(--accent-main)' }}>
                     <AlertTriangle size={11} />
-                    Precio &gt; 300k€ — tasación estimada ~540€ (+20%)
+                    Precio &gt; 300k — tasación estimada ~540 (+20%)
                   </p>
                 )}
               </div>
@@ -703,7 +707,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 <input type="number" className="ff-input w-full pr-8"
                   placeholder="0" min={0} step={50}
                   value={rentaMensual} onChange={e => setRentaMensual(e.target.value)} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
               </div>
             </div>
             <div>
@@ -721,7 +725,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 <input type="number" className="ff-input w-full pr-8"
                   placeholder="0" min={0} step={5}
                   value={comunidad} onChange={e => setComunidad(e.target.value)} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
               </div>
             </div>
             <div>
@@ -730,7 +734,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 <input type="number" className="ff-input w-full pr-8"
                   placeholder="0" min={0} step={5}
                   value={mantenimiento} onChange={e => setMantenimiento(e.target.value)} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
               </div>
             </div>
             <div>
@@ -739,7 +743,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 <input type="number" className="ff-input w-full pr-8"
                   placeholder="0" min={0} step={50}
                   value={ibi} onChange={e => setIbi(e.target.value)} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
               </div>
             </div>
             <div>
@@ -748,7 +752,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 <input type="number" className="ff-input w-full pr-8"
                   placeholder="0" min={0} step={10}
                   value={seguro} onChange={e => setSeguro(e.target.value)} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
               </div>
             </div>
             <div>
@@ -767,7 +771,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 <input type="number" className="ff-input w-full pr-8"
                   placeholder="0" min={0} step={10}
                   value={seguroImpago} onChange={e => setSeguroImpago(e.target.value)} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}></span>
               </div>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Prima anual · típico 3-4% renta</p>
             </div>
@@ -803,7 +807,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                     background: 'color-mix(in srgb, var(--accent-main), transparent 90%)',
                   }}>
                     <AlertTriangle size={14} style={{ color: 'var(--accent-main)', flexShrink: 0, marginTop: 1 }} />
-                    <p className="text-xs" style={{ color: 'var(--accent-main)' }}>
+                    <p clasName="text-xs" style={{ color: 'var(--accent-main)' }}>
                       Esta hucha ya está vinculada a <strong>"{conflicto.nombre}"</strong>. El saldo se mostrará completo en ambos inmuebles — no se divide.
                     </p>
                   </div>
@@ -814,7 +818,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 }}>
                   <div className="flex justify-between items-center mb-1.5">
                     <span className="text-xs font-bold" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }}>
-                      {falta <= 0 ? '¡Listo para comprar!' : `Faltan ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(fromCents(falta))}`}
+                      {falta <= 0 ? '¡Listo para comprar!' : `Faltan ${formatCurrency(fromCents(falta))}`}
                     </span>
                     <span className="text-xs font-black" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }}>{pct}%</span>
                   </div>

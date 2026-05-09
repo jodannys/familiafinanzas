@@ -30,12 +30,13 @@ import {
   generarEvolucionPatrimonio,
 } from '@/lib/inmuebles'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import TablaAmortizacion from './TablaAmortizacion'
 import { toast } from '@/lib/toast'
 import DatePicker from '@/components/temaCalendario/DatePicker'
 
 export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete, onComprado }) {
+  const formatCurrency = useFormatCurrency()
   const [tab, setTab] = useState('hipoteca')
   const [confirmandoCompra, setConfirmandoCompra] = useState(false)
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
@@ -396,7 +397,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                   <CasoRow label="Cuota mensual" value={formatCurrency(fromCents(avalData.cuotaCents))} bold />
                   <CasoRow label="Total intereses" value={formatCurrency(fromCents(avalData.totalInteresCents))} />
                   <CasoRow label="Total pagado" value={formatCurrency(fromCents(avalData.totalPagadoCents))} />
-                  <CasoRow label="Entrada cash requerida" value="0 €" bold />
+                  <CasoRow label="Entrada cash requerida" value="0 " bold />
                 </div>
               </div>
             )}
@@ -457,7 +458,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
             )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <InfoRow label="Precio del piso" value={formatCurrency(fromCents(precioCents))} />
-              <InfoRow label="Entrada (cash)" value={(usarAvalICO || usarDual) ? '0 €' : formatCurrency(fromCents(aportacionCents))} />
+              <InfoRow label="Entrada (cash)" value={(usarAvalICO || usarDual) ? '0 ' : formatCurrency(fromCents(aportacionCents))} />
               <InfoRow label={usarAvalICO ? 'Préstamo (100% LTV)' : 'Préstamo banco'} value={formatCurrency(fromCents(principalCents))} />
               <InfoRow label="Gastos compra" value={formatCurrency(fromCents(gastosCompraCents))} />
               <InfoRow label="Reforma" value={formatCurrency(fromCents(reformaCents))} />
@@ -755,7 +756,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                     <div className="relative">
                       <input type="number" placeholder="Importe" min={0} step={1} className="ff-input w-full pr-7"
                         value={formReal.monto} onChange={e => setFormReal(p => ({ ...p, monto: e.target.value }))} />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>€</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}></span>
                     </div>
                     <DatePicker
                       value={formReal.fecha}
@@ -842,7 +843,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                 <CasoRow label="Rendimiento neto" value={formatCurrency(fromCents(irpf.rendimientoNetoCents))} bold />
                 {inquilinoVH && irpf.reduccionCents > 0
                   ? <CasoRow label="Reducción 60% (inquilino VH)" value={`− ${formatCurrency(fromCents(irpf.reduccionCents))}`} />
-                  : <CasoRow label="Reducción 60% (no aplica — turístico/comercial)" value="0 €" />
+                  : <CasoRow label="Reducción 60% (no aplica — turístico/comercial)" value="0 " />
                 }
                 <div className="my-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--accent-blue), transparent 75%)' }} />
                 <CasoRow label="Base imponible reducida" value={formatCurrency(fromCents(irpf.baseReducidaCents))} bold />
@@ -924,7 +925,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
               <div className="space-y-1">
                 <CasoRow label="IBI (0,4 – 1,1% valor catastral aprox.)" value="Ver recibo municipal" />
                 <CasoRow label="Comunidad de propietarios" value="Depende del edificio" />
-                <CasoRow label="Seguro multirriesgo hogar" value="~200 – 500 €/año" />
+                <CasoRow label="Seguro multirriesgo hogar" value="~200 – 500 /año" />
                 <CasoRow label="Intereses hipoteca" value="No deducibles (compra post-2013)" />
               </div>
             </div>
@@ -1120,7 +1121,7 @@ function RefinanciacionTab({ saldoPendienteCents, interesActual, mesesRestantes 
             onChange={e => setInteresNuevo(e.target.value)} />
         </div>
         <div>
-          <label className="ff-label">Coste de subrogación/novación (€) — vacío = 1% del saldo</label>
+          <label className="ff-label">Coste de subrogación/novación — vacío = 1% del saldo</label>
           <input type="number" step={100} className="ff-input" value={costeManual}
             onChange={e => setCosteManual(e.target.value)} placeholder="Automático (1% saldo)" />
         </div>
@@ -1230,7 +1231,7 @@ function VentaTab({ precioCents, gastosCompraCents, reformaCents, tabla, plazoMe
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="ff-label">Precio de venta (€)</label>
+          <label className="ff-label">Precio de venta</label>
           <input type="number" className="ff-input" value={precioVenta} onChange={e => setPrecioVenta(e.target.value)} />
         </div>
         <div>
@@ -1251,7 +1252,7 @@ function VentaTab({ precioCents, gastosCompraCents, reformaCents, tabla, plazoMe
           <CasoRow label="Plusvalía municipal (est.)" value={`− ${formatCurrency(fromCents(resultado.plusvaliaMunicipalCents))}`} />
           <CasoRow label="Ganancia patrimonial" value={formatCurrency(fromCents(resultado.gananciaPatrimonialCents))} bold />
           {irpfExento
-            ? <CasoRow label="IRPF sobre la ganancia" value="0 € (exento)" />
+            ? <CasoRow label="IRPF sobre la ganancia" value="0  (exento)" />
             : <CasoRow label="IRPF sobre la ganancia" value={`− ${formatCurrency(fromCents(resultado.irpfVentaCents))}`} />
           }
           <div className="my-1 border-t" style={{ borderColor: 'var(--border-glass)' }} />

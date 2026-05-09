@@ -9,7 +9,7 @@ import {
 import { supabase, signOut, getMisPermisos } from '@/lib/supabase'
 import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
-import { formatCurrency } from '@/lib/utils'
+import { useFormatCurrency } from '@/lib/useFormatCurrency'
 import { toast } from '@/lib/toast'
 import { getPresupuestoMes } from '@/lib/presupuesto'
 import CustomSelect from '@/components/ui/CustomSelect'
@@ -164,6 +164,7 @@ function DraggableFAB({ onClick }) {
 
 
 export function FABModal({ onClose }) {
+  const formatCurrency = useFormatCurrency()
   const router = useRouter()
   const [tipo, setTipo] = useState('egreso')
   const [monto, setMonto] = useState('')
@@ -436,7 +437,7 @@ export function FABModal({ onClose }) {
             {tipo === 'ingreso' ? 'Ingreso' : (catInfo?.label || 'Importe')}
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: 20, fontWeight: 500, color: accentColor, opacity: 0.45 }}>€</span>
+            <span style={{ fontSize: 20, fontWeight: 500, color: accentColor, opacity: 0.45 }}></span>
             <input
               type="number" inputMode="decimal" placeholder="0.00"
               value={monto} onChange={e => setMonto(e.target.value)}
