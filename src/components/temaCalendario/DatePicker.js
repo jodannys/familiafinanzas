@@ -79,7 +79,7 @@ export default function DatePicker({ value, onChange, placeholder = 'Seleccionar
           onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
           style={{
             position: 'fixed', inset: 0,
-            background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)',
+           background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)',
             zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 20
           }}

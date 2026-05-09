@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { formatCurrency } from '@/lib/utils'
 import { useTheme, getThemeColors } from '@/lib/themes'
+import DatePicker from '@/components/temaCalendario/DatePicker'
 
 function IconBtn({ onClick, title, bg, color, children }) {
   return (
@@ -87,15 +88,15 @@ export default function TarjetasPage() {
 
     // Solo contar deudas activas para el saldo usado
     const usado = {}
-    ;(tarjetasData || []).forEach(t => { usado[t.id] = 0 })
-    ;todasDeudas.filter(d => d.estado !== 'pagada').forEach(d => {
-      if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
-        const tarjeta = (tarjetasData || []).find(t => t.id === d.perfil_tarjeta_id)
-        if (tarjeta && tarjeta.estado !== 'pausada') {
-          usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
+      ; (tarjetasData || []).forEach(t => { usado[t.id] = 0 })
+      ; todasDeudas.filter(d => d.estado !== 'pagada').forEach(d => {
+        if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
+          const tarjeta = (tarjetasData || []).find(t => t.id === d.perfil_tarjeta_id)
+          if (tarjeta && tarjeta.estado !== 'pausada') {
+            usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
+          }
         }
-      }
-    })
+      })
     setUsadoPorTarjeta(usado)
 
     // Cargar pagos de cada deuda de tarjeta
@@ -107,10 +108,10 @@ export default function TarjetasPage() {
         .in('deuda_id', ids)
         .order('fecha', { ascending: false })
       const grouped = {}
-      ;(movs || []).forEach(m => {
-        if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-        grouped[m.deuda_id].push(m)
-      })
+        ; (movs || []).forEach(m => {
+          if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+          grouped[m.deuda_id].push(m)
+        })
       setMovsPorDeuda(grouped)
     }
 
@@ -323,31 +324,31 @@ export default function TarjetasPage() {
       </div>
 
       {loading ? (
-  <div className="flex justify-center py-20">
-    <Loader2 className="animate-spin opacity-30" style={{ color: 'var(--text-muted)' }} />
-  </div>
-) : tarjetas.length === 0 ? (
-  /* Aplicamos flex-col e items-center para el centrado total en móviles */
-  <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-    
-    {/* Icono de tarjeta (opcional, le da un toque pro) */}
-    <div className="w-16 h-12 rounded-xl mb-6 flex items-center justify-center border-2 border-dashed opacity-20"
-      style={{ borderColor: 'var(--text-muted)' }}>
-      <CreditCard size={24} style={{ color: 'var(--text-muted)' }} />
-    </div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin opacity-30" style={{ color: 'var(--text-muted)' }} />
+        </div>
+      ) : tarjetas.length === 0 ? (
+        /* Aplicamos flex-col e items-center para el centrado total en móviles */
+        <div className="flex flex-col items-center justify-center text-center py-20 px-6">
 
-    <p className="text-sm mb-6 font-medium" style={{ color: 'var(--text-muted)' }}>
-      No hay tarjetas registradas
-    </p>
+          {/* Icono de tarjeta (opcional, le da un toque pro) */}
+          <div className="w-16 h-12 rounded-xl mb-6 flex items-center justify-center border-2 border-dashed opacity-20"
+            style={{ borderColor: 'var(--text-muted)' }}>
+            <CreditCard size={24} style={{ color: 'var(--text-muted)' }} />
+          </div>
 
-    <button 
-      onClick={() => openModal()} 
-      className="ff-btn-primary !w-auto min-w-[220px] shadow-lg active:scale-95 transition-transform"
-    >
-      Agregar primera tarjeta
-    </button>
-  </div>
-) : (
+          <p className="text-sm mb-6 font-medium" style={{ color: 'var(--text-muted)' }}>
+            No hay tarjetas registradas
+          </p>
+
+          <button
+            onClick={() => openModal()}
+            className="ff-btn-primary !w-auto min-w-[220px] shadow-lg active:scale-95 transition-transform"
+          >
+            Agregar primera tarjeta
+          </button>
+        </div>
+      ) : (
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tarjetas.map((t) => {
@@ -583,12 +584,13 @@ export default function TarjetasPage() {
                 value={formPago.descripcion}
                 onChange={e => setFormPago(p => ({ ...p, descripcion: e.target.value }))} />
             </div>
-
-            <div>
+            <div className="space-y-1">
               <label className="ff-label">Fecha</label>
-              <input className="ff-input" type="date"
-                value={formPago.fecha}
-                onChange={e => setFormPago(p => ({ ...p, fecha: e.target.value }))} />
+              <DatePicker
+                value={form.fecha}
+                onChange={date => setForm({ ...form, fecha: date })}
+                placeholder="Seleccionar fecha"
+              />
             </div>
 
             {formPago.monto > 0 && (
@@ -691,7 +693,7 @@ export default function TarjetasPage() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={closeModal}   className="ff-btn-ghost flex-1">Cancelar</button>
+            <button type="button" onClick={closeModal} className="ff-btn-ghost flex-1">Cancelar</button>
             <button type="submit" disabled={saving}
               className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
               {saving

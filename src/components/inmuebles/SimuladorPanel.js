@@ -33,6 +33,7 @@ import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import TablaAmortizacion from './TablaAmortizacion'
 import { toast } from '@/lib/toast'
+import DatePicker from '@/components/temaCalendario/DatePicker'
 
 export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete, onComprado }) {
   const [tab, setTab] = useState('hipoteca')
@@ -86,7 +87,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
 
   const cuotaCents = usarDual ? dualData.cuotaTotalCents
     : usarAvalICO ? avalData.cuotaCents
-    : calcularCuotaHipoteca(principalCents, interesAnual, plazoMeses)
+      : calcularCuotaHipoteca(principalCents, interesAnual, plazoMeses)
 
   const tasacionCents = toCents(dc?.tasacion || (precioCents > toCents(300000) ? 540 : 450))
   const gastosInaplazables = calcularGastosInaplazables({
@@ -187,15 +188,15 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
 
   // ── Tabs ──
   const TABS = [
-    { id: 'hipoteca',     label: 'Hipoteca',    icon: Home },
-    { id: 'amortizacion', label: 'Cuotas',      icon: Calendar },
-    ...(tipo === 'vivienda_habitual' ? [{ id: 'casos',     label: 'Casos',     icon: BarChart2 }] : []),
-    ...(tipo === 'inversion'         ? [{ id: 'inversion', label: 'Inversión', icon: TrendingUp }] : []),
-    ...(tipo === 'inversion'         ? [{ id: 'real',      label: 'Real',      icon: Activity }] : []),
-    { id: 'fiscal',      label: 'Fiscal',       icon: Receipt },
-    { id: 'patrimonio',  label: 'Patrimonio',   icon: BarChart2 },
-    { id: 'refin',       label: 'Refinanciar',  icon: RefreshCw },
-    { id: 'venta',       label: 'Venta',        icon: TrendingUp },
+    { id: 'hipoteca', label: 'Hipoteca', icon: Home },
+    { id: 'amortizacion', label: 'Cuotas', icon: Calendar },
+    ...(tipo === 'vivienda_habitual' ? [{ id: 'casos', label: 'Casos', icon: BarChart2 }] : []),
+    ...(tipo === 'inversion' ? [{ id: 'inversion', label: 'Inversión', icon: TrendingUp }] : []),
+    ...(tipo === 'inversion' ? [{ id: 'real', label: 'Real', icon: Activity }] : []),
+    { id: 'fiscal', label: 'Fiscal', icon: Receipt },
+    { id: 'patrimonio', label: 'Patrimonio', icon: BarChart2 },
+    { id: 'refin', label: 'Refinanciar', icon: RefreshCw },
+    { id: 'venta', label: 'Venta', icon: TrendingUp },
   ]
 
   async function handleRegistrarCompra() {
@@ -230,15 +231,15 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
       if (!user) { toast('No autenticado'); return }
       const esRenta = registrando === 'renta'
       const { error } = await supabase.from('movimientos').insert({
-        monto:         parseFloat(formReal.monto),
-        descripcion:   formReal.descripcion || (esRenta ? 'Renta cobrada' : 'Gasto inmueble'),
-        fecha:         formReal.fecha,
-        tipo:          esRenta ? 'ingreso' : 'gasto',
-        categoria:     esRenta ? 'inversion' : 'necesidades',
-        quien:         'Ambos',
-        inmueble_id:   inmueble.id,
+        monto: parseFloat(formReal.monto),
+        descripcion: formReal.descripcion || (esRenta ? 'Renta cobrada' : 'Gasto inmueble'),
+        fecha: formReal.fecha,
+        tipo: esRenta ? 'ingreso' : 'gasto',
+        categoria: esRenta ? 'inversion' : 'necesidades',
+        quien: 'Ambos',
+        inmueble_id: inmueble.id,
         tipo_inmueble: esRenta ? 'renta_cobrada' : 'gasto_inmueble',
-        user_id:       user.id,
+        user_id: user.id,
       })
       if (error) { toast(error.message); return }
       toast(esRenta ? 'Renta registrada' : 'Gasto registrado', 'success')
@@ -261,7 +262,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
           <StatusTag dot={estado === 'comprado' ? 'var(--accent-green)' : 'var(--accent-main)'}
             label={estado === 'comprado' ? 'Comprado' : 'En análisis'} />
           {usarAvalICO && <StatusTag dot="var(--accent-violet)" label="Aval ICO" />}
-          {usarDual    && <StatusTag dot="var(--accent-violet)" label="Dual 0%" />}
+          {usarDual && <StatusTag dot="var(--accent-violet)" label="Dual 0%" />}
           {comisionAgenteActiva && <StatusTag dot="var(--accent-main)" label={`Bróker ${comisionAgentePct}%`} />}
           {mesBajoEl80 && (
             <StatusTag dot="var(--accent-main)"
@@ -358,8 +359,8 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
           color="var(--accent-main)" />
         {tipo === 'inversion' && cashflowMensualCents !== null
           ? <MetricCell icon={TrendingUp} label="CF post-IRPF"
-              value={cashflowPostIrpfMensualCents !== null ? formatCurrency(fromCents(cashflowPostIrpfMensualCents)) : formatCurrency(fromCents(cashflowMensualCents))}
-              color={cashflowPostIrpfMensualCents >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} />
+            value={cashflowPostIrpfMensualCents !== null ? formatCurrency(fromCents(cashflowPostIrpfMensualCents)) : formatCurrency(fromCents(cashflowMensualCents))}
+            color={cashflowPostIrpfMensualCents >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)'} />
           : <MetricCell icon={TrendingUp} label="Total intereses" value={formatCurrency(fromCents(resumen.totalInteresCents))} color="var(--accent-rose)" />
         }
       </div>
@@ -756,8 +757,11 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                         value={formReal.monto} onChange={e => setFormReal(p => ({ ...p, monto: e.target.value }))} />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>€</span>
                     </div>
-                    <input type="date" className="ff-input w-full"
-                      value={formReal.fecha} onChange={e => setFormReal(p => ({ ...p, fecha: e.target.value }))} />
+                    <DatePicker
+                      value={formReal.fecha}
+                      onChange={date => setFormReal(p => ({ ...p, fecha: date }))}
+                      placeholder="Seleccionar fecha"
+                    />
                   </div>
                   <input type="text" placeholder="Descripción (opcional)" className="ff-input w-full"
                     value={formReal.descripcion} onChange={e => setFormReal(p => ({ ...p, descripcion: e.target.value }))} />

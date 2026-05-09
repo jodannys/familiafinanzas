@@ -14,6 +14,8 @@ import {
 } from '@/lib/inmuebles'
 import { formatCurrency } from '@/lib/utils'
 import CustomSelect from '@/components/ui/CustomSelect'
+import MonthPicker from '@/components/temaCalendario/MonthPicker'
+
 
 // ── Opciones para CustomSelect ────────────────────────────────────────────────
 
@@ -25,15 +27,15 @@ const CCAA_OPTIONS = Object.entries(ITP_POR_CCAA).map(([nombre, pct]) => ({
 
 const TIPO_TRANSMISION_OPTIONS = [
   { id: 'segunda_mano', label: 'Segunda mano', sub: 'ITP' },
-  { id: 'obra_nueva',   label: 'Obra nueva',   sub: 'IVA 10%' },
-  { id: 'vpo',          label: 'VPO',           sub: 'IVA 4%' },
+  { id: 'obra_nueva', label: 'Obra nueva', sub: 'IVA 10%' },
+  { id: 'vpo', label: 'VPO', sub: 'IVA 4%' },
 ]
 
 const MESES_OCUPADOS_OPTIONS = [
   { id: '12', label: '12 meses', sub: 'sin vacancia' },
   { id: '11', label: '11 meses', sub: '1 mes vacío' },
   { id: '10', label: '10 meses', sub: '2 meses vacíos' },
-  { id: '9',  label: '9 meses',  sub: '3 meses vacíos' },
+  { id: '9', label: '9 meses', sub: '3 meses vacíos' },
 ]
 
 const MODOS_FINANCIACION = [
@@ -58,33 +60,33 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
   const esEdicion = !!inmueble
 
   // ── Estado del formulario ──
-  const [nombre,  setNombre]  = useState(inmueble?.nombre || '')
-  const [tipo,    setTipo]    = useState(inmueble?.tipo   || 'vivienda_habitual')
-  const [notas,   setNotas]   = useState(inmueble?.notas  || '')
+  const [nombre, setNombre] = useState(inmueble?.nombre || '')
+  const [tipo, setTipo] = useState(inmueble?.tipo || 'vivienda_habitual')
+  const [notas, setNotas] = useState(inmueble?.notas || '')
 
   // Datos compra — vacíos al crear, valores guardados al editar
   const dc = inmueble?.datos_compra || {}
-  const [precio,       setPrecio]      = useState(esEdicion ? (dc.precio    ?? '') : '')
-  const [reforma,      setReforma]     = useState(esEdicion ? (dc.reforma   ?? '') : '')
-  const [aportacion,   setAportacion]  = useState(esEdicion ? (dc.aportacion_inicial ?? '') : '')
-  const [entradaModo,  setEntradaModo] = useState('eur') // 'eur' | 'pct'
-  const [tasacion,  setTasacion]  = useState(dc.tasacion || 450)
+  const [precio, setPrecio] = useState(esEdicion ? (dc.precio ?? '') : '')
+  const [reforma, setReforma] = useState(esEdicion ? (dc.reforma ?? '') : '')
+  const [aportacion, setAportacion] = useState(esEdicion ? (dc.aportacion_inicial ?? '') : '')
+  const [entradaModo, setEntradaModo] = useState('eur') // 'eur' | 'pct'
+  const [tasacion, setTasacion] = useState(dc.tasacion || 450)
 
   // Gastos de compra — cálculo automático
-  const [ccaa,           setCcaa]           = useState(dc.ccaa           || 'Madrid')
-  const [tipoTransmision,setTipoTransmision]= useState(dc.tipo_transmision || 'segunda_mano')
-  const [incluirBroker,  setIncluirBroker]  = useState(false)
-  const [incluirTasacion,setIncluirTasacion]= useState(true)
+  const [ccaa, setCcaa] = useState(dc.ccaa || 'Madrid')
+  const [tipoTransmision, setTipoTransmision] = useState(dc.tipo_transmision || 'segunda_mano')
+  const [incluirBroker, setIncluirBroker] = useState(false)
+  const [incluirTasacion, setIncluirTasacion] = useState(true)
   const [desglosAbierto, setDesglosAbierto] = useState(false)
   // ITP manual (reducción por edad, familia numerosa, discapacidad, etc.)
-  const [itpManual,    setItpManual]    = useState(dc.itp_pct_manual != null)
+  const [itpManual, setItpManual] = useState(dc.itp_pct_manual != null)
   const [itpPctManual, setItpPctManual] = useState(dc.itp_pct_manual ?? '')
 
   // Hipoteca
   const hip = inmueble?.hipoteca || {}
   const [interesAnual, setInteresAnual] = useState(hip.interes_anual ?? 3)
-  const [plazoAños,    setPlazoAños]    = useState(hip.plazo_meses ? hip.plazo_meses / 12 : 30)
-  const [fechaInicio,  setFechaInicio]  = useState(() => {
+  const [plazoAños, setPlazoAños] = useState(hip.plazo_meses ? hip.plazo_meses / 12 : 30)
+  const [fechaInicio, setFechaInicio] = useState(() => {
     if (hip.fecha_inicio) return hip.fecha_inicio
     const d = new Date()
     d.setMonth(d.getMonth() + 1)
@@ -93,28 +95,28 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
 
   // Alquiler — vacíos al crear
   const al = inmueble?.alquiler_config || {}
-  const [rentaMensual,  setRentaMensual]  = useState(esEdicion ? (al.renta_mensual        ?? '') : '')
+  const [rentaMensual, setRentaMensual] = useState(esEdicion ? (al.renta_mensual ?? '') : '')
   const [mesesOcupados, setMesesOcupados] = useState(String(al.meses_ocupados ?? 11))
-  const [comunidad,     setComunidad]     = useState(esEdicion ? (al.comunidad_mensual     ?? '') : '')
+  const [comunidad, setComunidad] = useState(esEdicion ? (al.comunidad_mensual ?? '') : '')
   const [mantenimiento, setMantenimiento] = useState(esEdicion ? (al.mantenimiento_mensual ?? '') : '')
-  const [ibi,           setIbi]           = useState(esEdicion ? (al.ibi_anual            ?? '') : '')
-  const [seguro,        setSeguro]        = useState(esEdicion ? (al.seguro_anual         ?? '') : '')
-  const [gestionPct,    setGestionPct]    = useState(al.gestion_pct    ?? 0)
-  const [seguroImpago,  setSeguroImpago]  = useState(esEdicion ? (al.seguro_impago ?? '') : '')
+  const [ibi, setIbi] = useState(esEdicion ? (al.ibi_anual ?? '') : '')
+  const [seguro, setSeguro] = useState(esEdicion ? (al.seguro_anual ?? '') : '')
+  const [gestionPct, setGestionPct] = useState(al.gestion_pct ?? 0)
+  const [seguroImpago, setSeguroImpago] = useState(esEdicion ? (al.seguro_impago ?? '') : '')
 
   // Financiación especial
   const fi = inmueble?.hipoteca || {}
   const [modoFinanciacion, setModoFinanciacion] = useState(
     fi.modo_financiacion || (fi.aval_ico ? 'dual' : 'ninguna')
   )
-  const [ltvBanco,      setLtvBanco]      = useState(fi.ltv_banco               ?? 0.80)
-  const [ltvPublico,    setLtvPublico]    = useState(fi.credito_publico?.ltv     ?? 0.20)
-  const [interesPublico,setInteresPublico]= useState(fi.credito_publico?.interes_anual ?? 0)
+  const [ltvBanco, setLtvBanco] = useState(fi.ltv_banco ?? 0.80)
+  const [ltvPublico, setLtvPublico] = useState(fi.credito_publico?.ltv ?? 0.20)
+  const [interesPublico, setInteresPublico] = useState(fi.credito_publico?.interes_anual ?? 0)
 
   // Comisión bróker inmobiliario
   const [usarComisionAgente, setUsarComisionAgente] = useState(fi.comision_agente?.activo ?? false)
-  const [comisionAgentePct,  setComisionAgentePct]  = useState(fi.comision_agente?.pct    ?? 3)
-  const [comisionInput,      setComisionInput]      = useState(String(fi.comision_agente?.pct ?? 3))
+  const [comisionAgentePct, setComisionAgentePct] = useState(fi.comision_agente?.pct ?? 3)
+  const [comisionInput, setComisionInput] = useState(String(fi.comision_agente?.pct ?? 3))
 
   // Meta vinculada
   const [metaId, setMetaId] = useState(inmueble?.meta_id || null)
@@ -122,26 +124,26 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
   const [saving, setSaving] = useState(false)
 
   // ── Cálculos en vivo ──────────────────────────────────────────────────────────
-  const plazoMeses       = Math.round((parseFloat(plazoAños) || 0) * 12)
-  const precioCentsLive  = toCents(precio)
-  const tasacionCentsLive= toCents(tasacion) || (precioCentsLive > toCents(300000) ? toCents(540) : toCents(450))
+  const plazoMeses = Math.round((parseFloat(plazoAños) || 0) * 12)
+  const precioCentsLive = toCents(precio)
+  const tasacionCentsLive = toCents(tasacion) || (precioCentsLive > toCents(300000) ? toCents(540) : toCents(450))
   const comisionAgenteCents = usarComisionAgente ? calcularComisionAgente(precioCentsLive, comisionAgentePct) : 0
 
   const sinFinanciacion = modoFinanciacion === 'ninguna'
-  const esAvalICO       = modoFinanciacion === 'aval_ico'
-  const esDual          = modoFinanciacion === 'dual'
+  const esAvalICO = modoFinanciacion === 'aval_ico'
+  const esDual = modoFinanciacion === 'dual'
 
   const principalBancoCents = sinFinanciacion
     ? Math.max(0, precioCentsLive - toCents(aportacion))
     : esAvalICO
-    ? precioCentsLive
-    : Math.round(precioCentsLive * ltvBanco)
+      ? precioCentsLive
+      : Math.round(precioCentsLive * ltvBanco)
 
   const cuotaCents = esAvalICO
     ? calcularAvalICO({ precioCents: precioCentsLive, interesAnual: parseFloat(interesAnual) || 0, plazoMeses }).cuotaCents
     : esDual
-    ? calcularFinanciacionDual({ precioCents: precioCentsLive, interesAnual: parseFloat(interesAnual) || 0, plazoMeses, ltvBanco, ltvCreditoPublico: ltvPublico, interesCreditoPublico: parseFloat(interesPublico) || 0 }).cuotaTotalCents
-    : calcularCuotaHipoteca(principalBancoCents, parseFloat(interesAnual) || 0, plazoMeses)
+      ? calcularFinanciacionDual({ precioCents: precioCentsLive, interesAnual: parseFloat(interesAnual) || 0, plazoMeses, ltvBanco, ltvCreditoPublico: ltvPublico, interesCreditoPublico: parseFloat(interesPublico) || 0 }).cuotaTotalCents
+      : calcularCuotaHipoteca(principalBancoCents, parseFloat(interesAnual) || 0, plazoMeses)
 
   const gastosPreview = calcularGastosCompraLegales({
     precioCents: precioCentsLive,
@@ -197,23 +199,23 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
       notas: notas.trim() || null,
       meta_id: metaId || null,
       datos_compra: {
-        precio:             parseFloat(precio)     || 0,
-        gastos_compra:      parseFloat(gastosCompra) || 0,
-        reforma:            parseFloat(reforma)    || 0,
+        precio: parseFloat(precio) || 0,
+        gastos_compra: parseFloat(gastosCompra) || 0,
+        reforma: parseFloat(reforma) || 0,
         aportacion_inicial: parseFloat(aportacion) || 0,
-        tasacion:           parseFloat(tasacion)   || 450,
+        tasacion: parseFloat(tasacion) || 450,
         ccaa,
         tipo_transmision: tipoTransmision,
         itp_pct_manual: itpManual && itpPctManual !== '' ? parseFloat(itpPctManual) : null,
       },
       hipoteca: {
-        principal:        principalBancoCents / 100,
-        interes_anual:    parseFloat(interesAnual)   || 0,
-        plazo_meses:      plazoMeses,
-        fecha_inicio:     fechaInicio,
+        principal: principalBancoCents / 100,
+        interes_anual: parseFloat(interesAnual) || 0,
+        plazo_meses: plazoMeses,
+        fecha_inicio: fechaInicio,
         modo_financiacion: modoFinanciacion,
-        aval_ico:         modoFinanciacion !== 'ninguna',
-        ltv_banco:        esDual ? ltvBanco : esAvalICO ? 1.0 : null,
+        aval_ico: modoFinanciacion !== 'ninguna',
+        ltv_banco: esDual ? ltvBanco : esAvalICO ? 1.0 : null,
         credito_publico: esDual ? {
           activo: true,
           ltv: ltvPublico,
@@ -221,20 +223,20 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
           nombre: 'Préstamo Público — Familias con menores / Castilla-La Mancha',
         } : { activo: false },
         comision_agente: {
-          activo:  usarComisionAgente,
-          pct:     parseFloat(comisionAgentePct),
+          activo: usarComisionAgente,
+          pct: parseFloat(comisionAgentePct),
           importe: comisionAgenteCents / 100,
         },
       },
       alquiler_config: tipo === 'inversion' ? {
-        renta_mensual:         parseFloat(rentaMensual)  || 0,
-        meses_ocupados:        parseInt(mesesOcupados)   || 11,
-        comunidad_mensual:     parseFloat(comunidad)     || 0,
+        renta_mensual: parseFloat(rentaMensual) || 0,
+        meses_ocupados: parseInt(mesesOcupados) || 11,
+        comunidad_mensual: parseFloat(comunidad) || 0,
         mantenimiento_mensual: parseFloat(mantenimiento) || 0,
-        ibi_anual:             parseFloat(ibi)           || 0,
-        seguro_anual:          parseFloat(seguro)        || 0,
-        gestion_pct:           parseFloat(gestionPct)    || 0,
-        seguro_impago:         parseFloat(seguroImpago)  || 0,
+        ibi_anual: parseFloat(ibi) || 0,
+        seguro_anual: parseFloat(seguro) || 0,
+        gestion_pct: parseFloat(gestionPct) || 0,
+        seguro_impago: parseFloat(seguroImpago) || 0,
       } : {},
     }
 
@@ -276,7 +278,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
           <div className="grid grid-cols-2 gap-2">
             {[
               { id: 'vivienda_habitual', label: 'Vivienda habitual', icon: Home },
-              { id: 'inversion',         label: 'Inversión / Alquiler', icon: TrendingUp },
+              { id: 'inversion', label: 'Inversión / Alquiler', icon: TrendingUp },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -285,8 +287,8 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                 className="flex items-center gap-2 p-3 rounded-xl border text-left transition-all"
                 style={{
                   borderColor: tipo === id ? 'var(--accent-main)' : 'var(--border-glass)',
-                  background:  tipo === id ? 'color-mix(in srgb, var(--accent-main), transparent 92%)' : 'var(--input-bg)',
-                  color:       tipo === id ? 'var(--accent-main)' : 'var(--text-muted)',
+                  background: tipo === id ? 'color-mix(in srgb, var(--accent-main), transparent 92%)' : 'var(--input-bg)',
+                  color: tipo === id ? 'var(--accent-main)' : 'var(--text-muted)',
                 }}>
                 <Icon size={14} />
                 <span className="text-xs font-bold">{label}</span>
@@ -555,7 +557,7 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
                   className="w-full text-left p-3 rounded-xl border transition-all"
                   style={{
                     borderColor: modoFinanciacion === id ? 'var(--accent-violet)' : 'var(--border-glass)',
-                    background:  modoFinanciacion === id ? 'color-mix(in srgb, var(--accent-violet), transparent 85%)' : 'var(--input-bg)',
+                    background: modoFinanciacion === id ? 'color-mix(in srgb, var(--accent-violet), transparent 85%)' : 'var(--input-bg)',
                   }}>
                   <p className="text-xs font-black" style={{ color: modoFinanciacion === id ? 'var(--accent-violet)' : 'var(--text-primary)' }}>
                     {label}
@@ -681,7 +683,11 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
           </div>
           <div>
             <label className="ff-label">Fecha primer pago</label>
-            <input type="month" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} className="ff-input w-full" />
+            <MonthPicker
+              value={fechaInicio}
+              onChange={setFechaInicio}
+              placeholder="Seleccionar mes"
+            />
           </div>
         </div>
       </div>
@@ -791,31 +797,31 @@ export default function FormInmueble({ inmueble = null, metas = [], inmuebles = 
             const pct = necesarioCents > 0 ? Math.min(100, Math.round((actualCents / necesarioCents) * 100)) : 0
             return (
               <div className="space-y-2 mt-2">
-              {conflicto && (
-                <div className="rounded-xl p-3 border flex items-start gap-2" style={{
-                  borderColor: 'color-mix(in srgb, var(--accent-main), transparent 60%)',
-                  background:  'color-mix(in srgb, var(--accent-main), transparent 90%)',
+                {conflicto && (
+                  <div className="rounded-xl p-3 border flex items-start gap-2" style={{
+                    borderColor: 'color-mix(in srgb, var(--accent-main), transparent 60%)',
+                    background: 'color-mix(in srgb, var(--accent-main), transparent 90%)',
+                  }}>
+                    <AlertTriangle size={14} style={{ color: 'var(--accent-main)', flexShrink: 0, marginTop: 1 }} />
+                    <p className="text-xs" style={{ color: 'var(--accent-main)' }}>
+                      Esta hucha ya está vinculada a <strong>"{conflicto.nombre}"</strong>. El saldo se mostrará completo en ambos inmuebles — no se divide.
+                    </p>
+                  </div>
+                )}
+                <div className="rounded-xl p-3 border" style={{
+                  borderColor: falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 70%)' : 'color-mix(in srgb, var(--accent-main), transparent 70%)',
+                  background: falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 93%)' : 'color-mix(in srgb, var(--accent-main), transparent 93%)',
                 }}>
-                  <AlertTriangle size={14} style={{ color: 'var(--accent-main)', flexShrink: 0, marginTop: 1 }} />
-                  <p className="text-xs" style={{ color: 'var(--accent-main)' }}>
-                    Esta hucha ya está vinculada a <strong>"{conflicto.nombre}"</strong>. El saldo se mostrará completo en ambos inmuebles — no se divide.
-                  </p>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs font-bold" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }}>
+                      {falta <= 0 ? '¡Listo para comprar!' : `Faltan ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(fromCents(falta))}`}
+                    </span>
+                    <span className="text-xs font-black" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }}>{pct}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }} />
+                  </div>
                 </div>
-              )}
-              <div className="rounded-xl p-3 border" style={{
-                borderColor: falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 70%)' : 'color-mix(in srgb, var(--accent-main), transparent 70%)',
-                background:  falta <= 0 ? 'color-mix(in srgb, var(--accent-green), transparent 93%)' : 'color-mix(in srgb, var(--accent-main), transparent 93%)',
-              }}>
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-xs font-bold" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }}>
-                    {falta <= 0 ? '¡Listo para comprar!' : `Faltan ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(fromCents(falta))}`}
-                  </span>
-                  <span className="text-xs font-black" style={{ color: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }}>{pct}%</span>
-                </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: falta <= 0 ? 'var(--accent-green)' : 'var(--accent-main)' }} />
-                </div>
-              </div>
               </div>
             )
           })()}

@@ -14,6 +14,7 @@ import CustomSelect from '@/components/ui/CustomSelect'
 import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
 import { getRangoMes, getFechaLocal } from '@/lib/utils'
 import { getCurrentMonth } from '@/lib/utils' // Importamos la utilidad
+import DatePicker from '@/components/temaCalendario/DatePicker'
 
 
 const CATS = [
@@ -333,16 +334,16 @@ export default function GastosPage() {
       // + INSERT deuda_movimientos + UPDATE movimientos (deuda_movimiento_id).
       // Si cualquier paso falla en el servidor, PostgreSQL hace rollback completo.
       const { data: rpcData, error: errRpc } = await supabase.rpc('registrar_movimiento', {
-        p_tipo:            form.tipo,
-        p_monto:           monto,
-        p_descripcion:     descFinal,
-        p_categoria:       form.categoria,
-        p_fecha:           form.fecha,
-        p_quien:           form.quien,
-        p_metodo_pago:     form.tipo === 'egreso' ? metodoPago : 'transferencia',
-        p_meta_id:         metaId || null,
-        p_inversion_id:    invId || null,
-        p_deuda_id:        deudaId || null,
+        p_tipo: form.tipo,
+        p_monto: monto,
+        p_descripcion: descFinal,
+        p_categoria: form.categoria,
+        p_fecha: form.fecha,
+        p_quien: form.quien,
+        p_metodo_pago: form.tipo === 'egreso' ? metodoPago : 'transferencia',
+        p_meta_id: metaId || null,
+        p_inversion_id: invId || null,
+        p_deuda_id: deudaId || null,
         p_subcategoria_id: form.subcategoria_id || null,
       });
 
@@ -1041,8 +1042,11 @@ export default function GastosPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="ff-label">Fecha</label>
-                  <input className="ff-input h-12 text-sm font-medium" type="date" required
-                    value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
+                  <DatePicker
+                    value={form.fecha}
+                    onChange={date => setForm({ ...form, fecha: date })}
+                    placeholder="Seleccionar fecha"
+                  />
                 </div>
               </div>
             )}

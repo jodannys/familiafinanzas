@@ -16,6 +16,8 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useDeudas, calcularCuota, generarTablaAmortizacion, calcularEstadisticas } from './useDeudas'
+import DatePicker from '@/components/temaCalendario/DatePicker'
+
 
 function SortableItem({ id, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
@@ -544,632 +546,632 @@ export default function DeudasPage() {
       )}
 
       {/* Lista */}
-   {loading ? (
-  <div className="space-y-3 py-2">
-    {[1,2,3].map(i => (
-      <div key={i} className="rounded-2xl p-4" style={{ border: '1px solid var(--border-glass)' }}>
-        <div className="flex items-center gap-3">
-          <div className="skeleton w-10 h-10 rounded-2xl flex-shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="skeleton h-3 w-2/5" />
-            <div className="skeleton h-2.5 w-3/5" />
-          </div>
-          <div className="skeleton h-4 w-20" />
+      {loading ? (
+        <div className="space-y-3 py-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded-2xl p-4" style={{ border: '1px solid var(--border-glass)' }}>
+              <div className="flex items-center gap-3">
+                <div className="skeleton w-10 h-10 rounded-2xl flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="skeleton h-3 w-2/5" />
+                  <div className="skeleton h-2.5 w-3/5" />
+                </div>
+                <div className="skeleton h-4 w-20" />
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
-    ))}
-  </div>
-) : deudas.length === 0 ? (
-  /* Añadimos flex-col e items-center para forzar el centrado vertical de los hijos */
-  <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-    <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-      No hay deudas registradas
-    </p>
-    
-    <button 
-      onClick={abrirNueva} 
-      className="ff-btn-primary !w-auto min-w-[200px]"
-    >
-      Agregar primera deuda
-    </button>
-  </div>
-) : (
+      ) : deudas.length === 0 ? (
+        /* Añadimos flex-col e items-center para forzar el centrado vertical de los hijos */
+        <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+            No hay deudas registradas
+          </p>
+
+          <button
+            onClick={abrirNueva}
+            className="ff-btn-primary !w-auto min-w-[200px]"
+          >
+            Agregar primera deuda
+          </button>
+        </div>
+      ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={deudas.map(d => d.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-3">
-          {deudas.map((d, i) => {
-            const diasFaltantes = d.fecha_vencimiento
-              ? Math.ceil((new Date(d.fecha_vencimiento) - new Date()) / (1000 * 60 * 60 * 24))
-              : null
-            const cfg = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
-            const dias = diasHastaPago(d)
-            const urgencia = urgenciaColor(dias)
-            const isExp = expandido === d.id
-            const isTabla = tablaVisible === d.id
-            const isActiva = cardActiva === d.id
-            const movsDeuda = movimientos[d.id] || []
-            const esCuota = d.tipo_deuda === 'cuota'
-            const esMeDeben = d.tipo === 'medeben'
-            const pagadaEsteMes = movsDeuda.some(m => m.tipo === 'pago' && m.mes === mes && m.año === año)
+            <div className="space-y-3">
+              {deudas.map((d, i) => {
+                const diasFaltantes = d.fecha_vencimiento
+                  ? Math.ceil((new Date(d.fecha_vencimiento) - new Date()) / (1000 * 60 * 60 * 24))
+                  : null
+                const cfg = TIPO_CONFIG[d.tipo_deuda] || TIPO_CONFIG.tarjeta
+                const dias = diasHastaPago(d)
+                const urgencia = urgenciaColor(dias)
+                const isExp = expandido === d.id
+                const isTabla = tablaVisible === d.id
+                const isActiva = cardActiva === d.id
+                const movsDeuda = movimientos[d.id] || []
+                const esCuota = d.tipo_deuda === 'cuota'
+                const esMeDeben = d.tipo === 'medeben'
+                const pagadaEsteMes = movsDeuda.some(m => m.tipo === 'pago' && m.mes === mes && m.año === año)
 
-            // ── FIX barra de progreso ──────────────────────────────────────
-            // Usar monto (deuda original) como máximo, con fallback robusto
-            const montoOriginal = d.monto || d.capital || 0
-            const pagado = Math.max(0, montoOriginal - (d.pendiente || 0))
-            const pct = montoOriginal > 0 ? Math.min(100, Math.round((pagado / montoOriginal) * 100)) : 0
-            const tieneProgreso = montoOriginal > 0
+                // ── FIX barra de progreso ──────────────────────────────────────
+                // Usar monto (deuda original) como máximo, con fallback robusto
+                const montoOriginal = d.monto || d.capital || 0
+                const pagado = Math.max(0, montoOriginal - (d.pendiente || 0))
+                const pct = montoOriginal > 0 ? Math.min(100, Math.round((pagado / montoOriginal) * 100)) : 0
+                const tieneProgreso = montoOriginal > 0
 
-            // ── FIX historial: ordenar cronológicamente ASC ────────────────
-            const movsOrdenados = [...movsDeuda].sort((a, b) => {
-              const fa = a.fecha ? new Date(a.fecha) : new Date(0)
-              const fb = b.fecha ? new Date(b.fecha) : new Date(0)
-              return fa - fb
-            })
+                // ── FIX historial: ordenar cronológicamente ASC ────────────────
+                const movsOrdenados = [...movsDeuda].sort((a, b) => {
+                  const fa = a.fecha ? new Date(a.fecha) : new Date(0)
+                  const fb = b.fecha ? new Date(b.fecha) : new Date(0)
+                  return fa - fb
+                })
 
-            // Tabla de amortización (solo cuando está activa)
-            const tieneInteres = (d.tasa_interes || d.tasa || 0) > 0
-            const tablaAmort = isTabla ? generarTablaAmortizacion(d, movsDeuda) : []
+                // Tabla de amortización (solo cuando está activa)
+                const tieneInteres = (d.tasa_interes || d.tasa || 0) > 0
+                const tablaAmort = isTabla ? generarTablaAmortizacion(d, movsDeuda) : []
 
-            return (
-              <SortableItem key={d.id} id={d.id}>
-                {(dragListeners, isDragging) => (
-              <Card
-                className="animate-enter overflow-hidden cursor-pointer select-none"
-                style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px', opacity: isDragging ? 0.45 : 1 }}
-                onClick={() => {
-                  // Click en la card: solo abre/cierra botones de acción
-                  // NO toca historial ni tabla
-                  setCardActiva(isActiva ? null : d.id)
-                }}>
-
-                {diasFaltantes !== null && (
-                  <div className="absolute top-2 right-2">
-                    <div className="text-[9px] font-semibold px-2 py-0.5 rounded-lg uppercase tracking-tighter"
-                      style={{
-                        background: diasFaltantes <= 3
-                          ? 'color-mix(in srgb, var(--accent-rose)  15%, transparent)'
-                          : 'color-mix(in srgb, var(--accent-green) 15%, transparent)',
-                        color: diasFaltantes <= 3 ? 'var(--accent-rose)' : 'var(--accent-green)',
-                      }}>
-                      {diasFaltantes <= 0 ? '¡Vence hoy!' : `Vence en ${diasFaltantes}d`}
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Cabecera: emoji + nombre + montos ── */}
-                <div className="flex items-start gap-2.5 mb-2.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 mt-0.5"
-                    style={{ background: `${d.color || cfg.color}18` }}>
-                    <span>{d.emoji}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
-                      {d.nombre}
-                    </p>
-                   
-                    {/* ── FIX: mostrar deuda original y pendiente ── */}
-                    {montoOriginal > 0 && (
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                          {esMeDeben ? 'Prestado' : 'Total'}: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(montoOriginal)}</span>
-                        </span>
-                        {pagado > 0 && (
-                          <>
-                            <span style={{ color: 'var(--border-glass)' }}>·</span>
-                            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                              {esMeDeben ? 'Cobrado' : 'Pagado'}: <span className="font-semibold" style={{ color: 'var(--accent-green)' }}>{formatCurrency(pagado)}</span>
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    {/* Badges */}
-                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full"
-                        style={{ background: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, color: cfg.color }}>
-                        {cfg.label}
-                      </span>
-                      <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{
-                          background: esMeDeben
-                            ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
-                            : 'color-mix(in srgb, var(--accent-rose) 12%, transparent)',
-                          color: esMeDeben ? 'var(--accent-green)' : 'var(--accent-rose)',
-                        }}>
-                        {esMeDeben ? '🤝 Me deben' : '💸 Debo'}
-                      </span>
-                      <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{
-                          background: d.categoria === 'basicos'
-                            ? 'color-mix(in srgb, var(--accent-blue)  10%, transparent)'
-                            : 'color-mix(in srgb, var(--accent-terra) 10%, transparent)',
-                          color: d.categoria === 'basicos' ? 'var(--accent-blue)' : 'var(--accent-terra)',
-                        }}>
-                        {d.categoria}
-                      </span>
-                      {urgencia && (
-                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: urgencia.bg, color: urgencia.text }}>
-                          {urgencia.label}
-                        </span>
-                      )}
-                      {pagadaEsteMes && (
-                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{
-                            background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
-                            color: 'var(--accent-green)',
-                          }}>
-                          ✓ {esMeDeben ? 'Cobrada' : 'Pagada'} este mes
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {/* Monto pendiente a la derecha */}
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-base font-semibold tabular-nums"
-                      style={{ color: d.color || cfg.color, letterSpacing: '-0.02em' }}>
-                      {formatCurrency(d.pendiente || 0)}
-                    </p>
-                    <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                      {esMeDeben ? 'por cobrar' : 'pendiente'}
-                    </p>
-                    {d.cuota > 0 && (
-                      <p className="text-[9px] font-semibold mt-0.5 tabular-nums"
-                        style={{ color: 'var(--text-muted)' }}>
-                        {formatCurrency(d.cuota)}/mes
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    {...dragListeners}
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      touchAction: 'none', cursor: 'grab',
-                      background: 'none', border: 'none', padding: 4,
-                      color: 'var(--text-muted)', opacity: 0.35, flexShrink: 0,
-                      display: 'flex', alignItems: 'center', alignSelf: 'center',
-                    }}
-                  >
-                    <GripVertical size={14} />
-                  </button>
-                </div>
-
-                {/* ── FIX barra de progreso: solo renderizar si hay monto original ── */}
-                {tieneProgreso && (
-                  <div className="mb-1.5">
-                    <ProgressBar value={pagado} max={montoOriginal} color={d.color || cfg.color} />
-                    <div className="flex justify-between mt-1">
-                      <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
-                        {pct}% {esMeDeben ? 'cobrado' : 'pagado'}
-                      </span>
-                      <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
-                        {formatCurrency(d.pendiente || 0)} {esMeDeben ? 'por cobrar' : 'restante'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Info secundaria */}
-                <div className="flex items-center gap-2 flex-wrap mt-1">
-                  {d.plazo_meses && (
-                    <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                      {d.pagadas || 0}/{d.plazo_meses} cuotas
-                    </span>
-                  )}
-                  {!d.plazo_meses && d.tipo_deuda === 'prestamo' && (
-                    <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Pago flexible</span>
-                  )}
-                  {d.dia_pago && (
-                    <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                      {esMeDeben ? 'Cobro' : 'Pago'} día {d.dia_pago}
-                    </span>
-                  )}
-                  {d.estado === 'pagada' && (
-                    <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{
-                        background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
-                        color: 'var(--accent-green)',
-                      }}>
-                      {esMeDeben ? '¡Cobrada!' : '¡Saldada!'}
-                    </span>
-                  )}
-                </div>
-
-                {/* ── Botones de acción (se abren al tocar la card) ── */}
-                <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-24 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
-                  style={{ borderColor: 'var(--border-glass)' }}>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {/* Marcar pagada / cobrar */}
-                    {((esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0) || (d.tipo_deuda === 'tarjeta' && d.cuota > 0)) || (esMeDeben && (d.pendiente || 0) > 0)) && d.estado !== 'pagada' && (
-                      <button
-                        onClick={e => { e.stopPropagation(); handleMarcarPagada(d) }}
-                        disabled={saving || pagadaEsteMes}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-semibold uppercase transition-all active:scale-95 disabled:opacity-40"
-                        style={{
-                          background: pagadaEsteMes
-                            ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
-                            : 'color-mix(in srgb, var(--accent-green) 12%, transparent)',
-                          color: 'var(--accent-green)',
-                        }}>
-                        <Check size={11} strokeWidth={3} />
-                        {pagadaEsteMes ? (esMeDeben ? 'Cobrada' : 'Pagada') : (esMeDeben ? 'Cobrar' : 'Pagar')}
-                      </button>
-                    )}
-                    {/* Cargo / Prestar más */}
-                    <IconBtn
-                      onClick={() => {
-                        setModalMov(d.id)
-                        setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
-                      }}
-                      title={esMeDeben ? 'Prestar más dinero' : 'Registrar cargo'}
-                      bg={esMeDeben
-                        ? 'color-mix(in srgb, var(--accent-blue) 10%, transparent)'
-                        : 'color-mix(in srgb, var(--accent-rose) 10%, transparent)'}
-                      color={esMeDeben ? 'var(--accent-blue)' : 'var(--accent-rose)'}>
-                      <ArrowDownRight size={13} strokeWidth={2.5} />
-                    </IconBtn>
-                    {/* Pago / cobro */}
-                    <IconBtn
-                      onClick={() => {
-                        setModalMov(d.id)
-                        setFormMov({ tipo: 'pago', descripcion: esMeDeben ? `Cobro ${d.nombre}` : `Pago ${d.nombre}`, monto: d.cuota || d.pendiente || '', fecha: fechaHoy() })
-                      }}
-                      title={esMeDeben ? 'Registrar cobro' : 'Registrar pago'}
-                      bg="color-mix(in srgb, var(--accent-green) 10%, transparent)"
-                      color="var(--accent-green)">
-                      <ArrowUpRight size={13} strokeWidth={2.5} />
-                    </IconBtn>
-                    {/* ── FIX botón historial: toggle independiente ── */}
-                    <IconBtn
-                      onClick={() => {
-                        const nuevoExp = isExp ? null : d.id
-                        setExpandido(nuevoExp)
-                        // Si abrimos historial, cerramos tabla (y viceversa)
-                        if (nuevoExp) setTablaVisible(null)
-                      }}
-                      title={isExp ? 'Ocultar historial' : 'Ver historial'}
-                      bg={isExp ? 'color-mix(in srgb, var(--accent-blue) 15%, transparent)' : 'var(--bg-secondary)'}
-                      color={isExp ? 'var(--accent-blue)' : 'var(--text-muted)'}>
-                      {isExp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                    </IconBtn>
-                    {/* Tabla de amortización */}
-                    <IconBtn
-                      onClick={() => {
-                        const nuevaTabla = isTabla ? null : d.id
-                        setTablaVisible(nuevaTabla)
-                        // Si abrimos tabla, cerramos historial
-                        if (nuevaTabla) setExpandido(null)
-                      }}
-                      title={d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'}
-                      bg={isTabla ? 'color-mix(in srgb, var(--accent-violet) 15%, transparent)' : 'var(--bg-secondary)'}
-                      color={isTabla ? 'var(--accent-violet)' : 'var(--text-muted)'}>
-                      <Table2 size={12} />
-                    </IconBtn>
-                    {/* WhatsApp */}
-                    {d.telefono && (
-                      <IconBtn
+                return (
+                  <SortableItem key={d.id} id={d.id}>
+                    {(dragListeners, isDragging) => (
+                      <Card
+                        className="animate-enter overflow-hidden cursor-pointer select-none"
+                        style={{ animationDelay: `${i * 0.04}s`, padding: '14px 16px', opacity: isDragging ? 0.45 : 1 }}
                         onClick={() => {
-                          const phone = d.telefono.replace(/\D/g, '')
-                          const monto = formatCurrency(d.cuota || d.pendiente || 0)
-                          const msg = `Hola! 👋 Te confirmo el pago de *${d.nombre}* por *${monto}*. ✅`
-                          window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
-                        }}
-                        title="Notificar por WhatsApp"
-                        bg="color-mix(in srgb, var(--accent-green) 12%, transparent)"
-                        color="var(--accent-green)">
-                        <MessageCircle size={12} />
-                      </IconBtn>
-                    )}
-                    <IconBtn onClick={() => { abrirEdicion(d) }} title="Editar"
-                      bg="color-mix(in srgb, var(--accent-blue) 10%, transparent)"
-                      color="var(--accent-blue)">
-                      <Pencil size={12} />
-                    </IconBtn>
-                    <IconBtn onClick={() => handleDeleteDeuda(d.id)} title="Eliminar"
-                      bg="color-mix(in srgb, var(--accent-rose) 8%, transparent)"
-                      color="var(--accent-rose)">
-                      <Trash2 size={12} />
-                    </IconBtn>
-                  </div>
-                </div>
+                          // Click en la card: solo abre/cierra botones de acción
+                          // NO toca historial ni tabla
+                          setCardActiva(isActiva ? null : d.id)
+                        }}>
 
-                {/* ── FIX Historial de movimientos (ordenado ASC, con monto original al inicio) ── */}
-                {isExp && (
-                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}
-                    onClick={e => e.stopPropagation()}>
-                    <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-                      Historial de movimientos
-                    </p>
+                        {diasFaltantes !== null && (
+                          <div className="absolute top-2 right-2">
+                            <div className="text-[9px] font-semibold px-2 py-0.5 rounded-lg uppercase tracking-tighter"
+                              style={{
+                                background: diasFaltantes <= 3
+                                  ? 'color-mix(in srgb, var(--accent-rose)  15%, transparent)'
+                                  : 'color-mix(in srgb, var(--accent-green) 15%, transparent)',
+                                color: diasFaltantes <= 3 ? 'var(--accent-rose)' : 'var(--accent-green)',
+                              }}>
+                              {diasFaltantes <= 0 ? '¡Vence hoy!' : `Vence en ${diasFaltantes}d`}
+                            </div>
+                          </div>
+                        )}
 
-                    {/* Fila de creación de la deuda (monto original) */}
-                    {montoOriginal > 0 && (
-                      <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg mb-1"
-                        style={{ background: 'var(--bg-secondary)' }}>
-                        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: 'color-mix(in srgb, var(--text-muted) 12%, transparent)' }}>
-                          <span className="text-[10px]">{d.emoji}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                            Deuda registrada
-                          </p>
-                          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                            {d.fecha_primer_pago
-                              ? new Date(d.fecha_primer_pago + 'T12:00:00').toLocaleDateString('es-ES')
-                              : new Date(d.created_at).toLocaleDateString('es-ES')}
-                          </p>
-                        </div>
-                        <p className="text-xs font-semibold tabular-nums flex-shrink-0"
-                          style={{ color: 'var(--text-secondary)' }}>
-                          {formatCurrency(montoOriginal)}
-                        </p>
-                      </div>
-                    )}
+                        {/* ── Cabecera: emoji + nombre + montos ── */}
+                        <div className="flex items-start gap-2.5 mb-2.5">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 mt-0.5"
+                            style={{ background: `${d.color || cfg.color}18` }}>
+                            <span>{d.emoji}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                              {d.nombre}
+                            </p>
 
-                    {movsOrdenados.length === 0 ? (
-                      <p className="text-[10px] italic text-center py-2" style={{ color: 'var(--text-muted)' }}>
-                        Sin movimientos registrados
-                      </p>
-                    ) : movsOrdenados.map(m => (
-                      <div key={m.id}
-                        className="flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors"
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{
-                            background: m.tipo === 'pago'
-                              ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)'
-                              : 'color-mix(in srgb, var(--accent-rose)  10%, transparent)',
-                          }}>
-                          {m.tipo === 'pago'
-                            ? <ArrowUpRight size={11} style={{ color: 'var(--accent-green)' }} />
-                            : <ArrowDownRight size={11} style={{ color: 'var(--accent-rose)' }} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                            {m.descripcion}
-                          </p>
-                          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                            {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES') : '—'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <p className="text-xs font-semibold tabular-nums"
-                            style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                            {m.tipo === 'pago' ? '−' : '+'}{formatCurrency(m.monto)}
-                          </p>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation()
-                              setEditandoMov(m)
-                              setFormMov({ tipo: m.tipo, descripcion: m.descripcion, monto: m.monto?.toString() || '', fecha: m.fecha })
-                            }}
-                            className="p-1 rounded-lg transition-opacity"
-                            style={{ color: 'var(--accent-blue)', opacity: 0.3 }}
-                            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                            onMouseLeave={e => e.currentTarget.style.opacity = '0.3'}
-                            title="Editar movimiento">
-                            <Pencil size={11} />
-                          </button>
-                          <button
-                            onClick={e => { e.stopPropagation(); handleDeleteMov(m) }}
-                            className="p-1 rounded-lg transition-opacity"
-                            style={{ color: 'var(--accent-rose)', opacity: 0.3 }}
-                            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                            onMouseLeave={e => e.currentTarget.style.opacity = '0.3'}
-                            title="Borrar y revertir">
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Resumen de saldo */}
-                    {montoOriginal > 0 && (
-                      <div className="flex justify-between items-center mt-2 pt-2 border-t px-2"
-                        style={{ borderColor: 'var(--border-glass)' }}>
-                        <span className="text-[9px] font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>
-                          Saldo pendiente
-                        </span>
-                        <span className="text-xs font-semibold tabular-nums"
-                          style={{ color: d.pendiente > 0 ? (d.color || cfg.color) : 'var(--accent-green)' }}>
-                          {formatCurrency(d.pendiente || 0)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ── FIX Tabla: sin columnas inútiles cuando no hay interés ── */}
-                {isTabla && (
-                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}
-                    onClick={e => e.stopPropagation()}>
-                    <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-                      {d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'} · {d.nombre}
-                    </p>
-                    <div className="overflow-x-auto -mx-2">
-
-                      {/* Tabla de amortización (préstamo/tarjeta con plazo) */}
-                      {tablaAmort.length > 0 && (
-                        <table className="w-full text-[9px]" style={{ minWidth: tieneInteres ? 380 : 280 }}>
-                          <thead>
-                            <tr style={{ color: 'var(--text-muted)' }}>
-                              <th className="px-2 py-1 text-left font-semibold uppercase">#</th>
-                              <th className="px-2 py-1 text-left font-semibold uppercase">Mes</th>
-                              <th className="px-2 py-1 text-right font-semibold uppercase">Cuota</th>
-                              {tieneInteres && (
-                                <>
-                                  <th className="px-2 py-1 text-right font-semibold uppercase">Capital</th>
-                                  <th className="px-2 py-1 text-right font-semibold uppercase">Interés</th>
-                                </>
-                              )}
-                              <th className="px-2 py-1 text-right font-semibold uppercase">Saldo</th>
-                              <th className="px-2 py-1 text-center font-semibold uppercase">Estado</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {tablaAmort.map(row => {
-                              const esActual = row.mes === mes && row.año === año
-                              return (
-                                <tr key={row.periodo}
-                                  style={{
-                                    background: row.parcial
-                                      ? 'color-mix(in srgb, var(--accent-terra) 6%, transparent)'
-                                      : row.pagada
-                                        ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)'
-                                        : esActual
-                                          ? 'color-mix(in srgb, var(--accent-violet) 6%, transparent)'
-                                          : 'transparent',
-                                  }}>
-                                  <td className="px-2 py-1.5 font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                                    {row.periodo}
-                                  </td>
-                                  <td className="px-2 py-1.5 font-semibold" style={{ color: esActual ? 'var(--accent-violet)' : 'var(--text-secondary)' }}>
-                                    {row.fechaLabel}
-                                    {esActual && (
-                                      <span className="ml-1 text-[8px] px-1 rounded"
-                                        style={{ background: 'color-mix(in srgb, var(--accent-violet) 20%, transparent)', color: 'var(--accent-violet)' }}>
-                                        hoy
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                                    {row.parcial ? (
-                                      <span>
-                                        <span className="line-through opacity-40">{formatCurrency(row.cuota)}</span>
-                                        {' '}
-                                        <span className="font-semibold" style={{ color: 'var(--accent-terra)' }}>
-                                          {formatCurrency(row.cuotaReal)}
-                                        </span>
-                                      </span>
-                                    ) : (
-                                      <span className="font-semibold">{formatCurrency(row.cuota)}</span>
-                                    )}
-                                  </td>
-                                  {tieneInteres && (
-                                    <>
-                                      <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--accent-blue)' }}>
-                                        {formatCurrency(row.capital)}
-                                      </td>
-                                      <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--accent-rose)' }}>
-                                        {formatCurrency(row.interes)}
-                                      </td>
-                                    </>
-                                  )}
-                                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                                    {formatCurrency(row.saldo)}
-                                  </td>
-                                  <td className="px-2 py-1.5 text-center">
-                                    {row.parcial ? (
-                                      <span title="Pago parcial" style={{ color: 'var(--accent-terra)' }}>≈</span>
-                                    ) : row.pagada ? (
-                                      <span style={{ color: 'var(--accent-green)' }}>✓</span>
-                                    ) : row.vencida ? (
-                                      <span style={{ color: 'var(--accent-rose)' }}>!</span>
-                                    ) : (
-                                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                          <tfoot>
-                            <tr style={{ borderTop: '1px solid var(--border-glass)' }}>
-                              <td colSpan={2} className="px-2 py-1.5 font-semibold text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>
-                                Total
-                              </td>
-                              <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                                {formatCurrency(tablaAmort.reduce((s, r) => s + r.cuota, 0))}
-                              </td>
-                              {tieneInteres && (
-                                <>
-                                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-blue)' }}>
-                                    {formatCurrency(tablaAmort.reduce((s, r) => s + r.capital, 0))}
-                                  </td>
-                                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-rose)' }}>
-                                    {formatCurrency(tablaAmort.reduce((s, r) => s + r.interes, 0))}
-                                  </td>
-                                </>
-                              )}
-                              <td colSpan={2} />
-                            </tr>
-                          </tfoot>
-                        </table>
-                      )}
-
-                      {/* Historial simple (sin plazo fijo: pago libre o cuota) */}
-                      {tablaAmort.length === 0 && (
-                        <table className="w-full text-[9px]" style={{ minWidth: 280 }}>
-                          <thead>
-                            <tr style={{ color: 'var(--text-muted)' }}>
-                              <th className="px-2 py-1 text-left font-semibold uppercase">Fecha</th>
-                              <th className="px-2 py-1 text-left font-semibold uppercase">Descripción</th>
-                              <th className="px-2 py-1 text-right font-semibold uppercase">Monto</th>
-                              <th className="px-2 py-1 text-center font-semibold uppercase">Tipo</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {/* Fila de creación de la deuda */}
-                            <tr>
-                              <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                                {new Date(d.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' })}
-                              </td>
-                              <td className="px-2 py-1.5" style={{ color: 'var(--text-secondary)' }}>
-                                {d.descripcion || d.nombre}
-                              </td>
-                              <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-rose)' }}>
-                                +{formatCurrency(d.capital || d.monto || 0)}
-                              </td>
-                              <td className="px-2 py-1.5 text-center">
-                                <span className="px-1.5 py-0.5 rounded-full font-semibold"
-                                  style={{ background: 'color-mix(in srgb, var(--text-muted) 12%, transparent)', color: 'var(--text-muted)' }}>
-                                  Origen
+                            {/* ── FIX: mostrar deuda original y pendiente ── */}
+                            {montoOriginal > 0 && (
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                  {esMeDeben ? 'Prestado' : 'Total'}: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(montoOriginal)}</span>
                                 </span>
-                              </td>
-                            </tr>
-                            {movsOrdenados.map(m => (
-                              <tr key={m.id}>
-                                <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                                  {m.fecha ? new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
-                                </td>
-                                <td className="px-2 py-1.5 truncate max-w-[120px]" style={{ color: 'var(--text-secondary)' }}>
-                                  {m.descripcion || '—'}
-                                </td>
-                                <td className="px-2 py-1.5 text-right font-semibold tabular-nums"
-                                  style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-                                  {m.tipo === 'pago' ? '−' : '+'}{formatCurrency(m.monto)}
-                                </td>
-                                <td className="px-2 py-1.5 text-center">
-                                  <span className="px-1.5 py-0.5 rounded-full font-semibold"
-                                    style={{
-                                      background: m.tipo === 'pago'
-                                        ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
-                                        : 'color-mix(in srgb, var(--accent-rose) 12%, transparent)',
-                                      color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
-                                    }}>
-                                    {m.tipo === 'cargo' ? 'Cargo' : 'Pago'}
-                                  </span>
-                                </td>
-                              </tr>
+                                {pagado > 0 && (
+                                  <>
+                                    <span style={{ color: 'var(--border-glass)' }}>·</span>
+                                    <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                      {esMeDeben ? 'Cobrado' : 'Pagado'}: <span className="font-semibold" style={{ color: 'var(--accent-green)' }}>{formatCurrency(pagado)}</span>
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            {/* Badges */}
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full"
+                                style={{ background: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, color: cfg.color }}>
+                                {cfg.label}
+                              </span>
+                              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                                style={{
+                                  background: esMeDeben
+                                    ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
+                                    : 'color-mix(in srgb, var(--accent-rose) 12%, transparent)',
+                                  color: esMeDeben ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                }}>
+                                {esMeDeben ? '🤝 Me deben' : '💸 Debo'}
+                              </span>
+                              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                                style={{
+                                  background: d.categoria === 'basicos'
+                                    ? 'color-mix(in srgb, var(--accent-blue)  10%, transparent)'
+                                    : 'color-mix(in srgb, var(--accent-terra) 10%, transparent)',
+                                  color: d.categoria === 'basicos' ? 'var(--accent-blue)' : 'var(--accent-terra)',
+                                }}>
+                                {d.categoria}
+                              </span>
+                              {urgencia && (
+                                <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                                  style={{ background: urgencia.bg, color: urgencia.text }}>
+                                  {urgencia.label}
+                                </span>
+                              )}
+                              {pagadaEsteMes && (
+                                <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                                  style={{
+                                    background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
+                                    color: 'var(--accent-green)',
+                                  }}>
+                                  ✓ {esMeDeben ? 'Cobrada' : 'Pagada'} este mes
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Monto pendiente a la derecha */}
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-base font-semibold tabular-nums"
+                              style={{ color: d.color || cfg.color, letterSpacing: '-0.02em' }}>
+                              {formatCurrency(d.pendiente || 0)}
+                            </p>
+                            <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                              {esMeDeben ? 'por cobrar' : 'pendiente'}
+                            </p>
+                            {d.cuota > 0 && (
+                              <p className="text-[9px] font-semibold mt-0.5 tabular-nums"
+                                style={{ color: 'var(--text-muted)' }}>
+                                {formatCurrency(d.cuota)}/mes
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            {...dragListeners}
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              touchAction: 'none', cursor: 'grab',
+                              background: 'none', border: 'none', padding: 4,
+                              color: 'var(--text-muted)', opacity: 0.35, flexShrink: 0,
+                              display: 'flex', alignItems: 'center', alignSelf: 'center',
+                            }}
+                          >
+                            <GripVertical size={14} />
+                          </button>
+                        </div>
+
+                        {/* ── FIX barra de progreso: solo renderizar si hay monto original ── */}
+                        {tieneProgreso && (
+                          <div className="mb-1.5">
+                            <ProgressBar value={pagado} max={montoOriginal} color={d.color || cfg.color} />
+                            <div className="flex justify-between mt-1">
+                              <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
+                                {pct}% {esMeDeben ? 'cobrado' : 'pagado'}
+                              </span>
+                              <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>
+                                {formatCurrency(d.pendiente || 0)} {esMeDeben ? 'por cobrar' : 'restante'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Info secundaria */}
+                        <div className="flex items-center gap-2 flex-wrap mt-1">
+                          {d.plazo_meses && (
+                            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                              {d.pagadas || 0}/{d.plazo_meses} cuotas
+                            </span>
+                          )}
+                          {!d.plazo_meses && d.tipo_deuda === 'prestamo' && (
+                            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Pago flexible</span>
+                          )}
+                          {d.dia_pago && (
+                            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                              {esMeDeben ? 'Cobro' : 'Pago'} día {d.dia_pago}
+                            </span>
+                          )}
+                          {d.estado === 'pagada' && (
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{
+                                background: 'color-mix(in srgb, var(--accent-green) 10%, transparent)',
+                                color: 'var(--accent-green)',
+                              }}>
+                              {esMeDeben ? '¡Cobrada!' : '¡Saldada!'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* ── Botones de acción (se abren al tocar la card) ── */}
+                        <div className={`transition-all duration-200 overflow-hidden ${isActiva ? 'max-h-24 opacity-100 mt-3 pt-3 border-t' : 'max-h-0 opacity-0'}`}
+                          style={{ borderColor: 'var(--border-glass)' }}>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {/* Marcar pagada / cobrar */}
+                            {((esCuota || (d.tipo_deuda === 'prestamo' && d.cuota > 0) || (d.tipo_deuda === 'tarjeta' && d.cuota > 0)) || (esMeDeben && (d.pendiente || 0) > 0)) && d.estado !== 'pagada' && (
+                              <button
+                                onClick={e => { e.stopPropagation(); handleMarcarPagada(d) }}
+                                disabled={saving || pagadaEsteMes}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-semibold uppercase transition-all active:scale-95 disabled:opacity-40"
+                                style={{
+                                  background: pagadaEsteMes
+                                    ? 'color-mix(in srgb, var(--accent-green) 8%, transparent)'
+                                    : 'color-mix(in srgb, var(--accent-green) 12%, transparent)',
+                                  color: 'var(--accent-green)',
+                                }}>
+                                <Check size={11} strokeWidth={3} />
+                                {pagadaEsteMes ? (esMeDeben ? 'Cobrada' : 'Pagada') : (esMeDeben ? 'Cobrar' : 'Pagar')}
+                              </button>
+                            )}
+                            {/* Cargo / Prestar más */}
+                            <IconBtn
+                              onClick={() => {
+                                setModalMov(d.id)
+                                setFormMov({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
+                              }}
+                              title={esMeDeben ? 'Prestar más dinero' : 'Registrar cargo'}
+                              bg={esMeDeben
+                                ? 'color-mix(in srgb, var(--accent-blue) 10%, transparent)'
+                                : 'color-mix(in srgb, var(--accent-rose) 10%, transparent)'}
+                              color={esMeDeben ? 'var(--accent-blue)' : 'var(--accent-rose)'}>
+                              <ArrowDownRight size={13} strokeWidth={2.5} />
+                            </IconBtn>
+                            {/* Pago / cobro */}
+                            <IconBtn
+                              onClick={() => {
+                                setModalMov(d.id)
+                                setFormMov({ tipo: 'pago', descripcion: esMeDeben ? `Cobro ${d.nombre}` : `Pago ${d.nombre}`, monto: d.cuota || d.pendiente || '', fecha: fechaHoy() })
+                              }}
+                              title={esMeDeben ? 'Registrar cobro' : 'Registrar pago'}
+                              bg="color-mix(in srgb, var(--accent-green) 10%, transparent)"
+                              color="var(--accent-green)">
+                              <ArrowUpRight size={13} strokeWidth={2.5} />
+                            </IconBtn>
+                            {/* ── FIX botón historial: toggle independiente ── */}
+                            <IconBtn
+                              onClick={() => {
+                                const nuevoExp = isExp ? null : d.id
+                                setExpandido(nuevoExp)
+                                // Si abrimos historial, cerramos tabla (y viceversa)
+                                if (nuevoExp) setTablaVisible(null)
+                              }}
+                              title={isExp ? 'Ocultar historial' : 'Ver historial'}
+                              bg={isExp ? 'color-mix(in srgb, var(--accent-blue) 15%, transparent)' : 'var(--bg-secondary)'}
+                              color={isExp ? 'var(--accent-blue)' : 'var(--text-muted)'}>
+                              {isExp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                            </IconBtn>
+                            {/* Tabla de amortización */}
+                            <IconBtn
+                              onClick={() => {
+                                const nuevaTabla = isTabla ? null : d.id
+                                setTablaVisible(nuevaTabla)
+                                // Si abrimos tabla, cerramos historial
+                                if (nuevaTabla) setExpandido(null)
+                              }}
+                              title={d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'}
+                              bg={isTabla ? 'color-mix(in srgb, var(--accent-violet) 15%, transparent)' : 'var(--bg-secondary)'}
+                              color={isTabla ? 'var(--accent-violet)' : 'var(--text-muted)'}>
+                              <Table2 size={12} />
+                            </IconBtn>
+                            {/* WhatsApp */}
+                            {d.telefono && (
+                              <IconBtn
+                                onClick={() => {
+                                  const phone = d.telefono.replace(/\D/g, '')
+                                  const monto = formatCurrency(d.cuota || d.pendiente || 0)
+                                  const msg = `Hola! 👋 Te confirmo el pago de *${d.nombre}* por *${monto}*. ✅`
+                                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+                                }}
+                                title="Notificar por WhatsApp"
+                                bg="color-mix(in srgb, var(--accent-green) 12%, transparent)"
+                                color="var(--accent-green)">
+                                <MessageCircle size={12} />
+                              </IconBtn>
+                            )}
+                            <IconBtn onClick={() => { abrirEdicion(d) }} title="Editar"
+                              bg="color-mix(in srgb, var(--accent-blue) 10%, transparent)"
+                              color="var(--accent-blue)">
+                              <Pencil size={12} />
+                            </IconBtn>
+                            <IconBtn onClick={() => handleDeleteDeuda(d.id)} title="Eliminar"
+                              bg="color-mix(in srgb, var(--accent-rose) 8%, transparent)"
+                              color="var(--accent-rose)">
+                              <Trash2 size={12} />
+                            </IconBtn>
+                          </div>
+                        </div>
+
+                        {/* ── FIX Historial de movimientos (ordenado ASC, con monto original al inicio) ── */}
+                        {isExp && (
+                          <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}
+                            onClick={e => e.stopPropagation()}>
+                            <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+                              Historial de movimientos
+                            </p>
+
+                            {/* Fila de creación de la deuda (monto original) */}
+                            {montoOriginal > 0 && (
+                              <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg mb-1"
+                                style={{ background: 'var(--bg-secondary)' }}>
+                                <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{ background: 'color-mix(in srgb, var(--text-muted) 12%, transparent)' }}>
+                                  <span className="text-[10px]">{d.emoji}</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                                    Deuda registrada
+                                  </p>
+                                  <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                    {d.fecha_primer_pago
+                                      ? new Date(d.fecha_primer_pago + 'T12:00:00').toLocaleDateString('es-ES')
+                                      : new Date(d.created_at).toLocaleDateString('es-ES')}
+                                  </p>
+                                </div>
+                                <p className="text-xs font-semibold tabular-nums flex-shrink-0"
+                                  style={{ color: 'var(--text-secondary)' }}>
+                                  {formatCurrency(montoOriginal)}
+                                </p>
+                              </div>
+                            )}
+
+                            {movsOrdenados.length === 0 ? (
+                              <p className="text-[10px] italic text-center py-2" style={{ color: 'var(--text-muted)' }}>
+                                Sin movimientos registrados
+                              </p>
+                            ) : movsOrdenados.map(m => (
+                              <div key={m.id}
+                                className="flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors"
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{
+                                    background: m.tipo === 'pago'
+                                      ? 'color-mix(in srgb, var(--accent-green) 10%, transparent)'
+                                      : 'color-mix(in srgb, var(--accent-rose)  10%, transparent)',
+                                  }}>
+                                  {m.tipo === 'pago'
+                                    ? <ArrowUpRight size={11} style={{ color: 'var(--accent-green)' }} />
+                                    : <ArrowDownRight size={11} style={{ color: 'var(--accent-rose)' }} />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                                    {m.descripcion}
+                                  </p>
+                                  <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                                    {m.fecha ? new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-ES') : '—'}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <p className="text-xs font-semibold tabular-nums"
+                                    style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                                    {m.tipo === 'pago' ? '−' : '+'}{formatCurrency(m.monto)}
+                                  </p>
+                                  <button
+                                    onClick={e => {
+                                      e.stopPropagation()
+                                      setEditandoMov(m)
+                                      setFormMov({ tipo: m.tipo, descripcion: m.descripcion, monto: m.monto?.toString() || '', fecha: m.fecha })
+                                    }}
+                                    className="p-1 rounded-lg transition-opacity"
+                                    style={{ color: 'var(--accent-blue)', opacity: 0.3 }}
+                                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                    onMouseLeave={e => e.currentTarget.style.opacity = '0.3'}
+                                    title="Editar movimiento">
+                                    <Pencil size={11} />
+                                  </button>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); handleDeleteMov(m) }}
+                                    className="p-1 rounded-lg transition-opacity"
+                                    style={{ color: 'var(--accent-rose)', opacity: 0.3 }}
+                                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                    onMouseLeave={e => e.currentTarget.style.opacity = '0.3'}
+                                    title="Borrar y revertir">
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                    {tablaAmort.length > 0 && (
-                      <p className="text-[8px] mt-1.5 px-2" style={{ color: 'var(--text-muted)' }}>
-                        ✓ pagada · ≈ parcial (saldo recalculado) · ! vencida sin pago · — pendiente
-                      </p>
+
+                            {/* Resumen de saldo */}
+                            {montoOriginal > 0 && (
+                              <div className="flex justify-between items-center mt-2 pt-2 border-t px-2"
+                                style={{ borderColor: 'var(--border-glass)' }}>
+                                <span className="text-[9px] font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>
+                                  Saldo pendiente
+                                </span>
+                                <span className="text-xs font-semibold tabular-nums"
+                                  style={{ color: d.pendiente > 0 ? (d.color || cfg.color) : 'var(--accent-green)' }}>
+                                  {formatCurrency(d.pendiente || 0)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* ── FIX Tabla: sin columnas inútiles cuando no hay interés ── */}
+                        {isTabla && (
+                          <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}
+                            onClick={e => e.stopPropagation()}>
+                            <p className="text-[9px] uppercase font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+                              {d.plazo_meses ? 'Tabla de amortización' : 'Historial detallado'} · {d.nombre}
+                            </p>
+                            <div className="overflow-x-auto -mx-2">
+
+                              {/* Tabla de amortización (préstamo/tarjeta con plazo) */}
+                              {tablaAmort.length > 0 && (
+                                <table className="w-full text-[9px]" style={{ minWidth: tieneInteres ? 380 : 280 }}>
+                                  <thead>
+                                    <tr style={{ color: 'var(--text-muted)' }}>
+                                      <th className="px-2 py-1 text-left font-semibold uppercase">#</th>
+                                      <th className="px-2 py-1 text-left font-semibold uppercase">Mes</th>
+                                      <th className="px-2 py-1 text-right font-semibold uppercase">Cuota</th>
+                                      {tieneInteres && (
+                                        <>
+                                          <th className="px-2 py-1 text-right font-semibold uppercase">Capital</th>
+                                          <th className="px-2 py-1 text-right font-semibold uppercase">Interés</th>
+                                        </>
+                                      )}
+                                      <th className="px-2 py-1 text-right font-semibold uppercase">Saldo</th>
+                                      <th className="px-2 py-1 text-center font-semibold uppercase">Estado</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {tablaAmort.map(row => {
+                                      const esActual = row.mes === mes && row.año === año
+                                      return (
+                                        <tr key={row.periodo}
+                                          style={{
+                                            background: row.parcial
+                                              ? 'color-mix(in srgb, var(--accent-terra) 6%, transparent)'
+                                              : row.pagada
+                                                ? 'color-mix(in srgb, var(--accent-green) 6%, transparent)'
+                                                : esActual
+                                                  ? 'color-mix(in srgb, var(--accent-violet) 6%, transparent)'
+                                                  : 'transparent',
+                                          }}>
+                                          <td className="px-2 py-1.5 font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                            {row.periodo}
+                                          </td>
+                                          <td className="px-2 py-1.5 font-semibold" style={{ color: esActual ? 'var(--accent-violet)' : 'var(--text-secondary)' }}>
+                                            {row.fechaLabel}
+                                            {esActual && (
+                                              <span className="ml-1 text-[8px] px-1 rounded"
+                                                style={{ background: 'color-mix(in srgb, var(--accent-violet) 20%, transparent)', color: 'var(--accent-violet)' }}>
+                                                hoy
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                                            {row.parcial ? (
+                                              <span>
+                                                <span className="line-through opacity-40">{formatCurrency(row.cuota)}</span>
+                                                {' '}
+                                                <span className="font-semibold" style={{ color: 'var(--accent-terra)' }}>
+                                                  {formatCurrency(row.cuotaReal)}
+                                                </span>
+                                              </span>
+                                            ) : (
+                                              <span className="font-semibold">{formatCurrency(row.cuota)}</span>
+                                            )}
+                                          </td>
+                                          {tieneInteres && (
+                                            <>
+                                              <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--accent-blue)' }}>
+                                                {formatCurrency(row.capital)}
+                                              </td>
+                                              <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--accent-rose)' }}>
+                                                {formatCurrency(row.interes)}
+                                              </td>
+                                            </>
+                                          )}
+                                          <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                                            {formatCurrency(row.saldo)}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-center">
+                                            {row.parcial ? (
+                                              <span title="Pago parcial" style={{ color: 'var(--accent-terra)' }}>≈</span>
+                                            ) : row.pagada ? (
+                                              <span style={{ color: 'var(--accent-green)' }}>✓</span>
+                                            ) : row.vencida ? (
+                                              <span style={{ color: 'var(--accent-rose)' }}>!</span>
+                                            ) : (
+                                              <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr style={{ borderTop: '1px solid var(--border-glass)' }}>
+                                      <td colSpan={2} className="px-2 py-1.5 font-semibold text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>
+                                        Total
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                                        {formatCurrency(tablaAmort.reduce((s, r) => s + r.cuota, 0))}
+                                      </td>
+                                      {tieneInteres && (
+                                        <>
+                                          <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-blue)' }}>
+                                            {formatCurrency(tablaAmort.reduce((s, r) => s + r.capital, 0))}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-rose)' }}>
+                                            {formatCurrency(tablaAmort.reduce((s, r) => s + r.interes, 0))}
+                                          </td>
+                                        </>
+                                      )}
+                                      <td colSpan={2} />
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              )}
+
+                              {/* Historial simple (sin plazo fijo: pago libre o cuota) */}
+                              {tablaAmort.length === 0 && (
+                                <table className="w-full text-[9px]" style={{ minWidth: 280 }}>
+                                  <thead>
+                                    <tr style={{ color: 'var(--text-muted)' }}>
+                                      <th className="px-2 py-1 text-left font-semibold uppercase">Fecha</th>
+                                      <th className="px-2 py-1 text-left font-semibold uppercase">Descripción</th>
+                                      <th className="px-2 py-1 text-right font-semibold uppercase">Monto</th>
+                                      <th className="px-2 py-1 text-center font-semibold uppercase">Tipo</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {/* Fila de creación de la deuda */}
+                                    <tr>
+                                      <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                        {new Date(d.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                      </td>
+                                      <td className="px-2 py-1.5" style={{ color: 'var(--text-secondary)' }}>
+                                        {d.descripcion || d.nombre}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right font-semibold tabular-nums" style={{ color: 'var(--accent-rose)' }}>
+                                        +{formatCurrency(d.capital || d.monto || 0)}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-center">
+                                        <span className="px-1.5 py-0.5 rounded-full font-semibold"
+                                          style={{ background: 'color-mix(in srgb, var(--text-muted) 12%, transparent)', color: 'var(--text-muted)' }}>
+                                          Origen
+                                        </span>
+                                      </td>
+                                    </tr>
+                                    {movsOrdenados.map(m => (
+                                      <tr key={m.id}>
+                                        <td className="px-2 py-1.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                          {m.fecha ? new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                                        </td>
+                                        <td className="px-2 py-1.5 truncate max-w-[120px]" style={{ color: 'var(--text-secondary)' }}>
+                                          {m.descripcion || '—'}
+                                        </td>
+                                        <td className="px-2 py-1.5 text-right font-semibold tabular-nums"
+                                          style={{ color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+                                          {m.tipo === 'pago' ? '−' : '+'}{formatCurrency(m.monto)}
+                                        </td>
+                                        <td className="px-2 py-1.5 text-center">
+                                          <span className="px-1.5 py-0.5 rounded-full font-semibold"
+                                            style={{
+                                              background: m.tipo === 'pago'
+                                                ? 'color-mix(in srgb, var(--accent-green) 12%, transparent)'
+                                                : 'color-mix(in srgb, var(--accent-rose) 12%, transparent)',
+                                              color: m.tipo === 'pago' ? 'var(--accent-green)' : 'var(--accent-rose)',
+                                            }}>
+                                            {m.tipo === 'cargo' ? 'Cargo' : 'Pago'}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+                            {tablaAmort.length > 0 && (
+                              <p className="text-[8px] mt-1.5 px-2" style={{ color: 'var(--text-muted)' }}>
+                                ✓ pagada · ≈ parcial (saldo recalculado) · ! vencida sin pago · — pendiente
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </Card>
                     )}
-                  </div>
-                )}
-              </Card>
-                )}
-              </SortableItem>
-            )
-          })}
-        </div>
+                  </SortableItem>
+                )
+              })}
+            </div>
           </SortableContext>
         </DndContext>
       )}
@@ -1282,9 +1284,11 @@ export default function DeudasPage() {
               )}
               <div>
                 <label className="ff-label">Fecha de la compra</label>
-                <input className="ff-input" type="date" required
+                <DatePicker
                   value={formTarjeta.fecha_operacion}
-                  onChange={e => setFormTarjeta(p => ({ ...p, fecha_operacion: e.target.value }))} />
+                  onChange={date => setFormTarjeta(p => ({ ...p, fecha_operacion: date }))}
+                  placeholder="Seleccionar fecha"
+                />
               </div>
               <div>
                 <label className="ff-label">WhatsApp (opcional)</label>
@@ -1408,7 +1412,7 @@ export default function DeudasPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="ff-label">Primer pago</label>
-                  <input className="ff-input" type="date"
+                  <DatePicker
                     value={formPrestamo.fecha_primer_pago}
                     onChange={e => setFormPrestamo(p => ({ ...p, fecha_primer_pago: e.target.value }))} />
                 </div>
@@ -1534,7 +1538,7 @@ export default function DeudasPage() {
         const deudaModal = deudas.find(d => d.id === (modalMov || editandoMov?.deuda_id))
         const esMeDebenModal = deudaModal?.tipo === 'medeben'
         const labelCargo = esMeDebenModal ? '↓ Prestar más' : '↓ Cargo'
-        const labelPago  = esMeDebenModal ? '↑ Cobro recibido' : '↑ Pago'
+        const labelPago = esMeDebenModal ? '↑ Cobro recibido' : '↑ Pago'
         const titleModal = editandoMov
           ? 'Editar Movimiento'
           : formMov.tipo === 'pago'
@@ -1606,7 +1610,7 @@ export default function DeudasPage() {
                 </div>
                 <div>
                   <label className="ff-label">Fecha</label>
-                  <input className="ff-input" type="date" required
+                 <DatePicker
                     value={formMov.fecha}
                     onChange={e => setFormMov(p => ({ ...p, fecha: e.target.value }))} />
                 </div>
