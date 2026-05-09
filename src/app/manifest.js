@@ -5,9 +5,8 @@ export default function manifest() {
     description: 'Control financiero familiar',
     start_url: '/',
     display: 'standalone',
-  background_color: "#2D7A5F",
-  theme_color: "#2D7A5F",
-
+    background_color: '#B3A89D',
+    theme_color: '#B3A89D',
     orientation: 'portrait',
     icons: [
       {
