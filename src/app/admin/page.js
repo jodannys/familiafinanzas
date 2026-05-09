@@ -93,9 +93,9 @@ export default function AdminPage() {
       toast('Error: ' + (error?.message || data?.error || 'No se pudo generar la invitación'))
       return
     }
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || window.location.origin).trim()
     const token = data.token || data
-    setLinkGenerado(`${baseUrl}/login?token=${token}`)
+    setLinkGenerado(`${baseUrl}/login?token=${encodeURIComponent(token)}`)
   }
 
   async function handleCopiar() {

@@ -18,6 +18,7 @@ import { useTheme, getThemeColors } from '@/lib/themes'
 import ProfilePanel from '@/components/ui/ProfilePanel'
 import PageTransition from '@/components/ui/PageTransition'
 import ConfirmLogoutModal from '@/components/ui/ConfirmLogoutModal'
+import DatePicker from '@/components/temaCalendario/DatePicker'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -568,13 +569,11 @@ export function FABModal({ onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
               {/* Solo fecha */}
-              <input
-                type="date"
-                value={fecha}
-                onChange={e => setFecha(e.target.value)}
-                className="ff-input"
-                style={{ fontSize: 11, padding: '7px 10px', borderRadius: 10, width: '100%' }}
-              />
+             <DatePicker
+  value={fecha}
+  onChange={setFecha}
+  placeholder="Seleccionar fecha"
+/>
 
               {/* ¿Quién? (dinámico desde perfiles del hogar) */}
               {opcionesQuien.length > 1 && (

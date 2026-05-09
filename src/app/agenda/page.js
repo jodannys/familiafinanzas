@@ -10,18 +10,19 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import { formatCurrency } from '@/lib/utils'
+import DatePicker from '@/components/temaCalendario/DatePicker'
 
 
 
 const TIPOS = [
-  { id: 'recordatorio', label: 'Recordatorio', color: 'var(--accent-terra)',  Icon: Bell },
-  { id: 'pago',         label: 'Pago',         color: 'var(--accent-rose)',   Icon: CreditCard },
-  { id: 'meta',         label: 'Meta',         color: 'var(--accent-green)',  Icon: Target },
-  { id: 'nota',         label: 'Nota libre',   color: 'var(--accent-blue)',   Icon: StickyNote },
+  { id: 'recordatorio', label: 'Recordatorio', color: 'var(--accent-terra)', Icon: Bell },
+  { id: 'pago', label: 'Pago', color: 'var(--accent-rose)', Icon: CreditCard },
+  { id: 'meta', label: 'Meta', color: 'var(--accent-green)', Icon: Target },
+  { id: 'nota', label: 'Nota libre', color: 'var(--accent-blue)', Icon: StickyNote },
 ]
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 function pad(n) { return String(n).padStart(2, '0') }
 
@@ -319,27 +320,27 @@ export default function AgendaPage() {
 
   return (
     <AppShell>
-   
+
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
           <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Agenda</h1>
         </div>
-       
-          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
-            {[{ id: 'mes', Icon: CalendarDays }, { id: 'semana', Icon: List }, { id: 'dia', Icon: Sun }].map(({ id, Icon }) => (
-              <button key={id} onClick={() => setVista(id)}
-                className="flex items-center justify-center rounded-lg transition-all"
-                style={{
-                  width: 32, height: 32, border: 'none', cursor: 'pointer',
-                  background: vista === id ? 'var(--bg-card)' : 'transparent',
-                  color: vista === id ? 'var(--text-primary)' : 'var(--text-muted)',
-                  boxShadow: vista === id ? 'var(--shadow-sm)' : 'none',
-                }}>
-                <Icon size={15} />
-              </button>
-            ))}
-          </div>
+
+        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
+          {[{ id: 'mes', Icon: CalendarDays }, { id: 'semana', Icon: List }, { id: 'dia', Icon: Sun }].map(({ id, Icon }) => (
+            <button key={id} onClick={() => setVista(id)}
+              className="flex items-center justify-center rounded-lg transition-all"
+              style={{
+                width: 32, height: 32, border: 'none', cursor: 'pointer',
+                background: vista === id ? 'var(--bg-card)' : 'transparent',
+                color: vista === id ? 'var(--text-primary)' : 'var(--text-muted)',
+                boxShadow: vista === id ? 'var(--shadow-sm)' : 'none',
+              }}>
+              <Icon size={15} />
+            </button>
+          ))}
+        </div>
       </div>
 
 
@@ -674,10 +675,12 @@ export default function AgendaPage() {
 
           <div>
             <label className="ff-label">Fecha</label>
-            <input className="ff-input" type="date" required
-              value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
+            <DatePicker
+              value={form.fecha}
+              onChange={date => setForm({ ...form, fecha: date })}
+              placeholder="Seleccionar fecha"
+            />
           </div>
-
           <div>
             <label className="ff-label">Tipo</label>
             <div className="grid grid-cols-2 gap-2 mt-1">

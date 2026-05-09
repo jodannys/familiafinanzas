@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { X, Edit3, Save, Mail, Lock, Eye, EyeOff, Palette, Check, Loader2, LogOut } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { X, Edit3, Save, Mail, Lock, Eye, EyeOff, Palette, Check, Loader2, LogOut, UserPlus, Copy } from 'lucide-react'
+import { supabase, crearInvitacion } from '@/lib/supabase'
 import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import { toast } from '@/lib/toast'
 
@@ -28,9 +28,16 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
   const [showPwd, setShowPwd]   = useState(false)
   const [savingPwd, setSavingPwd] = useState(false)
 
+  // ── Invitación (solo admin) ─────────────────────────────────────────────────
+  const [isAdmin, setIsAdmin]         = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteLink, setInviteLink]   = useState('')
+  const [generando, setGenerando]     = useState(false)
+  const [copiado, setCopiado]         = useState(false)
+
   useEffect(() => {
     if (!open) return
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
+    supabase.auth.getUser().then(async ({ data: { user: u } }) => {
       if (!u) return
       setUser(u)
       const n = u.user_metadata?.nombre || ''
@@ -39,7 +46,17 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
       const google = u.app_metadata?.provider === 'google' ||
         (u.identities || []).some(i => i.provider === 'google')
       setIsGoogle(google)
+
+      // Detectar si es admin
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('rol')
+        .eq('id', u.id)
+        .single()
+      setIsAdmin(perfil?.rol === 'admin')
     })
+    // Limpiar estado de invitación al cerrar
+    return () => { setInviteEmail(''); setInviteLink(''); setCopiado(false) }
   }, [open])
 
   useEffect(() => {
@@ -71,6 +88,29 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
     if (error) { toast('Error: ' + error.message); return }
     toast('Revisa tu nuevo correo para confirmar', 'warning')
     setEditEmail(false); setNewEmail('')
+  }
+
+  async function handleGenerarInvitacion() {
+    if (!inviteEmail.trim()) { toast('Ingresa el email del invitado', 'warning'); return }
+    setGenerando(true)
+    setInviteLink('')
+    const { data, error } = await crearInvitacion(inviteEmail.trim())
+    setGenerando(false)
+    if (error || !data?.ok) {
+      toast('Error: ' + (error?.message || data?.error || 'No se pudo generar la invitación'))
+      return
+    }
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || window.location.origin).trim()
+    const token = data.token || data
+    setInviteLink(`${baseUrl}/login?token=${encodeURIComponent(token)}`)
+  }
+
+  async function handleCopiarLink() {
+    if (!inviteLink) return
+    await navigator.clipboard.writeText(inviteLink)
+    setCopiado(true)
+    toast('Enlace copiado', 'success')
+    setTimeout(() => setCopiado(false), 2500)
   }
 
   async function handleGuardarPwd() {
@@ -279,6 +319,65 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               )
             })}
           </div>
+
+          {/* ── Invitar miembro (solo admin) ── */}
+          {isAdmin && (
+            <>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
+              <div className="flex items-center gap-2 mb-3">
+                <UserPlus size={14} style={{ color: 'var(--accent-main)' }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Invitar miembro
+                </span>
+              </div>
+
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={e => { setInviteEmail(e.target.value); setInviteLink('') }}
+                  placeholder="email@ejemplo.com"
+                  className="ff-input flex-1 text-sm"
+                  autoComplete="off"
+                />
+                <button
+                  onClick={handleGenerarInvitacion}
+                  disabled={generando}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1"
+                  style={{
+                    background: 'var(--accent-main)',
+                    color: 'var(--text-on-dark)',
+                    border: 'none', cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  {generando
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : <UserPlus size={13} />
+                  }
+                </button>
+              </div>
+
+              {inviteLink && (
+                <button
+                  onClick={handleCopiarLink}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left"
+                  style={{
+                    background: 'color-mix(in srgb, var(--accent-green) 8%, var(--bg-secondary))',
+                    border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span className="flex-1 text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                    {inviteLink}
+                  </span>
+                  {copiado
+                    ? <Check size={13} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
+                    : <Copy size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  }
+                </button>
+              )}
+            </>
+          )}
 
           {/* ── Cerrar sesión ── */}
           <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />

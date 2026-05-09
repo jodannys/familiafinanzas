@@ -7,6 +7,7 @@ export function useAuthFlow() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const handlingLogin = useRef(false)
+  const handlingAuth = useRef(false)
 
   const [mode, setMode] = useState('login')
   const [loading, setLoading] = useState(false)
@@ -37,43 +38,60 @@ export function useAuthFlow() {
     console.log('[AuthFlow] 🔵 useEffect inicializado. Params:', searchParams.toString())
 
     async function handleAuthenticatedUser(user) {
-      console.log('[AuthFlow] ➡️ handleAuthenticatedUser - Iniciando para:', user.email)
-      const type = searchParams.get('type')
-
-      if (type === 'recovery') {
-        console.log('[AuthFlow] Modo recovery detectado. Cambiando a reset.')
-        setMode('reset')
-        setChecking(false)
+      // Guard against concurrent calls (race between checkSession and onAuthStateChange)
+      if (handlingAuth.current) {
+        console.log('[AuthFlow] handleAuthenticatedUser ya está en ejecución, ignorando llamada duplicada.')
         return
       }
+      handlingAuth.current = true
 
-      console.log('[AuthFlow] Consultando rpc: get_mis_permisos...')
-      const { data: perfil, error: rpcError } = await supabase.rpc('get_mis_permisos')
-      console.log('[AuthFlow] Resultado rpc:', { perfil, rpcError })
+      try {
+        console.log('[AuthFlow] ➡️ handleAuthenticatedUser - Iniciando para:', user.email)
+        const type = searchParams.get('type')
 
-      if (!perfil) {
-        console.log('[AuthFlow] No se encontró perfil. Buscando metadata en el usuario...')
-        // Solo usamos el nombre que *nosotros* guardamos (registro email/invitación).
-        // Ignoramos full_name/name de Google para no saltarnos el formulario de bienvenida.
-        const nombreMeta = user.user_metadata?.nombre || ''
-        const nombreHogarMeta = user.user_metadata?.nombre_hogar || 'Mi Familia'
-
-        console.log('[AuthFlow] Metadata extraída:', { nombreMeta, nombreHogarMeta })
-
-        if (nombreMeta) {
-          console.log('[AuthFlow] Llamando a inicializarHogar...')
-          await inicializarHogar(nombreMeta, nombreHogarMeta)
-          console.log('[AuthFlow] 🚀 Redirigiendo a / (desde handleAuthenticatedUser > !perfil > inicializarHogar)')
-          router.replace('/')
-        } else {
-          console.log('[AuthFlow] Falta nombre guardado. Cambiando a modo: nombre')
-          setMode('nombre')
+        if (type === 'recovery') {
+          console.log('[AuthFlow] Modo recovery detectado. Cambiando a reset.')
+          setMode('reset')
           setChecking(false)
+          return
         }
-      } else {
-        console.log('[AuthFlow] Perfil encontrado. 🚀 Redirigiendo a / (desde handleAuthenticatedUser)')
-        setChecking(false)
-        router.replace('/')
+
+        console.log('[AuthFlow] Consultando rpc: get_mis_permisos...')
+        const { data: perfil, error: rpcError } = await supabase.rpc('get_mis_permisos')
+        console.log('[AuthFlow] Resultado rpc:', { perfil, rpcError })
+
+        if (!perfil) {
+          console.log('[AuthFlow] No se encontró perfil. Buscando metadata en el usuario...')
+          // Solo usamos el nombre que *nosotros* guardamos (registro email/invitación).
+          // Ignoramos full_name/name de Google para no saltarnos el formulario de bienvenida.
+          const nombreMeta = user.user_metadata?.nombre || ''
+          const nombreHogarMeta = user.user_metadata?.nombre_hogar || 'Mi Familia'
+
+          console.log('[AuthFlow] Metadata extraída:', { nombreMeta, nombreHogarMeta })
+
+          if (nombreMeta) {
+            console.log('[AuthFlow] Llamando a inicializarHogar...')
+            const { error: initError } = await inicializarHogar(nombreMeta, nombreHogarMeta)
+            if (initError) {
+              console.error('[AuthFlow] ❌ Error al inicializar hogar:', initError.message)
+              setError('Error al crear tu familia en la base de datos. Intenta de nuevo.')
+              setChecking(false)
+              return
+            }
+            console.log('[AuthFlow] 🚀 Redirigiendo a / (desde handleAuthenticatedUser > !perfil > inicializarHogar)')
+            router.replace('/')
+          } else {
+            console.log('[AuthFlow] Falta nombre guardado. Cambiando a modo: nombre')
+            setMode('nombre')
+            setChecking(false)
+          }
+        } else {
+          console.log('[AuthFlow] Perfil encontrado. 🚀 Redirigiendo a / (desde handleAuthenticatedUser)')
+          setChecking(false)
+          router.replace('/')
+        }
+      } finally {
+        handlingAuth.current = false
       }
     }
 
@@ -312,7 +330,13 @@ export function useAuthFlow() {
         }
       } else {
         console.log('[AuthFlow] No hay invToken. Inicializando hogar nuevo...')
-        await inicializarHogar(nombreFinal, form.nombreHogar.trim())
+        const { error: initError } = await inicializarHogar(nombreFinal, form.nombreHogar.trim())
+        if (initError) {
+          console.error('[AuthFlow] ❌ Error al inicializar hogar en registro:', initError.message)
+          setError('Error al crear tu familia en la base de datos. Intenta de nuevo.')
+          setLoading(false)
+          return
+        }
       }
       console.log('[AuthFlow] 🚀 Registro y configuración completos. Redirigiendo a /')
       setLoading(false)
@@ -370,7 +394,13 @@ export function useAuthFlow() {
     
     if (!perfil) {
       console.log('[AuthFlow] Sin perfil. Inicializando hogar...')
-      await inicializarHogar(nombreFinal, nombreHogarFinal)
+      const { error: initError } = await inicializarHogar(nombreFinal, nombreHogarFinal)
+      if (initError) {
+        console.error('[AuthFlow] ❌ Error al inicializar hogar en guardarNombre:', initError.message)
+        setError('Error al crear tu familia en la base de datos. Intenta de nuevo.')
+        setLoading(false)
+        return
+      }
     } else {
       console.log('[AuthFlow] Perfil encontrado. Actualizando tabla perfiles...')
       const { data: { user: u } } = await supabase.auth.getUser()

@@ -19,6 +19,7 @@ import {
   ResponsiveContainer, AreaChart, Area,
   XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts'
+import DatePicker from '@/components/temaCalendario/DatePicker'
 
 // ─── Tooltip del gráfico ─────────────────────────────────────────────────────
 
@@ -301,10 +302,10 @@ export default function InversionesPage() {
 
     // Agrupar por mes y promediar
     const porMes = {}
-    ;(data || []).forEach(m => {
-      const key = m.fecha.slice(0, 7) // 'YYYY-MM'
-      porMes[key] = (porMes[key] || 0) + parseFloat(m.monto || 0)
-    })
+      ; (data || []).forEach(m => {
+        const key = m.fecha.slice(0, 7) // 'YYYY-MM'
+        porMes[key] = (porMes[key] || 0) + parseFloat(m.monto || 0)
+      })
     const meses = Object.values(porMes)
     if (!meses.length) return
     setGastosMes(meses.reduce((s, v) => s + v, 0) / meses.length)
@@ -1045,9 +1046,9 @@ export default function InversionesPage() {
               {/* KPIs */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
-                  { label: 'Capital total',   value: formatCurrency(totalCapital),    color: colores.blue   },
-                  { label: 'Proyectado',       value: formatCurrency(totalProyectado), color: colores.violet },
-                  { label: 'Ganancias netas',  value: formatCurrency(gananciaInteres), color: colores.terra  },
+                  { label: 'Capital total', value: formatCurrency(totalCapital), color: colores.blue },
+                  { label: 'Proyectado', value: formatCurrency(totalProyectado), color: colores.violet },
+                  { label: 'Ganancias netas', value: formatCurrency(gananciaInteres), color: colores.terra },
                 ].map((k, i) => (
                   <div key={i} className="p-2.5 rounded-xl text-center"
                     style={{
@@ -1986,11 +1987,10 @@ export default function InversionesPage() {
           {/* Fecha */}
           <div>
             <label className="ff-label text-[10px] uppercase opacity-60">Fecha</label>
-            <input
-              className="ff-input"
-              type="date"
-              value={formAporte.fecha || new Date().toISOString().slice(0, 10)}
-              onChange={e => setFormAporte(p => ({ ...p, fecha: e.target.value }))}
+            <DatePicker
+              value={formAporte.fecha || new Date().toLocaleDateString('en-CA')}
+              onChange={date => setFormAporte(p => ({ ...p, fecha: date }))}
+              placeholder="Seleccionar fecha"
             />
           </div>
 
