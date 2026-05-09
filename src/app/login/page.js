@@ -66,12 +66,12 @@ function LoginContent() {
 
           {/* Header */}
           <div className="flex flex-col items-center mb-8 lg:mb-10 text-center">
-            <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-[28px] lg:rounded-[32px] flex items-center justify-center mb-6 shadow-sm"
+            <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-[32px] lg:rounded-[32px] flex items-center justify-center mb-6 shadow-sm"
               style={{
                 background: 'color-mix(in srgb, var(--accent-main) 12%, var(--bg-card))',
                 border: '1px solid var(--border-subtle)',
               }}>
-              <img src="/icon.svg" alt="Logo" className="w-10 h-10 lg:w-12 lg:h-12" />
+              <img src="/icon.svg" className="w-14 h-14 lg:w-16 lg:h-16" />
             </div>
             <h1 className="font-script text-[38px] lg:text-[52px] leading-none mb-2" style={{ color: 'var(--text-primary)' }}>
               Economía del Hogar
