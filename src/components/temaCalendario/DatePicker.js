@@ -54,13 +54,8 @@ export default function DatePicker({ value, onChange, placeholder = 'Fecha' }) {
       {/* Trigger */}
       <div
         onClick={() => setOpen(true)}
-        className="custom-select-trigger"   // <-- tu clase CSS de ff-input o similar
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          width: '100%', padding: '12px 14px', border: '2px solid var(--border)',
-          borderRadius: 10, background: 'white', cursor: 'pointer',
-          fontSize: 15, color: value ? 'var(--text)' : 'var(--muted)'
-        }}
+       className="ff-input"  // <-- tu clase CSS de ff-input o similar
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
       >
         <span>{formatLabel(value) || placeholder}</span>
         {/* Icono calendario */}
