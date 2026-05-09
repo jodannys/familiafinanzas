@@ -23,20 +23,20 @@ import DatePicker from '@/components/temaCalendario/DatePicker'
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const CATS_EGRESO = [
-  { id: 'basicos',   label: 'Básicos',        color: 'var(--accent-blue)'   },
-  { id: 'deseo',     label: 'Estilo de vida', color: 'var(--accent-violet)' },
-  { id: 'ahorro',    label: 'Ahorro',         color: 'var(--accent-green)'  },
-  { id: 'inversion', label: 'Inversión',      color: 'var(--accent-gold)'   },
-  { id: 'deuda',     label: 'Deuda',          color: 'var(--accent-rose)'   },
+  { id: 'basicos', label: 'Básicos', color: 'var(--accent-blue)' },
+  { id: 'deseo', label: 'Estilo de vida', color: 'var(--accent-violet)' },
+  { id: 'ahorro', label: 'Ahorro', color: 'var(--accent-green)' },
+  { id: 'inversion', label: 'Inversión', color: 'var(--accent-gold)' },
+  { id: 'deuda', label: 'Deuda', color: 'var(--accent-rose)' },
 ]
 
 const SPECIAL_CATS = ['ahorro', 'inversion', 'deuda']
-const CAT_BLOQUE   = { basicos: 'necesidades', deuda: 'necesidades', deseo: 'estilo', ahorro: 'futuro', inversion: 'futuro' }
+const CAT_BLOQUE = { basicos: 'necesidades', deuda: 'necesidades', deseo: 'estilo', ahorro: 'futuro', inversion: 'futuro' }
 
 const METODOS_PAGO = [
-  { id: 'efectivo',        label: 'Efectivo',  Icon: Banknote,  color: 'var(--accent-green)'  },
-  { id: 'transferencia',   label: 'Transf.',   Icon: Smartphone, color: 'var(--accent-blue)'  },
-  { id: 'debito',          label: 'Débito',    Icon: Building2,  color: 'var(--accent-violet)' },
+  { id: 'efectivo', label: 'Efectivo', Icon: Banknote, color: 'var(--accent-green)' },
+  { id: 'transferencia', label: 'Transf.', Icon: Smartphone, color: 'var(--accent-blue)' },
+  { id: 'debito', label: 'Débito', Icon: Building2, color: 'var(--accent-violet)' },
   { id: 'tarjeta_credito', label: 'T. Crédito', Icon: CreditCard, color: 'var(--accent-rose)' },
 ]
 
@@ -45,11 +45,11 @@ function calcFechaPrimerPago(fechaCompra, diaPago, diaCorte) {
   const [y, m, d] = fechaCompra.split('-').map(Number)
   const corte = diaCorte || diaPago
   if (d <= corte) {
-    return `${y}-${String(m).padStart(2,'0')}-${String(diaPago).padStart(2,'0')}`
+    return `${y}-${String(m).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
   }
   const nextM = m === 12 ? 1 : m + 1
   const nextY = m === 12 ? y + 1 : y
-  return `${nextY}-${String(nextM).padStart(2,'0')}-${String(diaPago).padStart(2,'0')}`
+  return `${nextY}-${String(nextM).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
 }
 
 // ── Sección con etiqueta ──────────────────────────────────────────────────────
@@ -86,18 +86,18 @@ function DraggableFAB({ onClick }) {
         // Validar que siga dentro de la pantalla
         if (p.x > 0 && p.y > 0 && p.x < window.innerWidth && p.y < window.innerHeight) return p
       }
-    } catch (e) {}
+    } catch (e) { }
     return DEFAULT
   })
 
-  const dragging  = useRef(false)
-  const didMove   = useRef(false)
-  const startPtr  = useRef({ x: 0, y: 0 })
-  const startPos  = useRef({ x: 0, y: 0 })
+  const dragging = useRef(false)
+  const didMove = useRef(false)
+  const startPtr = useRef({ x: 0, y: 0 })
+  const startPos = useRef({ x: 0, y: 0 })
 
   const onPointerDown = useCallback((e) => {
     dragging.current = true
-    didMove.current  = false
+    didMove.current = false
     startPtr.current = { x: e.clientX, y: e.clientY }
     startPos.current = pos
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -110,7 +110,7 @@ function DraggableFAB({ onClick }) {
     const dy = e.clientY - startPtr.current.y
     if (Math.abs(dx) + Math.abs(dy) > 4) didMove.current = true
     const SIZE = 58
-    const nx = Math.max(8, Math.min(window.innerWidth  - SIZE - 8, startPos.current.x + dx))
+    const nx = Math.max(8, Math.min(window.innerWidth - SIZE - 8, startPos.current.x + dx))
     const ny = Math.max(8, Math.min(window.innerHeight - SIZE - 8, startPos.current.y + dy))
     setPos({ x: nx, y: ny })
   }, [])
@@ -121,14 +121,14 @@ function DraggableFAB({ onClick }) {
     if (!didMove.current) {
       onClick()
     } else {
-      try { localStorage.setItem('ff-fab-pos', JSON.stringify(pos)) } catch (e) {}
+      try { localStorage.setItem('ff-fab-pos', JSON.stringify(pos)) } catch (e) { }
     }
   }, [onClick, pos])
 
   // Guardar posición al soltar
   useEffect(() => {
     if (!dragging.current) {
-      try { localStorage.setItem('ff-fab-pos', JSON.stringify(pos)) } catch (e) {}
+      try { localStorage.setItem('ff-fab-pos', JSON.stringify(pos)) } catch (e) { }
     }
   }, [pos])
 
@@ -165,37 +165,37 @@ function DraggableFAB({ onClick }) {
 
 export function FABModal({ onClose }) {
   const router = useRouter()
-  const [tipo,               setTipo]               = useState('egreso')
-  const [monto,              setMonto]               = useState('')
-  const [cat,                setCat]                 = useState(null)
-  const [catDB,              setCatDB]               = useState(null)
-  const [catDBList,          setCatDBList]           = useState([])
-  const [loadingCatDB,       setLoadingCatDB]        = useState(false)
-  const [desc,               setDesc]                = useState('')
-  const [saving,             setSaving]              = useState(false)
-  const [items,              setItems]               = useState([])
-  const [selectedItem,       setSelectedItem]        = useState(null)
-  const [loadingItems,       setLoadingItems]        = useState(false)
-  const [metodoPago,         setMetodoPago]          = useState('efectivo')
-  const [perfilesTarj,       setPerfilesTarj]        = useState([])
-  const [selectedPerfil,     setSelectedPerfil]      = useState(null)
-  const [numCuotas,          setNumCuotas]           = useState(1)
-  const [loadingPerf,        setLoadingPerf]         = useState(false)
-  const [fecha,              setFecha]               = useState(() => {
+  const [tipo, setTipo] = useState('egreso')
+  const [monto, setMonto] = useState('')
+  const [cat, setCat] = useState(null)
+  const [catDB, setCatDB] = useState(null)
+  const [catDBList, setCatDBList] = useState([])
+  const [loadingCatDB, setLoadingCatDB] = useState(false)
+  const [desc, setDesc] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [items, setItems] = useState([])
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [loadingItems, setLoadingItems] = useState(false)
+  const [metodoPago, setMetodoPago] = useState('efectivo')
+  const [perfilesTarj, setPerfilesTarj] = useState([])
+  const [selectedPerfil, setSelectedPerfil] = useState(null)
+  const [numCuotas, setNumCuotas] = useState(1)
+  const [loadingPerf, setLoadingPerf] = useState(false)
+  const [fecha, setFecha] = useState(() => {
     const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
   const { opcionesQuien, defaultQuien } = useQuien()
-  const [quien,              setQuien]               = useState('Ambos')
+  const [quien, setQuien] = useState('Ambos')
 
   // Sincronizar quien con el default cuando carga el hook
   useEffect(() => {
     if (defaultQuien) setQuien(q => q === 'Ambos' ? defaultQuien : q)
   }, [defaultQuien])
-  const [subcats,            setSubcats]             = useState([])
-  const [selectedSubcat,     setSelectedSubcat]      = useState(null)
-  const [subcatPresupuesto,  setSubcatPresupuesto]   = useState({})
-  const [montoMetasDisp,     setMontoMetasDisp]      = useState(0)
+  const [subcats, setSubcats] = useState([])
+  const [selectedSubcat, setSelectedSubcat] = useState(null)
+  const [subcatPresupuesto, setSubcatPresupuesto] = useState({})
+  const [montoMetasDisp, setMontoMetasDisp] = useState(0)
 
   useEffect(() => {
     getPresupuestoMes().then(p => setMontoMetasDisp(p?.montoMetas || 0))
@@ -250,10 +250,10 @@ export function FABModal({ onClose }) {
     if (!cat || !SPECIAL_CATS.includes(cat) || tipo !== 'egreso') { setItems([]); return }
     setLoadingItems(true)
     const q =
-      cat === 'ahorro'     ? supabase.from('metas').select('id,nombre,emoji,meta,actual,pct_mensual').eq('estado','activa')
-      : cat === 'inversion' ? supabase.from('inversiones').select('id,nombre,emoji,capital,aporte')
-      : supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas')
-          .eq('estado','activa').neq('tipo','medeben').neq('tipo_deuda','tarjeta')
+      cat === 'ahorro' ? supabase.from('metas').select('id,nombre,emoji,meta,actual,pct_mensual').eq('estado', 'activa')
+        : cat === 'inversion' ? supabase.from('inversiones').select('id,nombre,emoji,capital,aporte')
+          : supabase.from('deudas').select('id,nombre,emoji,cuota,pendiente,pagadas')
+            .eq('estado', 'activa').neq('tipo', 'medeben').neq('tipo_deuda', 'tarjeta')
     q.then(({ data }) => { setItems(data || []) })
       .finally(() => setLoadingItems(false))
   }, [cat, tipo])
@@ -272,7 +272,7 @@ export function FABModal({ onClose }) {
       setSubcats(subsData || [])
       setSelectedSubcat(null)
       const presMap = {}
-      ;(presData || []).forEach(p => { presMap[p.subcategoria_id] = parseFloat(p.monto) })
+        ; (presData || []).forEach(p => { presMap[p.subcategoria_id] = parseFloat(p.monto) })
       setSubcatPresupuesto(presMap)
     })
   }, [catDB])
@@ -355,7 +355,7 @@ export function FABModal({ onClose }) {
   }
 
   // ── Colores dinámicos ────────────────────────────────────────────────────────
-  const catInfo    = cat ? CATS_EGRESO.find(c => c.id === cat) : null
+  const catInfo = cat ? CATS_EGRESO.find(c => c.id === cat) : null
   const accentColor = tipo === 'ingreso' ? 'var(--accent-green)' : (catInfo?.color || 'var(--accent-main)')
   const montoValido = parseFloat(monto) > 0
 
@@ -370,89 +370,89 @@ export function FABModal({ onClose }) {
       }}
       onClick={onClose}
     >
-        {/* Sheet */}
-        <div
-          className="ff-sheet animate-enter relative w-full flex flex-col"
-          style={{
-            maxWidth: 440,
-            maxHeight: '100%',
-          }}
-          onClick={e => e.stopPropagation()}
-        >
+      {/* Sheet */}
+      <div
+        className="ff-sheet animate-enter relative w-full flex flex-col"
+        style={{
+          maxWidth: 440,
+          maxHeight: '100%',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
 
-          {/* ── Header ── */}
+        {/* ── Header ── */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '38px 1fr 38px',
+          alignItems: 'center', gap: 8,
+          padding: '14px 14px 12px',
+          borderBottom: '1px solid var(--border-subtle)',
+          background: 'var(--bg-secondary)',
+          flexShrink: 0,
+        }}>
+          <div />
           <div style={{
-            display: 'grid', gridTemplateColumns: '38px 1fr 38px',
-            alignItems: 'center', gap: 8,
-            padding: '14px 14px 12px',
-            borderBottom: '1px solid var(--border-subtle)',
-            background: 'var(--bg-secondary)',
-            flexShrink: 0,
+            display: 'flex', gap: 3, padding: '3px',
+            borderRadius: 14, background: 'var(--bg-card)',
+            border: '1px solid var(--border-glass)',
           }}>
-            <div />
-            <div style={{
-              display: 'flex', gap: 3, padding: '3px',
-              borderRadius: 14, background: 'var(--bg-card)',
-              border: '1px solid var(--border-glass)',
-            }}>
-              {[
-                { id: 'egreso',  label: 'Gasto',   Icon: ArrowDownRight, color: 'var(--accent-rose)'  },
-                { id: 'ingreso', label: 'Ingreso',  Icon: ArrowUpRight,   color: 'var(--accent-green)' },
-              ].map(t => (
-                <button key={t.id} onClick={() => handleTipo(t.id)} style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                  padding: '8px 0', borderRadius: 11, border: 'none', cursor: 'pointer',
-                  background: tipo === t.id ? `color-mix(in srgb, ${t.color} 14%, var(--bg-secondary))` : 'transparent',
-                  color: tipo === t.id ? t.color : 'var(--text-muted)',
-                  fontWeight: 700, fontSize: 12,
-                  transition: 'all 0.15s',
-                }}>
-                  <t.Icon size={14} strokeWidth={2.5} />
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <button onClick={onClose} style={{
-              width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
-              background: 'var(--bg-card)', color: 'var(--text-muted)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <X size={15} />
-            </button>
+            {[
+              { id: 'egreso', label: 'Gasto', Icon: ArrowDownRight, color: 'var(--accent-rose)' },
+              { id: 'ingreso', label: 'Ingreso', Icon: ArrowUpRight, color: 'var(--accent-green)' },
+            ].map(t => (
+              <button key={t.id} onClick={() => handleTipo(t.id)} style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                padding: '8px 0', borderRadius: 11, border: 'none', cursor: 'pointer',
+                background: tipo === t.id ? `color-mix(in srgb, ${t.color} 14%, var(--bg-secondary))` : 'transparent',
+                color: tipo === t.id ? t.color : 'var(--text-muted)',
+                fontWeight: 700, fontSize: 12,
+                transition: 'all 0.15s',
+              }}>
+                <t.Icon size={14} strokeWidth={2.5} />
+                {t.label}
+              </button>
+            ))}
           </div>
-
-          {/* ── Monto — hero con tinte de color ── */}
-          <div style={{
-            padding: '20px 20px 16px',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-            background: `color-mix(in srgb, ${accentColor} 5%, var(--bg-card))`,
-            flexShrink: 0,
+          <button onClick={onClose} style={{
+            width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
+            background: 'var(--bg-card)', color: 'var(--text-muted)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <p style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: '0.12em',
-              textTransform: 'uppercase', color: accentColor, opacity: 0.8, margin: 0,
-            }}>
-              {tipo === 'ingreso' ? 'Ingreso' : (catInfo?.label || 'Importe')}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ fontSize: 20, fontWeight: 500, color: accentColor, opacity: 0.45 }}>€</span>
-              <input
-                type="number" inputMode="decimal" placeholder="0.00"
-                value={monto} onChange={e => setMonto(e.target.value)}
-                autoFocus
-                style={{
-                  background: 'transparent', border: 'none', outline: 'none',
-                  fontSize: 52, fontWeight: 800, color: accentColor,
-                  width: 210, textAlign: 'center',
-                  fontFamily: 'Inter, sans-serif', letterSpacing: '-0.04em',
-                }}
-              />
-            </div>
-          </div>
+            <X size={15} />
+          </button>
+        </div>
 
-          {/* ── Cuerpo scrollable ── */}
-          <div className="custom-scroll" style={{ overflowY: 'auto', flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* ── Monto — hero con tinte de color ── */}
+        <div style={{
+          padding: '20px 20px 16px',
+          borderBottom: '1px solid var(--border-subtle)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+          background: `color-mix(in srgb, ${accentColor} 5%, var(--bg-card))`,
+          flexShrink: 0,
+        }}>
+          <p style={{
+            fontSize: 10, fontWeight: 800, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: accentColor, opacity: 0.8, margin: 0,
+          }}>
+            {tipo === 'ingreso' ? 'Ingreso' : (catInfo?.label || 'Importe')}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 20, fontWeight: 500, color: accentColor, opacity: 0.45 }}>€</span>
+            <input
+              type="number" inputMode="decimal" placeholder="0.00"
+              value={monto} onChange={e => setMonto(e.target.value)}
+              autoFocus
+              style={{
+                background: 'transparent', border: 'none', outline: 'none',
+                fontSize: 52, fontWeight: 800, color: accentColor,
+                width: 210, textAlign: 'center',
+                fontFamily: 'Inter, sans-serif', letterSpacing: '-0.04em',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* ── Cuerpo scrollable ── */}
+        <div className="custom-scroll" style={{ overflowY: 'auto', flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
           {/* SECCIÓN: Categoría (solo gasto) */}
           {tipo === 'egreso' && (
@@ -524,9 +524,9 @@ export function FABModal({ onClose }) {
                         onClick={() => {
                           setSelectedItem(isSel ? null : item)
                           if (!isSel) {
-                            if      (cat === 'deuda'     && item.cuota > 0)                       setMonto(item.cuota.toString())
-                            else if (cat === 'inversion' && item.aporte > 0)                       setMonto(item.aporte.toString())
-                            else if (cat === 'ahorro'    && item.pct_mensual > 0 && montoMetasDisp > 0)
+                            if (cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString())
+                            else if (cat === 'inversion' && item.aporte > 0) setMonto(item.aporte.toString())
+                            else if (cat === 'ahorro' && item.pct_mensual > 0 && montoMetasDisp > 0)
                               setMonto(parseFloat(((item.pct_mensual / 100) * montoMetasDisp).toFixed(2)).toString())
                           } else {
                             setMonto('') // limpiar si se deselecciona
@@ -569,11 +569,11 @@ export function FABModal({ onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
               {/* Solo fecha */}
-             <DatePicker
-  value={fecha}
-  onChange={setFecha}
-  placeholder="Seleccionar fecha"
-/>
+              <DatePicker
+                value={fecha}
+                onChange={setFecha}
+                placeholder="Fecha"
+              />
 
               {/* ¿Quién? (dinámico desde perfiles del hogar) */}
               {opcionesQuien.length > 1 && (
@@ -726,7 +726,7 @@ export function FABModal({ onClose }) {
 const TOAST_DURATION = 3500
 
 const TOAST_COLORS = {
-  error:   { bg: 'color-mix(in srgb, var(--accent-rose)  12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-rose)  35%, transparent)', text: 'var(--accent-rose)',  bar: 'var(--accent-rose)',  Icon: AlertCircle },
+  error: { bg: 'color-mix(in srgb, var(--accent-rose)  12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-rose)  35%, transparent)', text: 'var(--accent-rose)', bar: 'var(--accent-rose)', Icon: AlertCircle },
   success: { bg: 'color-mix(in srgb, var(--accent-green) 12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-green) 35%, transparent)', text: 'var(--accent-green)', bar: 'var(--accent-green)', Icon: CheckCircle },
   warning: { bg: 'color-mix(in srgb, var(--accent-terra) 12%, var(--bg-card))', border: 'color-mix(in srgb, var(--accent-terra) 35%, transparent)', text: 'var(--accent-terra)', bar: 'var(--accent-terra)', Icon: Info },
 }
@@ -793,21 +793,21 @@ export default function AppShell({ children }) {
   const [perfilUsuario, setPerfilUsuario] = useState(null)
   const router = useRouter()
 
- function avatarColor(nombre) {
-  // Si no hay colores en el tema por alguna razón, devolvemos un color por defecto
-  if (!themeColors || themeColors.length === 0) return '#cccccc';
-  
-  // Si no hay nombre, devuelve el primer color del tema
-  if (!nombre) return themeColors[0];
-  
-  let h = 0;
-  for (let i = 0; i < nombre.length; i++) {
-    h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff;
+  function avatarColor(nombre) {
+    // Si no hay colores en el tema por alguna razón, devolvemos un color por defecto
+    if (!themeColors || themeColors.length === 0) return '#cccccc';
+
+    // Si no hay nombre, devuelve el primer color del tema
+    if (!nombre) return themeColors[0];
+
+    let h = 0;
+    for (let i = 0; i < nombre.length; i++) {
+      h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff;
+    }
+
+    // Devuelve un color dinámico basado en los colores de tu tema actual
+    return themeColors[h % themeColors.length];
   }
-  
-  // Devuelve un color dinámico basado en los colores de tu tema actual
-  return themeColors[h % themeColors.length];
-}
 
   useEffect(() => {
     supabase.auth.getSession()

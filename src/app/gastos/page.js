@@ -1045,7 +1045,7 @@ export default function GastosPage() {
                   <DatePicker
                     value={form.fecha}
                     onChange={date => setForm({ ...form, fecha: date })}
-                    placeholder="Seleccionar fecha"
+                    placeholder="Fecha"
                   />
                 </div>
               </div>

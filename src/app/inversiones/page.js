@@ -1990,7 +1990,7 @@ export default function InversionesPage() {
             <DatePicker
               value={formAporte.fecha || new Date().toLocaleDateString('en-CA')}
               onChange={date => setFormAporte(p => ({ ...p, fecha: date }))}
-              placeholder="Seleccionar fecha"
+              placeholder="Fecha"
             />
           </div>
 

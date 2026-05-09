@@ -760,7 +760,7 @@ export default function SimuladorPanel({ inmueble, metas = [], onEdit, onDelete,
                     <DatePicker
                       value={formReal.fecha}
                       onChange={date => setFormReal(p => ({ ...p, fecha: date }))}
-                      placeholder="Seleccionar fecha"
+                      placeholder="Fecha"
                     />
                   </div>
                   <input type="text" placeholder="Descripción (opcional)" className="ff-input w-full"

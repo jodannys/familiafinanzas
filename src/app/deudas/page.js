@@ -1287,7 +1287,7 @@ export default function DeudasPage() {
                 <DatePicker
                   value={formTarjeta.fecha_operacion}
                   onChange={date => setFormTarjeta(p => ({ ...p, fecha_operacion: date }))}
-                  placeholder="Seleccionar fecha"
+                  placeholder="Fecha"
                 />
               </div>
               <div>
@@ -1610,7 +1610,7 @@ export default function DeudasPage() {
                 </div>
                 <div>
                   <label className="ff-label">Fecha</label>
-                 <DatePicker
+                  <DatePicker
                     value={formMov.fecha}
                     onChange={e => setFormMov(p => ({ ...p, fecha: e.target.value }))} />
                 </div>

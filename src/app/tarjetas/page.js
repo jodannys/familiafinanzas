@@ -589,7 +589,7 @@ export default function TarjetasPage() {
               <DatePicker
                 value={form.fecha}
                 onChange={date => setForm({ ...form, fecha: date })}
-                placeholder="Seleccionar fecha"
+                placeholder="Fecha"
               />
             </div>
 
