@@ -20,6 +20,7 @@ import PageTransition from '@/components/ui/PageTransition'
 import ConfirmLogoutModal from '@/components/ui/ConfirmLogoutModal'
 import DatePicker from '@/components/temaCalendario/DatePicker'
 
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const CATS_EGRESO = [
@@ -188,6 +189,7 @@ export function FABModal({ onClose }) {
   })
   const { opcionesQuien, defaultQuien } = useQuien()
   const [quien, setQuien] = useState('Ambos')
+
 
   // Sincronizar quien con el default cuando carga el hook
   useEffect(() => {
@@ -840,7 +842,9 @@ export default function AppShell({ children }) {
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
       <ToastDisplay />
       <ProfilePanel open={showProfile} onClose={() => setShowProfile(false)} onLogout={() => { setShowProfile(false); setConfirmLogout(true) }} />
-      <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]"><Sidebar /></div>
+      <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]">
+        <Sidebar paisUsuario={perfilUsuario?.pais || 'ES'} />
+      </div>
       <main className="app-main flex-1 min-h-screen flex flex-col overflow-x-hidden">
 
         {/* Header móvil */}
@@ -888,7 +892,10 @@ export default function AppShell({ children }) {
         </div>
       </main>
 
-      <BottomNav onFABClick={() => setFabOpen(true)} />
+      <BottomNav
+        onFABClick={() => setFabOpen(true)}
+        paisUsuario={perfilUsuario?.pais || 'ES'}
+      />
       {/* FAB flotante arrastrable — solo desktop, oculto cuando el modal está abierto */}
       {!fabOpen && (
         <div className="hidden lg:block">

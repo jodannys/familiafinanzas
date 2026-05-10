@@ -1,70 +1,101 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { X, Edit3, Save, Mail, Lock, Eye, EyeOff, Palette, Check, Loader2, LogOut, UserPlus, Copy } from 'lucide-react'
-import { supabase, crearInvitacion } from '@/lib/supabase'
+import { X, Edit3, Save, Mail, Lock, Eye, EyeOff, Palette, Check, Loader2, LogOut, UserPlus, Copy, Users, Globe } from 'lucide-react'
+import { supabase, crearInvitacion, getMiembrosHogar, cancelarInvitacion } from '@/lib/supabase'
 import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import { toast } from '@/lib/toast'
 import CustomSelect from '@/components/ui/CustomSelect'
 import { useCurrency } from '@/lib/CurrencyContext'
 
+const PAISES = [
+  { code: 'ES', label: 'España',          emoji: '🇪🇸' },
+  { code: 'MX', label: 'México',          emoji: '🇲🇽' },
+  { code: 'CO', label: 'Colombia',        emoji: '🇨🇴' },
+  { code: 'AR', label: 'Argentina',       emoji: '🇦🇷' },
+  { code: 'CL', label: 'Chile',           emoji: '🇨🇱' },
+  { code: 'PE', label: 'Perú',            emoji: '🇵🇪' },
+  { code: 'VE', label: 'Venezuela',       emoji: '🇻🇪' },
+  { code: 'EC', label: 'Ecuador',         emoji: '🇪🇨' },
+  { code: 'US', label: 'Estados Unidos',  emoji: '🇺🇸' },
+  { code: 'OTHER', label: 'Otro',         emoji: '🌍' },
+]
 
 export default function ProfilePanel({ open, onClose, onLogout }) {
   const { theme, setTheme } = useTheme()
   const themeColors = getThemeColors(theme)
-
-  const [user, setUser] = useState(null)
-  const [nombre, setNombre] = useState('')
-  const [email, setEmail] = useState('')
-  const [isGoogle, setIsGoogle] = useState(false)
-  const [bgColor, setBgColor] = useState('')
-
-  const [editNombre, setEditNombre] = useState(false)
-  const [nombreVal, setNombreVal] = useState('')
-  const [savingNombre, setSavingNombre] = useState(false)
-
-  const [editEmail, setEditEmail] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
-  const [savingEmail, setSavingEmail] = useState(false)
-
-  const [editPwd, setEditPwd] = useState(false)
-  const [newPwd, setNewPwd] = useState('')
-  const [showPwd, setShowPwd] = useState(false)
-  const [savingPwd, setSavingPwd] = useState(false)
-
-  // ── Invitación (solo admin) ─────────────────────────────────────────────────
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteLink, setInviteLink] = useState('')
-  const [generando, setGenerando] = useState(false)
-  const [copiado, setCopiado] = useState(false)
-  const [editMoneda, setEditMoneda] = useState(false)
   const { currency, cambiarMoneda, MONEDAS } = useCurrency()
 
+  const [user, setUser]               = useState(null)
+  const [nombre, setNombre]           = useState('')
+  const [email, setEmail]             = useState('')
+  const [isGoogle, setIsGoogle]       = useState(false)
+  const [bgColor, setBgColor]         = useState('')
+  const [isAdmin, setIsAdmin]         = useState(false)
+  const [pais, setPais]               = useState('ES')
 
+  const [editNombre, setEditNombre]   = useState(false)
+  const [nombreVal, setNombreVal]     = useState('')
+  const [savingNombre, setSavingNombre] = useState(false)
+
+  const [editEmail, setEditEmail]     = useState(false)
+  const [newEmail, setNewEmail]       = useState('')
+  const [savingEmail, setSavingEmail] = useState(false)
+
+  const [editPwd, setEditPwd]         = useState(false)
+  const [newPwd, setNewPwd]           = useState('')
+  const [showPwd, setShowPwd]         = useState(false)
+  const [savingPwd, setSavingPwd]     = useState(false)
+
+  const [editMoneda, setEditMoneda]   = useState(false)
+  const [editPais, setEditPais]       = useState(false)
+
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteLink, setInviteLink]   = useState('')
+  const [generando, setGenerando]     = useState(false)
+  const [copiado, setCopiado]         = useState(false)
+
+  const [miembros, setMiembros]       = useState([])
+  const [pendientes, setPendientes]   = useState([])
+  const [cancelando, setCancelando]   = useState(null)
+
+  // ── Cargar datos al abrir ────────────────────────────────────────────────
   useEffect(() => {
     if (!open) return
+
     supabase.auth.getUser().then(async ({ data: { user: u } }) => {
       if (!u) return
       setUser(u)
       const n = u.user_metadata?.nombre || ''
-      setNombre(n); setNombreVal(n)
+      setNombre(n)
+      setNombreVal(n)
       setEmail(u.email || '')
       const google = u.app_metadata?.provider === 'google' ||
         (u.identities || []).some(i => i.provider === 'google')
       setIsGoogle(google)
 
-      // Detectar si es admin
       const { data: perfil } = await supabase
         .from('perfiles')
-        .select('rol')
+        .select('rol, pais')
         .eq('id', u.id)
         .single()
       setIsAdmin(perfil?.rol === 'admin')
+      setPais(perfil?.pais || 'ES')
+
+      const { data: miembrosData } = await getMiembrosHogar()
+      if (miembrosData) {
+        setMiembros(miembrosData.miembros || [])
+        setPendientes(miembrosData.pendientes || [])
+      }
     })
-    // Limpiar estado de invitación al cerrar
-    return () => { setInviteEmail(''); setInviteLink(''); setCopiado(false) }
+
+    return () => {
+      setInviteEmail('')
+      setInviteLink('')
+      setCopiado(false)
+    }
   }, [open])
 
+  // ── Color avatar ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!themeColors?.length || !nombre) return
     let h = 0
@@ -72,6 +103,7 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
     setBgColor(themeColors[h % themeColors.length])
   }, [nombre, themeColors])
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
   async function handleGuardarNombre() {
     if (!nombreVal.trim()) return
     setSavingNombre(true)
@@ -93,7 +125,31 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
     setSavingEmail(false)
     if (error) { toast('Error: ' + error.message); return }
     toast('Revisa tu nuevo correo para confirmar', 'warning')
-    setEditEmail(false); setNewEmail('')
+    setEditEmail(false)
+    setNewEmail('')
+  }
+
+  async function handleGuardarPwd() {
+    if (newPwd.length < 6) return
+    setSavingPwd(true)
+    const { error } = await supabase.auth.updateUser({ password: newPwd })
+    setSavingPwd(false)
+    if (error) { toast('Error: ' + error.message); return }
+    toast('Contraseña actualizada', 'success')
+    setNewPwd('')
+    setEditPwd(false)
+  }
+
+  async function handleGuardarPais(nuevoPais) {
+    if (!user) return
+    const { error } = await supabase
+      .from('perfiles')
+      .update({ pais: nuevoPais })
+      .eq('id', user.id)
+    if (error) { toast('Error al guardar el país'); return }
+    setPais(nuevoPais)
+    setEditPais(false)
+    toast('País actualizado', 'success')
   }
 
   async function handleGenerarInvitacion() {
@@ -109,72 +165,80 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
     const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || window.location.origin).trim()
     const token = data.token || data
     setInviteLink(`${baseUrl}/login?token=${encodeURIComponent(token)}`)
+    const { data: miembrosData } = await getMiembrosHogar()
+    if (miembrosData) setPendientes(miembrosData.pendientes || [])
   }
 
   async function handleCopiarLink() {
     if (!inviteLink) return
-    await navigator.clipboard.writeText(inviteLink)
-    setCopiado(true)
-    toast('Enlace copiado', 'success')
-    setTimeout(() => setCopiado(false), 2500)
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteLink)
+      } else {
+        const el = document.createElement('textarea')
+        el.value = inviteLink
+        el.style.position = 'fixed'
+        el.style.opacity = '0'
+        document.body.appendChild(el)
+        el.focus()
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+      }
+      setCopiado(true)
+      toast('Enlace copiado', 'success')
+      setTimeout(() => setCopiado(false), 2500)
+    } catch {
+      toast('Copia el link manualmente: ' + inviteLink)
+    }
   }
 
-  async function handleGuardarPwd() {
-    if (newPwd.length < 6) return
-    setSavingPwd(true)
-    const { error } = await supabase.auth.updateUser({ password: newPwd })
-    setSavingPwd(false)
-    if (error) { toast('Error: ' + error.message); return }
-    toast('Contraseña actualizada', 'success')
-    setNewPwd(''); setEditPwd(false)
+  async function handleCancelarInvitacion(id) {
+    setCancelando(id)
+    const { error } = await cancelarInvitacion(id)
+    if (!error) {
+      setPendientes(prev => prev.filter(p => p.id !== id))
+      toast('Invitación cancelada', 'success')
+    } else {
+      toast('Error al cancelar la invitación')
+    }
+    setCancelando(null)
   }
 
   if (!open) return null
 
-  const initial = (nombre || '?').charAt(0).toUpperCase()
+  const initial  = (nombre || '?').charAt(0).toUpperCase()
   const avatarBg = bgColor || 'var(--accent-main)'
+  const paisInfo = PAISES.find(p => p.code === pais) || PAISES[PAISES.length - 1]
 
   return (
     <>
-      {/* Overlay — actúa como contenedor flex centrado */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 500,
-        background: 'rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px',
         paddingTop: 'max(16px, env(safe-area-inset-top))',
         paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
       }}>
-        {/* Clic fuera cierra */}
         <div onClick={onClose} style={{ position: 'absolute', inset: 0 }} />
 
-        {/* Panel */}
         <div className="animate-enter" style={{
-          position: 'relative',
-          zIndex: 1,
-          width: '100%',
-          maxWidth: 420,
-          maxHeight: '100%',
-          borderRadius: 28,
-          overflow: 'hidden',
+          position: 'relative', zIndex: 1,
+          width: '100%', maxWidth: 420, maxHeight: '100%',
+          borderRadius: 28, overflow: 'hidden',
           boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
           border: '1px solid var(--border-glass)',
-          display: 'flex',
-          flexDirection: 'column',
+          display: 'flex', flexDirection: 'column',
         }}>
 
-          {/* ── Cabecera con avatar — fondo de acento sutil, no scrollea ── */}
+          {/* ── Cabecera ── */}
           <div style={{
             background: `color-mix(in srgb, ${avatarBg} 10%, var(--bg-card))`,
             borderBottom: '1px solid var(--border-subtle)',
-            padding: '24px 20px 20px',
-            flexShrink: 0,
+            padding: '24px 20px 20px', flexShrink: 0,
           }}>
             <div className="flex items-center gap-4">
-              {/* Avatar */}
               <div style={{
                 width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
                 background: avatarBg,
@@ -185,7 +249,6 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               }}>
                 {initial}
               </div>
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }} className="truncate">
                   {nombre || 'Sin nombre'}
@@ -194,7 +257,6 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
                   {email}
                 </p>
               </div>
-              {/* Cerrar */}
               <button onClick={onClose} style={{
                 width: 32, height: 32, borderRadius: 10, border: 'none', flexShrink: 0,
                 background: 'color-mix(in srgb, var(--bg-dark-card) 8%, transparent)',
@@ -206,14 +268,11 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
             </div>
           </div>
 
-          {/* ── Contenido scrolleable — scrollbar queda dentro del panel ── */}
+          {/* ── Contenido scrolleable ── */}
           <div className="custom-scroll" style={{
-            overflowY: 'auto',
-            background: 'var(--bg-primary)',
-            padding: '20px 20px 28px',
-            flex: 1,
+            overflowY: 'auto', background: 'var(--bg-primary)',
+            padding: '20px 20px 28px', flex: 1,
           }}>
-
 
             {/* ── Moneda ── */}
             <Row
@@ -222,7 +281,7 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               </span>}
               label="Moneda"
               value={MONEDAS.find(m => m.code === currency)?.label || 'Euro'}
-              onEdit={() => setEditMoneda(v => !v)}
+              onEdit={() => { setEditMoneda(v => !v); setEditPais(false) }}
             />
             {editMoneda && (
               <div className="mb-3">
@@ -230,17 +289,34 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
                   value={currency}
                   onChange={v => { cambiarMoneda(v || 'EUR'); setEditMoneda(false) }}
                   color="var(--accent-gold)"
-                  options={MONEDAS.map(m => ({
-                    id: m.code,
-                    label: m.label,
-                    sub: m.simbolo,
-                  }))}
+                  options={MONEDAS.map(m => ({ id: m.code, label: m.label, sub: m.simbolo }))}
                   placeholder="Seleccionar moneda"
                 />
               </div>
             )}
+
+            {/* ── País ── */}
+            <Row
+              icon={<span style={{ fontSize: 14 }}>{paisInfo.emoji}</span>}
+              label="País"
+              value={paisInfo.label}
+              onEdit={() => { setEditPais(v => !v); setEditMoneda(false) }}
+            />
+            {editPais && (
+              <div className="mb-3">
+                <CustomSelect
+                  value={pais}
+                  onChange={v => { if (v) handleGuardarPais(v) }}
+                  color="var(--accent-blue)"
+                  options={PAISES.map(p => ({ id: p.code, label: p.label, sub: p.emoji }))}
+                  placeholder="Seleccionar país"
+                />
+              </div>
+            )}
+
             {/* ── Nombre ── */}
-            <Row icon={<Edit3 size={14} style={{ color: 'var(--accent-green)' }} />}
+            <Row
+              icon={<Edit3 size={14} style={{ color: 'var(--accent-green)' }} />}
               label="Nombre" value={nombre}
               onEdit={() => { setEditNombre(v => !v); setEditEmail(false); setEditPwd(false) }}
             />
@@ -255,7 +331,8 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
             )}
 
             {/* ── Correo ── */}
-            <Row icon={<Mail size={14} style={{ color: 'var(--accent-blue)' }} />}
+            <Row
+              icon={<Mail size={14} style={{ color: 'var(--accent-blue)' }} />}
               label="Correo" value={email}
               onEdit={isGoogle ? null : () => { setEditEmail(v => !v); setEditNombre(false); setEditPwd(false) }}
               disabled={isGoogle} disabledLabel="Google"
@@ -271,7 +348,8 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
             )}
 
             {/* ── Contraseña ── */}
-            <Row icon={<Lock size={14} style={{ color: 'var(--accent-violet)' }} />}
+            <Row
+              icon={<Lock size={14} style={{ color: 'var(--accent-violet)' }} />}
               label="Contraseña" value="••••••••"
               onEdit={isGoogle ? null : () => { setEditPwd(v => !v); setEditNombre(false); setEditEmail(false) }}
               disabled={isGoogle} disabledLabel="Google"
@@ -351,6 +429,114 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               })}
             </div>
 
+            {/* ── Miembros del hogar ── */}
+            <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
+            <div className="flex items-center gap-2 mb-3">
+              <Users size={14} style={{ color: 'var(--accent-blue)' }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                Miembros de la familia
+              </span>
+            </div>
+
+            <div className="space-y-1 mb-2">
+              {miembros.map(m => {
+                const esYo = m.id === user?.id
+                const inicial = (m.nombre || m.email || '?').charAt(0).toUpperCase()
+                return (
+                  <div key={m.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                    style={{ background: 'var(--bg-secondary)' }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                      background: m.rol === 'admin'
+                        ? 'color-mix(in srgb, var(--accent-main) 20%, transparent)'
+                        : 'color-mix(in srgb, var(--accent-blue) 15%, transparent)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 13, fontWeight: 700,
+                      color: m.rol === 'admin' ? 'var(--accent-main)' : 'var(--accent-blue)',
+                    }}>
+                      {inicial}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}
+                          className="truncate">
+                          {m.nombre || 'Sin nombre'}
+                        </p>
+                        {esYo && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, color: 'var(--accent-main)',
+                            background: 'color-mix(in srgb, var(--accent-main) 12%, transparent)',
+                            padding: '1px 5px', borderRadius: 4,
+                            textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0,
+                          }}>tú</span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)' }} className="truncate">
+                        {m.email}
+                      </p>
+                    </div>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, flexShrink: 0,
+                      color: m.rol === 'admin' ? 'var(--accent-main)' : 'var(--text-muted)',
+                      background: m.rol === 'admin'
+                        ? 'color-mix(in srgb, var(--accent-main) 10%, transparent)'
+                        : 'var(--bg-card)',
+                      padding: '3px 8px', borderRadius: 6,
+                      textTransform: 'uppercase', letterSpacing: '0.05em',
+                    }}>
+                      {m.rol}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Invitaciones pendientes */}
+            {pendientes?.length > 0 && (
+              <div className="space-y-1">
+                <p style={{
+                  fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
+                  textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6,
+                }}>
+                  Pendientes
+                </p>
+                {pendientes.map(p => (
+                  <div key={p.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                    style={{
+                      background: 'color-mix(in srgb, var(--accent-gold) 5%, var(--bg-secondary))',
+                      border: '1px solid color-mix(in srgb, var(--accent-gold) 15%, transparent)',
+                    }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                      background: 'color-mix(in srgb, var(--accent-gold) 15%, transparent)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Mail size={14} style={{ color: 'var(--accent-gold)' }} />
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }} className="truncate">
+                      {p.email}
+                    </p>
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleCancelarInvitacion(p.id)}
+                        disabled={cancelando === p.id}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: 'var(--accent-rose)', padding: 4, flexShrink: 0,
+                        }}>
+                        {cancelando === p.id
+                          ? <Loader2 size={13} className="animate-spin" />
+                          : <X size={13} />
+                        }
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* ── Invitar miembro (solo admin) ── */}
             {isAdmin && (
               <>
@@ -361,33 +547,24 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
                     Invitar miembro
                   </span>
                 </div>
-
                 <div className="flex gap-2 mb-2">
                   <input
-                    type="email"
-                    value={inviteEmail}
+                    type="email" value={inviteEmail}
                     onChange={e => { setInviteEmail(e.target.value); setInviteLink('') }}
                     placeholder="email@ejemplo.com"
                     className="ff-input flex-1 text-sm"
                     autoComplete="off"
                   />
                   <button
-                    onClick={handleGenerarInvitacion}
-                    disabled={generando}
+                    onClick={handleGenerarInvitacion} disabled={generando}
                     className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1"
                     style={{
-                      background: 'var(--accent-main)',
-                      color: 'var(--text-on-dark)',
+                      background: 'var(--accent-main)', color: 'var(--text-on-dark)',
                       border: 'none', cursor: 'pointer', flexShrink: 0,
-                    }}
-                  >
-                    {generando
-                      ? <Loader2 size={13} className="animate-spin" />
-                      : <UserPlus size={13} />
-                    }
+                    }}>
+                    {generando ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
                   </button>
                 </div>
-
                 {inviteLink && (
                   <button
                     onClick={handleCopiarLink}
@@ -396,8 +573,7 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
                       background: 'color-mix(in srgb, var(--accent-green) 8%, var(--bg-secondary))',
                       border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)',
                       cursor: 'pointer',
-                    }}
-                  >
+                    }}>
                     <span className="flex-1 text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
                       {inviteLink}
                     </span>
@@ -441,10 +617,11 @@ function Row({ icon, label, value, onEdit, disabled, disabledLabel }) {
         background: 'var(--bg-secondary)', border: 'none',
         cursor: onEdit ? 'pointer' : 'default',
         opacity: disabled ? 0.5 : 1,
-      }}
-    >
+      }}>
       {icon}
-      <span className="text-sm flex-1 text-left font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+      <span className="text-sm flex-1 text-left font-medium" style={{ color: 'var(--text-secondary)' }}>
+        {label}
+      </span>
       <span className="text-xs truncate max-w-[140px]" style={{ color: 'var(--text-muted)' }}>
         {disabled ? disabledLabel : value}
       </span>

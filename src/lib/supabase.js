@@ -105,3 +105,18 @@ export async function getMovimientosPorUsuario(userId, filtros = {}) {
   })
   return { data, error }
 }
+/**
+ * Devuelve miembros activos e invitaciones pendientes del hogar.
+ * @returns {{ miembros, pendientes }}
+ */
+export async function getMiembrosHogar() {
+  const { data, error } = await supabase.rpc('get_miembros_hogar')
+  return { data, error }
+}
+export async function cancelarInvitacion(invitacionId) {
+  const { data, error } = await supabase
+    .from('invitaciones')
+    .delete()
+    .eq('id', invitacionId)
+  return { data, error }
+}
