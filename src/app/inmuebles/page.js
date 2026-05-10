@@ -299,7 +299,7 @@ export default function InmueblesPage() {
 function InmuebleItem({ inmueble, onOpen, comparando = [], onToggleComparar }) {
   const { datos_compra: dc, hipoteca: hip, alquiler_config: al, tipo, estado } = inmueble
   const fi = hip
-
+  const formatCurrency = useFormatCurrency()
   const precioCents = toCents(dc?.precio || 0)
   const principalCents = toCents(hip?.principal || 0)
   const interesAnual = hip?.interes_anual || 3

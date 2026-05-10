@@ -1,57 +1,71 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Check } from 'lucide-react'
 
-export default function CustomSelect({ value, onChange, options, placeholder = '— Seleccionar —', color }) {
-  const [open, setOpen]       = useState(false)
-  const [coords, setCoords]   = useState({ top: 0, left: 0, width: 0 })
+export default function CustomSelect({ value, onChange, options, placeholder = '— Seleccionar —', color, defaultOpen = false }) {
+  // Si defaultOpen, arrancar ya oculto para evitar pestañeo
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 })
   const [hovered, setHovered] = useState(null)
-  const triggerRef    = useRef(null)
-  const dropdownRef   = useRef(null)
-  const selectedRef   = useRef(null)
+  // triggerVisible: false desde el inicio si defaultOpen, para no ver el botón nunca
+  const [triggerVisible, setTriggerVisible] = useState(!defaultOpen)
+  const triggerRef = useRef(null)
+  const dropdownRef = useRef(null)
+  const selectedRef = useRef(null)
+  const skipNextClick = useRef(false)
+
   const selected = options.filter(o => !o.header).find(o => o.id === value)
-  const accent   = color || 'var(--accent-main)'
+  const accent = color || 'var(--accent-main)'
 
   function calcCoords() {
     if (!triggerRef.current) return null
-    const rect       = triggerRef.current.getBoundingClientRect()
+    const rect = triggerRef.current.getBoundingClientRect()
     const spaceBelow = window.innerHeight - rect.bottom
-    const dropH      = Math.min(240, options.filter(o => !o.header).length * 42 + 44)
-    const top        = spaceBelow < dropH && rect.top > dropH
+    const dropH = Math.min(240, options.filter(o => !o.header).length * 42 + 44)
+    const top = spaceBelow < dropH && rect.top > dropH
       ? rect.top - dropH - 4
       : rect.bottom + 4
-    // Clamp left para no salirse de pantalla en móvil
-    const vw    = window.innerWidth
-    const left  = Math.max(8, Math.min(rect.left, vw - rect.width - 8))
+    const vw = window.innerWidth
+    const left = Math.max(8, Math.min(rect.left, vw - rect.width - 8))
     return { top, left, width: rect.width }
   }
 
   function openDropdown() {
     const c = calcCoords()
-    if (!c) return
+    if (!c || c.width === 0) return
     setCoords(c)
     setOpen(true)
   }
 
-  // Scroll al item seleccionado al abrir
+  // useLayoutEffect: corre después del paint pero antes de que el usuario lo vea
+  // Mide las coords del trigger (que está invisible pero ocupa espacio) y abre el dropdown
+  useLayoutEffect(() => {
+    if (!defaultOpen) return
+    skipNextClick.current = true
+    const c = calcCoords()
+    if (c && c.width > 0) {
+      setCoords(c)
+      setOpen(true)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (open && selectedRef.current) {
       setTimeout(() => selectedRef.current?.scrollIntoView({ block: 'nearest' }), 0)
     }
   }, [open])
 
-  // Cerrar al hacer clic fuera o con Escape
   useEffect(() => {
     if (!open) return
     function handleClick(e) {
       if (
         triggerRef.current && !triggerRef.current.contains(e.target) &&
         dropdownRef.current && !dropdownRef.current.contains(e.target)
-      ) setOpen(false)
+      ) { setOpen(false); setTriggerVisible(true) }
     }
     function handleKey(e) {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') { setOpen(false); setTriggerVisible(true) }
     }
     document.addEventListener('mousedown', handleClick)
     document.addEventListener('touchstart', handleClick)
@@ -63,34 +77,49 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
     }
   }, [open])
 
-  // Reposicionar al hacer scroll
   useEffect(() => {
     if (!open) return
     function handleScroll() {
       if (!triggerRef.current) { setOpen(false); return }
       const rect = triggerRef.current.getBoundingClientRect()
-      if (rect.bottom < 0 || rect.top > window.innerHeight) { setOpen(false); return }
+      if (rect.bottom < 0 || rect.top > window.innerHeight) { setOpen(false); setTriggerVisible(true); return }
       const c = calcCoords()
       if (c) setCoords(c)
     }
     window.addEventListener('scroll', handleScroll, true)
     return () => window.removeEventListener('scroll', handleScroll, true)
-  }, [open, options])
+  }, [open, options]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // triggerVisible arranca en false si defaultOpen → nunca se ve el botón
+  // Cuando el user cierra el dropdown manualmente, mostramos el trigger de nuevo
+  const triggerStyle = !triggerVisible || (defaultOpen && open)
+    ? { opacity: 0, pointerEvents: 'none', userSelect: 'none' }
+    : {}
 
   return (
     <>
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => open ? setOpen(false) : openDropdown()}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (skipNextClick.current) {
+            skipNextClick.current = false
+            return
+          }
+          if (open) { setOpen(false); setTriggerVisible(true) }
+          else openDropdown()
+        }}
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+          display: 'flex',
+          width: '100%', alignItems: 'center', gap: 8,
           padding: '9px 12px', borderRadius: 12, cursor: 'pointer',
           background: selected ? `color-mix(in srgb, ${accent} 8%, var(--bg-secondary))` : 'var(--bg-secondary)',
           border: `1px solid ${selected ? accent : 'var(--border-subtle, color-mix(in srgb, var(--text-muted) 20%, transparent))'}`,
           color: selected ? 'var(--text-primary)' : 'var(--text-muted)',
           fontWeight: selected ? 600 : 400, fontSize: 12,
-          transition: 'all 0.12s',
+          transition: 'all 0.12s', outline: 'none', userSelect: 'none',
+          ...triggerStyle,
         }}
       >
         {selected?.dot && (
@@ -107,13 +136,14 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
           transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
           transition: 'transform 0.15s',
         }}>
-          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {open && typeof window !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
+          onClick={(e) => e.stopPropagation()}
           style={{
             position: 'fixed',
             top: coords.top,
@@ -143,7 +173,9 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
                 color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer',
                 transition: 'background 0.1s',
               }}
-            >{placeholder}</button>
+            >
+              {placeholder}
+            </button>
 
             {options.map((o, i) => {
               if (o.header) return (
@@ -173,8 +205,8 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
                     background: isSel
                       ? `color-mix(in srgb, ${accent} 12%, var(--bg-secondary))`
                       : hovered === o.id
-                      ? 'var(--bg-secondary)'
-                      : 'transparent',
+                        ? 'var(--bg-secondary)'
+                        : 'transparent',
                     color: isSel ? accent : 'var(--text-primary)',
                     fontWeight: isSel ? 700 : 400, fontSize: 12,
                     transition: 'background 0.1s',

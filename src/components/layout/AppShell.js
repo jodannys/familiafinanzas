@@ -77,14 +77,14 @@ function Divider() {
 // ── DraggableFAB (solo desktop) ───────────────────────────────────────────────
 
 function DraggableFAB({ onClick }) {
-  const DEFAULT = { x: window?.innerWidth ? window.innerWidth - 80 : 1200, y: window?.innerHeight ? window.innerHeight - 100 : 700 }
-
   const [pos, setPos] = useState(() => {
+    // Protección SSR — window no existe en el servidor
+    if (typeof window === 'undefined') return { x: 1200, y: 700 }
+    const DEFAULT = { x: window.innerWidth - 80, y: window.innerHeight - 100 }
     try {
       const saved = localStorage.getItem('ff-fab-pos')
       if (saved) {
         const p = JSON.parse(saved)
-        // Validar que siga dentro de la pantalla
         if (p.x > 0 && p.y > 0 && p.x < window.innerWidth && p.y < window.innerHeight) return p
       }
     } catch (e) { }
@@ -215,7 +215,7 @@ export function FABModal({ onClose }) {
   function handleCat(id) {
     const nuevo = cat === id ? null : id
     setCat(nuevo); setCatDB(null); setSelectedItem(null)
-    setSelectedSubcat(null); setMonto('')  // ← limpia monto
+    setSelectedSubcat(null);
   }
 
   // Perfiles de tarjeta
@@ -491,10 +491,12 @@ export function FABModal({ onClose }) {
                 <div style={{ marginTop: 8 }}>
                   <CustomSelect
                     value={selectedSubcat?.id || ''}
+
                     onChange={id => {
                       const sub = subcats.find(s => s.id === id) || null
-                      setSelectedSubcat(sub)
-                      if (sub && subcatPresupuesto[sub.id] > 0) setMonto(subcatPresupuesto[sub.id].toString())
+                      if (sub && subcatPresupuesto[sub.id] > 0 && !monto) {
+                        setMonto(subcatPresupuesto[sub.id].toString())
+                      }
                     }}
                     options={subcats.map(s => ({
                       id: s.id,
@@ -526,13 +528,11 @@ export function FABModal({ onClose }) {
                         key={item.id}
                         onClick={() => {
                           setSelectedItem(isSel ? null : item)
-                          if (!isSel) {
+                          if (!isSel && !monto) {  // ← añadir && !monto
                             if (cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString())
                             else if (cat === 'inversion' && item.aporte > 0) setMonto(item.aporte.toString())
                             else if (cat === 'ahorro' && item.pct_mensual > 0 && montoMetasDisp > 0)
                               setMonto(parseFloat(((item.pct_mensual / 100) * montoMetasDisp).toFixed(2)).toString())
-                          } else {
-                            setMonto('') // limpiar si se deselecciona
                           }
                         }}
                         style={{
@@ -825,6 +825,13 @@ export default function AppShell({ children }) {
         }
       })
       .catch(() => router.replace('/login'))
+
+    function handlePaisChanged(e) {
+      setPerfilUsuario(prev => prev ? { ...prev, pais: e.detail.pais } : prev)
+    }
+    window.addEventListener('ff:pais-changed', handlePaisChanged)
+    return () => window.removeEventListener('ff:pais-changed', handlePaisChanged)
+
   }, [])
 
   async function handleLogout() {

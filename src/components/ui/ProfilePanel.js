@@ -8,55 +8,62 @@ import CustomSelect from '@/components/ui/CustomSelect'
 import { useCurrency } from '@/lib/CurrencyContext'
 
 const PAISES = [
-  { code: 'ES', label: 'España',          emoji: '🇪🇸' },
-  { code: 'MX', label: 'México',          emoji: '🇲🇽' },
-  { code: 'CO', label: 'Colombia',        emoji: '🇨🇴' },
-  { code: 'AR', label: 'Argentina',       emoji: '🇦🇷' },
-  { code: 'CL', label: 'Chile',           emoji: '🇨🇱' },
-  { code: 'PE', label: 'Perú',            emoji: '🇵🇪' },
-  { code: 'VE', label: 'Venezuela',       emoji: '🇻🇪' },
-  { code: 'EC', label: 'Ecuador',         emoji: '🇪🇨' },
-  { code: 'US', label: 'Estados Unidos',  emoji: '🇺🇸' },
-  { code: 'OTHER', label: 'Otro',         emoji: '🌍' },
+  { code: 'ES', label: 'España', emoji: '🇪🇸' },
+  { code: 'MX', label: 'México', emoji: '🇲🇽' },
+  { code: 'CO', label: 'Colombia', emoji: '🇨🇴' },
+  { code: 'AR', label: 'Argentina', emoji: '🇦🇷' },
+  { code: 'CL', label: 'Chile', emoji: '🇨🇱' },
+  { code: 'PE', label: 'Perú', emoji: '🇵🇪' },
+  { code: 'VE', label: 'Venezuela', emoji: '🇻🇪' },
+  { code: 'EC', label: 'Ecuador', emoji: '🇪🇨' },
+  { code: 'US', label: 'Estados Unidos', emoji: '🇺🇸' },
+  { code: 'OTHER', label: 'Otro', emoji: '🌍' },
 ]
+
+const PAIS_MONEDA = {
+  ES: 'EUR', MX: 'MXN', CO: 'COP',
+  AR: 'ARS', CL: 'CLP', PE: 'PEN',
+  VE: 'VES', EC: 'USD', US: 'USD',
+  OTHER: 'USD',
+}
 
 export default function ProfilePanel({ open, onClose, onLogout }) {
   const { theme, setTheme } = useTheme()
   const themeColors = getThemeColors(theme)
   const { currency, cambiarMoneda, MONEDAS } = useCurrency()
 
-  const [user, setUser]               = useState(null)
-  const [nombre, setNombre]           = useState('')
-  const [email, setEmail]             = useState('')
-  const [isGoogle, setIsGoogle]       = useState(false)
-  const [bgColor, setBgColor]         = useState('')
-  const [isAdmin, setIsAdmin]         = useState(false)
-  const [pais, setPais]               = useState('ES')
+  const [user, setUser] = useState(null)
+  const [nombre, setNombre] = useState('')
+  const [email, setEmail] = useState('')
+  const [isGoogle, setIsGoogle] = useState(false)
+  const [bgColor, setBgColor] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [pais, setPais] = useState('ES')
 
-  const [editNombre, setEditNombre]   = useState(false)
-  const [nombreVal, setNombreVal]     = useState('')
+  const [editNombre, setEditNombre] = useState(false)
+  const [nombreVal, setNombreVal] = useState('')
   const [savingNombre, setSavingNombre] = useState(false)
 
-  const [editEmail, setEditEmail]     = useState(false)
-  const [newEmail, setNewEmail]       = useState('')
+  const [editEmail, setEditEmail] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
   const [savingEmail, setSavingEmail] = useState(false)
 
-  const [editPwd, setEditPwd]         = useState(false)
-  const [newPwd, setNewPwd]           = useState('')
-  const [showPwd, setShowPwd]         = useState(false)
-  const [savingPwd, setSavingPwd]     = useState(false)
+  const [editPwd, setEditPwd] = useState(false)
+  const [newPwd, setNewPwd] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
+  const [savingPwd, setSavingPwd] = useState(false)
 
-  const [editMoneda, setEditMoneda]   = useState(false)
-  const [editPais, setEditPais]       = useState(false)
+  const [editMoneda, setEditMoneda] = useState(false)
+  const [editPais, setEditPais] = useState(false)
 
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteLink, setInviteLink]   = useState('')
-  const [generando, setGenerando]     = useState(false)
-  const [copiado, setCopiado]         = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
+  const [generando, setGenerando] = useState(false)
+  const [copiado, setCopiado] = useState(false)
 
-  const [miembros, setMiembros]       = useState([])
-  const [pendientes, setPendientes]   = useState([])
-  const [cancelando, setCancelando]   = useState(null)
+  const [miembros, setMiembros] = useState([])
+  const [pendientes, setPendientes] = useState([])
+  const [cancelando, setCancelando] = useState(null)
 
   // ── Cargar datos al abrir ────────────────────────────────────────────────
   useEffect(() => {
@@ -149,7 +156,16 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
     if (error) { toast('Error al guardar el país'); return }
     setPais(nuevoPais)
     setEditPais(false)
-    toast('País actualizado', 'success')
+
+    const monedaNueva = PAIS_MONEDA[nuevoPais]
+    if (monedaNueva && monedaNueva !== currency) {
+      await cambiarMoneda(monedaNueva)
+      toast(`País y moneda actualizados (${monedaNueva})`, 'success')
+    } else {
+      toast('País actualizado', 'success')
+    }
+
+    window.dispatchEvent(new CustomEvent('ff:pais-changed', { detail: { pais: nuevoPais } }))
   }
 
   async function handleGenerarInvitacion() {
@@ -207,7 +223,7 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
 
   if (!open) return null
 
-  const initial  = (nombre || '?').charAt(0).toUpperCase()
+  const initial = (nombre || '?').charAt(0).toUpperCase()
   const avatarBg = bgColor || 'var(--accent-main)'
   const paisInfo = PAISES.find(p => p.code === pais) || PAISES[PAISES.length - 1]
 
@@ -285,7 +301,9 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
             />
             {editMoneda && (
               <div className="mb-3">
+                {/* FIX: sin defaultOpen — el dropdown abre solo al montar gracias al fix en CustomSelect */}
                 <CustomSelect
+                  defaultOpen
                   value={currency}
                   onChange={v => { cambiarMoneda(v || 'EUR'); setEditMoneda(false) }}
                   color="var(--accent-gold)"
@@ -304,7 +322,9 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
             />
             {editPais && (
               <div className="mb-3">
+                {/* FIX: sin defaultOpen — el dropdown abre solo al montar gracias al fix en CustomSelect */}
                 <CustomSelect
+                  defaultOpen
                   value={pais}
                   onChange={v => { if (v) handleGuardarPais(v) }}
                   color="var(--accent-blue)"
