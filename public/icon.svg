@@ -1,5 +1,5 @@
 <svg width="250" height="250" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="100" cy="100" r="95" fill="#2d7a5b"/>
+  <rect x="0" y="0" width="200" height="200" rx="45" fill="#2d7a5b"/>
   <circle cx="100" cy="100" r="75" fill="#358c69"/>
   <circle cx="100" cy="100" r="55" fill="#3b9d76"/>
   <circle cx="100" cy="100" r="42" fill="#f2f5f4"/>
@@ -10,4 +10,4 @@
   <circle cx="148" cy="52" r="16" fill="#c48347"/>
   <circle cx="148" cy="52" r="12" fill="#d69152"/>
   <text x="148" y="56" font-family="Arial,sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">$</text>
-  </svg>
+</svg>

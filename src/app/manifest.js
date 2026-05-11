@@ -11,7 +11,7 @@ export default function manifest() {
     icons: [
       {
         src: '/icon.svg',
-        sizes: 'any',
+    
         type: 'image/svg+xml',
         purpose: 'any maskable',
       },
