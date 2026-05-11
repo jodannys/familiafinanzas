@@ -54,14 +54,15 @@ function CustomTooltip({ active, payload, label, colores }) {
 
 export function FinanceChart({ data = [] }) {
 
-  const [colores, setColores] = useState(leerColores)
+ 
+const [colores, setColores] = useState({})
 
   useEffect(() => {
-    setColores(leerColores())
-    const handler = () => setColores(leerColores())
-    window.addEventListener('theme-change', handler)
-    return () => window.removeEventListener('theme-change', handler)
-  }, [])
+  requestAnimationFrame(() => setColores(leerColores()))
+  const handler = () => requestAnimationFrame(() => setColores(leerColores()))
+  window.addEventListener('theme-change', handler)
+  return () => window.removeEventListener('theme-change', handler)
+}, [])
 
   // FIX 1: fallback usando var(--bg-secondary) que sí existe en todos los temas
   const bgGrafico = colores.bgCard
