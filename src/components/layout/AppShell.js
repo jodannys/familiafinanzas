@@ -866,7 +866,11 @@ export default function AppShell({ children }) {
           <div className="flex items-center justify-between px-5 py-4"
             style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}>
             <div className="flex items-center gap-2">
-              <img src="/icon.svg" alt="Logo" className="w-8 h-8 rounded-xl" />
+              <img
+                src="/icon.svg"
+                alt="Logo"
+                className="w-10 h-10 object-contain"
+              />
               <span className="font-script text-[25px]" style={{
                 color: 'var(--text-primary)',
                 maxWidth: '55vw',

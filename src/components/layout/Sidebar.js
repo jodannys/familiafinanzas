@@ -182,19 +182,38 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
         }}>
           {!collapsed && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+
               <div style={{
-                width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'color-mix(in srgb, var(--accent-main) 14%, transparent)',
+                width: 36,
+                height: 36,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}>
-                <img src="/icon.svg" alt="Logo" style={{ width: 20, height: 20 }} />
+                <img
+                  src="/icon.svg"
+                  alt="Logo"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                  }}
+                />
               </div>
+
               <p style={{
-                fontFamily: 'Sacramento, cursive', fontSize: 20, color: 'var(--text-primary)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+                fontFamily: 'Sacramento, cursive',
+                fontSize: 20,
+                color: 'var(--text-primary)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
               }}>
                 {nombreHogar || 'Mi Familia'}
               </p>
+
             </div>
           )}
           <button
@@ -363,7 +382,7 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
                       </Link>
                     )
                   })}
-                  
+
               </div>
             </div>
           ))}
