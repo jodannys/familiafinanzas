@@ -215,7 +215,8 @@ export function FABModal({ onClose }) {
   function handleCat(id) {
     const nuevo = cat === id ? null : id
     setCat(nuevo); setCatDB(null); setSelectedItem(null)
-    setSelectedSubcat(null);
+    setSelectedSubcat(null)
+    // sin setMonto('')
   }
 
   // Perfiles de tarjeta
@@ -459,7 +460,7 @@ export function FABModal({ onClose }) {
 
           {/* SECCIÓN: Categoría (solo gasto) */}
           {tipo === 'egreso' && (
-            <Section label="Categoría">
+            <Section label="Tipo">
               <CustomSelect
                 value={cat || ''}
                 onChange={id => { setMonto(''); handleCat(id) }}
@@ -492,9 +493,12 @@ export function FABModal({ onClose }) {
                   <CustomSelect
                     value={selectedSubcat?.id || ''}
 
+
+                    // ✅ subcategoría — solo rellena si el campo está vacío
                     onChange={id => {
                       const sub = subcats.find(s => s.id === id) || null
-                      if (sub && subcatPresupuesto[sub.id] > 0 && !monto) {
+                      setSelectedSubcat(sub)
+                      if (sub && subcatPresupuesto[sub.id] > 0 && !monto) {  // ← !monto aquí sí tiene sentido
                         setMonto(subcatPresupuesto[sub.id].toString())
                       }
                     }}

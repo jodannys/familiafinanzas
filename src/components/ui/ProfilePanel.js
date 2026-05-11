@@ -64,6 +64,10 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
   const [miembros, setMiembros] = useState([])
   const [pendientes, setPendientes] = useState([])
   const [cancelando, setCancelando] = useState(null)
+  const [eliminando, setEliminando] = useState(null)
+
+  const [miembroSeleccionado, setMiembroSeleccionado] = useState(null)
+  const [confirmEliminar, setConfirmEliminar] = useState(false)
 
   // ── Cargar datos al abrir ────────────────────────────────────────────────
   useEffect(() => {
@@ -167,6 +171,27 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
 
     window.dispatchEvent(new CustomEvent('ff:pais-changed', { detail: { pais: nuevoPais } }))
   }
+
+  // ✅ Cambiar handleEliminarMiembro
+async function handleEliminarMiembro() {
+  if (!miembroSeleccionado) return
+  setEliminando(miembroSeleccionado.id)
+
+  const { error } = await supabase.rpc('eliminar_miembro_hogar', {
+    miembro_id: miembroSeleccionado.id
+  })
+
+  if (!error) {
+    setMiembros(prev => prev.filter(m => m.id !== miembroSeleccionado.id))
+    toast('Miembro eliminado del hogar', 'success')
+  } else {
+    toast('Error al eliminar el miembro')
+  }
+
+  setEliminando(null)
+  setConfirmEliminar(false)
+  setMiembroSeleccionado(null)
+}
 
   async function handleGenerarInvitacion() {
     if (!inviteEmail.trim()) { toast('Ingresa el email del invitado', 'warning'); return }
@@ -300,8 +325,7 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               onEdit={() => { setEditMoneda(v => !v); setEditPais(false) }}
             />
             {editMoneda && (
-              <div className="mb-3">
-                {/* FIX: sin defaultOpen — el dropdown abre solo al montar gracias al fix en CustomSelect */}
+              <div style={{ marginTop: 6, height: 0, overflow: 'visible' }}>
                 <CustomSelect
                   defaultOpen
                   value={currency}
@@ -321,8 +345,7 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               onEdit={() => { setEditPais(v => !v); setEditMoneda(false) }}
             />
             {editPais && (
-              <div className="mb-3">
-                {/* FIX: sin defaultOpen — el dropdown abre solo al montar gracias al fix en CustomSelect */}
+              <div style={{ marginTop: 6, height: 0, overflow: 'visible' }}>
                 <CustomSelect
                   defaultOpen
                   value={pais}
@@ -341,13 +364,15 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               onEdit={() => { setEditNombre(v => !v); setEditEmail(false); setEditPwd(false) }}
             />
             {editNombre && (
-              <InlineEdit
-                value={nombreVal} onChange={setNombreVal}
-                onSave={handleGuardarNombre} saving={savingNombre}
-                onCancel={() => setEditNombre(false)}
-                placeholder="Tu nombre" type="text"
-                accentVar="var(--accent-green)"
-              />
+              <div style={{ marginTop: 6 }}>
+                <InlineEdit
+                  value={nombreVal} onChange={setNombreVal}
+                  onSave={handleGuardarNombre} saving={savingNombre}
+                  onCancel={() => setEditNombre(false)}
+                  placeholder="Tu nombre" type="text"
+                  accentVar="var(--accent-green)"
+                />
+              </div>
             )}
 
             {/* ── Correo ── */}
@@ -358,13 +383,15 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               disabled={isGoogle} disabledLabel="Google"
             />
             {editEmail && !isGoogle && (
-              <InlineEdit
-                value={newEmail} onChange={setNewEmail}
-                onSave={handleGuardarEmail} saving={savingEmail}
-                onCancel={() => { setEditEmail(false); setNewEmail('') }}
-                placeholder="Nuevo correo" type="email"
-                accentVar="var(--accent-blue)"
-              />
+              <div style={{ marginTop: 6 }}>
+                <InlineEdit
+                  value={newEmail} onChange={setNewEmail}
+                  onSave={handleGuardarEmail} saving={savingEmail}
+                  onCancel={() => { setEditEmail(false); setNewEmail('') }}
+                  placeholder="Nuevo correo" type="email"
+                  accentVar="var(--accent-blue)"
+                />
+              </div>
             )}
 
             {/* ── Contraseña ── */}
@@ -375,7 +402,7 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
               disabled={isGoogle} disabledLabel="Google"
             />
             {editPwd && !isGoogle && (
-              <div className="mb-3 flex gap-2">
+              <div className="mb-3 flex gap-2" style={{ marginTop: 6 }}>
                 <div className="relative flex-1">
                   <input type={showPwd ? 'text' : 'password'} value={newPwd}
                     onChange={e => setNewPwd(e.target.value)} autoFocus
@@ -461,11 +488,24 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
             <div className="space-y-1 mb-2">
               {miembros.map(m => {
                 const esYo = m.id === user?.id
+                const seleccionado = miembroSeleccionado?.id === m.id
                 const inicial = (m.nombre || m.email || '?').charAt(0).toUpperCase()
                 return (
                   <div key={m.id}
+                    onClick={() => { if (isAdmin && !esYo) setMiembroSeleccionado(seleccionado ? null : m) }}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-                    style={{ background: 'var(--bg-secondary)' }}>
+                    style={{
+                      background: seleccionado
+                        ? 'color-mix(in srgb, var(--accent-rose) 8%, var(--bg-secondary))'
+                        : 'var(--bg-secondary)',
+                      border: `1px solid ${seleccionado
+                        ? 'color-mix(in srgb, var(--accent-rose) 25%, transparent)'
+                        : 'transparent'}`,
+                      cursor: isAdmin && !esYo ? 'pointer' : 'default',
+                      transition: 'all 0.15s',
+                    }}>
+
+                    {/* Avatar */}
                     <div style={{
                       width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
                       background: m.rol === 'admin'
@@ -477,10 +517,11 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
                     }}>
                       {inicial}
                     </div>
+
+                    {/* Nombre + email */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}
-                          className="truncate">
+                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }} className="truncate">
                           {m.nombre || 'Sin nombre'}
                         </p>
                         {esYo && (
@@ -496,6 +537,8 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
                         {m.email}
                       </p>
                     </div>
+
+                    {/* Rol */}
                     <span style={{
                       fontSize: 10, fontWeight: 700, flexShrink: 0,
                       color: m.rol === 'admin' ? 'var(--accent-main)' : 'var(--text-muted)',
@@ -507,12 +550,25 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
                     }}>
                       {m.rol}
                     </span>
+
+                    {/* Botón eliminar — aparece solo al seleccionar */}
+                    {isAdmin && !esYo && seleccionado && (
+                      <button
+                        onClick={e => { e.stopPropagation(); setConfirmEliminar(true) }}
+                        style={{
+                          background: 'var(--accent-rose)', border: 'none', cursor: 'pointer',
+                          color: '#fff', padding: '4px 10px', borderRadius: 8,
+                          fontSize: 11, fontWeight: 700, flexShrink: 0,
+                        }}>
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                 )
               })}
             </div>
 
-            {/* Invitaciones pendientes */}
+            {/* ── Invitaciones pendientes ── */}
             {pendientes?.length > 0 && (
               <div className="space-y-1">
                 <p style={{
@@ -623,6 +679,53 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
           </div>
         </div>
       </div>
+
+      {/* ── Modal confirmar eliminar miembro ── */}
+      {confirmEliminar && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 600,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 16,
+        }}>
+          <div style={{
+            background: 'var(--bg-card)', borderRadius: 24, padding: 24,
+            maxWidth: 320, width: '100%',
+            border: '1px solid var(--border-glass)',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+          }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+              ¿Eliminar miembro?
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>
+              <strong>{miembroSeleccionado?.nombre || miembroSeleccionado?.email}</strong> perderá acceso al hogar.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => { setConfirmEliminar(false); setMiembroSeleccionado(null) }}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 12, border: 'none',
+                  background: 'var(--bg-secondary)', color: 'var(--text-muted)',
+                  fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                }}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleEliminarMiembro}
+                disabled={!!eliminando}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 12, border: 'none',
+                  background: 'var(--accent-rose)', color: '#fff',
+                  fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  opacity: eliminando ? 0.7 : 1,
+                }}>
+                {eliminando ? <Loader2 size={13} className="animate-spin" /> : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
@@ -652,7 +755,7 @@ function Row({ icon, label, value, onEdit, disabled, disabledLabel }) {
 
 function InlineEdit({ value, onChange, onSave, saving, onCancel, placeholder, type, accentVar }) {
   return (
-    <div className="mb-3 flex gap-2">
+    <div className="mb-3 flex gap-2" style={{ marginTop: 6 }}>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && onSave()}
         autoFocus placeholder={placeholder} className="ff-input flex-1 text-sm" />

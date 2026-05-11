@@ -400,3 +400,8 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     --accent-violet: #6b3cb8;
   }
 }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

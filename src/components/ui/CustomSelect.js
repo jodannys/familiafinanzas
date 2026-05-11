@@ -92,9 +92,20 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
 
   // triggerVisible arranca en false si defaultOpen → nunca se ve el botón
   // Cuando el user cierra el dropdown manualmente, mostramos el trigger de nuevo
-  const triggerStyle = !triggerVisible || (defaultOpen && open)
-    ? { opacity: 0, pointerEvents: 'none', userSelect: 'none' }
-    : {}
+ // En CustomSelect.jsx, cambia triggerStyle:
+// ✅ CORRECTO — si es defaultOpen, el trigger SIEMPRE está oculto
+const triggerStyle = (defaultOpen || !triggerVisible)
+  ? {
+      opacity: 0,
+      pointerEvents: 'none',
+      userSelect: 'none',
+      height: 0,
+      padding: 0,
+      border: 'none',
+      minHeight: 0,
+      overflow: 'hidden'
+    }
+  : {}
 
   return (
     <>
