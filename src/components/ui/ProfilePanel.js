@@ -325,7 +325,7 @@ async function handleEliminarMiembro() {
               onEdit={() => { setEditMoneda(v => !v); setEditPais(false) }}
             />
             {editMoneda && (
-              <div style={{ marginTop: 6, height: 0, overflow: 'visible' }}>
+               <div style={{ marginTop: 6, marginBottom: 6 }}>
                 <CustomSelect
                   defaultOpen
                   value={currency}
@@ -345,7 +345,7 @@ async function handleEliminarMiembro() {
               onEdit={() => { setEditPais(v => !v); setEditMoneda(false) }}
             />
             {editPais && (
-              <div style={{ marginTop: 6, height: 0, overflow: 'visible' }}>
+               <div style={{ marginTop: 6, marginBottom: 6, }}>
                 <CustomSelect
                   defaultOpen
                   value={pais}
@@ -364,7 +364,7 @@ async function handleEliminarMiembro() {
               onEdit={() => { setEditNombre(v => !v); setEditEmail(false); setEditPwd(false) }}
             />
             {editNombre && (
-              <div style={{ marginTop: 6 }}>
+          <div style={{ marginTop: 15, marginBottom: 15 }}>
                 <InlineEdit
                   value={nombreVal} onChange={setNombreVal}
                   onSave={handleGuardarNombre} saving={savingNombre}

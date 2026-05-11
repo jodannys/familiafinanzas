@@ -96,16 +96,18 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
 // ✅ CORRECTO — si es defaultOpen, el trigger SIEMPRE está oculto
 const triggerStyle = (defaultOpen || !triggerVisible)
   ? {
-      opacity: 0,
-      pointerEvents: 'none',
-      userSelect: 'none',
       height: 0,
+      transition: 'none',
+      maxHeight: 0,
+      margin: 0,
       padding: 0,
+      opacity: 0,
+      overflow: 'visible', // Permite que el menú que sale de aquí se vea
+      pointerEvents: 'none',
       border: 'none',
-      minHeight: 0,
-      overflow: 'hidden'
+      width: '100%', // Mantiene la referencia de ancho para el hijo
     }
-  : {}
+  : {};
 
   return (
     <>
