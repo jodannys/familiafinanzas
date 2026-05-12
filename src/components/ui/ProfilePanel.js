@@ -6,6 +6,7 @@ import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import { toast } from '@/lib/toast'
 import CustomSelect from '@/components/ui/CustomSelect'
 import { useCurrency } from '@/lib/CurrencyContext'
+import UserAvatar from '@/components/ui/UserAvatar'
 
 const PAISES = [
   { code: 'ES', label: 'España', emoji: '🇪🇸' },
@@ -36,7 +37,6 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [isGoogle, setIsGoogle] = useState(false)
-  const [bgColor, setBgColor] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [pais, setPais] = useState('ES')
 
@@ -70,49 +70,45 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
   const [confirmEliminar, setConfirmEliminar] = useState(false)
 
   // ── Cargar datos al abrir ────────────────────────────────────────────────
-  useEffect(() => {
+   useEffect(() => {
     if (!open) return
-
+ 
     supabase.auth.getUser().then(async ({ data: { user: u } }) => {
       if (!u) return
       setUser(u)
-      const n = u.user_metadata?.nombre || ''
-      setNombre(n)
-      setNombreVal(n)
       setEmail(u.email || '')
       const google = u.app_metadata?.provider === 'google' ||
         (u.identities || []).some(i => i.provider === 'google')
       setIsGoogle(google)
-
+ 
+      // FIX: leer nombre también desde perfiles como fallback
       const { data: perfil } = await supabase
         .from('perfiles')
-        .select('rol, pais')
+        .select('rol, pais, nombre')
         .eq('id', u.id)
         .single()
+ 
       setIsAdmin(perfil?.rol === 'admin')
       setPais(perfil?.pais || 'ES')
-
+ 
+      // FIX: user_metadata?.nombre primero, luego perfil.nombre, luego vacío
+      const nombreFinal = u.user_metadata?.nombre || perfil?.nombre || ''
+      setNombre(nombreFinal)
+      setNombreVal(nombreFinal)
+ 
       const { data: miembrosData } = await getMiembrosHogar()
       if (miembrosData) {
         setMiembros(miembrosData.miembros || [])
         setPendientes(miembrosData.pendientes || [])
       }
     })
-
+ 
     return () => {
       setInviteEmail('')
       setInviteLink('')
       setCopiado(false)
     }
   }, [open])
-
-  // ── Color avatar ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!themeColors?.length || !nombre) return
-    let h = 0
-    for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff
-    setBgColor(themeColors[h % themeColors.length])
-  }, [nombre, themeColors])
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   async function handleGuardarNombre() {
@@ -173,25 +169,25 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
   }
 
   // ✅ Cambiar handleEliminarMiembro
-async function handleEliminarMiembro() {
-  if (!miembroSeleccionado) return
-  setEliminando(miembroSeleccionado.id)
+  async function handleEliminarMiembro() {
+    if (!miembroSeleccionado) return
+    setEliminando(miembroSeleccionado.id)
 
-  const { error } = await supabase.rpc('eliminar_miembro_hogar', {
-    miembro_id: miembroSeleccionado.id
-  })
+    const { error } = await supabase.rpc('eliminar_miembro_hogar', {
+      miembro_id: miembroSeleccionado.id
+    })
 
-  if (!error) {
-    setMiembros(prev => prev.filter(m => m.id !== miembroSeleccionado.id))
-    toast('Miembro eliminado del hogar', 'success')
-  } else {
-    toast('Error al eliminar el miembro')
+    if (!error) {
+      setMiembros(prev => prev.filter(m => m.id !== miembroSeleccionado.id))
+      toast('Miembro eliminado del hogar', 'success')
+    } else {
+      toast('Error al eliminar el miembro')
+    }
+
+    setEliminando(null)
+    setConfirmEliminar(false)
+    setMiembroSeleccionado(null)
   }
-
-  setEliminando(null)
-  setConfirmEliminar(false)
-  setMiembroSeleccionado(null)
-}
 
   async function handleGenerarInvitacion() {
     if (!inviteEmail.trim()) { toast('Ingresa el email del invitado', 'warning'); return }
@@ -246,74 +242,128 @@ async function handleEliminarMiembro() {
     setCancelando(null)
   }
 
-  if (!open) return null
-
-  const initial = (nombre || '?').charAt(0).toUpperCase()
-  const avatarBg = bgColor || 'var(--accent-main)'
   const paisInfo = PAISES.find(p => p.code === pais) || PAISES[PAISES.length - 1]
-
+ if (!open) return null
   return (
     <>
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 500,
-        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '16px',
-        paddingTop: 'max(16px, env(safe-area-inset-top))',
-        paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
-      }}>
-        <div onClick={onClose} style={{ position: 'absolute', inset: 0 }} />
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 500,
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          paddingTop: 'max(16px, env(safe-area-inset-top))',
+          paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+        }}
+      >
 
-        <div className="animate-enter" style={{
-          position: 'relative', zIndex: 1,
-          width: '100%', maxWidth: 420, maxHeight: '100%',
-          borderRadius: 28, overflow: 'hidden',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
-          border: '1px solid var(--border-glass)',
-          display: 'flex', flexDirection: 'column',
-        }}>
+        {/* Fondo clickeable */}
+        <div
+          onClick={onClose}
+          style={{ position: 'absolute', inset: 0 }}
+        />
+
+        {/* MODAL */}
+        <div
+          className="animate-enter"
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            width: '100%',
+            maxWidth: 420,
+            maxHeight: '100%',
+            borderRadius: 28,
+            overflow: 'hidden',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+            border: '1px solid var(--border-glass)',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'var(--bg-card)',
+          }}
+        >
 
           {/* ── Cabecera ── */}
-          <div style={{
-            background: `color-mix(in srgb, ${avatarBg} 10%, var(--bg-card))`,
-            borderBottom: '1px solid var(--border-subtle)',
-            padding: '24px 20px 20px', flexShrink: 0,
-          }}>
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              borderBottom: '1px solid var(--border-subtle)',
+              padding: '24px 20px 20px',
+              flexShrink: 0,
+            }}
+          >
             <div className="flex items-center gap-4">
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
-                background: avatarBg,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 22, fontWeight: 700, color: '#fff', userSelect: 'none',
-                boxShadow: `0 4px 14px color-mix(in srgb, ${avatarBg} 45%, transparent)`,
-                border: '3px solid color-mix(in srgb, var(--bg-card) 60%, transparent)',
-              }}>
-                {initial}
-              </div>
+              <UserAvatar nombre={nombre} size={56} />
+
               <div className="flex-1 min-w-0">
-                <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }} className="truncate">
+                <p
+                  className="truncate"
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    lineHeight: 1.2,
+                  }}
+                >
                   {nombre || 'Sin nombre'}
                 </p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }} className="truncate">
+
+                <p
+                  className="truncate"
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-muted)',
+                    marginTop: 2,
+                  }}
+                >
                   {email}
                 </p>
               </div>
-              <button onClick={onClose} style={{
-                width: 32, height: 32, borderRadius: 10, border: 'none', flexShrink: 0,
-                background: 'color-mix(in srgb, var(--bg-dark-card) 8%, transparent)',
-                color: 'var(--text-muted)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <X size={15} />
-              </button>
+
+              <button
+  onClick={(e) => {
+    console.log('CLICK EN X')
+    e.stopPropagation()
+    console.log('STOP PROPAGATION OK')
+    
+    onClose()
+    
+    console.log('ONCLOSE EJECUTADO')
+  }}
+  style={{
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    border: 'none',
+    flexShrink: 0,
+    background:
+      'color-mix(in srgb, var(--bg-dark-card) 8%, transparent)',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }}
+>
+  <X size={15} />
+</button>
             </div>
           </div>
 
-          {/* ── Contenido scrolleable ── */}
-          <div className="custom-scroll" style={{
-            overflowY: 'auto', background: 'var(--bg-primary)',
-            padding: '20px 20px 28px', flex: 1,
-          }}>
+          {/* ── Contenido ── */}
+          <div
+            className="custom-scroll"
+            style={{
+              overflowY: 'auto',
+              background: 'var(--bg-primary)',
+              padding: '20px 20px 28px',
+              flex: 1,
+            }}
+          >
 
             {/* ── Moneda ── */}
             <Row
@@ -325,7 +375,7 @@ async function handleEliminarMiembro() {
               onEdit={() => { setEditMoneda(v => !v); setEditPais(false) }}
             />
             {editMoneda && (
-               <div style={{ marginTop: 6, marginBottom: 6 }}>
+              <div style={{ marginTop: 6, marginBottom: 6 }}>
                 <CustomSelect
                   defaultOpen
                   value={currency}
@@ -345,7 +395,7 @@ async function handleEliminarMiembro() {
               onEdit={() => { setEditPais(v => !v); setEditMoneda(false) }}
             />
             {editPais && (
-               <div style={{ marginTop: 6, marginBottom: 6, }}>
+              <div style={{ marginTop: 6, marginBottom: 6, }}>
                 <CustomSelect
                   defaultOpen
                   value={pais}
@@ -364,7 +414,7 @@ async function handleEliminarMiembro() {
               onEdit={() => { setEditNombre(v => !v); setEditEmail(false); setEditPwd(false) }}
             />
             {editNombre && (
-          <div style={{ marginTop: 15, marginBottom: 15 }}>
+              <div style={{ marginTop: 15, marginBottom: 15 }}>
                 <InlineEdit
                   value={nombreVal} onChange={setNombreVal}
                   onSave={handleGuardarNombre} saving={savingNombre}
@@ -508,14 +558,23 @@ async function handleEliminarMiembro() {
                     {/* Avatar */}
                     <div style={{
                       width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                      // El fondo del anillo exterior ahora es más sutil
                       background: m.rol === 'admin'
-                        ? 'color-mix(in srgb, var(--accent-main) 20%, transparent)'
-                        : 'color-mix(in srgb, var(--accent-blue) 15%, transparent)',
+                        ? 'color-mix(in srgb, var(--accent-main) 25%, transparent)'
+                        : 'color-mix(in srgb, var(--accent-blue) 20%, transparent)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 13, fontWeight: 700,
-                      color: m.rol === 'admin' ? 'var(--accent-main)' : 'var(--accent-blue)',
                     }}>
-                      {inicial}
+                      {/* Círculo Interior Sólido */}
+                      <div style={{
+                        width: '75%', height: '75%', borderRadius: '50%',
+                        // El color sólido va aquí
+                        background: m.rol === 'admin' ? 'var(--accent-main)' : 'var(--accent-blue)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 700,
+                        color: '#fff', // Las letras resaltan más en blanco sobre el fondo sólido
+                      }}>
+                        {inicial}
+                      </div>
                     </div>
 
                     {/* Nombre + email */}
@@ -676,9 +735,11 @@ async function handleEliminarMiembro() {
               <span style={{ fontSize: 13, fontWeight: 700 }}>Cerrar sesión</span>
             </button>
 
+
           </div>
         </div>
       </div>
+
 
       {/* ── Modal confirmar eliminar miembro ── */}
       {confirmEliminar && (

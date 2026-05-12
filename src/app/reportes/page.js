@@ -47,7 +47,7 @@ function normCat(s) {
 }
 
 // Tooltip — recibe colores como prop
-function ChartTooltip({ active, payload, label, colores }) {
+function ChartTooltip({ active, payload, label, colores, formatCurrency }) {
   if (!active || !payload?.length) return null
   return (
     <div style={{
@@ -310,7 +310,7 @@ export default function ReportesPage() {
     , [movsAño, movsAnterior, año])
 
   // Tooltip con colores inyectados
-  const TooltipConColores = (props) => <ChartTooltip {...props} colores={colores} />
+const TooltipConColores = (props) => <ChartTooltip {...props} colores={colores} formatCurrency={formatCurrency} />
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-24 gap-4">

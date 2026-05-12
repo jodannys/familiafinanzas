@@ -19,6 +19,7 @@ import ProfilePanel from '@/components/ui/ProfilePanel'
 import PageTransition from '@/components/ui/PageTransition'
 import ConfirmLogoutModal from '@/components/ui/ConfirmLogoutModal'
 import DatePicker from '@/components/temaCalendario/DatePicker'
+import UserAvatar from '@/components/ui/UserAvatar'
 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -78,7 +79,6 @@ function Divider() {
 
 function DraggableFAB({ onClick }) {
   const [pos, setPos] = useState(() => {
-    // Protección SSR — window no existe en el servidor
     if (typeof window === 'undefined') return { x: 1200, y: 700 }
     const DEFAULT = { x: window.innerWidth - 80, y: window.innerHeight - 100 }
     try {
@@ -126,7 +126,6 @@ function DraggableFAB({ onClick }) {
     }
   }, [onClick, pos])
 
-  // Guardar posición al soltar
   useEffect(() => {
     if (!dragging.current) {
       try { localStorage.setItem('ff-fab-pos', JSON.stringify(pos)) } catch (e) { }
@@ -163,7 +162,6 @@ function DraggableFAB({ onClick }) {
 
 // ── FABModal ──────────────────────────────────────────────────────────────────
 
-
 export function FABModal({ onClose }) {
   const formatCurrency = useFormatCurrency()
   const router = useRouter()
@@ -190,11 +188,10 @@ export function FABModal({ onClose }) {
   const { opcionesQuien, defaultQuien } = useQuien()
   const [quien, setQuien] = useState('Ambos')
 
-
-  // Sincronizar quien con el default cuando carga el hook
   useEffect(() => {
     if (defaultQuien) setQuien(q => q === 'Ambos' ? defaultQuien : q)
   }, [defaultQuien])
+
   const [subcats, setSubcats] = useState([])
   const [selectedSubcat, setSelectedSubcat] = useState(null)
   const [subcatPresupuesto, setSubcatPresupuesto] = useState({})
@@ -204,22 +201,18 @@ export function FABModal({ onClose }) {
     getPresupuestoMes().then(p => setMontoMetasDisp(p?.montoMetas || 0))
   }, [])
 
-  // Limpiar monto + items al cambiar tipo
   function handleTipo(t) {
     setTipo(t); setCat(null); setCatDB(null); setSelectedItem(null)
     setMetodoPago('efectivo'); setNumCuotas(1); setSelectedPerfil(null)
     setMonto('')
   }
 
-  // Limpiar monto + sub-estado al cambiar categoría
   function handleCat(id) {
     const nuevo = cat === id ? null : id
     setCat(nuevo); setCatDB(null); setSelectedItem(null)
     setSelectedSubcat(null)
-    // sin setMonto('')
   }
 
-  // Perfiles de tarjeta
   useEffect(() => {
     if (metodoPago !== 'tarjeta_credito' || tipo !== 'egreso' || !cat) {
       setPerfilesTarj([]); setSelectedPerfil(null); return
@@ -235,7 +228,6 @@ export function FABModal({ onClose }) {
       .finally(() => setLoadingPerf(false))
   }, [metodoPago, tipo, cat])
 
-  // Categorías BD
   useEffect(() => {
     setCatDB(null); setSelectedItem(null); setSubcats([]); setSelectedSubcat(null)
     if (!cat || SPECIAL_CATS.includes(cat)) { setCatDBList([]); return }
@@ -248,7 +240,6 @@ export function FABModal({ onClose }) {
       .finally(() => setLoadingCatDB(false))
   }, [cat])
 
-  // Items especiales
   useEffect(() => {
     setSelectedItem(null)
     if (!cat || !SPECIAL_CATS.includes(cat) || tipo !== 'egreso') { setItems([]); return }
@@ -262,7 +253,6 @@ export function FABModal({ onClose }) {
       .finally(() => setLoadingItems(false))
   }, [cat, tipo])
 
-  // Subcategorías + presupuesto del mes
   useEffect(() => {
     if (!catDB) { setSubcats([]); setSelectedSubcat(null); setSubcatPresupuesto({}); return }
     const now = new Date()
@@ -281,7 +271,6 @@ export function FABModal({ onClose }) {
     })
   }, [catDB])
 
-  // ── Guardar ─────────────────────────────────────────────────────────────────
   async function guardar() {
     if (saving) return
     const valor = parseFloat(monto)
@@ -358,12 +347,10 @@ export function FABModal({ onClose }) {
     setSaving(false); onClose(); window.dispatchEvent(new Event('ff:movimiento-guardado'))
   }
 
-  // ── Colores dinámicos ────────────────────────────────────────────────────────
   const catInfo = cat ? CATS_EGRESO.find(c => c.id === cat) : null
   const accentColor = tipo === 'ingreso' ? 'var(--accent-green)' : (catInfo?.color || 'var(--accent-main)')
   const montoValido = parseFloat(monto) > 0
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 z-[110] flex items-center justify-center"
@@ -374,13 +361,9 @@ export function FABModal({ onClose }) {
       }}
       onClick={onClose}
     >
-      {/* Sheet */}
       <div
         className="ff-sheet animate-enter relative w-full flex flex-col"
-        style={{
-          maxWidth: 440,
-          maxHeight: '100%',
-        }}
+        style={{ maxWidth: 440, maxHeight: '100%' }}
         onClick={e => e.stopPropagation()}
       >
 
@@ -425,7 +408,7 @@ export function FABModal({ onClose }) {
           </button>
         </div>
 
-        {/* ── Monto — hero con tinte de color ── */}
+        {/* ── Monto ── */}
         <div style={{
           padding: '20px 20px 16px',
           borderBottom: '1px solid var(--border-subtle)',
@@ -458,7 +441,6 @@ export function FABModal({ onClose }) {
         {/* ── Cuerpo scrollable ── */}
         <div className="custom-scroll" style={{ overflowY: 'auto', flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-          {/* SECCIÓN: Categoría (solo gasto) */}
           {tipo === 'egreso' && (
             <Section label="Tipo">
               <CustomSelect
@@ -470,7 +452,6 @@ export function FABModal({ onClose }) {
             </Section>
           )}
 
-          {/* SECCIÓN: Categoría BD + Subcategoría */}
           {tipo === 'egreso' && cat && !SPECIAL_CATS.includes(cat) && (
             <Section label="Categoría">
               {loadingCatDB ? (
@@ -487,18 +468,14 @@ export function FABModal({ onClose }) {
                 />
               )}
 
-              {/* Subcategorías */}
               {subcats.length > 0 && (
                 <div style={{ marginTop: 8 }}>
                   <CustomSelect
                     value={selectedSubcat?.id || ''}
-
-
-                    // ✅ subcategoría — solo rellena si el campo está vacío
                     onChange={id => {
                       const sub = subcats.find(s => s.id === id) || null
                       setSelectedSubcat(sub)
-                      if (sub && subcatPresupuesto[sub.id] > 0 && !monto) {  // ← !monto aquí sí tiene sentido
+                      if (sub && subcatPresupuesto[sub.id] > 0 && !monto) {
                         setMonto(subcatPresupuesto[sub.id].toString())
                       }
                     }}
@@ -515,7 +492,6 @@ export function FABModal({ onClose }) {
             </Section>
           )}
 
-          {/* SECCIÓN: Items especiales */}
           {tipo === 'egreso' && cat && SPECIAL_CATS.includes(cat) && (loadingItems || items.length > 0) && (
             <Section label={cat === 'ahorro' ? 'Meta' : cat === 'inversion' ? 'Inversión' : 'Deuda'}>
               {loadingItems ? (
@@ -532,7 +508,7 @@ export function FABModal({ onClose }) {
                         key={item.id}
                         onClick={() => {
                           setSelectedItem(isSel ? null : item)
-                          if (!isSel && !monto) {  // ← añadir && !monto
+                          if (!isSel && !monto) {
                             if (cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString())
                             else if (cat === 'inversion' && item.aporte > 0) setMonto(item.aporte.toString())
                             else if (cat === 'ahorro' && item.pct_mensual > 0 && montoMetasDisp > 0)
@@ -571,18 +547,15 @@ export function FABModal({ onClose }) {
 
           {tipo === 'egreso' && <Divider />}
 
-          {/* SECCIÓN: Detalles (fecha, quién, método) */}
           <Section label="Detalles">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-              {/* Solo fecha */}
               <DatePicker
                 value={fecha}
                 onChange={setFecha}
                 placeholder="Fecha"
               />
 
-              {/* ¿Quién? (dinámico desde perfiles del hogar) */}
               {opcionesQuien.length > 1 && (
                 <CustomSelect
                   value={quien}
@@ -592,7 +565,6 @@ export function FABModal({ onClose }) {
                 />
               )}
 
-              {/* Método de pago (solo gasto) */}
               {tipo === 'egreso' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                   {METODOS_PAGO.map(m => {
@@ -618,7 +590,6 @@ export function FABModal({ onClose }) {
                 </div>
               )}
 
-              {/* Tarjetas de crédito */}
               {tipo === 'egreso' && metodoPago === 'tarjeta_credito' && (loadingPerf || perfilesTarj.length > 0) && (
                 <div style={{
                   padding: '10px 12px', borderRadius: 14,
@@ -678,7 +649,6 @@ export function FABModal({ onClose }) {
             </div>
           </Section>
 
-          {/* SECCIÓN: Descripción */}
           <Section label={tipo === 'ingreso' ? 'Descripción' : 'Nota (opcional)'}>
             <input
               type="text"
@@ -690,7 +660,6 @@ export function FABModal({ onClose }) {
             />
           </Section>
 
-          {/* ── Botón guardar ── */}
           <button
             onClick={guardar}
             disabled={!montoValido || saving}
@@ -745,7 +714,7 @@ function ToastDisplay() {
     function handler(e) {
       const { msg, type } = e.detail
       const id = Date.now() + Math.random()
-      setToasts(p => [...p.slice(-3), { id, msg, type }]) // máximo 4 toasts
+      setToasts(p => [...p.slice(-3), { id, msg, type }])
       setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), TOAST_DURATION)
     }
     window.addEventListener('ff-toast', handler)
@@ -773,7 +742,6 @@ function ToastDisplay() {
               <p className="text-xs font-semibold flex-1" style={{ color: c.text }}>{t.msg}</p>
               <X size={12} style={{ color: c.text, opacity: 0.5, flexShrink: 0 }} />
             </div>
-            {/* Barra de progreso que drena en TOAST_DURATION ms */}
             <div className="h-[2px] w-full" style={{ background: `color-mix(in srgb, ${c.bar} 15%, transparent)` }}>
               <div className="h-full toast-drain" style={{
                 background: c.bar,
@@ -792,29 +760,14 @@ function ToastDisplay() {
 export default function AppShell({ children }) {
   const [fabOpen, setFabOpen] = useState(false)
   const { theme } = useTheme()
-  const themeColors = getThemeColors(theme);
   const [authReady, setAuthReady] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
-  const [nombreHogar, setNombreHogar] = useState('')
+  const [nombreHogar, setNombreHogar] = useState(() => {
+    try { return localStorage.getItem('ff-nombre-hogar') || null } catch { return null }
+  })
   const [perfilUsuario, setPerfilUsuario] = useState(null)
   const router = useRouter()
-
-  function avatarColor(nombre) {
-    // Si no hay colores en el tema por alguna razón, devolvemos un color por defecto
-    if (!themeColors || themeColors.length === 0) return '#cccccc';
-
-    // Si no hay nombre, devuelve el primer color del tema
-    if (!nombre) return themeColors[0];
-
-    let h = 0;
-    for (let i = 0; i < nombre.length; i++) {
-      h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff;
-    }
-
-    // Devuelve un color dinámico basado en los colores de tu tema actual
-    return themeColors[h % themeColors.length];
-  }
 
   useEffect(() => {
     supabase.auth.getSession()
@@ -823,7 +776,10 @@ export default function AppShell({ children }) {
         else {
           setAuthReady(true)
           getMisPermisos().then(({ data }) => {
-            if (data?.nombre_hogar) setNombreHogar(data.nombre_hogar)
+            if (data?.nombre_hogar) {
+              setNombreHogar(data.nombre_hogar)
+              try { localStorage.setItem('ff-nombre-hogar', data.nombre_hogar) } catch { }
+            }
             if (data) setPerfilUsuario(data)
           })
         }
@@ -835,7 +791,6 @@ export default function AppShell({ children }) {
     }
     window.addEventListener('ff:pais-changed', handlePaisChanged)
     return () => window.removeEventListener('ff:pais-changed', handlePaisChanged)
-
   }, [])
 
   async function handleLogout() {
@@ -878,25 +833,15 @@ export default function AppShell({ children }) {
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
                 display: 'block',
-              }}>{nombreHogar || 'Mi Familia'}</span>
+              }}>{nombreHogar || ''}</span>
             </div>
             <div className="flex items-center gap-3">
               {perfilUsuario && (
-                <button
+                <UserAvatar
+                  nombre={perfilUsuario?.nombre}
+                  size={40}
                   onClick={() => setShowProfile(true)}
-                  className="active:scale-90 transition-transform"
-                  style={{
-                    width: 34, height: 34, borderRadius: '50%',
-                    background: avatarColor(perfilUsuario?.nombre || ''),
-                    border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, fontWeight: 700, color: '#fff',
-                    userSelect: 'none', flexShrink: 0,
-                  }}
-                  aria-label="Perfil"
-                >
-                  {(perfilUsuario?.nombre || '?').charAt(0).toUpperCase()}
-                </button>
+                />
               )}
             </div>
           </div>
@@ -911,7 +856,6 @@ export default function AppShell({ children }) {
         onFABClick={() => setFabOpen(true)}
         paisUsuario={perfilUsuario?.pais || 'ES'}
       />
-      {/* FAB flotante arrastrable — solo desktop, oculto cuando el modal está abierto */}
       {!fabOpen && (
         <div className="hidden lg:block">
           <DraggableFAB onClick={() => setFabOpen(true)} />

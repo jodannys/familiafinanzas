@@ -303,7 +303,7 @@ export function ThemeProvider({ children }) {
     if (pattern) {
       document.body.style.backgroundImage = `url("${pattern}")`
       document.body.style.backgroundSize = t.vars['--bg-pattern-size'] || '360px'
-      document.body.style.backgroundRepeat = 'repeat'
+      document.body.style.backgroundRepeat = 'repezzat'
     } else {
       document.body.style.backgroundImage = ''
       document.body.style.backgroundSize = ''

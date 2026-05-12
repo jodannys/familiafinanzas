@@ -11,6 +11,8 @@ import { supabase, signOut, getMisPermisos } from '@/lib/supabase'
 import ConfirmLogoutModal from '@/components/ui/ConfirmLogoutModal'
 import { useTheme, getThemeColors, THEMES } from '@/lib/themes'
 import ProfilePanel from '@/components/ui/ProfilePanel'
+import UserAvatar from '@/components/ui/UserAvatar'
+
 
 const W_EXP = 240
 const W_COL = 64
@@ -65,15 +67,6 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
   const router = useRouter()
   const navRef = useRef(null)
   const { theme, setTheme } = useTheme()
-  const themeColors = getThemeColors(theme)
-
-  function avatarColor(nombre) {
-    if (!themeColors || themeColors.length === 0) return '#cccccc'
-    if (!nombre) return themeColors[0]
-    let h = 0
-    for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) & 0x7fffffff
-    return themeColors[h % themeColors.length]
-  }
 
   const [deudasAlert, setDeudasAlert] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
@@ -143,8 +136,6 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
   async function handleLogout() { await signOut(); router.replace('/login') }
 
   const nombre = perfilNombre
-  const initial = nombre ? nombre.charAt(0).toUpperCase() : '?'
-  const bgColor = avatarColor(nombre)
 
   return (
     <>
@@ -216,18 +207,19 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
 
             </div>
           )}
+        
           <button
             onClick={() => applyCollapse(!collapsed)}
             title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
             style={{
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: 8, border: 'none',
-              background: `color-mix(in srgb, ${bgColor} 12%, transparent)`,
-              color: bgColor, cursor: 'pointer', flexShrink: 0,
+              background: 'color-mix(in srgb, var(--accent-main) 12%, transparent)',
+              color: 'var(--accent-main)', cursor: 'pointer', flexShrink: 0,
               margin: collapsed ? '0 auto' : '0', transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = `color-mix(in srgb, ${bgColor} 22%, transparent)`}
-            onMouseLeave={e => e.currentTarget.style.background = `color-mix(in srgb, ${bgColor} 12%, transparent)`}
+            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-main) 22%, transparent)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-main) 12%, transparent)'}
           >
             <Menu size={15} />
           </button>
@@ -394,6 +386,8 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
           borderTop: '1px solid color-mix(in srgb, var(--border-glass) 40%, transparent)',
           display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0,
         }}>
+
+
           {/* Avatar */}
           <button
             onClick={() => { setTooltip(null); setShowProfile(true) }}
@@ -412,16 +406,8 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
               }
             }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; setTooltip(null) }}
-            aria-label={collapsed ? (nombre || 'Perfil') : undefined}
           >
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%', background: bgColor,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, fontSize: 12, fontWeight: 700, color: '#fff',
-              userSelect: 'none', transition: `background ${TRANS}`,
-            }}>
-              {initial}
-            </div>
+            <UserAvatar nombre={perfilNombre} size={32} />
             <div style={{
               overflow: 'hidden', maxWidth: collapsed ? 0 : 180,
               opacity: collapsed ? 0 : 1,
@@ -430,7 +416,7 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
               <span style={{
                 fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                display: 'block', maxWidth: 150,
+                paddingLeft: 4, display: 'block', maxWidth: 150,
               }}>
                 {nombre || 'Usuario'}
               </span>
