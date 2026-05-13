@@ -12,8 +12,8 @@ import { useQuien } from '@/lib/useQuien'
 import { useTheme, getThemeColors } from '@/lib/themes'
 import CustomSelect from '@/components/ui/CustomSelect'
 import ConfirmDialog, { useConfirm } from '@/components/ui/ConfirmDialog'
-import { getRangoMes, getFechaLocal } from '@/lib/utils'
-import { getCurrentMonth } from '@/lib/utils' // Importamos la utilidad
+import { getRangoMes } from '@/lib/utils' // 🟡 FIX: eliminado getFechaLocal (no se usaba)
+import { getCurrentMonth } from '@/lib/utils'
 import DatePicker from '@/components/temaCalendario/DatePicker'
 import { useFormatCurrency } from '@/lib/useFormatCurrency'
 
@@ -64,7 +64,7 @@ export default function GastosPage() {
   const [deudaSeleccionada, setDeudaSeleccionada] = useState('')
   const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState('')
   const [metodoPago, setMetodoPago] = useState('efectivo')
-  const [numCuotas, setNumCuotas] = useState('')
+  const [numCuotas, setNumCuotas] = useState('') // 🟡 FIX: mantenemos string vacío como inicio, consistente con el input
   const [presupuesto, setPresupuesto] = useState(null)
   const [colores, setColores] = useState({})
   const [subcategorias, setSubcategorias] = useState([])
@@ -131,7 +131,6 @@ export default function GastosPage() {
   useEffect(() => {
     let activo = true
     getPresupuestoMes().then(d => { if (activo) setPresupuesto(d) })
-    cargarPresupuesto()
     supabase.from('categorias').select('*').order('bloque').order('nombre').then(({ data }) => { if (activo) setCategoriasCfg(data || []) })
     supabase.from('subcategorias').select('*').order('orden').order('nombre').then(({ data }) => { if (activo) setSubcategorias(data || []) })
     supabase.from('presupuesto_cats').select('subcategoria_id,monto').eq('mes', mes).eq('año', año)
@@ -153,9 +152,7 @@ export default function GastosPage() {
       .then(({ data }) => {
         if (!activo) return
         const map = {}
-          // Primero mapear los que tienen perfil_tarjeta_id
           ; (data || []).forEach(d => { if (d.perfil_tarjeta_id) map[d.perfil_tarjeta_id] = d })
-        // Para tarjetas de perfiles sin deuda asociada, guardar un fallback genérico
         setTarjetaDeudasMap(map)
       })
     return () => { activo = false }
@@ -165,6 +162,11 @@ export default function GastosPage() {
     cargarMovimientos(false, visMes, visAño)
   }, [visMes, visAño])
 
+  // 🔴 FIX: cargarPresupuesto sincronizado con visMes/visAño
+  useEffect(() => {
+    cargarPresupuesto(visMes, visAño)
+  }, [visMes, visAño])
+
   useEffect(() => {
     function onMovGuardado() { cargarMovimientos(false, visMes, visAño, true) }
     window.addEventListener('ff:movimiento-guardado', onMovGuardado)
@@ -172,18 +174,14 @@ export default function GastosPage() {
   }, [visMes, visAño])
 
   async function cargarMovimientos(cargarTodos = false, mesV, añoV, silencioso = false) {
-    // 1. Obtenemos mes y año (si no vienen, usamos los del estado/vista)
     const m = mesV ?? visMes
     const a = añoV ?? visAño
 
-    // 2. Usamos la nueva utilidad para obtener el rango exacto (YYYY-MM-DD)
     const { inicio, fin } = getRangoMes(m, a)
 
-    // Solo mostrar skeleton en carga inicial o cambio de mes; no en recargas silenciosas
     if (!silencioso) setLoading(true)
     setError(null)
 
-    // 3. Aplicamos el rango a la query de Supabase
     const query = supabase
       .from('movimientos')
       .select('*')
@@ -192,7 +190,6 @@ export default function GastosPage() {
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false })
 
-    // 4. Ejecutamos la consulta con o sin límite
     const { data, error } = cargarTodos
       ? await query
       : await query.limit(LIMITE_INICIAL + 1)
@@ -200,7 +197,6 @@ export default function GastosPage() {
     if (error) {
       setError('Error al cargar movimientos: ' + error.message)
     } else {
-      // 5. Lógica de paginación/limite
       if (!cargarTodos && data && data.length > LIMITE_INICIAL) {
         setMovs(data.slice(0, LIMITE_INICIAL))
         setHayMas(true)
@@ -214,12 +210,9 @@ export default function GastosPage() {
   }
 
 
+  // 🔴 FIX: cargarPresupuesto ahora usa mesV/añoV pasados como argumento, no getCurrentMonth()
   async function cargarPresupuesto(mesV, añoV) {
-    // 1. Obtenemos el mes/año real en el momento de la ejecución
     const { month, year } = getCurrentMonth()
-
-    // 2. Priorizamos los argumentos (si estamos navegando por meses) 
-    // o usamos el mes actual por defecto.
     const m = mesV ?? month
     const a = añoV ?? year
 
@@ -242,7 +235,7 @@ export default function GastosPage() {
     setMetaSeleccionada('')
     setDeudaSeleccionada('')
     setMetodoPago('efectivo')
-    setNumCuotas('')
+    setNumCuotas('') // 🟡 FIX: reset consistente como string vacío
     setForm({ tipo: 'egreso', monto: '', descripcion: '', categoria: 'basicos', fecha: fechaHoy(), quien: defaultQuien, subcategoria_id: '' })
   }
 
@@ -265,6 +258,7 @@ export default function GastosPage() {
           setSaving(false);
           return;
         }
+        // 🟡 FIX: numCuotas siempre parseado desde string, parseInt('') → NaN → cuota inválida correctamente
         const cuotas = parseInt(numCuotas);
         if (!cuotas || cuotas < 1) {
           toast('Ingresa el número de cuotas', 'warning');
@@ -277,7 +271,6 @@ export default function GastosPage() {
         const descTC = form.descripcion.trim() || subNombreTC || 'Compra con tarjeta';
         const cuotaMensual = parseFloat((monto / cuotas).toFixed(2));
 
-        // Solo crear la deuda (el movimiento real se crea al pagar la cuota)
         const { error: errDeuda } = await supabase.from('deudas').insert([{
           tipo_deuda: 'tarjeta',
           tipo: 'debo',
@@ -332,9 +325,6 @@ export default function GastosPage() {
       };
 
       // ── 3. REGISTRAR MOVIMIENTO (RPC atómica) ────────────────────────────────
-      // Una sola llamada reemplaza: INSERT movimientos + UPDATE metas/inversiones/deudas
-      // + INSERT deuda_movimientos + UPDATE movimientos (deuda_movimiento_id).
-      // Si cualquier paso falla en el servidor, PostgreSQL hace rollback completo.
       const { data: rpcData, error: errRpc } = await supabase.rpc('registrar_movimiento', {
         p_tipo: form.tipo,
         p_monto: monto,
@@ -352,8 +342,6 @@ export default function GastosPage() {
       if (errRpc) throw errRpc;
 
       // ── 4. ACTUALIZAR ESTADO LOCAL ────────────────────────────────────────────
-      // Recargamos el movimiento real desde DB para tener deuda_movimiento_id
-      // y descripcion final que la RPC pudo haber guardado.
       const movId = Array.isArray(rpcData) ? rpcData?.[0]?.mov_id : rpcData?.mov_id;
       if (movId) {
         const { data: movRow } = await supabase
@@ -364,7 +352,6 @@ export default function GastosPage() {
         await cargarMovimientos(false, visMes, visAño, true);
       }
 
-      // Sincronizar estado local de metas, inversiones y deudas
       if (metaId && !invId) {
         setMetasData(prev => prev.map(m =>
           m.id === metaId ? { ...m, actual: (m.actual || 0) + monto } : m
@@ -398,13 +385,11 @@ export default function GastosPage() {
   function handleDelete(movimiento) {
     showConfirm(`¿Eliminar "${movimiento.descripcion}"?`, async () => {
       try {
-        // ── RPC atómica: revierte metas/inversiones/deudas + borra movimiento ─
         const { error } = await supabase.rpc('revertir_movimiento', { p_mov_id: movimiento.id })
         if (error) { toast('Error: ' + error.message, 'error'); return }
 
         setMovs(prev => prev.filter(m => m.id !== movimiento.id))
 
-        // Sincronizar estado local de metas, inversiones y deudas
         if (movimiento.categoria === 'ahorro' && movimiento.meta_id) {
           setMetasData(prev => prev.map(m =>
             m.id === movimiento.meta_id
@@ -427,7 +412,6 @@ export default function GastosPage() {
           ))
         }
 
-        // Limpiar sobre_movimientos huérfanos (lógica de sobres, no cubierta por la RPC)
         if (movimiento.categoria === 'deseo' && movimiento.fecha) {
           const { data: smRows } = await supabase
             .from('sobre_movimientos').select('id')
@@ -492,7 +476,6 @@ export default function GastosPage() {
     const [year, month] = m.fecha.split('-').map(Number)
     return month === visMes && year === visAño
   })
-  // FIX 4: separar gastos corrientes de ahorro/inversión igual que el dashboard
   const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
   const egresos = movsMes
     .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(m.categoria))
@@ -508,13 +491,7 @@ export default function GastosPage() {
       (m.descripcion?.toLowerCase() || "").includes(search.toLowerCase())
     );
   const usandoTarjeta = form.tipo === 'egreso' && metodoPago === 'tarjeta_credito' && tarjetaSeleccionada
-  console.log("=== DEBUG GASTOS ===");
-  console.log("1. Registros totales cargados (movs):", movs.length);
-  console.log("2. Filtro activo:", filtro);
-  console.log("3. Registros que pasan el filtro (filtered):", filtered.length);
-  if (movs.length > 0) {
-    console.log("4. Ejemplo de un registro:", movs[0]);
-  }
+  // 🟡 FIX: eliminados todos los console.log de debug
   return (
     <AppShell>
       <div className="w-full max-w-full overflow-x-hidden">
@@ -759,7 +736,7 @@ export default function GastosPage() {
         {hayMas && (
           <div className="flex justify-center mt-4">
             <button
-              onClick={() => cargarMovimientos(true)}
+              onClick={() => cargarMovimientos(true, visMes, visAño)} // 🔴 FIX: pasamos visMes/visAño explícitamente
               disabled={loading}
               className="px-6 py-2.5 rounded-xl text-xs font-semibold border transition-all"
               style={{
@@ -872,7 +849,7 @@ export default function GastosPage() {
                         onClick={() => {
                           setMetodoPago(m.id)
                           setTarjetaSeleccionada(m.id === 'tarjeta_credito' && tarjetasData.length === 1 ? tarjetasData[0].id : '')
-                          setNumCuotas(1)
+                          setNumCuotas('') // 🟡 FIX: reset consistente como string vacío
                         }}
                         className="py-2 rounded-xl text-[10px] font-semibold transition-all"
                         style={{
@@ -889,7 +866,6 @@ export default function GastosPage() {
 
                 {metodoPago === 'tarjeta_credito' && tarjetasData.length > 0 && (
                   <div className="space-y-2">
-                    {/* Picker de tarjeta — igual que FAB */}
                     <div className="space-y-1.5">
                       {tarjetasData.filter(t => t.estado !== 'pausada').map(t => {
                         const isSel = tarjetaSeleccionada === t.id
@@ -912,7 +888,6 @@ export default function GastosPage() {
                         )
                       })}
                     </div>
-                    {/* Cuotas — input libre */}
                     {tarjetaSeleccionada && (
                       <div>
                         <label className="ff-label">Número de cuotas</label>
@@ -924,7 +899,7 @@ export default function GastosPage() {
                             max="60"
                             placeholder="—"
                             value={numCuotas}
-                            onChange={e => setNumCuotas(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1))}
+                            onChange={e => setNumCuotas(e.target.value === '' ? '' : String(Math.max(1, parseInt(e.target.value) || 1)))} // 🟡 FIX: siempre string
                             className="ff-input text-center font-semibold"
                             style={{ width: 80, color: colores.rose }}
                           />
