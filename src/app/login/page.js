@@ -60,20 +60,19 @@ function LoginContent() {
       {/* Blob 3 — centrado */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-[0.05] blur-[120px]"
         style={{ background: 'var(--accent-violet)' }} />
-<div className="w-full max-w-sm sm:max-w-md lg:max-w-lg relative z-10">
+
+
+      <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg relative z-10">
         <div className="ff-sheet animate-enter p-8 lg:p-8">
 
           {/* Header — columna en móvil, fila en desktop */}
-          <div className="flex flex-col lg:flex-row items-center lg:items-center gap-3 lg:gap-4 mb-6 lg:mb-6 text-center lg:text-left">
-            <div className="w-20 h-20 lg:w-14 lg:h-14 flex-shrink-0 flex items-center justify-center">
-              <img
-                src="/icon.svg"
-                alt="Logo"
-                className="w-full h-full object-contain"
-              />
+          {/* Header — solo visible en móvil, oculto en desktop */}
+          <div className="flex flex-col lg:hidden items-center gap-3 mb-6 text-center">
+            <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
+              <img src="/icon.svg" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="font-script text-[38px] lg:text-[36px] leading-none mb-1" style={{ color: 'var(--text-primary)' }}>
+              <h1 className="font-script text-[38px] leading-none mb-1" style={{ color: 'var(--text-primary)' }}>
                 Economía del Hogar
               </h1>
               <p className="text-[10px] uppercase tracking-[0.25em] font-black opacity-40">
