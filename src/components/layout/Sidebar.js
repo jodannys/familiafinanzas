@@ -33,7 +33,7 @@ const MENU_GROUPS = [
       { href: '/presupuesto', label: 'Presupuesto', icon: PieChart, permiso: 'presupuesto' },
       { href: '/gastos', label: 'Registro', icon: ArrowLeftRight, permiso: 'gastos' },
       { href: '/agenda', label: 'Agenda', icon: CalendarDays, permiso: 'agenda' },
-      { href: '/sobres', label: 'Sobres', icon: Wallet, permiso: 'sobres' },
+      { href: '/sobres', label: 'Gastos Diarios', icon: Wallet, permiso: 'sobres' },
     ],
   },
   {
@@ -207,7 +207,7 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
 
             </div>
           )}
-        
+
           <button
             onClick={() => applyCollapse(!collapsed)}
             title={collapsed ? 'Expandir menú' : 'Colapsar menú'}

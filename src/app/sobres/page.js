@@ -4,9 +4,10 @@ import AppShell from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
 import CustomSelect from '@/components/ui/CustomSelect'
 import {
-  Wallet, Plus, Loader2, Trash2,
+  Wallet, Plus, Loader2, Trash2,        // ← Wallet en lugar de Wallet
   AlertTriangle, TrendingUp, Sprout, Search,
-  X, ArrowDownRight, CreditCard, ChevronLeft, ChevronRight
+  X, ArrowDownRight, CreditCard, ChevronLeft, ChevronRight,
+  Coffee                                       // ← nuevo icono decorativo
 } from 'lucide-react'
 import { fechaHoy } from '@/lib/utils'
 import { useFormatCurrency } from '@/lib/useFormatCurrency'
@@ -461,7 +462,7 @@ export default function SobrePage() {
       <div className="flex items-center justify-between gap-3 mb-6 animate-enter">
         <div>
           <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Control Diario</p>
-          <h1 className="text-xl tracking-tight mb-2" style={{ color: 'var(--text-primary)' }}>Sobre Diario</h1>
+          <h1 className="text-xl tracking-tight mb-2" style={{ color: 'var(--text-primary)' }}> Gastos Hormiga</h1>
           {/* Navegación de mes */}
           <div className="flex items-center gap-2">
             <button onClick={prevMes} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
@@ -491,12 +492,15 @@ export default function SobrePage() {
           {/* CARD PRINCIPAL DEL SOBRE */}
           <Card className="mb-4 relative overflow-hidden" style={{ padding: '18px 20px' }}>
             <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
-              Disponible en el sobre
+              Disponible este mes
             </p>
+
             <p className="text-4xl font-semibold mb-4 tracking-tight" style={{ color: 'var(--accent-terra)' }}>
               {formatCurrency(Math.max(0, saldoSobre))}
             </p>
-
+            <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)' }}>
+              ☕ Café, delivery, antojos y pequeños gustos del día a día
+            </p>
             {/* Barra de progreso */}
             <div className="w-full h-2.5 rounded-full mb-2" style={{ background: 'var(--progress-track)' }}>
               <div className="h-full rounded-full transition-all duration-700"
@@ -516,7 +520,7 @@ export default function SobrePage() {
                 }}>
                 <AlertTriangle size={14} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
                 <p className="text-[10px] font-semibold" style={{ color: 'var(--accent-rose)' }}>
-                  ¡Sobre vacío! Usando dinero de otras categorías.
+                  ¡Sin presupuesto! Estás usando dinero de otras categorías.
                 </p>
               </div>
             )}
@@ -527,7 +531,7 @@ export default function SobrePage() {
                 className="mt-3 w-full py-2.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider border border-dashed transition-all"
                 style={{ borderColor: 'var(--accent-green)', color: 'var(--accent-green)' }}>
                 <Sprout size={12} className="inline mr-1.5" />
-                Enviar sobrante a Metas / Inversión
+                ¡Me sobró dinero! Enviarlo a Metas / Inversión
               </button>
             )}
           </Card>
@@ -589,7 +593,7 @@ export default function SobrePage() {
                   </>
                 ) : (
                   <>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Sin movimientos este mes</p>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Sin gastos este mes</p>
                     <p className="text-[11px] mt-1 opacity-60" style={{ color: 'var(--text-muted)' }}>Los gastos registrados aparecerán aquí</p>
                   </>
                 )}
@@ -658,7 +662,7 @@ export default function SobrePage() {
       )}
 
       {/* ══ MODAL: REGISTRAR GASTO ══════════════════════════════════════════ */}
-      <Modal open={modal} onClose={resetModal} title="Registrar Gasto del Sobre">
+      <Modal open={modal} onClose={resetModal} title="¿En qué gastaste hoy?">
         <form onSubmit={handleGasto} className="space-y-4">
 
           {tarjetasData.length > 0 && (
@@ -684,7 +688,7 @@ export default function SobrePage() {
 
           <div>
             <label className="ff-label">Descripción</label>
-            <input className="ff-input" placeholder="¿En qué gastaste?" required
+            <input className="ff-input" placeholder="Ej: café, delivery, farmacia..." required
               value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
           </div>
 
@@ -741,7 +745,9 @@ export default function SobrePage() {
             }}>
             <AlertTriangle size={14} style={{ color: 'var(--accent-rose)', flexShrink: 0 }} />
             <p className="text-xs font-semibold" style={{ color: 'var(--accent-rose)' }}>
-              No hay saldo. Para pagar <b>{formatCurrency(gastoTemp?.monto)}</b>, elige de dónde tomar:
+              Tu presupuesto de gastos del día a día se agotó.
+              Para pagar <b>{formatCurrency(gastoTemp?.monto)}</b>,
+              ¿de dónde tomamos el dinero?
             </p>
           </div>
 
@@ -791,7 +797,8 @@ export default function SobrePage() {
               border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)',
             }}>
             <p className="text-xs font-semibold" style={{ color: 'var(--accent-green)' }}>
-              Tienes {formatCurrency(saldoSobre)} sin gastar. ¡Ponlo a trabajar!
+              🎉 ¡Te sobran {formatCurrency(saldoSobre)} en gastos hormiga!
+              Ponlos a trabajar en lugar de gastarlos.
             </p>
           </div>
 

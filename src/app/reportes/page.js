@@ -11,7 +11,7 @@ import {
   Tooltip, Cell, Legend
 } from 'recharts'
 
- 
+
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const MESES_CORTO = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
@@ -81,7 +81,7 @@ export default function ReportesPage() {
     green: '', rose: '', blue: '', terra: '', violet: '',
     muted: '', border: '', card: '', track: '',
   })
- 
+
 
 
   // ── Colores del tema ──────────────────────────────────────────────────────
@@ -310,7 +310,7 @@ export default function ReportesPage() {
     , [movsAño, movsAnterior, año])
 
   // Tooltip con colores inyectados
-const TooltipConColores = (props) => <ChartTooltip {...props} colores={colores} formatCurrency={formatCurrency} />
+  const TooltipConColores = (props) => <ChartTooltip {...props} colores={colores} formatCurrency={formatCurrency} />
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-24 gap-4">

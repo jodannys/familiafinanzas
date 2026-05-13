@@ -27,7 +27,7 @@ const MORE_SECTIONS = [
       </svg>
     ),
     items: [
-      { href: '/sobres', label: 'Sobres', icon: Wallet },
+      { href: '/sobres', label: 'Gastos Diarios', icon: Wallet },
       { href: '/tarjetas', label: 'Tarjetas', icon: CreditCard },
       { href: '/deudas', label: 'Deudas', icon: CircleDollarSign },
     ],
