@@ -126,7 +126,25 @@ export default function FamiliaPage() {
     const [, m, d] = str.split('-')
     return `${d}/${m}`
   }
-
+// Justo antes del return, después de cargar miembros:
+if (!loading && miembros.length <= 1) {
+  return (
+    <AppShell>
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center px-6">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+          style={{ background: 'color-mix(in srgb, var(--accent-blue) 10%, transparent)' }}>
+          <Users size={28} style={{ color: 'var(--accent-blue)', opacity: 0.4 }} />
+        </div>
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+          Panel Familiar no disponible
+        </p>
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          Este módulo se activa cuando hay dos o más miembros en el hogar.
+        </p>
+      </div>
+    </AppShell>
+  )
+}
   return (
     <AppShell>
       {/* ── Header ── */}

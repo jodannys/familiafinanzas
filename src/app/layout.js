@@ -3,7 +3,7 @@ import { ThemeProvider } from '@/lib/themes'
 import { CurrencyProvider } from '@/lib/CurrencyContext'
 
 export const metadata = {
- title:       '',
+ title:'Economía del Hogar',
   description: 'Gestión inteligente de los gastos del hogar',
   appleWebApp: {
     capable:         true,

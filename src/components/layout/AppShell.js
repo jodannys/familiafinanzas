@@ -766,8 +766,18 @@ export default function AppShell({ children }) {
   const [nombreHogar, setNombreHogar] = useState(() => {
     try { return localStorage.getItem('ff-nombre-hogar') || null } catch { return null }
   })
+  const [tieneFamilia, setTieneFamilia] = useState(false)
   const [perfilUsuario, setPerfilUsuario] = useState(null)
   const router = useRouter()
+
+  useEffect(() => {
+    if (!perfilUsuario?.hogar_id) return
+    supabase
+      .from('perfiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('hogar_id', perfilUsuario.hogar_id)
+      .then(({ count }) => setTieneFamilia((count || 0) > 1))
+  }, [perfilUsuario?.hogar_id])
 
   useEffect(() => {
     supabase.auth.getSession()
@@ -809,7 +819,7 @@ export default function AppShell({ children }) {
       <ToastDisplay />
       <ProfilePanel open={showProfile} onClose={() => setShowProfile(false)} onLogout={() => { setShowProfile(false); setConfirmLogout(true) }} />
       <div className="hidden lg:block fixed left-0 top-0 h-full z-[70]">
-        <Sidebar paisUsuario={perfilUsuario?.pais || 'ES'} />
+        <Sidebar paisUsuario={perfilUsuario?.pais || 'ES'} tieneFamilia={tieneFamilia} />
       </div>
       <main className="app-main flex-1 min-h-screen flex flex-col overflow-x-hidden">
 
@@ -855,6 +865,7 @@ export default function AppShell({ children }) {
       <BottomNav
         onFABClick={() => setFabOpen(true)}
         paisUsuario={perfilUsuario?.pais || 'ES'}
+        tieneFamilia={tieneFamilia}
       />
       {!fabOpen && (
         <div className="hidden lg:block">

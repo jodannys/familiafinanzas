@@ -62,7 +62,7 @@ function diasHastaPago(diaPago) {
   return (ultimo - hoy) + diaPago
 }
 
-export default function Sidebar({ paisUsuario = 'ES' }) {
+export default function Sidebar({ paisUsuario = 'ES', tieneFamilia = true }) {
   const pathname = usePathname()
   const router = useRouter()
   const navRef = useRef(null)
@@ -268,6 +268,7 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {group.items
                   .filter(item => item.href !== '/inmuebles' || paisUsuario === 'ES')
+                  .filter(item => item.href !== '/familia' || tieneFamilia) // ← agregar esto
                   .map((item) => {
                     const { label, icon: Icon, deudaBadge, href } = item
                     const active = pathname === href
@@ -358,7 +359,6 @@ export default function Sidebar({ paisUsuario = 'ES' }) {
                       if (!active) e.currentTarget.style.background = 'transparent'
                       setTooltip(null)
                     }
-
 
                     return (
                       <Link

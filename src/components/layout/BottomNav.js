@@ -90,7 +90,7 @@ function NavTab({ href, label, icon: Icon, active }) {
   )
 }
 
-export default function BottomNav({ onFABClick, paisUsuario = 'ES' }) {
+export default function BottomNav({ onFABClick, paisUsuario = 'ES', tieneFamilia = true }) {
   const pathname = usePathname()
   const [showMore, setShowMore] = useState(false)
   const MORE_ITEMS = MORE_SECTIONS
@@ -169,8 +169,9 @@ export default function BottomNav({ onFABClick, paisUsuario = 'ES' }) {
                 // 1. Filtramos los items de esta sección según el país
                 const filteredItems = section.items.filter(
                   item => item.href !== '/inmuebles' || paisUsuario === 'ES'
-                );
-
+                ).filter(
+                  item => item.href !== '/familia' || tieneFamilia // ← agregar esto
+                )
                 // 2. Si después de filtrar la sección se queda vacía, no la renderizamos
                 if (filteredItems.length === 0) return null;
 
