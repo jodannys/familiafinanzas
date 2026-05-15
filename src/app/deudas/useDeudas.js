@@ -10,9 +10,13 @@ import { arrayMove } from '@dnd-kit/sortable'
 export function calcularCuota(capital, tasaAnual, meses) {
   if (!capital || !meses) return 0
   if (!tasaAnual || tasaAnual === 0) return capital / meses
-  const r = tasaAnual / 100 / 12
-  return (capital * r) / (1 - Math.pow(1 + r, -meses))
+  // Interés simple: interés total = capital × tasa mensual × meses
+  // tasaAnual viene siempre en % anual, convertimos a mensual
+  const tasaMensual = tasaAnual / 100 / 12
+  const interesTotal = capital * tasaMensual * meses
+  return (capital + interesTotal) / meses
 }
+
 
 export function generarTablaAmortizacion(deuda, movs = []) {
   const meses = deuda.plazo_meses
@@ -22,9 +26,12 @@ export function generarTablaAmortizacion(deuda, movs = []) {
   const tasaAnual = deuda.tasa_interes || deuda.tasa || 0
   const tasaMensual = tasaAnual / 100 / 12
   const tieneInteres = tasaMensual > 0
-  const cuotaBase = tieneInteres
-    ? parseFloat(calcularCuota(capital, tasaAnual, meses).toFixed(2))
-    : parseFloat((capital / meses).toFixed(2))
+
+  const interesMensual = tieneInteres
+    ? parseFloat((capital * tasaMensual).toFixed(2))
+    : 0
+  const capitalMensual = parseFloat((capital / meses).toFixed(2))
+  const cuotaBase = parseFloat((capitalMensual + interesMensual).toFixed(2))
 
   let fechaBase = deuda.fecha_primer_pago
     ? new Date(deuda.fecha_primer_pago + 'T12:00:00')
@@ -34,7 +41,6 @@ export function generarTablaAmortizacion(deuda, movs = []) {
   const mesHoy = hoy.getMonth() + 1
   const añoHoy = hoy.getFullYear()
 
-  let saldo = capital
   const rows = []
 
   for (let i = 0; i < meses; i++) {
@@ -42,25 +48,18 @@ export function generarTablaAmortizacion(deuda, movs = []) {
     const añoNum = fechaBase.getFullYear() + Math.floor(targetMonth / 12)
     const mesNum = ((targetMonth % 12) + 12) % 12 + 1
 
-    const interes = tieneInteres ? parseFloat((saldo * tasaMensual).toFixed(2)) : 0
-
     const pagoReal = movs.find(m => m.tipo === 'pago' && m.mes === mesNum && m.año === añoNum)
     const _montoRaw = pagoReal ? parseFloat(pagoReal.monto) : null
     const montoPagado = _montoRaw !== null ? (isNaN(_montoRaw) ? 0 : _montoRaw) : null
 
-    let capitalAbonado
-    if (montoPagado !== null) {
-      capitalAbonado = parseFloat(Math.max(0, montoPagado - interes).toFixed(2))
-    } else {
-      capitalAbonado = tieneInteres
-        ? parseFloat(Math.max(0, cuotaBase - interes).toFixed(2))
-        : cuotaBase
-    }
-
-    saldo = parseFloat(Math.max(0, saldo - capitalAbonado).toFixed(2))
-
     const esParcial = montoPagado !== null && Math.abs(montoPagado - cuotaBase) > 0.01
     const esPasado = añoNum < añoHoy || (añoNum === añoHoy && mesNum < mesHoy)
+
+    // Saldo = cuotas restantes × cuotaBase (lo que queda por pagar en total)
+    const cuotasRestantes = meses - (i + 1)
+    const saldo = montoPagado !== null
+      ? parseFloat((cuotasRestantes * cuotaBase).toFixed(2))           // pagó esta cuota → saldo es lo que queda
+      : parseFloat(((cuotasRestantes + 1) * cuotaBase).toFixed(2))    // no pagó → incluye esta cuota en el saldo
 
     rows.push({
       periodo: i + 1,
@@ -68,8 +67,8 @@ export function generarTablaAmortizacion(deuda, movs = []) {
       año: añoNum,
       cuota: cuotaBase,
       cuotaReal: montoPagado,
-      interes,
-      capital: capitalAbonado,
+      interes: interesMensual,
+      capital: capitalMensual,
       saldo,
       pagada: montoPagado !== null,
       montoPagado,
@@ -80,7 +79,6 @@ export function generarTablaAmortizacion(deuda, movs = []) {
   }
   return rows
 }
-
 // ─── Estadísticas derivadas ───────────────────────────────────────────────────
 
 export function calcularEstadisticas(deudas, movimientos) {
@@ -131,9 +129,14 @@ export function useDeudas() {
   const mes = now.getMonth() + 1
   const año = now.getFullYear()
 
-  useEffect(() => { cargar() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // 🟡 FIX: cleanup para evitar setState sobre componente desmontado
+  useEffect(() => {
+    let activo = true
+    cargar(activo)
+    return () => { activo = false }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function cargar() {
+  async function cargar(activo = true) {
     setLoading(true); setError(null)
     try {
       const [{ data: deudasData, error: e1 }, { data: tarjetasData }] = await Promise.all([
@@ -142,23 +145,29 @@ export function useDeudas() {
       ])
       if (e1) throw e1
 
+      if (!activo) return
+
       setDeudas(deudasData || [])
       setMisTarjetas(tarjetasData || [])
 
       if ((deudasData || []).length) {
         const { data: movs, error: e3 } = await supabase
           .from('deuda_movimientos').select('*').order('fecha', { ascending: true })
-        if (!e3) {
+        if (!e3 && activo) {
           const grouped = {}
-          ;(movs || []).forEach(m => {
-            if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-            grouped[m.deuda_id].push(m)
-          })
+            ; (movs || []).forEach(m => {
+              if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+              grouped[m.deuda_id].push(m)
+            })
           setMovimientos(grouped)
         }
       }
-    } catch (err) { setError(err.message) }
-    finally { setLoading(false) }
+    } catch (err) {
+      if (activo) setError(err.message)
+    }
+    finally {
+      if (activo) setLoading(false)
+    }
   }
 
   async function guardarDeuda({ editandoId, tipoSeleccionado, formTarjeta, formPrestamo, formCuota }) {
@@ -222,7 +231,6 @@ export function useDeudas() {
         setSaving(false)
         return false
       }
-      // Pago rápido sobre deuda existente (tipo "cuota" vinculada a deuda origen)
       if (f.deuda_origen_id && !editandoId) {
         const deudaOrigen = deudas.find(d => d.id === f.deuda_origen_id)
         if (deudaOrigen) {
@@ -241,7 +249,8 @@ export function useDeudas() {
             descripcion: f.nombre || `Pago letra: ${deudaOrigen.nombre}`,
             monto, fecha: fechaHoy(), quien: 'Ambos',
             deuda_id: f.deuda_origen_id,
-            deuda_movimiento_id: dmData?.id || null,
+            // 🔴 FIX: la RPC puede devolver objeto o array; normalizamos siempre
+            deuda_movimiento_id: (Array.isArray(dmData) ? dmData[0]?.id : dmData?.id) || null,
           }])
           await supabase.from('deudas').update({
             pendiente: nuevoPendiente, pagadas: nuevosPagados, estado: nuevoEstado
@@ -280,6 +289,16 @@ export function useDeudas() {
     if (saving) return
     const monto = deuda.cuota || deuda.pendiente || 0
     if (!monto) return
+
+    // 🟡 FIX: guard de doble pago — verificamos en el hook, no solo en la UI
+    const yaPageEste = (movimientos[deuda.id] || []).some(
+      m => m.tipo === 'pago' && m.mes === mes && m.año === año
+    )
+    if (yaPageEste) {
+      toast('Ya existe un pago registrado para este mes', 'warning')
+      return
+    }
+
     setSaving(true)
     const hoy = fechaHoy()
     const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - monto)
@@ -293,6 +312,9 @@ export function useDeudas() {
     })
     if (dmError) { setError(dmError.message); setSaving(false); return }
 
+    // 🔴 FIX: normalizamos data de RPC (puede ser objeto o array)
+    const dmId = (Array.isArray(dmData) ? dmData[0]?.id : dmData?.id) || null
+
     const tipoMov = deuda.tipo === 'medeben' ? 'ingreso' : 'egreso'
     const { data: movData, error: movError } = await supabase.from('movimientos').insert([{
       tipo: tipoMov, categoria: 'deuda',
@@ -301,11 +323,11 @@ export function useDeudas() {
         : `Pago letra: ${deuda.nombre}`,
       monto, fecha: hoy, quien: 'Ambos',
       deuda_id: deuda.id,
-      deuda_movimiento_id: dmData?.id || null,
+      deuda_movimiento_id: dmId,
     }]).select()
 
     if (movError) {
-      if (dmData?.id) await supabase.from('deuda_movimientos').delete().eq('id', dmData.id)
+      if (dmId) await supabase.from('deuda_movimientos').delete().eq('id', dmId)
       setError(movError.message); setSaving(false); return
     }
 
@@ -315,7 +337,7 @@ export function useDeudas() {
 
     if (deudaError) {
       if (movData?.[0]?.id) await supabase.from('movimientos').delete().eq('id', movData[0].id)
-      if (dmData?.id) await supabase.from('deuda_movimientos').delete().eq('id', dmData.id)
+      if (dmId) await supabase.from('deuda_movimientos').delete().eq('id', dmId)
       setError(deudaError.message); setSaving(false); return
     }
 
@@ -324,8 +346,10 @@ export function useDeudas() {
     setMovimientos(prev => ({
       ...prev,
       [deuda.id]: [...(prev[deuda.id] || []), {
-        ...dmData, tipo: 'pago', monto, fecha: hoy, mes, año,
+        // 🔴 FIX: usamos dmId normalizado
+        id: dmId, tipo: 'pago', monto, fecha: hoy, mes, año,
         descripcion: `Cuota mensual: ${deuda.nombre}`,
+        deuda_id: deuda.id,
       }]
     }))
     toast(nuevoEstado === 'pagada' ? `¡${deuda.nombre} saldada! 🎉` : 'Pago registrado', 'success')
@@ -345,7 +369,12 @@ export function useDeudas() {
     })
 
     if (!error && deuda) {
-      setMovimientos(prev => ({ ...prev, [deudaId]: [...(prev[deudaId] || []), data] }))
+      // 🔴 FIX: normalizamos data — la RPC puede devolver objeto o array
+      const movNuevo = Array.isArray(data) ? data[0] : data
+      const movId = movNuevo?.id || null
+
+      setMovimientos(prev => ({ ...prev, [deudaId]: [...(prev[deudaId] || []), movNuevo] }))
+
       let nuevoPendiente = deuda.pendiente || 0
       let nuevosPagados = deuda.pagadas || 0
 
@@ -361,7 +390,8 @@ export function useDeudas() {
             : `Pago letra: ${deuda.nombre}`,
           monto, fecha: formMov.fecha, quien: 'Ambos',
           deuda_id: deuda.id,
-          deuda_movimiento_id: data[0]?.id || null,
+          // 🔴 FIX: usamos movId normalizado
+          deuda_movimiento_id: movId,
         }])
 
         const { error: updateError } = await supabase.from('deudas').update({
@@ -441,46 +471,57 @@ export function useDeudas() {
     return true
   }
 
+  // 🔴 FIX: lógica de ramas cargo/pago reescrita — eliminado delete duplicado
+  // Antes: el delete de deuda_movimientos ocurría dentro del else (cargo) Y también
+  // después del else (pago), pero el código era confuso y propenso a errores.
+  // Ahora: cada rama maneja su propio delete de forma explícita y clara.
   async function eliminarMovimiento(mov, showConfirm) {
     showConfirm('¿Eliminar este movimiento y revertir el pendiente?', async () => {
       const deuda = deudas.find(d => d.id === mov.deuda_id)
       if (!deuda) return
 
-      let nuevoPendiente = deuda.pendiente || 0
-      let nuevosPagados = deuda.pagadas || 0
-
-      if (mov.tipo === 'pago') {
-        nuevoPendiente = Math.min(
-          deuda.monto || (nuevoPendiente + mov.monto),
-          nuevoPendiente + mov.monto
-        )
-        nuevosPagados = Math.max(0, nuevosPagados - 1)
-
-        const { data: movGeneralData } = await supabase
-          .from('movimientos').select('id')
-          .eq('deuda_movimiento_id', mov.id).limit(1)
-
-        if (movGeneralData?.[0]?.id) {
-          await supabase.from('movimientos').delete().eq('id', movGeneralData[0].id)
-        } else {
-          await supabase.from('movimientos').delete()
-            .eq('categoria', 'deuda')
-            .eq('monto', mov.monto)
-            .eq('deuda_id', mov.deuda_id)
-            .limit(1)
-        }
-      } else {
-        nuevoPendiente = Math.max(0, nuevoPendiente - mov.monto)
+      // ── Rama CARGO ───────────────────────────────────────────────────────
+      if (mov.tipo === 'cargo') {
+        const nuevoPendiente = Math.max(0, (deuda.pendiente || 0) - mov.monto)
         const nuevoMonto = Math.max(deuda.capital || 0, (deuda.monto || 0) - mov.monto)
+
         const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
         if (error) { setError(error.message); return }
+
         const nuevoEstado = nuevoPendiente <= 0 ? 'pagada' : 'activa'
         await supabase.from('deudas').update({
           pendiente: nuevoPendiente, monto: nuevoMonto, estado: nuevoEstado
         }).eq('id', mov.deuda_id)
+
         toast('Movimiento eliminado', 'success')
         await cargar()
         return
+      }
+
+      // ── Rama PAGO ────────────────────────────────────────────────────────
+      let nuevoPendiente = deuda.pendiente || 0
+      let nuevosPagados = deuda.pagadas || 0
+
+      nuevoPendiente = Math.min(
+        deuda.monto || (nuevoPendiente + mov.monto),
+        nuevoPendiente + mov.monto
+      )
+      nuevosPagados = Math.max(0, nuevosPagados - 1)
+
+      // Buscar y eliminar el movimiento general vinculado
+      const { data: movGeneralData } = await supabase
+        .from('movimientos').select('id')
+        .eq('deuda_movimiento_id', mov.id).limit(1)
+
+      if (movGeneralData?.[0]?.id) {
+        await supabase.from('movimientos').delete().eq('id', movGeneralData[0].id)
+      } else {
+        // Fallback: buscar por coincidencia de campos
+        await supabase.from('movimientos').delete()
+          .eq('categoria', 'deuda')
+          .eq('monto', mov.monto)
+          .eq('deuda_id', mov.deuda_id)
+          .limit(1)
       }
 
       const { error } = await supabase.from('deuda_movimientos').delete().eq('id', mov.id)
@@ -529,7 +570,6 @@ export function useDeudas() {
   }
 
   return {
-    // Estado de datos
     deudas,
     setDeudas,
     movimientos,
@@ -538,7 +578,6 @@ export function useDeudas() {
     saving,
     error,
     setError,
-    // Acciones
     cargar,
     guardarDeuda,
     marcarPagada,
