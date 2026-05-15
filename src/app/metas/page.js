@@ -501,10 +501,10 @@ export default function MetasPage() {
                               )}
                             </div>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-lg font-semibold leading-none" style={{ color: meta.color }}>
+                          <div className="flex items-center gap-2">
+                             <pct className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ color: meta.color }}>
                               {pct}%
-                            </p>
+                            </pct>
                           </div>
                           <button
                             {...dragListeners}
