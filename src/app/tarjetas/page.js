@@ -40,7 +40,6 @@ export default function TarjetasPage() {
   const [savingPago, setSavingPago] = useState(false)
   const formatCurrency = useFormatCurrency()
 
-
   const [form, setForm] = useState({
     nombre_tarjeta: '', banco: '', limite_credito: '',
     dia_corte: '', dia_pago: '', estado: 'activa', color: '',
@@ -48,7 +47,6 @@ export default function TarjetasPage() {
 
   const { confirmProps, showConfirm } = useConfirm()
 
-  // Inicializar color y resetear si el tema cambia
   useEffect(() => {
     if (themeColors.length && form.color && !themeColors.includes(form.color)) {
       setForm(f => ({ ...f, color: themeColors[0] }))
@@ -58,19 +56,24 @@ export default function TarjetasPage() {
     }
   }, [theme]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 🔴 FIX: cleanup flag para evitar setState sobre componente desmontado
   useEffect(() => {
-    cargar()
+    let activo = true
+    cargar(activo)
+
     function handleVisibilityChange() {
-      if (document.visibilityState === 'visible') cargar()
+      if (document.visibilityState === 'visible') cargar(activo)
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      activo = false
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
-  async function cargar() {
+  async function cargar(activo = true) {
     setLoading(true)
 
-    // FIX 1: queries paralelas en vez de secuenciales
     const [
       { data: tarjetasData, error: e1 },
       { data: deudasTarjeta },
@@ -82,26 +85,27 @@ export default function TarjetasPage() {
         .order('created_at', { ascending: false }),
     ])
 
-    if (e1) { setLoading(false); return }
+    if (e1 || !activo) { if (activo) setLoading(false); return }
 
     const todasDeudas = deudasTarjeta || []
+
+    if (!activo) return
+
     setTarjetas(tarjetasData || [])
     setDeudas(todasDeudas)
 
-    // Solo contar deudas activas para el saldo usado
     const usado = {}
-      ; (tarjetasData || []).forEach(t => { usado[t.id] = 0 })
-      ; todasDeudas.filter(d => d.estado !== 'pagada').forEach(d => {
-        if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
-          const tarjeta = (tarjetasData || []).find(t => t.id === d.perfil_tarjeta_id)
-          if (tarjeta && tarjeta.estado !== 'pausada') {
-            usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
-          }
+    ;(tarjetasData || []).forEach(t => { usado[t.id] = 0 })
+    ;todasDeudas.filter(d => d.estado !== 'pagada').forEach(d => {
+      if (d.perfil_tarjeta_id && usado[d.perfil_tarjeta_id] !== undefined) {
+        const tarjeta = (tarjetasData || []).find(t => t.id === d.perfil_tarjeta_id)
+        if (tarjeta && tarjeta.estado !== 'pausada') {
+          usado[d.perfil_tarjeta_id] += (d.pendiente || 0)
         }
-      })
+      }
+    })
     setUsadoPorTarjeta(usado)
 
-    // Cargar pagos de cada deuda de tarjeta
     if (todasDeudas.length) {
       const ids = todasDeudas.map(d => d.id)
       const { data: movs } = await supabase
@@ -109,15 +113,18 @@ export default function TarjetasPage() {
         .select('deuda_id, tipo, monto, fecha, descripcion')
         .in('deuda_id', ids)
         .order('fecha', { ascending: false })
+
+      if (!activo) return
+
       const grouped = {}
-        ; (movs || []).forEach(m => {
-          if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
-          grouped[m.deuda_id].push(m)
-        })
+      ;(movs || []).forEach(m => {
+        if (!grouped[m.deuda_id]) grouped[m.deuda_id] = []
+        grouped[m.deuda_id].push(m)
+      })
       setMovsPorDeuda(grouped)
     }
 
-    setLoading(false)
+    if (activo) setLoading(false)
   }
 
   const openModal = (tarjeta = null) => {
@@ -145,7 +152,6 @@ export default function TarjetasPage() {
     e.preventDefault()
     setSaving(true)
 
-    // FIX 5: validar rango de dia_corte y dia_pago
     const diaCorte = parseInt(form.dia_corte) || null
     const diaPago = parseInt(form.dia_pago) || null
     if (diaCorte !== null && (diaCorte < 1 || diaCorte > 31)) {
@@ -171,51 +177,36 @@ export default function TarjetasPage() {
 
     if (editingId) {
       await supabase.from('perfiles_tarjetas').update(payload).eq('id', editingId)
-      // FIX 3: solo actualizar estado local, sin cargar() innecesario
       setTarjetas(prev => prev.map(t => t.id === editingId ? { ...t, ...payload } : t))
     } else {
       const { data } = await supabase.from('perfiles_tarjetas').insert([payload]).select()
       if (data?.[0]) {
         setTarjetas(prev => [data[0], ...prev])
-        // inicializar su saldo en 0
         setUsadoPorTarjeta(prev => ({ ...prev, [data[0].id]: 0 }))
       }
     }
 
     setSaving(false)
     closeModal()
-    // FIX 3: sin cargar() aquí — estado ya actualizado arriba
   }
 
   async function handleToggleEstado(tarjeta) {
     const nuevoEstado = tarjeta.estado === 'activa' ? 'pausada' : 'activa'
-    // BUG FIX: sólo actualizar estado local si la BD confirma el cambio
     const { error } = await supabase.from('perfiles_tarjetas').update({ estado: nuevoEstado }).eq('id', tarjeta.id)
-    if (error) {
-      toast('' + error.message)
-      return
-    }
+    if (error) { toast('' + error.message); return }
     setTarjetas(prev => prev.map(t => t.id === tarjeta.id ? { ...t, estado: nuevoEstado } : t))
   }
 
   function handleDelete(id) {
     showConfirm('¿Eliminar esta tarjeta? Las compras a plazos asociadas quedarán sin perfil.', async () => {
-      // Desvincular deudas primero
       const { error: errDesvincular } = await supabase.from('deudas')
         .update({ perfil_tarjeta_id: null })
         .eq('perfil_tarjeta_id', id)
 
-      if (errDesvincular) {
-        toast('' + errDesvincular.message)
-        return
-      }
+      if (errDesvincular) { toast('' + errDesvincular.message); return }
 
-      // BUG FIX: sólo borrar localmente si la BD confirma el borrado
       const { error } = await supabase.from('perfiles_tarjetas').delete().eq('id', id)
-      if (error) {
-        toast('' + error.message)
-        return
-      }
+      if (error) { toast('' + error.message); return }
 
       setTarjetas(prev => prev.filter(t => t.id !== id))
       setDeudas(prev => prev.map(d =>
@@ -230,16 +221,31 @@ export default function TarjetasPage() {
     showConfirm(`¿Eliminar "${deuda.nombre}"? Se borrarán también sus pagos registrados.`, async () => {
       const { error: errMovs } = await supabase.from('deuda_movimientos').delete().eq('deuda_id', deuda.id)
       if (errMovs) { toast('Error al borrar los pagos: ' + errMovs.message); return }
+
       const { error } = await supabase.from('deudas').delete().eq('id', deuda.id)
       if (error) { toast('' + error.message); return }
+
       setDeudas(prev => prev.filter(d => d.id !== deuda.id))
+
+      // 🟡 FIX: actualizar usadoPorTarjeta al eliminar una deuda activa
+      if (deuda.estado !== 'pagada' && deuda.perfil_tarjeta_id) {
+        setUsadoPorTarjeta(prev => ({
+          ...prev,
+          [deuda.perfil_tarjeta_id]: Math.max(0, (prev[deuda.perfil_tarjeta_id] || 0) - (deuda.pendiente || 0)),
+        }))
+      }
     })
   }
 
   function abrirPago(e, deuda) {
     e.stopPropagation()
     setPagoDeuda(deuda)
-    setFormPago({ monto: deuda.cuota > 0 ? deuda.cuota.toString() : '', descripcion: '', fecha: new Date().toISOString().slice(0, 10) })
+    // 🔴 FIX: fecha inicial en formPago, no en form
+    setFormPago({
+      monto: deuda.cuota > 0 ? deuda.cuota.toString() : '',
+      descripcion: '',
+      fecha: new Date().toISOString().slice(0, 10),
+    })
     setModalPago(true)
   }
 
@@ -254,9 +260,12 @@ export default function TarjetasPage() {
     const añoNum = parseInt(fecha.slice(0, 4))
     const nuevoPendiente = Math.max(0, (pagoDeuda.pendiente || 0) - monto)
     const estaPagada = nuevoPendiente === 0
-    const cuotaPagada = pagoDeuda.cuota > 0 && monto >= pagoDeuda.cuota * 0.9
+
+    // 🟡 FIX: cuotaPagada solo si el monto es exactamente >= la cuota (sin tolerancia engañosa)
+    const cuotaPagada = pagoDeuda.cuota > 0 && monto >= pagoDeuda.cuota
 
     const desc = formPago.descripcion || `Pago cuota: ${pagoDeuda.nombre}`
+
     const [{ error: errDM }, { error: errDeuda }] = await Promise.all([
       supabase.rpc('registrar_deuda_movimiento', {
         p_deuda_id: pagoDeuda.id,
@@ -280,11 +289,16 @@ export default function TarjetasPage() {
       return
     }
 
-    // Registrar egreso real en movimientos (el dinero sale del bolsillo al pagar la cuota)
+    // 🔴 FIX: añadido deuda_id para que el movimiento no quede huérfano
     const { error: errMov } = await supabase.from('movimientos').insert([{
-      tipo: 'egreso', monto, descripcion: desc,
-      categoria: 'deuda', fecha, quien: 'Ambos',
+      tipo: 'egreso',
+      monto,
+      descripcion: desc,
+      categoria: 'deuda',
+      fecha,
+      quien: 'Ambos',
       metodo_pago: 'transferencia',
+      deuda_id: pagoDeuda.id, // 🔴 FIX: vinculación al movimiento de deuda
     }])
     if (errMov) {
       toast('Pago registrado pero no apareció en gastos: ' + errMov.message)
@@ -292,12 +306,20 @@ export default function TarjetasPage() {
 
     // Actualizar estado local
     setDeudas(prev => prev.map(d => d.id === pagoDeuda.id
-      ? { ...d, pendiente: nuevoPendiente, ...(estaPagada ? { estado: 'pagada' } : {}), ...(cuotaPagada ? { pagadas: (d.pagadas || 0) + 1 } : {}) }
+      ? {
+        ...d,
+        pendiente: nuevoPendiente,
+        ...(estaPagada ? { estado: 'pagada' } : {}),
+        ...(cuotaPagada ? { pagadas: (d.pagadas || 0) + 1 } : {}),
+      }
       : d
     ))
     setMovsPorDeuda(prev => ({
       ...prev,
-      [pagoDeuda.id]: [{ tipo: 'pago', monto, fecha, descripcion: formPago.descripcion || 'Pago tarjeta' }, ...(prev[pagoDeuda.id] || [])],
+      [pagoDeuda.id]: [
+        { tipo: 'pago', monto, fecha, descripcion: formPago.descripcion || 'Pago tarjeta' },
+        ...(prev[pagoDeuda.id] || []),
+      ],
     }))
     setUsadoPorTarjeta(prev => ({
       ...prev,
@@ -330,28 +352,21 @@ export default function TarjetasPage() {
           <Loader2 className="animate-spin opacity-30" style={{ color: 'var(--text-muted)' }} />
         </div>
       ) : tarjetas.length === 0 ? (
-        /* Aplicamos flex-col e items-center para el centrado total en móviles */
         <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-
-          {/* Icono de tarjeta (opcional, le da un toque pro) */}
           <div className="w-16 h-12 rounded-xl mb-6 flex items-center justify-center border-2 border-dashed opacity-20"
             style={{ borderColor: 'var(--text-muted)' }}>
             <CreditCard size={24} style={{ color: 'var(--text-muted)' }} />
           </div>
-
           <p className="text-sm mb-6 font-medium" style={{ color: 'var(--text-muted)' }}>
             No hay tarjetas registradas
           </p>
-
           <button
             onClick={() => openModal()}
-            className="ff-btn-primary !w-auto min-w-[220px] shadow-lg active:scale-95 transition-transform"
-          >
+            className="ff-btn-primary !w-auto min-w-[220px] shadow-lg active:scale-95 transition-transform">
             Agregar primera tarjeta
           </button>
         </div>
       ) : (
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tarjetas.map((t) => {
             const isSelected = selectedId === t.id
@@ -468,7 +483,6 @@ export default function TarjetasPage() {
                         return (
                           <div key={deuda.id} className="rounded-xl p-3 space-y-1.5"
                             style={{ background: 'var(--bg-secondary)', border: `1px solid ${esPagada ? 'color-mix(in srgb, var(--accent-green) 20%, transparent)' : 'transparent'}` }}>
-                            {/* Fila principal */}
                             <div className="flex justify-between items-start gap-2">
                               <div className="min-w-0">
                                 <p className="text-[11px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{deuda.nombre}</p>
@@ -484,7 +498,6 @@ export default function TarjetasPage() {
                                 }
                               </div>
                             </div>
-                            {/* Cuotas */}
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 {total > 1 && (
@@ -505,7 +518,6 @@ export default function TarjetasPage() {
                                   </span>
                                 )}
                               </div>
-                              {/* Barra de progreso */}
                               {total > 1 && (
                                 <div className="flex-1 max-w-[80px] h-1 rounded-full ml-3" style={{ background: 'var(--progress-track)' }}>
                                   <div className="h-1 rounded-full" style={{
@@ -515,7 +527,6 @@ export default function TarjetasPage() {
                                 </div>
                               )}
                             </div>
-                            {/* Último pago + botón pagar */}
                             <div className="flex items-center justify-between gap-2">
                               {pagos.length > 0 ? (
                                 <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
@@ -541,7 +552,7 @@ export default function TarjetasPage() {
                                       color: t.color,
                                     }}>
                                     <DollarSign size={9} />
-                                    Pagar
+                                     Pagar
                                   </button>
                                 )}
                               </div>
@@ -586,11 +597,13 @@ export default function TarjetasPage() {
                 value={formPago.descripcion}
                 onChange={e => setFormPago(p => ({ ...p, descripcion: e.target.value }))} />
             </div>
+
             <div className="space-y-1">
               <label className="ff-label">Fecha</label>
+              {/* 🔴 FIX: DatePicker vinculado a formPago, no a form */}
               <DatePicker
-                value={form.fecha}
-                onChange={date => setForm({ ...form, fecha: date })}
+                value={formPago.fecha}
+                onChange={date => setFormPago(p => ({ ...p, fecha: date }))}
                 placeholder="Fecha"
               />
             </div>
@@ -651,31 +664,18 @@ export default function TarjetasPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="ff-label">Día de corte</label>
-              <input
-                className="ff-input"
-                type="number"
-                min="1"
-                max="31"
-                placeholder="Ej: 15"
+              <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 15"
                 value={form.dia_corte}
-                onChange={e => setForm({ ...form, dia_corte: e.target.value })}
-              />
+                onChange={e => setForm({ ...form, dia_corte: e.target.value })} />
             </div>
             <div>
               <label className="ff-label">Día de pago</label>
-              <input
-                className="ff-input"
-                type="number"
-                min="1"
-                max="31"
-                placeholder="Ej: 20"
+              <input className="ff-input" type="number" min="1" max="31" placeholder="Ej: 20"
                 value={form.dia_pago}
-                onChange={e => setForm({ ...form, dia_pago: e.target.value })}
-              />
+                onChange={e => setForm({ ...form, dia_pago: e.target.value })} />
             </div>
           </div>
 
-          {/* Color picker — reactivo al tema activo */}
           <div>
             <label className="ff-label">Color</label>
             <div className="flex gap-2 mt-1 flex-wrap">

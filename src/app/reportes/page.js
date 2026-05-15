@@ -11,7 +11,6 @@ import {
   Tooltip, Cell, Legend
 } from 'recharts'
 
-
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const MESES_CORTO = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
@@ -25,17 +24,14 @@ function getCatVars(col) {
   }
 }
 
-// Parseo de fecha sin timezone: evita que "2026-01-01" se convierta en dic 2025 en UTC-4
 function fechaAño(f) { return parseInt((f || '').slice(0, 4)) }
-function fechaMes(f) { return parseInt((f || '').slice(5, 7)) - 1 } // 0-indexed
+function fechaMes(f) { return parseInt((f || '').slice(5, 7)) - 1 }
 
-// FIX 5: usar el campo bloque (id estable) en vez del nombre
 function grupoDeBloque(bloqueId) {
   const id = (bloqueId || '').toLowerCase()
   if (id === 'necesidades') return 'necesidades'
   if (id === 'futuro') return 'futuro'
   if (id === 'estilo') return 'deseos'
-  // fallback legacy por nombre
   if (id.includes('necesid') || id.includes('basic') || id.includes('esencial')) return 'necesidades'
   if (id.includes('ahorro') || id.includes('invers') || id.includes('meta') || id.includes('futuro')) return 'futuro'
   if (id.includes('estilo') || id.includes('deseo') || id.includes('ocio')) return 'deseos'
@@ -46,7 +42,6 @@ function normCat(s) {
   return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
-// Tooltip — recibe colores como prop
 function ChartTooltip({ active, payload, label, colores, formatCurrency }) {
   if (!active || !payload?.length) return null
   return (
@@ -82,9 +77,6 @@ export default function ReportesPage() {
     muted: '', border: '', card: '', track: '',
   })
 
-
-
-  // ── Colores del tema ──────────────────────────────────────────────────────
   useEffect(() => {
     function leer() {
       const s = getComputedStyle(document.documentElement)
@@ -114,7 +106,6 @@ export default function ReportesPage() {
     futuro: { label: 'Ahorro / Inv.', color: colores.green, targetDefault: 20 },
   }), [colores])
 
-  // FIX 1: presupuesto_bloques no tiene mes/año — quitar esos filtros
   useEffect(() => {
     async function cargar() {
       setLoading(true)
@@ -143,49 +134,46 @@ export default function ReportesPage() {
     cargar()
   }, [año])
 
-  // FIX 4: todos los cálculos derivados memoizados
   const movsAño = useMemo(() =>
     movs.filter(m => fechaAño(m.fecha) === año)
-    , [movs, año])
+  , [movs, año])
 
   const totalIngresos = useMemo(() =>
-    movsAño.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-    , [movsAño])
+    movsAño.filter(m => m.tipo === 'ingreso')
+      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  , [movsAño])
 
-  // FIX 2: separar gastos corrientes de ahorro
   const totalGastosCorrientes = useMemo(() =>
     movsAño
       .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(normCat(m.categoria)))
-      .reduce((s, m) => s + m.monto, 0)
-    , [movsAño])
+      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  , [movsAño])
 
   const totalAhorro = useMemo(() =>
     movsAño
       .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(normCat(m.categoria)))
-      .reduce((s, m) => s + m.monto, 0)
-    , [movsAño])
+      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  , [movsAño])
 
-  // FIX 2: balance incluye todo; tasa de ahorro = ahorro / ingresos
   const totalGastos = totalGastosCorrientes + totalAhorro
   const balance = totalIngresos - totalGastos
   const tasaAhorro = totalIngresos > 0 ? (totalAhorro / totalIngresos) * 100 : 0
 
+  // FIX Bug 2: presupuesto_bloques guarda pct, no monto
   const totalPresupuesto = useMemo(() =>
-    bloques.reduce((s, b) => s + (b.monto || 0), 0)
-    , [bloques])
+    bloques.reduce((s, b) => s + (parseFloat(b.pct) || 0), 0)
+  , [bloques])
 
   const grupoMetas = useMemo(() => {
     const gm = { necesidades: 50, deseos: 30, futuro: 20 }
     if (totalPresupuesto > 0) {
-      const montosPorGrupo = { necesidades: 0, deseos: 0, futuro: 0 }
+      const pctPorGrupo = { necesidades: 0, deseos: 0, futuro: 0 }
       bloques.forEach(b => {
-        // FIX 5: usar b.bloque (id estable) en vez de b.nombre
         const g = grupoDeBloque(b.bloque)
-        if (g) montosPorGrupo[g] += (b.monto || 0)
+        if (g) pctPorGrupo[g] += (parseFloat(b.pct) || 0) // FIX: usar b.pct
       })
       Object.keys(gm).forEach(g => {
-        if (montosPorGrupo[g] > 0)
-          gm[g] = Math.round((montosPorGrupo[g] / totalPresupuesto) * 100)
+        if (pctPorGrupo[g] > 0) gm[g] = Math.round(pctPorGrupo[g])
       })
     }
     return gm
@@ -195,7 +183,7 @@ export default function ReportesPage() {
     const porCat = {}
     movsAño.filter(m => m.tipo === 'egreso').forEach(m => {
       const key = normCat(m.categoria)
-      porCat[key] = (porCat[key] || 0) + m.monto
+      porCat[key] = (porCat[key] || 0) + parseFloat(m.monto || 0)
     })
     return Object.entries(porCat)
       .map(([cat, total]) => {
@@ -207,7 +195,7 @@ export default function ReportesPage() {
 
   const grandTotal = useMemo(() =>
     catList.reduce((s, c) => s + c.total, 0)
-    , [catList])
+  , [catList])
 
   const grupoTotales = useMemo(() => {
     const gt = { necesidades: 0, deseos: 0, futuro: 0 }
@@ -236,22 +224,22 @@ export default function ReportesPage() {
       if (m.tipo !== 'egreso') return false
       return filtro === 'todos' || normCat(m.categoria) === filtro
     })
-    , [movsAño, filtro])
+  , [movsAño, filtro])
 
-  // FIX 3: resumenMes excluye ahorro/inversión de Gastos
   const resumenMes = useMemo(() =>
     MESES.map((mes, i) => {
       const mm = movsAño.filter(m => fechaMes(m.fecha) === i)
       return {
         mes,
         mesCorto: MESES_CORTO[i],
-        Ingresos: mm.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
+        Ingresos: mm.filter(m => m.tipo === 'ingreso')
+          .reduce((s, m) => s + parseFloat(m.monto || 0), 0),
         Gastos: mm
           .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(normCat(m.categoria)))
-          .reduce((s, m) => s + m.monto, 0),
+          .reduce((s, m) => s + parseFloat(m.monto || 0), 0),
       }
     })
-    , [movsAño])
+  , [movsAño])
 
   const porMes = useMemo(() =>
     MESES.map((mes, i) => ({
@@ -259,13 +247,13 @@ export default function ReportesPage() {
       mesCorto: MESES_CORTO[i],
       total: movsFiltrados
         .filter(m => fechaMes(m.fecha) === i)
-        .reduce((s, m) => s + m.monto, 0),
+        .reduce((s, m) => s + parseFloat(m.monto || 0), 0),
     }))
-    , [movsFiltrados])
+  , [movsFiltrados])
 
   const maxMes = useMemo(() =>
     porMes.reduce((mx, m) => m.total > mx.total ? m : mx, porMes[0])
-    , [porMes])
+  , [porMes])
 
   const minMes = useMemo(() => {
     const conDatos = porMes.filter(m => m.total > 0)
@@ -275,41 +263,47 @@ export default function ReportesPage() {
     )
   }, [porMes])
 
-  // ── Año anterior ─────────────────────────────────────────────────────────
+  // FIX Bug 1: parseFloat en todos los reduce de movsAnterior
   const totalIngresosAnt = useMemo(() =>
-    movsAnterior.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-    , [movsAnterior])
+    movsAnterior.filter(m => m.tipo === 'ingreso')
+      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  , [movsAnterior])
 
   const totalGastosAnt = useMemo(() =>
-    movsAnterior.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
-    , [movsAnterior])
+    movsAnterior.filter(m => m.tipo === 'egreso')
+      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  , [movsAnterior])
 
   const totalAhorroAnt = useMemo(() =>
     movsAnterior
       .filter(m => m.tipo === 'egreso' && ['ahorro', 'inversion'].includes(normCat(m.categoria)))
-      .reduce((s, m) => s + m.monto, 0)
-    , [movsAnterior])
+      .reduce((s, m) => s + parseFloat(m.monto || 0), 0)
+  , [movsAnterior])
 
   const balanceAnt = totalIngresosAnt - totalGastosAnt
   const tasaAhorroAnt = totalIngresosAnt > 0 ? (totalAhorroAnt / totalIngresosAnt) * 100 : 0
   const hayDatosAnt = totalIngresosAnt > 0 || totalGastosAnt > 0
 
-  // Gráfico comparativo mensual (ingresos y gastos de ambos años)
   const resumenComparativa = useMemo(() =>
     MESES.map((mes, i) => {
       const act = movsAño.filter(m => fechaMes(m.fecha) === i)
       const ant = movsAnterior.filter(m => fechaMes(m.fecha) === i)
       return {
         mesCorto: MESES_CORTO[i],
-        [`Ing ${año}`]: act.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
-        [`Gas ${año}`]: act.filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(normCat(m.categoria))).reduce((s, m) => s + m.monto, 0),
-        [`Ing ${año - 1}`]: ant.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0),
-        [`Gas ${año - 1}`]: ant.filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(normCat(m.categoria))).reduce((s, m) => s + m.monto, 0),
+        [`Ing ${año}`]: act.filter(m => m.tipo === 'ingreso')
+          .reduce((s, m) => s + parseFloat(m.monto || 0), 0),
+        [`Gas ${año}`]: act
+          .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(normCat(m.categoria)))
+          .reduce((s, m) => s + parseFloat(m.monto || 0), 0),
+        [`Ing ${año - 1}`]: ant.filter(m => m.tipo === 'ingreso')
+          .reduce((s, m) => s + parseFloat(m.monto || 0), 0),
+        [`Gas ${año - 1}`]: ant
+          .filter(m => m.tipo === 'egreso' && ['basicos', 'deseo', 'deuda'].includes(normCat(m.categoria)))
+          .reduce((s, m) => s + parseFloat(m.monto || 0), 0),
       }
     })
-    , [movsAño, movsAnterior, año])
+  , [movsAño, movsAnterior, año])
 
-  // Tooltip con colores inyectados
   const TooltipConColores = (props) => <ChartTooltip {...props} colores={colores} formatCurrency={formatCurrency} />
 
   const EmptyState = () => (
@@ -400,7 +394,6 @@ export default function ReportesPage() {
                 </div>
                 <p className="text-sm font-semibold" style={{ color: s.color }}>{s.value}</p>
                 {s.sub && <p className="text-[9px] font-semibold mt-0.5" style={{ color: s.color, opacity: 0.7 }}>{s.sub}</p>}
-                {s.hint && <p className="text-[8px] mt-0.5" style={{ color: colores.muted, opacity: 0.6 }}>{s.hint}</p>}
               </div>
             ))}
           </div>
@@ -414,7 +407,6 @@ export default function ReportesPage() {
                 </p>
               </div>
 
-              {/* Deltas KPI */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                 {[
                   { label: 'Ingresos', actual: totalIngresos, ant: totalIngresosAnt },
@@ -423,7 +415,6 @@ export default function ReportesPage() {
                   { label: 'Tasa ahorro', actual: tasaAhorro, ant: tasaAhorroAnt, esPct: true },
                 ].map(({ label, actual, ant, invertir, esPct }) => {
                   const delta = actual - ant
-                  // Para gastos: bajar es bueno (invertir = true)
                   const positivo = invertir ? delta <= 0 : delta >= 0
                   const color = ant === 0 ? colores.muted : positivo ? colores.green : colores.rose
                   const signo = delta >= 0 ? '+' : ''
@@ -450,7 +441,6 @@ export default function ReportesPage() {
                 })}
               </div>
 
-              {/* Gráfico comparativo mensual */}
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={resumenComparativa} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barCategoryGap="15%" barGap={1}>
                   <XAxis dataKey="mesCorto" tick={{ fill: colores.muted, fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
@@ -477,13 +467,15 @@ export default function ReportesPage() {
                 <p className="text-[10px] font-semibold uppercase" style={{ color: colores.muted }}>
                   Distribución del presupuesto
                 </p>
-                <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                  style={{
-                    background: `color-mix(in srgb, ${colores.green} 10%, transparent)`,
-                    color: colores.green,
-                  }}>
-                  {totalPresupuesto > 0 ? 'Metas de tu presupuesto' : ''}
-                </span>
+                {totalPresupuesto > 0 && (
+                  <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{
+                      background: `color-mix(in srgb, ${colores.green} 10%, transparent)`,
+                      color: colores.green,
+                    }}>
+                    Metas de tu presupuesto
+                  </span>
+                )}
               </div>
               <div className="space-y-3">
                 {Object.entries(GRUPOS_BASE).map(([key, g]) => {
@@ -623,10 +615,11 @@ export default function ReportesPage() {
                       {porMes.map((m, i) => (
                         <Cell key={i}
                           fill={
-                            m.total === 0 ? colores.border :
-                              m.mes === maxMes?.mes ? colores.rose :
-                                m.mes === minMes?.mes ? colores.green :
-                                  colores.blue
+                            m.total === 0 ? colores.border
+                              // FIX Bug 3: verificar que min y max no sean el mismo mes
+                              : m.mes === minMes?.mes && m.mes !== maxMes?.mes ? colores.green
+                              : m.mes === maxMes?.mes ? colores.rose
+                              : colores.blue
                           }
                         />
                       ))}

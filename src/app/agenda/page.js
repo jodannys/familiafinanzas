@@ -73,6 +73,16 @@ function formatFechaRelativa(fechaStr) {
   return new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
+// 🟡 FIX: helper para obtener etiqueta corta del día sin perder la fecha
+function formatFechaHeader(fechaStr) {
+  const rel = formatFechaRelativa(fechaStr)
+  if (rel === 'Hoy' || rel === 'Mañana') return rel.toUpperCase()
+  // Para fechas largas tipo "miércoles, 15 de mayo" mostramos "MIÉRCOLES 15"
+  const [y, m, d] = fechaStr.split('-').map(Number)
+  const nombreDia = new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'long' })
+  return `${nombreDia.toUpperCase()} ${d}`
+}
+
 export default function AgendaPage() {
   const formatCurrency = useFormatCurrency()
   const hoy = new Date()
@@ -94,49 +104,57 @@ export default function AgendaPage() {
 
   const hoyStr = toFechaStr(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
 
-  // FIX #6: deudas solo se cargan una vez al montar — no cambian al navegar de mes
-  useEffect(() => { cargarDeudas() }, [])
-  useEffect(() => { cargarNotas() }, [año, mes])
+  // 🔴 FIX: cleanup en useEffect de deudas para evitar setState sobre componente desmontado
+  useEffect(() => {
+    let activo = true
+    cargarDeudas(activo)
+    return () => { activo = false }
+  }, [])
 
-  async function cargarDeudas() {
+  // 🔴 FIX: cleanup en useEffect de notas para evitar setState sobre navegación rápida de meses
+  useEffect(() => {
+    let activo = true
+    cargarNotas(activo)
+    return () => { activo = false }
+  }, [año, mes])
+
+  async function cargarDeudas(activo = true) {
     const { data: dd } = await supabase
       .from('deudas')
       .select('id,nombre,emoji,dia_pago,cuota,color,fecha_primer_pago,plazo_meses,created_at')
       .eq('estado', 'activa')
-    setDeudasData(dd || [])
+    if (activo) setDeudasData(dd || [])
   }
 
-  async function cargarNotas() {
+  async function cargarNotas(activo = true) {
     setLoading(true)
     const diasMes = new Date(año, mes + 1, 0).getDate()
     const desde = `${año}-${pad(mes + 1)}-01`
     const hasta = `${año}-${pad(mes + 1)}-${pad(diasMes)}`
     const { data: nd } = await supabase
       .from('agenda_notas').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha')
-    setNotas(nd || [])
-    setLoading(false)
+    if (activo) {
+      setNotas(nd || [])
+      setLoading(false)
+    }
   }
 
-  // Mantener compatibilidad: cargar recarga ambas fuentes (usado al guardar/eliminar notas)
-  function cargar() { cargarDeudas(); cargarNotas() }
+  // 🔴 FIX: eliminada función cargar() — era código muerto que recargaba deudas innecesariamente.
+  // Para recargar notas tras guardar/eliminar, llamamos cargarNotas() directamente.
 
-  // Eventos automáticos desde deudas (no se guardan en BD)
   const eventosDeudas = (deudasData || []).flatMap(d => {
-    // FIX #1a: ignorar deudas sin día de pago configurado (evita pagos el día 1 por defecto)
     if (!d.dia_pago) return []
 
     if (d.fecha_primer_pago) {
       const [fpAño, fpMes] = d.fecha_primer_pago.split('-').map(Number)
       const currentIdx = año * 12 + mes
       const startIdx = fpAño * 12 + (fpMes - 1)
-      // FIX #1b: no mostrar meses anteriores al inicio de la deuda
       if (currentIdx < startIdx) return []
       if (d.plazo_meses) {
         const endIdx = startIdx + d.plazo_meses - 1
         if (currentIdx > endIdx) return []
       }
     } else {
-      // FIX #1c: deudas sin fecha_primer_pago solo se muestran desde su mes de creación
       if (d.created_at) {
         const creada = new Date(d.created_at)
         const creadaIdx = creada.getFullYear() * 12 + creada.getMonth()
@@ -171,14 +189,16 @@ export default function AgendaPage() {
 
   const semanas = construirCalendario(año, mes)
 
-  // Semana que contiene el día seleccionado
   const semanaSeleccionada = semanas.find(s => s.some(c => c.fecha === diaSeleccionado)) || semanas[0]
 
+  // 🟡 FIX: navMes sincroniza diaSeleccionado al día 1 del nuevo mes
   function navMes(delta) {
     let nm = mes + delta, na = año
     if (nm < 0) { nm = 11; na-- }
     if (nm > 11) { nm = 0; na++ }
-    setMes(nm); setAño(na)
+    setMes(nm)
+    setAño(na)
+    setDiaSeleccionado(toFechaStr(na, nm, 1))
   }
 
   function navSemana(delta) {
@@ -282,19 +302,35 @@ export default function AgendaPage() {
     setModal(true)
   }
 
+  // 🟡 FIX: return explícito en rama de error para claridad de flujo
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
     const payload = { titulo: form.titulo, fecha: form.fecha, tipo: form.tipo, color: form.color }
+
     if (editingNota) {
       const { error } = await supabase.from('agenda_notas').update(payload).eq('id', editingNota.id)
-      if (error) { toast('Error al guardar el evento'); } else { setNotas(prev => prev.map(n => n.id === editingNota.id ? { ...n, ...payload } : n)); toast('Evento actualizado', 'success'); cerrarModal() }
+      if (error) {
+        toast('Error al guardar el evento')
+        setSaving(false)
+        return // 🟡 FIX: return explícito — no continúa si hay error
+      }
+      setNotas(prev => prev.map(n => n.id === editingNota.id ? { ...n, ...payload } : n))
+      toast('Evento actualizado', 'success')
+      cerrarModal()
     } else {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user?.id) { setSaving(false); return }
       const { data, error } = await supabase.from('agenda_notas')
         .insert([{ ...payload, completado: false, user_id: session.user.id }]).select()
-      if (error) { toast('Error al guardar el evento'); } else { setNotas(prev => [...prev, data[0]]); toast('Evento guardado', 'success'); cerrarModal() }
+      if (error) {
+        toast('Error al guardar el evento')
+        setSaving(false)
+        return // 🟡 FIX: return explícito
+      }
+      setNotas(prev => [...prev, data[0]])
+      toast('Evento guardado', 'success')
+      cerrarModal()
     }
     setSaving(false)
   }
@@ -343,7 +379,6 @@ export default function AgendaPage() {
           ))}
         </div>
       </div>
-
 
       {/* Nav mes / semana / dia */}
       <div className="flex items-center justify-between mb-3 px-1">
@@ -438,8 +473,9 @@ export default function AgendaPage() {
             <div className="flex items-center justify-between px-5 py-3.5"
               style={{ borderBottom: '1px solid var(--border-glass)' }}>
               <div>
+                {/* 🟡 FIX: usamos formatFechaHeader para no perder la fecha en días no relativos */}
                 <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-muted)' }}>
-                  {formatFechaRelativa(diaSeleccionado).toUpperCase().split(',')[0]}
+                  {formatFechaHeader(diaSeleccionado)}
                 </p>
                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {formatFechaRelativa(diaSeleccionado)}
@@ -467,7 +503,6 @@ export default function AgendaPage() {
         /* Vista diaria */
         <div className="rounded-[24px] overflow-hidden animate-enter"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
-          {/* Cabecera día */}
           <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border-glass)' }}>
             <div className="flex items-center justify-between">
               <div>
@@ -507,7 +542,6 @@ export default function AgendaPage() {
             </div>
           </div>
 
-          {/* Timeline de eventos */}
           {loading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="animate-spin" size={24} style={{ color: 'var(--accent-green)' }} />
@@ -524,14 +558,12 @@ export default function AgendaPage() {
             </div>
           ) : (
             <div className="relative px-4 py-3">
-              {/* Línea de tiempo vertical */}
               <div className="absolute left-[28px] top-4 bottom-4 w-px" style={{ background: 'var(--border-glass)' }} />
               <div className="flex flex-col gap-1">
                 {notasDia.map(nota => {
                   const tipo = TIPOS.find(t => t.id === nota.tipo) || TIPOS[3]
                   return (
                     <div key={nota.id} className="flex items-start gap-3">
-                      {/* Dot en la línea */}
                       <div className="flex-shrink-0 flex items-center justify-center rounded-full z-10 mt-3"
                         style={{
                           width: 12, height: 12,
@@ -539,7 +571,6 @@ export default function AgendaPage() {
                           border: `2px solid ${nota.color}`,
                           marginLeft: 2,
                         }} />
-                      {/* Contenido */}
                       <div className="flex-1 rounded-2xl px-3.5 py-3 mb-1"
                         style={{
                           background: nota.completado
@@ -603,7 +634,7 @@ export default function AgendaPage() {
           )}
         </div>
       ) : (
-        /* Vista semana — lista vertical */
+        /* Vista semana */
         <div className="rounded-[24px] overflow-hidden animate-enter"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
           {loading ? (
@@ -618,7 +649,6 @@ export default function AgendaPage() {
             return (
               <div key={celda.fecha}
                 style={{ borderBottom: idx < 6 ? '1px solid var(--border-glass)' : 'none' }}>
-                {/* Cabecera del día */}
                 <div className="flex items-center justify-between px-5 py-3"
                   style={{
                     background: esHoy ? 'color-mix(in srgb, var(--accent-green) 5%, transparent)' : 'transparent',
@@ -653,7 +683,6 @@ export default function AgendaPage() {
                   </button>
                 </div>
 
-                {/* Eventos del día */}
                 {notasCelda.length > 0 && (
                   <div style={{ borderTop: '1px solid var(--border-glass)' }}>
                     {notasCelda.map(nota => renderNota(nota))}
@@ -682,6 +711,7 @@ export default function AgendaPage() {
               placeholder="Fecha"
             />
           </div>
+
           <div>
             <label className="ff-label">Tipo</label>
             <div className="grid grid-cols-2 gap-2 mt-1">
