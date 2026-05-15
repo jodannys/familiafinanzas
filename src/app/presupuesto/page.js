@@ -34,7 +34,6 @@ export default function PresupuestoPage() {
   const [ingreso, setIngreso] = useState('')
   const [editando, setEditando] = useState(false)
   const [borradores, setBorradores] = useState(null)
-  // Split metas/inversiones dentro de Futuro
   const [sub, setSub] = useState({ metas: 60, inversiones: 40 })
   const [subBorrador, setSubBorrador] = useState(null)
   const [movs, setMovs] = useState([])
@@ -107,8 +106,6 @@ export default function PresupuestoPage() {
       setMetas(metasData || [])
       setInversiones(invData || [])
 
-      // Aportes directos al presupuesto de inversiones — excluye sobrantes del sobre
-      // (descripcion 'Sobrante sobre →') que vienen del bloque Estilo, no del presupuesto de inversiones.
       setAportesInvEsteMes((movsData || [])
         .filter(m =>
           m.tipo === 'egreso' &&
@@ -149,7 +146,6 @@ export default function PresupuestoPage() {
     }
   }
 
-  // ── Guardar presupuesto por subcategoría ──────────────────────────────────
   async function guardarPresupuestoCat(subcategoriaId, monto) {
     const valor = parseFloat(monto) || 0
     const { error } = await supabase.from('presupuesto_cats').upsert(
@@ -159,7 +155,6 @@ export default function PresupuestoPage() {
     if (!error) setMontosCats(prev => ({ ...prev, [subcategoriaId]: valor }))
   }
 
-  // ── Copiar presupuesto del mes anterior ───────────────────────────────────
   async function copiarMesAnterior() {
     setCopiando(true)
     const mesPrev = mes === 1 ? 12 : mes - 1
@@ -183,14 +178,13 @@ export default function PresupuestoPage() {
   }
 
   // ── Gasto real por bloque ─────────────────────────────────────────────────
-  // El sobre pertenece al bloque estilo → sobrantes enviados desde el sobre reducen estilo
-  const DESTINO_BLOQUE = { metas: 'futuro', inversiones: 'futuro' }
-  const SOBRE_BLOQUE = 'estilo' // el sobre vive dentro del bloque estilo
+  // FIX Bug 2: deSobrantesDelSobre solo se descuenta si realmente
+  // existe un movimiento correspondiente en movs (evita restar sin haber sumado)
+  const SOBRE_BLOQUE = 'estilo'
 
   function gastadoReal(bloqueId) {
     const deMovimientos = movs
       .filter(m => m.tipo === 'egreso' && CAT_BLOQUE[m.categoria] === bloqueId)
-      // Excluir movimientos inversion sin inversion_id (sobrantes mal creados por código antiguo)
       .filter(m => m.categoria !== 'inversion' || m.inversion_id != null)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
@@ -198,26 +192,31 @@ export default function PresupuestoPage() {
       .filter(m => ORIGEN_BLOQUE[m.origen] === bloqueId && parseFloat(m.monto) > 0)
       .reduce((s, m) => s + parseFloat(m.monto), 0)
 
-    // Sobrantes a metas e inversiones ahora crean movimientos propios (categoria='ahorro'/'inversion')
-    // y se cuentan en deMovimientos — deSobrantes eliminado para evitar doble conteo.
-    const deSobrantes = 0
-
-    // Sobrantes enviados DESDE el sobre se descuentan del bloque estilo (el sobre pertenece a estilo)
+    // FIX: solo descontar sobrantes del sobre si ese gasto YA está contado
+    // en deMovimientos (categoria='deseo' aparece en movs con CAT_BLOQUE='estilo')
+    // Los sobrantes enviados desde el sobre crean un movimiento propio,
+    // así que se descuenta el traspaso para no contar dos veces.
     const deSobrantesDelSobre = bloqueId === SOBRE_BLOQUE
       ? sobreMovs
-        .filter(m => m.origen === 'sobre')
-        .reduce((s, m) => s + parseFloat(m.monto), 0)
+        .filter(m => m.origen === 'sobre' && m.monto > 0)
+        .reduce((s, m) => {
+          // Solo restar si hay un movimiento real de tipo deseo por ese monto/fecha
+          const tieneMovReal = movs.some(mv =>
+            mv.tipo === 'egreso' &&
+            CAT_BLOQUE[mv.categoria] === SOBRE_BLOQUE &&
+            Math.abs(parseFloat(mv.monto) - parseFloat(m.monto)) < 0.01
+          )
+          return tieneMovReal ? s + parseFloat(m.monto) : s
+        }, 0)
       : 0
 
-    // Traspasos ENTRANTES al sobre (desde otras cubetas) — el gasto (categoria:'deseo') ya aparece
-    // en deMovimientos como estilo, pero fue pagado por otro bloque. Se resta para evitar doble conteo.
     const deTraspasosSobre = bloqueId === SOBRE_BLOQUE
       ? sobreMovs
         .filter(m => m.destino === 'sobre')
         .reduce((s, m) => s + parseFloat(m.monto), 0)
       : 0
 
-    return deMovimientos + deTraspasos + deSobrantes + deSobrantesDelSobre - deTraspasosSobre
+    return deMovimientos + deTraspasos - deSobrantesDelSobre - deTraspasosSobre
   }
 
   // ── Edición de porcentajes ────────────────────────────────────────────────
@@ -277,7 +276,6 @@ export default function PresupuestoPage() {
   const subOk = subBorrador ? subTotalPct === 100 : true
   const panelOk = totalOk && subOk
 
-  // Montos derivados del ingreso + porcentajes
   const futuroPct = (lista.find(b => b.id === 'futuro')?.pct) || 0
   const montoFuturo = ingresoNum * ((parseInt(futuroPct) || 0) / 100)
   const subActual = editando ? subBorrador : sub
@@ -292,8 +290,7 @@ export default function PresupuestoPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4 animate-enter">
         <div>
           <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>Módulo</p>
-          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Mi Presupuesto
-          </h1>
+          <h1 className="text-xl tracking-tight" style={{ color: 'var(--text-primary)' }}>Mi Presupuesto</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
             {now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
           </p>
@@ -305,16 +302,12 @@ export default function PresupuestoPage() {
               disabled={copiando}
               className="flex items-center gap-2 transition-all active:scale-95"
               style={{
-                padding: '8px 14px',
-                borderRadius: 14,
+                padding: '8px 14px', borderRadius: 14,
                 border: '1px solid var(--border-glass)',
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
+                cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              }}>
               {copiando ? <Loader2 size={13} className="animate-spin" /> : <Copy size={13} />}
               Copiar mes
             </button>
@@ -322,16 +315,12 @@ export default function PresupuestoPage() {
               onClick={iniciarEdicion}
               className="flex items-center gap-2 transition-all active:scale-95"
               style={{
-                padding: '8px 14px',
-                borderRadius: 14,
+                padding: '8px 14px', borderRadius: 14,
                 border: '1px solid color-mix(in srgb, var(--accent-main) 30%, transparent)',
                 background: 'color-mix(in srgb, var(--accent-main) 8%, var(--bg-secondary))',
                 color: 'var(--accent-main)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
+                cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              }}>
               <Edit3 size={13} />
               Distribución
             </button>
@@ -339,17 +328,12 @@ export default function PresupuestoPage() {
         )}
       </div>
 
-      {/* ── Panel de edición ─────────────────────────────────────────────────── */}
+      {/* ── Panel de edición ── */}
       {editando && (
         <div className="mb-5 animate-enter" style={{
-          borderRadius: 24,
-          border: '1px solid var(--border-glass)',
-          background: 'var(--bg-card)',
-          boxShadow: 'var(--shadow-md)',
-          overflow: 'hidden',
+          borderRadius: 24, border: '1px solid var(--border-glass)',
+          background: 'var(--bg-card)', boxShadow: 'var(--shadow-md)', overflow: 'hidden',
         }}>
-
-          {/* Cabecera */}
           <div className="flex items-center gap-3 px-5 py-4"
             style={{ borderBottom: '1px solid var(--border-glass)', background: 'var(--bg-secondary)' }}>
             <div style={{
@@ -377,7 +361,6 @@ export default function PresupuestoPage() {
             </button>
           </div>
 
-          {/* Filas de bloques */}
           <div style={{ padding: '8px 0' }}>
             {borradores.map((b, idx) => {
               const BIcon = b.icon
@@ -388,7 +371,6 @@ export default function PresupuestoPage() {
                   padding: '14px 20px',
                   borderBottom: idx < borradores.length - 1 ? '1px solid var(--border-glass)' : 'none',
                 }}>
-                  {/* Fila principal */}
                   <div className="flex items-center gap-3">
                     <div style={{
                       width: 36, height: 36, borderRadius: 12, flexShrink: 0,
@@ -398,7 +380,6 @@ export default function PresupuestoPage() {
                     }}>
                       <BIcon size={15} style={{ color: b.color }} />
                     </div>
-
                     <div className="flex-1 min-w-0">
                       <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
                         {b.nombre}
@@ -409,12 +390,8 @@ export default function PresupuestoPage() {
                         </p>
                       )}
                     </div>
-
-                    {/* Input % */}
                     <div className="flex items-center gap-1 flex-shrink-0" style={{
-                      background: 'var(--bg-secondary)',
-                      borderRadius: 12,
-                      padding: '4px 10px 4px 6px',
+                      background: 'var(--bg-secondary)', borderRadius: 12, padding: '4px 10px 4px 6px',
                     }}>
                       <input
                         type="number" min="0" max="100"
@@ -429,8 +406,6 @@ export default function PresupuestoPage() {
                       <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>%</span>
                     </div>
                   </div>
-
-                  {/* Barra */}
                   <div style={{ marginTop: 10, height: 5, borderRadius: 999, overflow: 'hidden', background: 'var(--progress-track)' }}>
                     <div style={{
                       height: '100%', borderRadius: 999,
@@ -439,7 +414,6 @@ export default function PresupuestoPage() {
                     }} />
                   </div>
 
-                  {/* Sub-distribución Futuro */}
                   {b.id === 'futuro' && subBorrador && (
                     <div style={{
                       marginTop: 12, borderRadius: 14,
@@ -470,8 +444,7 @@ export default function PresupuestoPage() {
                                   </span>
                                 )}
                                 <div className="flex items-center gap-1" style={{
-                                  background: 'var(--bg-card)',
-                                  borderRadius: 10, padding: '3px 8px 3px 4px',
+                                  background: 'var(--bg-card)', borderRadius: 10, padding: '3px 8px 3px 4px',
                                 }}>
                                   <input type="number" min="0" max="100" value={subBorrador[s.key]}
                                     onChange={e => cambiarSubPct(s.key, e.target.value)}
@@ -505,7 +478,6 @@ export default function PresupuestoPage() {
             })}
           </div>
 
-          {/* Footer */}
           <div className="flex items-center justify-between px-5 py-4"
             style={{ borderTop: '1px solid var(--border-glass)', background: 'var(--bg-secondary)' }}>
             <div className="flex items-center gap-2">
@@ -533,7 +505,6 @@ export default function PresupuestoPage() {
               Guardar
             </button>
           </div>
-
         </div>
       )}
 
@@ -578,8 +549,6 @@ export default function PresupuestoPage() {
 
               return (
                 <Card key={bloque.id} className="animate-enter">
-
-                  {/* Cabecera */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: `color-mix(in srgb, ${bloque.color} 12%, transparent)` }}>
@@ -591,7 +560,6 @@ export default function PresupuestoPage() {
                     </div>
                   </div>
 
-                  {/* % + monto */}
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-3xl font-semibold flex-1"
                       style={{ color: bloque.color, letterSpacing: '-0.02em' }}>
@@ -609,7 +577,6 @@ export default function PresupuestoPage() {
                       style={{ width: `${bloque.pct}%`, background: bloque.color }} />
                   </div>
 
-                  {/* Usado vs límite */}
                   {ingresoNum > 0 && (
                     <div className="rounded-xl p-3 mb-4 space-y-2"
                       style={{
@@ -647,14 +614,11 @@ export default function PresupuestoPage() {
                     </div>
                   )}
 
-                  {/* ─── FUTURO: metas e inversiones integradas ─── */}
+                  {/* FUTURO */}
                   {esFuturo && (
                     <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: 12 }}>
-
-                      {/* Metas de Ahorro */}
                       {(metas.length > 0 || ingresoNum > 0) && (
                         <div className="mb-3">
-                          {/* Cabecera subsección */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5">
                               <Target size={10} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
@@ -672,7 +636,6 @@ export default function PresupuestoPage() {
                               Ver <ArrowRight size={8} />
                             </a>
                           </div>
-                          {/* Lista */}
                           {metas.length === 0 ? (
                             <p className="text-[10px] italic" style={{ color: 'var(--text-muted)' }}>Sin metas aún</p>
                           ) : (
@@ -701,10 +664,8 @@ export default function PresupuestoPage() {
                         </div>
                       )}
 
-                      {/* Inversiones */}
                       {(inversiones.length > 0 || ingresoNum > 0) && (
                         <div>
-                          {/* Cabecera subsección */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5">
                               <TrendingUp size={10} style={{ color: 'var(--accent-violet)', flexShrink: 0 }} />
@@ -722,7 +683,6 @@ export default function PresupuestoPage() {
                               Ver <ArrowRight size={8} />
                             </a>
                           </div>
-                          {/* Lista */}
                           {inversiones.length === 0 ? (
                             <p className="text-[10px] italic" style={{ color: 'var(--text-muted)' }}>Sin carteras aún</p>
                           ) : (
@@ -751,7 +711,6 @@ export default function PresupuestoPage() {
                         </div>
                       )}
 
-                      {/* Categorías custom de Futuro */}
                       {catsBloque.length > 0 && (
                         <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-glass)' }}>
                           <div className="flex items-center justify-between mb-1.5">
@@ -771,7 +730,7 @@ export default function PresupuestoPage() {
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                                 <span className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{cat.nombre}</span>
                                 <span className="text-xs font-semibold" style={{ color: catPres > 0 ? cat.color : 'var(--text-muted)' }}>
-                                  {catPres > 0 ? formatCurrency(catPres) : 'sin monto'}
+                                  {formatCurrency(catPres)}
                                 </span>
                               </div>
                             )
@@ -781,7 +740,7 @@ export default function PresupuestoPage() {
                     </div>
                   )}
 
-                  {/* ─── NECESIDADES / ESTILO: categorías custom ─── */}
+                  {/* NECESIDADES / ESTILO */}
                   {!esFuturo && (
                     <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: 12 }}>
                       {catsBloque.length === 0 ? (
@@ -821,7 +780,7 @@ export default function PresupuestoPage() {
                                       </span>
                                     )}
                                     <span className="text-xs font-semibold" style={{ color: catPres > 0 ? cat.color : 'var(--text-muted)' }}>
-                                      {catPres > 0 ? formatCurrency(catPres) : 'sin monto'}
+                                      {formatCurrency(catPres)}
                                     </span>
                                   </div>
                                   {catPres > 0 && (
@@ -843,7 +802,7 @@ export default function PresupuestoPage() {
             })}
           </div>
 
-          {/* ─── BLOQUE DEUDAS ─── */}
+          {/* BLOQUE DEUDAS */}
           {deudas.length > 0 && (
             <Card className="animate-enter mb-2">
               <div className="flex items-center gap-3 mb-4">
@@ -964,7 +923,6 @@ export default function PresupuestoPage() {
         {vista === 'categorias' && (
           <div className="space-y-4">
 
-            {/* Banner ingreso del mes */}
             {ingresoNum > 0 && (
               <div className="flex items-center justify-between px-4 py-3 rounded-2xl animate-enter"
                 style={{
@@ -1004,12 +962,10 @@ export default function PresupuestoPage() {
 
                   return (
                     <Card key={bloque.id} className="animate-enter">
-                      {/* Cabecera de bloque */}
                       <div
                         className="flex items-center gap-3 cursor-pointer select-none"
                         style={{ marginBottom: bloquesCerrados.has(bloque.id) ? 0 : 16 }}
-                        onClick={() => toggleBloque(bloque.id)}
-                      >
+                        onClick={() => toggleBloque(bloque.id)}>
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{ background: `color-mix(in srgb, ${bloque.color} 12%, transparent)` }}>
                           <Icon size={16} style={{ color: bloque.color }} />
@@ -1030,11 +986,8 @@ export default function PresupuestoPage() {
                       </div>
 
                       <div className={`collapsible-content ${bloquesCerrados.has(bloque.id) ? 'closed' : 'open'}`}>
-                        {/* FUTURO: metas e inversiones de solo lectura */}
                         {esFuturo && (
                           <div className="space-y-3 mb-4">
-
-                            {/* Metas */}
                             {metas.length > 0 && (
                               <div className="rounded-xl overflow-hidden"
                                 style={{ border: '1px solid color-mix(in srgb, var(--accent-green) 20%, transparent)' }}>
@@ -1082,7 +1035,6 @@ export default function PresupuestoPage() {
                                       </div>
                                     )
                                   })}
-                                  {/* Total asignado */}
                                   {(() => {
                                     const totalPctMetas = metas.filter(m => m.estado === 'activa').reduce((s, m) => s + (m.pct_mensual || 0), 0)
                                     const libre = 100 - totalPctMetas
@@ -1104,7 +1056,6 @@ export default function PresupuestoPage() {
                               </div>
                             )}
 
-                            {/* Inversiones */}
                             {inversiones.length > 0 && (
                               <div className="rounded-xl overflow-hidden"
                                 style={{ border: '1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent)' }}>
@@ -1153,7 +1104,6 @@ export default function PresupuestoPage() {
                                       </div>
                                     )
                                   })}
-                                  {/* Total aportado real vs presupuesto */}
                                   {(() => {
                                     const totalPctInv = inversiones.reduce((s, i) => s + (i.pct_mensual || 0), 0)
                                     const libre = 100 - totalPctInv
@@ -1187,7 +1137,6 @@ export default function PresupuestoPage() {
                           </div>
                         )}
 
-                        {/* Estado vacío — sin categorías configuradas */}
                         {!esFuturo && catsBloque.length === 0 && (
                           <div className="flex items-center justify-between px-1 py-2">
                             <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
@@ -1202,7 +1151,6 @@ export default function PresupuestoPage() {
                           </div>
                         )}
 
-                        {/* Categorías custom con inputs editables */}
                         {catsBloque.length > 0 && (
                           <div className="space-y-3">
                             {esFuturo && (metas.length > 0 || inversiones.length > 0) && (
@@ -1220,7 +1168,6 @@ export default function PresupuestoPage() {
                               return (
                                 <div key={cat.id} className="rounded-xl overflow-hidden"
                                   style={{ border: `1px solid color-mix(in srgb, ${cat.color} 20%, transparent)` }}>
-
                                   <div className="px-3 py-2.5"
                                     style={{ background: `color-mix(in srgb, ${cat.color} 8%, var(--bg-secondary))` }}>
                                     <div className="flex items-center gap-2">
@@ -1268,7 +1215,6 @@ export default function PresupuestoPage() {
 
                                         return (
                                           <div key={sub.id} style={{ padding: '12px 14px' }}>
-                                            {/* Nombre + badge restante */}
                                             <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
                                               <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
                                                 {sub.nombre}
@@ -1284,12 +1230,8 @@ export default function PresupuestoPage() {
                                                 </span>
                                               )}
                                             </div>
-                                            {/* Dos columnas */}
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                              <div style={{
-                                                borderRadius: 10, padding: '8px 10px',
-                                                background: 'var(--bg-secondary)',
-                                              }}>
+                                              <div style={{ borderRadius: 10, padding: '8px 10px', background: 'var(--bg-secondary)' }}>
                                                 <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 4 }}>
                                                   Presupuestado
                                                 </p>
@@ -1325,7 +1267,6 @@ export default function PresupuestoPage() {
                                                 </p>
                                               </div>
                                             </div>
-                                            {/* Barra */}
                                             {montoPres > 0 && (
                                               <div style={{ marginTop: 8, height: 3, borderRadius: 999, overflow: 'hidden', background: 'var(--progress-track)' }}>
                                                 <div style={{
@@ -1350,14 +1291,14 @@ export default function PresupuestoPage() {
                     </Card>
                   )
                 })}
-                {/* ─── BLOQUE DEUDAS en vista detallada ─── */}
+
+                {/* BLOQUE DEUDAS en vista detallada */}
                 {deudas.length > 0 && (
                   <Card className="animate-enter">
                     <div
                       className="flex items-center gap-3 cursor-pointer select-none"
                       style={{ marginBottom: bloquesCerrados.has('deudas') ? 0 : 16 }}
-                      onClick={() => toggleBloque('deudas')}
-                    >
+                      onClick={() => toggleBloque('deudas')}>
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ background: 'color-mix(in srgb, var(--accent-rose) 12%, transparent)' }}>
                         <CircleDollarSign size={16} style={{ color: 'var(--accent-rose)' }} />
@@ -1365,9 +1306,7 @@ export default function PresupuestoPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Deudas activas</p>
                         {ingresoNum > 0 && (
-                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            Compromisos fijos del mes
-                          </p>
+                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Compromisos fijos del mes</p>
                         )}
                       </div>
                       <a href="/deudas" className="text-[9px] font-semibold flex items-center gap-0.5"
@@ -1429,12 +1368,12 @@ export default function PresupuestoPage() {
                   </Card>
                 )}
 
-                {/* ─── RESUMEN TOTAL ─── */}
+                {/* RESUMEN TOTAL — FIX Bug 1: inversiones usa pct_mensual * montoInversiones, no i.aporte */}
                 {ingresoNum > 0 && (() => {
                   const totalPresupuestado = Object.values(montosCats).reduce((s, v) => s + (parseFloat(v) || 0), 0)
                     + deudas.reduce((s, d) => s + (d.cuota || 0), 0)
                     + metas.filter(m => m.estado === 'activa').reduce((s, m) => s + ((m.pct_mensual / 100) * montoMetas), 0)
-                    + inversiones.reduce((s, i) => s + (parseFloat(i.aporte) || 0), 0)
+                    + inversiones.reduce((s, i) => s + ((i.pct_mensual / 100) * montoInversiones), 0) // ✅ FIX
                   const totalGastado = movs.filter(m => m.tipo === 'egreso').reduce((s, m) => s + parseFloat(m.monto), 0)
                   const sinAsignar = ingresoNum - totalPresupuestado
                   const pctAsignado = ingresoNum > 0 ? Math.min(100, (totalPresupuestado / ingresoNum) * 100) : 0
@@ -1444,28 +1383,23 @@ export default function PresupuestoPage() {
                       <p className="text-[10px] font-semibold uppercase tracking-wider mb-4"
                         style={{ color: 'var(--text-muted)' }}>Resumen mensual</p>
                       <div className="space-y-3">
-
                         <div className="flex items-center justify-between">
                           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Total presupuestado</span>
                           <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                             {formatCurrency(totalPresupuestado)}
                           </span>
                         </div>
-
                         <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
                           <div className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${pctAsignado}%`, background: pctAsignado > 100 ? 'var(--accent-rose)' : 'var(--accent-blue)' }} />
                         </div>
-
                         <div className="flex items-center justify-between">
                           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Gastado real</span>
                           <span className="text-sm font-semibold" style={{ color: 'var(--accent-rose)' }}>
                             {formatCurrency(totalGastado)}
                           </span>
                         </div>
-
                         <div className="h-px" style={{ background: 'var(--border-glass)' }} />
-
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
                             {sinAsignar >= 0 ? 'Sin asignar' : 'Sobre presupuesto'}
