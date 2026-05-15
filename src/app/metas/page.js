@@ -507,7 +507,7 @@ export default function MetasPage() {
                               style={{ color: meta.color}}>
                               {pct}%
                             </span>
-                            <span className="text-[8px] font-bold px-2 py-1.5 rounded-lg ml-1 tabular-nums w-14 text-center inline-block"
+                            <span className="text-[8px] font-bold px-2 py-1.5 rounded-lg ml-1 tabular-nums w-12 text-center inline-block"
                               style={{
                                 background: 'color-mix(in srgb, var(--text-muted) 10%, transparent)',
                                 color: 'var(--text-muted)'
