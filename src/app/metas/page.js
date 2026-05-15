@@ -501,10 +501,19 @@ export default function MetasPage() {
                               )}
                             </div>
                           </div>
+                          {/* EL PORCENTAJE EN LA ESQUINA */}
                           <div className="flex items-center gap-2">
-                             <pct className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ color: meta.color }}>
+                            <span className="text-[15px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                              style={{ color: meta.color}}>
                               {pct}%
-                            </pct>
+                            </span>
+                            <span className="text-[8px] font-bold px-2 py-1.5 rounded-lg ml-1 tabular-nums w-14 text-center inline-block"
+                              style={{
+                                background: 'color-mix(in srgb, var(--text-muted) 10%, transparent)',
+                                color: 'var(--text-muted)'
+                              }}>
+                              {meta.pct_mensual}%
+                            </span>
                           </div>
                           <button
                             {...dragListeners}
@@ -608,14 +617,8 @@ export default function MetasPage() {
                               color="var(--accent-rose)">
                               <Trash2 size={12} />
                             </IconBtn>
-                            {/* EL PORCENTAJE EN LA ESQUINA */}
-                            <span className="text-[10px] font-bold px-2 py-1.5 rounded-lg ml-1"
-                              style={{
-                                background: `color-mix(in srgb, ${meta.color} 15%, transparent)`,
-                                color: meta.color
-                              }}>
-                              {meta.pct_mensual}%
-                            </span>
+
+
                           </div>
                         )}
                       </Card>
