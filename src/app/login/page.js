@@ -1,7 +1,7 @@
 'use client'
 import { Suspense } from 'react'
 import { Loader2, Eye, EyeOff, ArrowLeft, Mail, CheckCircle, Lock, UserCircle2 } from 'lucide-react'
-import { useAuthFlow } from '@/hooks/useAuthFlow'
+import { useAuthFlow, validarContrasena } from '@/hooks/useAuthFlow'
 
 function GoogleIcon() {
   return (
@@ -11,6 +11,39 @@ function GoogleIcon() {
       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
     </svg>
+  )
+}
+
+// ── Indicador visual de fortaleza de contraseña ───────────────────────────────
+function PasswordStrength({ password }) {
+  if (!password) return null
+  const { nivel, color, pct, fallidas } = validarContrasena(password)
+  return (
+    <div className="space-y-1.5 mt-1.5">
+      {/* Barra de fortaleza */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{ width: `${pct}%`, background: color }}
+          />
+        </div>
+        <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color, minWidth: 36 }}>
+          {nivel}
+        </span>
+      </div>
+      {/* Requisitos pendientes */}
+      {fallidas.length > 0 && (
+        <ul className="space-y-0.5">
+          {fallidas.map(f => (
+            <li key={f} style={{ fontSize: 9, color: 'var(--text-muted)', paddingLeft: 10, position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 0 }}>·</span>
+              {f}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -30,6 +63,8 @@ function LoginContent() {
     setShowPwd,
     showConfirmPwd,
     setShowConfirmPwd,
+    showNewConfirmPwd,      // 🔴 FIX: campo de confirmación para reset
+    setShowNewConfirmPwd,   // 🔴 FIX
     invToken,
     invInfo,
     handleLogin,
@@ -51,28 +86,21 @@ function LoginContent() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden"
       style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary), var(--bg-dark-card) 12%) 100%)' }}>
 
-      {/* Blob 1 — arriba-derecha */}
+      {/* Blobs decorativos */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 rounded-full opacity-15 blur-[100px]"
         style={{ background: 'var(--accent-main)' }} />
-      {/* Blob 2 — abajo-izquierda */}
       <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 rounded-full opacity-[0.08] blur-[100px]"
         style={{ background: 'var(--accent-green)' }} />
-      {/* Blob 3 — centrado */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-[0.05] blur-[120px]"
         style={{ background: 'var(--accent-violet)' }} />
-
 
       <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg relative z-10">
         <div className="ff-sheet animate-enter p-8 lg:p-8">
 
-          {/* Header — columna en móvil, fila en desktop */}
+          {/* Header */}
           <div className="flex flex-col lg:flex-row items-center lg:items-center gap-3 lg:gap-4 mb-6 lg:mb-6 text-center lg:text-left">
             <div className="w-20 h-20 lg:w-14 lg:h-14 flex-shrink-0 flex items-center justify-center">
-              <img
-                src="/icon.svg"
-                alt="Logo"
-                className="w-full h-full object-contain"
-              />
+              <img src="/icon.svg" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="font-script text-[38px] lg:text-[36px] leading-none mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -122,7 +150,6 @@ function LoginContent() {
                 {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Entrar'}
               </button>
 
-              {/* Google */}
               <button type="button" onClick={handleGoogleLogin}
                 className="w-full flex items-center justify-center gap-3 py-3.5 lg:py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95"
                 style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
@@ -180,6 +207,7 @@ function LoginContent() {
                   {!invToken && (
                     <div className="space-y-1.5">
                       <label htmlFor="reg-familia" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Nombre de tu Familia</label>
+                      {/* 🔴 FIX: autoFocus solo aquí cuando no hay invToken */}
                       <input id="reg-familia" name="familia" type="text" placeholder="Ej: Familia Quintero"
                         value={form.nombreHogar} onChange={e => updateForm('nombreHogar', e.target.value)}
                         className="ff-input w-full border-accent-terra" autoFocus />
@@ -187,6 +215,7 @@ function LoginContent() {
                   )}
                   <div className="space-y-1.5">
                     <label htmlFor="reg-nombre" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Tu nombre</label>
+                    {/* 🔴 FIX: autoFocus solo cuando hay invToken (no puede haber dos autoFocus) */}
                     <input id="reg-nombre" name="nombre" type="text" placeholder="¿Cómo te llamamos?"
                       value={form.nombre} onChange={e => updateForm('nombre', e.target.value)}
                       className="ff-input w-full" autoFocus={!!invToken} />
@@ -201,7 +230,7 @@ function LoginContent() {
                   <div className="space-y-1.5">
                     <label htmlFor="reg-password" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Contraseña</label>
                     <div className="relative">
-                      <input id="reg-password" name="password" type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
+                      <input id="reg-password" name="password" type={showPwd ? 'text' : 'password'} placeholder="Mínimo 8 caracteres"
                         value={form.password} onChange={e => updateForm('password', e.target.value)}
                         className="ff-input w-full pr-12" />
                       <button type="button" onClick={() => setShowPwd(!showPwd)}
@@ -210,6 +239,8 @@ function LoginContent() {
                         {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
+                    {/* Indicador de fortaleza */}
+                    <PasswordStrength password={form.password} />
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="reg-confirm" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Confirmar contraseña</label>
@@ -223,6 +254,12 @@ function LoginContent() {
                         {showConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
+                    {/* Indicador de coincidencia */}
+                    {form.confirmPwd && (
+                      <p style={{ fontSize: 9, marginTop: 4, color: form.confirmPwd === form.password ? 'var(--accent-green)' : 'var(--accent-rose)', fontWeight: 700 }}>
+                        {form.confirmPwd === form.password ? '✓ Las contraseñas coinciden' : '✗ No coinciden'}
+                      </p>
+                    )}
                   </div>
 
                   {error && (
@@ -231,11 +268,21 @@ function LoginContent() {
                     </div>
                   )}
 
-                  <button type="submit" disabled={loading || !form.nombre.trim() || !form.email || !form.password || !form.confirmPwd || (!invToken && !form.nombreHogar.trim())}
+                  <button type="submit"
+                    disabled={
+                      loading ||
+                      !form.nombre.trim() ||
+                      !form.email ||
+                      !form.password ||
+                      !form.confirmPwd ||
+                      form.password !== form.confirmPwd ||
+                      !validarContrasena(form.password).valida ||
+                      (!invToken && !form.nombreHogar.trim())
+                    }
                     className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
                     style={{
-                      background: form.nombre.trim() && form.email && form.password && form.confirmPwd && (invToken || form.nombreHogar.trim()) ? 'var(--accent-main)' : 'var(--bg-secondary)',
-                      color: form.nombre.trim() && form.email && form.password && form.confirmPwd && (invToken || form.nombreHogar.trim()) ? 'var(--text-on-dark)' : 'var(--text-muted)',
+                      background: form.nombre.trim() && form.email && form.password && form.confirmPwd && form.password === form.confirmPwd && validarContrasena(form.password).valida && (invToken || form.nombreHogar.trim()) ? 'var(--accent-main)' : 'var(--bg-secondary)',
+                      color: form.nombre.trim() && form.email && form.password && form.confirmPwd && form.password === form.confirmPwd && validarContrasena(form.password).valida && (invToken || form.nombreHogar.trim()) ? 'var(--text-on-dark)' : 'var(--text-muted)',
                     }}>
                     {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Crear cuenta'}
                   </button>
@@ -306,10 +353,12 @@ function LoginContent() {
                 style={{ background: 'color-mix(in srgb, var(--accent-green) 5%, transparent)', color: 'var(--text-secondary)' }}>
                 Establece una nueva contraseña segura.
               </div>
+
+              {/* Nueva contraseña */}
               <div className="space-y-1.5">
                 <label htmlFor="reset-newpwd" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Nueva Contraseña</label>
                 <div className="relative">
-                  <input id="reset-newpwd" type={showPwd ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
+                  <input id="reset-newpwd" type={showPwd ? 'text' : 'password'} placeholder="Mínimo 8 caracteres"
                     value={form.newPwd} onChange={e => updateForm('newPwd', e.target.value)}
                     className="ff-input w-full pr-12" autoFocus />
                   <button type="button" onClick={() => setShowPwd(!showPwd)}
@@ -318,13 +367,42 @@ function LoginContent() {
                     {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {/* Indicador de fortaleza */}
+                <PasswordStrength password={form.newPwd} />
               </div>
+
+              {/* 🔴 FIX: campo de confirmación en reset */}
+              <div className="space-y-1.5">
+                <label htmlFor="reset-confirmpwd" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-1">Confirmar Contraseña</label>
+                <div className="relative">
+                  <input id="reset-confirmpwd" type={showNewConfirmPwd ? 'text' : 'password'} placeholder="Repite la contraseña"
+                    value={form.newPwdConfirm} onChange={e => updateForm('newPwdConfirm', e.target.value)}
+                    className="ff-input w-full pr-12" />
+                  <button type="button" onClick={() => setShowNewConfirmPwd(!showNewConfirmPwd)}
+                    aria-label={showNewConfirmPwd ? 'Ocultar confirmación' : 'Mostrar confirmación'}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition-opacity">
+                    {showNewConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {form.newPwdConfirm && (
+                  <p style={{ fontSize: 9, marginTop: 4, color: form.newPwdConfirm === form.newPwd ? 'var(--accent-green)' : 'var(--accent-rose)', fontWeight: 700 }}>
+                    {form.newPwdConfirm === form.newPwd ? '✓ Las contraseñas coinciden' : '✗ No coinciden'}
+                  </p>
+                )}
+              </div>
+
               {error && (
                 <div role="alert" className="text-[11px] text-center font-bold p-3 rounded-2xl bg-rose-500/10 text-rose-500">{error}</div>
               )}
-              <button type="submit" disabled={loading || form.newPwd.length < 6}
+
+              <button type="submit"
+                disabled={loading || !validarContrasena(form.newPwd).valida || form.newPwd !== form.newPwdConfirm}
                 className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.1em] shadow-lg active:scale-95 transition-all mt-2"
-                style={{ background: form.newPwd.length >= 6 ? 'var(--accent-green)' : 'var(--bg-secondary)', color: 'white' }}>
+                style={{
+                  // 🟡 FIX: var(--text-on-dark) en vez de 'white' hardcodeado
+                  background: validarContrasena(form.newPwd).valida && form.newPwd === form.newPwdConfirm ? 'var(--accent-green)' : 'var(--bg-secondary)',
+                  color: validarContrasena(form.newPwd).valida && form.newPwd === form.newPwdConfirm ? 'var(--text-on-dark)' : 'var(--text-muted)',
+                }}>
                 {loading ? <Loader2 size={20} className="animate-spin mx-auto" aria-label="Cargando" /> : 'Actualizar Contraseña'}
               </button>
             </form>
@@ -370,12 +448,15 @@ function LoginContent() {
           )}
         </div>
 
+        {/* 🟡 FIX: año dinámico en vez de hardcodeado */}
         <div className="flex items-center justify-center gap-2 mt-10 lg:mt-12 opacity-30" aria-hidden="true">
           <Lock size={10} />
-          <p className="text-[9px] font-black uppercase tracking-[0.4em]">Acceso Privado · 2026</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.4em]">
+            Acceso Privado · {new Date().getFullYear()}
+          </p>
         </div>
       </div>
-    </div >
+    </div>
   )
 }
 

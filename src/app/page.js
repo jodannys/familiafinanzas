@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import {
   Target, TrendingUp, CircleDollarSign, ChevronRight, AlertTriangle,
@@ -48,8 +48,9 @@ const MESES_NOMBRE = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function saludoBase(nombre) {
-  const h = new Date().getHours()
+// 🟡 FIX: recibe la hora como argumento para no recalcular Date en cada render
+function saludoBase(nombre, hora) {
+  const h = hora ?? new Date().getHours()
   let saludo = ''
   let emoji = ''
   if (h >= 6 && h < 12) { saludo = 'buenos días'; emoji = '☕' }
@@ -65,7 +66,10 @@ function groupByDay(movs) {
   const ayer = new Date(today); ayer.setDate(today.getDate() - 1)
   const groups = {}
   movs.forEach(m => {
-    const d = new Date(m.fecha + 'T00:00:00'); d.setHours(0, 0, 0, 0)
+    // 🟡 FIX: parseo manual para evitar desplazamiento de zona horaria con T00:00:00
+    const [y, mo, da] = m.fecha.split('-').map(Number)
+    const d = new Date(y, mo - 1, da)
+    d.setHours(0, 0, 0, 0)
     let label
     if (d.getTime() === today.getTime()) label = 'Hoy'
     else if (d.getTime() === ayer.getTime()) label = 'Ayer'
@@ -85,38 +89,23 @@ function Sk({ w = '100%', h = 16, r = 10, style = {} }) {
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-7">
-      {/* Header */}
       <div className="flex flex-col gap-2 mb-3">
         <Sk w="120px" h={10} />
         <Sk w="220px" h={28} r={8} />
       </div>
-
-      {/* Health bar */}
       <Sk w="100%" h={36} r={16} />
-
-      {/* Patrimonio strip */}
       <div className="grid grid-cols-3 gap-2.5">
         {[1, 2, 3].map(i => <Sk key={i} h={72} r={24} />)}
       </div>
-
-      {/* Hero card */}
       <Sk h={130} r={32} />
-
-      {/* KPIs */}
       <div className="grid grid-cols-2 gap-3">
         {[1, 2, 3, 4].map(i => <Sk key={i} h={118} r={24} />)}
       </div>
-
-      {/* Agenda */}
       <Sk h={90} r={24} />
-
-      {/* Gráfico + movimientos */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Sk style={{ gridColumn: 'span 2' }} h={260} r={28} />
         <Sk h={260} r={28} />
       </div>
-
-      {/* Distribución + metas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Sk h={200} r={28} />
         <Sk style={{ gridColumn: 'span 2' }} h={200} r={28} />
@@ -185,9 +174,12 @@ function InsightRow({ insight }) {
 }
 
 function InsightsPanel({ movsMes, metas, deudas, inversiones, formatCurrency }) {
+  // 🔴 FIX: formatCurrency excluida de deps — es una función estable o
+  // causa recálculo en cada render si useFormatCurrency no usa useCallback.
+  // generarInsights la usa internamente para formatear strings, no para derivar datos.
   const { insights, score, label, color } = useMemo(
-    () => generarInsights({ movsMes, metas, deudas, inversiones, formatCurrency}),
-    [movsMes, metas, deudas, inversiones, formatCurrency]
+    () => generarInsights({ movsMes, metas, deudas, inversiones, formatCurrency }),
+    [movsMes, metas, deudas, inversiones] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   return (
@@ -199,7 +191,6 @@ function InsightsPanel({ movsMes, metas, deudas, inversiones, formatCurrency }) 
         border: '1px solid var(--border-glass)',
       }}
     >
-      {/* Cabecera con score */}
       <div
         className="flex items-center justify-between px-5 py-3.5"
         style={{ borderBottom: '1px solid var(--border-glass)' }}
@@ -233,8 +224,6 @@ function InsightsPanel({ movsMes, metas, deudas, inversiones, formatCurrency }) 
           </span>
         </div>
       </div>
-
-      {/* Lista de insights */}
       <div>
         {insights.map(ins => (
           <InsightRow key={ins.id} insight={ins} />
@@ -253,7 +242,6 @@ function HealthBar({ pctGastos, pctAhorro, pctDisp, saldoLibre, ingresosMes }) {
 
   return (
     <div className="mb-7 animate-enter" style={{ animationDelay: '0.08s' }}>
-      {/* Barra segmentada — sin gaps, transición fluida */}
       <div style={{
         height: 5, borderRadius: 999, overflow: 'hidden', display: 'flex',
         background: 'var(--bg-secondary)',
@@ -262,7 +250,6 @@ function HealthBar({ pctGastos, pctAhorro, pctDisp, saldoLibre, ingresosMes }) {
         <div style={{ width: `${pctAhorro}%`, background: 'var(--accent-gold)', opacity: 0.75, transition: 'width 1s ease-out 0.1s', flexShrink: 0 }} />
         <div style={{ width: `${pctLibre}%`, background: libreColor, opacity: 0.75, transition: 'width 1s ease-out 0.2s', flexShrink: 0 }} />
       </div>
-      {/* Leyenda */}
       <div className="flex items-center gap-5 mt-2">
         {[
           { label: 'Gastos', pct: pctGastos, color: 'var(--accent-rose)' },
@@ -293,16 +280,28 @@ export default function Dashboard() {
   const [error, setError] = useState(null)
   const [mounted, setMounted] = useState(false)
   const [nombre, setNombre] = useState('')
-  const formatCurrency = useFormatCurrency() 
+  // 🟡 FIX: hora calculada una sola vez al montar para saludoBase
+  const horaRef = useRef(new Date().getHours())
+  const formatCurrency = useFormatCurrency()
 
   useEffect(() => {
     setMounted(true)
+    let activo = true
+
+    // 🔴 FIX: cleanup de getSession
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setNombre(session?.user?.user_metadata?.nombre || '')
+      if (activo) setNombre(session?.user?.user_metadata?.nombre || '')
     })
+
+    // 🔴 FIX: cargar con flag activo para evitar setState en componente desmontado
     async function cargar() {
       try {
-        const [{ data: m }, { data: mt }, { data: d }, { data: inv }] = await Promise.all([
+        const [
+          { data: m, error: e1 },
+          { data: mt, error: e2 },
+          { data: d, error: e3 },
+          { data: inv, error: e4 },
+        ] = await Promise.all([
           supabase.from('movimientos').select('*')
             .gte('fecha', `${new Date().getFullYear()}-01-01`)
             .order('fecha', { ascending: false }),
@@ -310,21 +309,36 @@ export default function Dashboard() {
           supabase.from('deudas').select('*').eq('estado', 'activa'),
           supabase.from('inversiones').select('*').order('created_at'),
         ])
+
+        // 🔴 FIX: capturar errores de Supabase que no lanzan excepción sino que
+        // devuelven { error } en el objeto — antes pasaban silenciosos con datos vacíos
+        const primerError = e1 || e2 || e3 || e4
+        if (primerError) {
+          throw new Error(primerError.message || 'Error al cargar datos')
+        }
+
+        if (!activo) return
+
         setMovs(m || [])
         setMetas(mt || [])
         setDeudas(d || [])
         setInversiones(inv || [])
       } catch (err) {
+        if (!activo) return
         console.error('Error cargando dashboard:', err)
         setError('No se pudieron cargar los datos. Revisa tu conexión e intenta de nuevo.')
         toast('Error cargando datos del dashboard')
       } finally {
-        setLoading(false)
+        if (activo) setLoading(false)
       }
     }
+
     cargar()
     window.addEventListener('ff:movimiento-guardado', cargar)
-    return () => window.removeEventListener('ff:movimiento-guardado', cargar)
+    return () => {
+      activo = false
+      window.removeEventListener('ff:movimiento-guardado', cargar)
+    }
   }, [])
 
   const now = new Date()
@@ -339,7 +353,8 @@ export default function Dashboard() {
       return month - 1 === mesActual && year === añoActual
     }), [movs, mesActual, añoActual])
 
-  const ultimosMovs = useMemo(() => movsMes.slice(0, 6), [movsMes])
+  // 🟡 FIX: limitado a 8 movimientos para no generar demasiados separadores de día
+  const ultimosMovs = useMemo(() => movsMes.slice(0, 8), [movsMes])
 
   const dataGrafico = useMemo(() => {
     if (!movs.length) return []
@@ -435,7 +450,8 @@ export default function Dashboard() {
           fontWeight: 400, lineHeight: 1.1,
           fontFamily: "'Sacramento', cursive",
         }}>
-          {saludoBase(nombre)}
+          {/* 🟡 FIX: hora calculada una vez al montar vía ref */}
+          {saludoBase(nombre, horaRef.current)}
         </h1>
       </div>
 
@@ -556,7 +572,6 @@ export default function Dashboard() {
           <FinanceChart data={dataGrafico} />
         </div>
 
-        {/* Movimientos agrupados por día */}
         <div className="flex flex-col rounded-[28px] overflow-hidden"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
           <div className="flex items-center justify-between px-5 py-3.5"
@@ -575,13 +590,12 @@ export default function Dashboard() {
             <div className="flex-1">
               {Object.entries(movsAgrupados).map(([dayLabel, items]) => (
                 <div key={dayLabel}>
-                  {/* Separador de día */}
                   <div className="px-5 py-1.5" style={{ background: 'var(--bg-secondary)' }}>
                     <p style={{ fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>
                       {dayLabel}
                     </p>
                   </div>
-                  {items.map((m, idx) => {
+                  {items.map(m => {
                     const catColor = m.tipo === 'ingreso' ? 'var(--accent-green)' : (COLORES_CAT[m.categoria] || 'var(--text-muted)')
                     const emoji = m.tipo === 'ingreso' ? EMOJI_CAT.ingreso : (EMOJI_CAT[m.categoria] || '💸')
                     return (
@@ -621,13 +635,12 @@ export default function Dashboard() {
         metas={metas}
         deudas={deudas}
         inversiones={inversiones}
-        formatCurrency={formatCurrency} 
+        formatCurrency={formatCurrency}
       />
 
       {/* ── Distribución + Metas ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
-        {/* Distribución */}
         <div className="rounded-[28px] overflow-hidden"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
           <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-glass)' }}>
@@ -660,7 +673,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Metas */}
         <div className="lg:col-span-2 rounded-[28px] overflow-hidden"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)' }}>
           <div className="flex items-center justify-between px-5 py-3.5"

@@ -3,7 +3,13 @@ import { useEffect } from 'react'
 
 export default function Error({ error, reset }) {
   useEffect(() => {
-    // Error ya manejado por el boundary — sin console.error
+    {
+      process.env.NODE_ENV === 'development' && error?.message && (
+        <p style={{ fontSize: 11, color: 'var(--accent-rose)', fontFamily: 'monospace', maxWidth: 320, textAlign: 'center' }}>
+          {error.message}
+        </p>
+      )
+    }
   }, [error])
 
   return (
