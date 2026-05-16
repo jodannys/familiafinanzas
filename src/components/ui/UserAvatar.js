@@ -29,7 +29,7 @@ export default function UserAvatar({ nombre, size = 36, onClick }) {
         width: inner, height: inner, borderRadius: '50%',
         background: color,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize, fontWeight: 700, color: '#fff', userSelect: 'none',
+        fontSize, fontWeight: 700, color: 'var(--text-on-dark)', userSelect: 'none',
       }}>
         {initial}
       </div>

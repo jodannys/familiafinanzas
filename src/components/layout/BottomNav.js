@@ -93,10 +93,12 @@ function NavTab({ href, label, icon: Icon, active }) {
 export default function BottomNav({ onFABClick, paisUsuario = 'ES', tieneFamilia = true }) {
   const pathname = usePathname()
   const [showMore, setShowMore] = useState(false)
-  const MORE_ITEMS = MORE_SECTIONS
-    .flatMap(s => s.items)
-    .filter(item => item.href !== '/inmuebles' || paisUsuario === 'ES')
 
+  const MORE_ITEMS = MORE_SECTIONS
+  .flatMap(s => s.items)
+  .filter(item => item.href !== '/inmuebles' || paisUsuario === 'ES')
+  .filter(item => item.href !== '/familia' || tieneFamilia)
+  
   const activeMoreItem = MORE_ITEMS.find(item => pathname === item.href)
   const MoreIcon = activeMoreItem ? activeMoreItem.icon : MoreHorizontal
   const moreLabel = activeMoreItem ? activeMoreItem.label : 'Más'

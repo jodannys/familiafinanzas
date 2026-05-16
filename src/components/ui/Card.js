@@ -12,9 +12,12 @@ const ACCENT_MAP = {
 
 export function Card({ children, className, glow, ...props }) {
   // Sombra dinámica basada en la variable del tema
-  const shadowColor = glow ? ACCENT_MAP[glow] : null
-  const shadowStyle = shadowColor 
-    ? { boxShadow: `0 8px 24px color-mix(in srgb, ${shadowColor}, transparent 86%)` } 
+  const shadowColor = glow ? (ACCENT_MAP[glow] ?? null) : null
+  if (glow && !ACCENT_MAP[glow] && process.env.NODE_ENV === 'development') {
+    console.warn(`Card: glow="${glow}" no existe en ACCENT_MAP`)
+  }
+  const shadowStyle = shadowColor
+    ? { boxShadow: `0 8px 24px color-mix(in srgb, ${shadowColor}, transparent 86%)` }
     : undefined
 
   return (
@@ -29,7 +32,7 @@ export function Card({ children, className, glow, ...props }) {
 }
 
 export function StatCard({ label, value, sub, icon: Icon, color = 'var(--accent-green)', delta, className }) {
-  const isPositive = delta === undefined ? true : delta >= 0
+  const isPositive = delta === undefined ? true : Number(delta) >= 0
   const statusColor = isPositive ? 'var(--accent-green)' : 'var(--accent-rose)'
 
   return (
@@ -37,13 +40,13 @@ export function StatCard({ label, value, sub, icon: Icon, color = 'var(--accent-
       <div className="flex items-start justify-between mb-4">
         {/* Fondo del icono dinámico con color-mix */}
         <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ 
-            background: `color-mix(in srgb, ${color}, transparent 90%)`, 
-            border: `1px solid color-mix(in srgb, ${color}, transparent 80%)` 
+          style={{
+            background: `color-mix(in srgb, ${color}, transparent 90%)`,
+            border: `1px solid color-mix(in srgb, ${color}, transparent 80%)`
           }}>
           {Icon && <Icon size={18} style={{ color }} />}
         </div>
-        
+
         {delta !== undefined && (
           <span className="text-xs font-semibold px-2.5 py-1 rounded-lg border"
             style={{
@@ -64,13 +67,13 @@ export function StatCard({ label, value, sub, icon: Icon, color = 'var(--accent-
 
 export function Badge({ children, color = 'green', className }) {
   const c = ACCENT_MAP[color] || 'var(--accent-green)'
-  
+
   return (
     <span className={cn('text-[10px] font-black px-2.5 py-1 rounded-lg border uppercase tracking-wider', className)}
-      style={{ 
-        background: `color-mix(in srgb, ${c}, transparent 90%)`, 
-        color: c, 
-        borderColor: `color-mix(in srgb, ${c}, transparent 80%)` 
+      style={{
+        background: `color-mix(in srgb, ${c}, transparent 90%)`,
+        color: c,
+        borderColor: `color-mix(in srgb, ${c}, transparent 80%)`
       }}>
       {children}
     </span>
@@ -85,7 +88,7 @@ export function ProgressBar({ value, max, color = 'var(--accent-green)', classNa
 
   return (
     <div className={cn('w-full h-1 rounded-full overflow-hidden', className)}
-         style={{ background: 'var(--progress-track)' }}>
+      style={{ background: 'var(--progress-track)' }}>
       <div className="h-full rounded-full transition-all duration-700"
         style={{
           width: `${pct}%`,

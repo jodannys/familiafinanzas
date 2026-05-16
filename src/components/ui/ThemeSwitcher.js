@@ -25,10 +25,10 @@ export default function ThemeSwitcher() {
           overflow: 'hidden'
         }}>
 
-        {/* Mini previa de colores en el botón */}
-        <div className="grid grid-cols-2 gap-0.5 p-1 transition-transform group-hover:rotate-12">
-          {THEMES[theme].preview.slice(0, 4).map((c, i) => (
-            <div key={i} style={{ width: 6, height: 6, borderRadius: 2, background: c }} />
+        <div className="grid grid-cols-2 gap-0.5 p-1 transition-transform group-hover:rotate-12"
+          style={{ width: 24, height: 24 }}> {/* tamaño fijo centrado */}
+          {(THEMES[theme]?.preview || []).slice(0, 4).map((c, i) => (
+            <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
           ))}
         </div>
 

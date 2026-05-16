@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 
 /**
  * Modal de confirmación con estilo propio — reemplaza window.confirm().

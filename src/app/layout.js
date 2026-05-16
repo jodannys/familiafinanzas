@@ -2,26 +2,49 @@ import './globals.css'
 import { ThemeProvider } from '@/lib/themes'
 import { CurrencyProvider } from '@/lib/CurrencyContext'
 
+function buildThemeScript() {
+  const T = {}
+  Object.entries(THEMES).forEach(([key, t]) => {
+    T[key] = { ...t.vars, themeColor: t.themeColor }
+  })
+  return `
+(function() {
+  var T = ${JSON.stringify(T)};
+  var saved = 'linen';
+  try { saved = localStorage.getItem('ff-theme') || 'linen'; } catch(e) {}
+  var t = T[saved] || T['linen'];
+  var r = document.documentElement;
+  r.setAttribute('data-theme', saved);
+  for (var k in t) {
+    if (k !== 'themeColor') r.style.setProperty(k, t[k]);
+  }
+  r.style.backgroundColor = t['--bg-primary'];
+  var meta = document.createElement('meta');
+  meta.name = 'theme-color';
+  meta.content = t.themeColor;
+  document.head.appendChild(meta);
+})();`
+}
 export const metadata = {
- title:'Economía del Hogar',
+  title: 'Economía del Hogar',
   description: 'Gestión inteligente de los gastos del hogar',
   appleWebApp: {
-    capable:         true,
-    statusBarStyle:  'black-translucent',
-    title:           'Economía del Hogar',
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Economía del Hogar',
   },
   icons: {
-    icon:  '/icon.svg',
+    icon: '/icon.svg',
     apple: '/icon.svg',
   },
 }
 
 export const viewport = {
-  width:          'device-width',
-  initialScale:   1,
-  maximumScale:   1,
-  userScalable:   false,
-  viewportFit:    'cover',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }) {
@@ -29,10 +52,10 @@ export default function RootLayout({ children }) {
     <html lang="es" suppressHydrationWarning>
       <head>
         {/* FIX 1: eliminado <link rel="manifest"> duplicado — metadata lo inyecta */}
-        <meta name="mobile-web-app-capable"            content="yes" />
-        <meta name="apple-mobile-web-app-capable"      content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title"        content="Economía del Hogar" />
+        <meta name="apple-mobile-web-app-title" content="Economía del Hogar" />
         <link rel="apple-touch-icon" href="/icon.svg" />
 
         {/* Aplica el tema guardado ANTES del primer paint para evitar flash */}
@@ -64,7 +87,7 @@ export default function RootLayout({ children }) {
 `}} />
       </head>
 
-     
+
       <body suppressHydrationWarning>
         <ThemeProvider>
           <CurrencyProvider>

@@ -23,15 +23,22 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
     }
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (visible) {
-      document.documentElement.style.overflow = 'hidden'
-    } else {
-      document.documentElement.style.overflow = ''
-    }
-    return () => { document.documentElement.style.overflow = '' }
-  }, [visible])
-
+// En vez de setear overflow directo, usar un atributo acumulable:
+useEffect(() => {
+  if (visible) {
+    document.body.dataset.modals = (parseInt(document.body.dataset.modals || '0') + 1).toString()
+    document.documentElement.style.overflow = 'hidden'
+  } else {
+    const count = Math.max(0, parseInt(document.body.dataset.modals || '0') - 1)
+    document.body.dataset.modals = count.toString()
+    if (count === 0) document.documentElement.style.overflow = ''
+  }
+  return () => {
+    const count = Math.max(0, parseInt(document.body.dataset.modals || '0') - 1)
+    document.body.dataset.modals = count.toString()
+    if (count === 0) document.documentElement.style.overflow = ''
+  }
+}, [visible])
   useEffect(() => {
     if (!visible || !onClose) return
     const handleEsc = (e) => { if (e.key === 'Escape') onClose() }

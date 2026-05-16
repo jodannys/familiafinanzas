@@ -92,22 +92,21 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
 
   // triggerVisible arranca en false si defaultOpen → nunca se ve el botón
   // Cuando el user cierra el dropdown manualmente, mostramos el trigger de nuevo
- // En CustomSelect.jsx, cambia triggerStyle:
-// ✅ CORRECTO — si es defaultOpen, el trigger SIEMPRE está oculto
-const triggerStyle = (defaultOpen || !triggerVisible)
-  ? {
+  // En CustomSelect.jsx, cambia triggerStyle:
+  // ✅ CORRECTO — si es defaultOpen, el trigger SIEMPRE está oculto
+  const triggerStyle = (defaultOpen || !triggerVisible)
+    ? {
       height: 0,
       transition: 'none',
       maxHeight: 0,
       margin: 0,
       padding: 0,
       opacity: 0,
-      overflow: 'visible', // Permite que el menú que sale de aquí se vea
       pointerEvents: 'none',
       border: 'none',
       width: '100%', // Mantiene la referencia de ancho para el hijo
     }
-  : {};
+    : {};
 
   return (
     <>
@@ -167,11 +166,9 @@ const triggerStyle = (defaultOpen || !triggerVisible)
             border: '1px solid var(--border-subtle, color-mix(in srgb, var(--text-muted) 20%, transparent))',
             borderRadius: 14,
             boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-            overflow: 'hidden',
-            maxHeight: 240,
           }}
         >
-          <div style={{ overflowY: 'auto', maxHeight: 240 }}>
+          <div style={{ overflowY: 'auto', maxHeight: 240, borderRadius: 14 }}>
             <button
               type="button"
               onClick={() => { onChange(null); setOpen(false) }}
@@ -189,7 +186,6 @@ const triggerStyle = (defaultOpen || !triggerVisible)
             >
               {placeholder}
             </button>
-
             {options.map((o, i) => {
               if (o.header) return (
                 <div key={`h-${i}`} style={{

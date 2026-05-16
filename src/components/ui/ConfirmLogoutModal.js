@@ -7,7 +7,7 @@ export default function ConfirmLogoutModal({ open, onCancel, onConfirm }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 600,
-      background: 'rgba(0,0,0,0.4)',
+      background: 'color-mix(in srgb, var(--bg-dark-card), transparent 35%)',
       backdropFilter: 'blur(4px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 16,

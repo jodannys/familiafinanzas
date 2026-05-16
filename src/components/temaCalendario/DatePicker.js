@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const DIAS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 function formatLabel(v) {
   if (!v) return null;
@@ -46,7 +46,7 @@ export default function DatePicker({ value, onChange, placeholder = 'Fecha' }) {
   const nextY = dispMonth === 11 ? dispYear + 1 : dispYear;
 
   // Celdas del calendario
-  const blanks = Array.from({ length: firstDay });
+  const blanks = Array.from({ length: firstDay === 0 ? 6 : firstDay - 1 });
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   return (
@@ -54,7 +54,7 @@ export default function DatePicker({ value, onChange, placeholder = 'Fecha' }) {
       {/* Trigger */}
       <div
         onClick={() => setOpen(true)}
-       className="ff-input"  // <-- tu clase CSS de ff-input o similar
+        className="ff-input"  // <-- tu clase CSS de ff-input o similar
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
       >
         <span>{formatLabel(value) || placeholder}</span>
@@ -74,13 +74,13 @@ export default function DatePicker({ value, onChange, placeholder = 'Fecha' }) {
           onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
           style={{
             position: 'fixed', inset: 0,
-            background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)',
+            background: 'color-mix(in srgb, var(--bg-dark-card), transparent 45%)', backdropFilter: 'blur(8px)',
             zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 20
           }}
         >
           <div style={{
-            background: 'white', borderRadius: 20, width: '100%', maxWidth: 320,
+            background: 'var(--bg-card)', borderRadius: 20, width: '100%', maxWidth: 320,
             padding: '20px 18px 16px',
             boxShadow: '0 20px 60px rgba(15,23,42,0.25)'
           }}>
@@ -148,7 +148,7 @@ export default function DatePicker({ value, onChange, placeholder = 'Fecha' }) {
 }
 
 const btnNavStyle = {
-  width: 34, height: 34, border: 'none', background: '#f1f5f9',
-  borderRadius: '50%', cursor: 'pointer', fontSize: 18, color: '#475569',
+  width: 34, height: 34, border: 'none', background: 'var(--bg-secondary)',
+  borderRadius: '50%', cursor: 'pointer', fontSize: 18, color: 'var(--text-muted)',
   display: 'flex', alignItems: 'center', justifyContent: 'center'
 };

@@ -456,7 +456,7 @@ export default function ProfilePanel({ open, onClose, onLogout }) {
                 <div className="relative flex-1">
                   <input type={showPwd ? 'text' : 'password'} value={newPwd}
                     onChange={e => setNewPwd(e.target.value)} autoFocus
-                    placeholder="Mínimo 6 caracteres" className="ff-input w-full pr-10 text-sm" />
+                    placeholder="Mínimo 8 caracteres" className="ff-input w-full pr-10 text-sm" />
                   <button type="button" onClick={() => setShowPwd(v => !v)} style={{
                     position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer',
