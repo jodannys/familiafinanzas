@@ -18,7 +18,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { useDeudas, calcularCuota, generarTablaAmortizacion, calcularEstadisticas } from './useDeudas'
 import DatePicker from '@/components/temaCalendario/DatePicker'
-
+import { useMemo } from 'react'
 
 function SortableItem({ id, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
@@ -167,9 +167,14 @@ export default function DeudasPage() {
   const [editandoMov, setEditandoMov] = useState(null)
   const [formMov, setFormMov] = useState({ tipo: 'cargo', descripcion: '', monto: '', fecha: fechaHoy() })
 
-  const now = new Date()
-  const mes = now.getMonth() + 1
-  const año = now.getFullYear()
+  const { mes, año, hoyDia: hoyDiaActual } = useMemo(() => {
+    const now = new Date()
+    return {
+      mes: now.getMonth() + 1,
+      año: now.getFullYear(),
+      hoyDia: now.getDate(),
+    }
+  }, [])
 
   useEffect(() => {
     if (!themeColors.length) return
@@ -375,8 +380,7 @@ export default function DeudasPage() {
     deudaByDay[dia].push({ ...d, pagada })
   })
 
-  const hoyDia = now.getDate()
-  const esHoy = (day) => day === hoyDia && calView.month === now.getMonth() && calView.year === now.getFullYear()
+  const esHoy = (day) => day === hoyDiaActual && calView.month === (mes - 1) && calView.year === año
 
   // ─── DRAG & DROP ─────────────────────────────────────────────────────────
 
@@ -469,8 +473,8 @@ export default function DeudasPage() {
               const deudas_dia = deudaByDay[day] || []
               const isSelected = selectedDay === day
               const isToday = esHoy(day)
-              const esMesActual = calView.month === now.getMonth() && calView.year === now.getFullYear()
-              const isPast = esMesActual && day < hoyDia
+              const esMesActual = calView.month === (mes - 1) && calView.year === año
+              const isPast = esMesActual && day < hoyDiaActual
 
               return (
                 <button key={day}

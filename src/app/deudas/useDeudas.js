@@ -125,9 +125,7 @@ export function useDeudas() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
-  const now = new Date()
-  const mes = now.getMonth() + 1
-  const año = now.getFullYear()
+
 
   // 🟡 FIX: cleanup para evitar setState sobre componente desmontado
   useEffect(() => {
@@ -172,6 +170,9 @@ export function useDeudas() {
 
   async function guardarDeuda({ editandoId, tipoSeleccionado, formTarjeta, formPrestamo, formCuota }) {
     if (saving) return false
+    const now = new Date()
+    const mes = now.getMonth() + 1
+    const año = now.getFullYear()
     setSaving(true)
     let payload = {}
 
@@ -287,6 +288,9 @@ export function useDeudas() {
 
   async function marcarPagada(deuda) {
     if (saving) return
+    const now = new Date()
+    const mes = now.getMonth() + 1
+    const año = now.getFullYear()
     const monto = deuda.cuota || deuda.pendiente || 0
     if (!monto) return
 
@@ -358,6 +362,9 @@ export function useDeudas() {
 
   async function agregarMovimiento({ deudaId, formMov }) {
     if (saving) return false
+    const now = new Date()
+    const mes = now.getMonth() + 1
+    const año = now.getFullYear()
     setSaving(true)
     const monto = parseFloat(formMov.monto)
     const deuda = deudas.find(d => d.id === deudaId)

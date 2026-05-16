@@ -33,7 +33,7 @@ function CustomTooltip({ active, payload, label, colores }) {
       boxShadow: 'var(--shadow-md)',
       backdropFilter: 'blur(12px)',
     }}>
-      <p style={{
+      <p style={{  
         color: colores.tickColor, fontSize: 10, fontWeight: 900,
         textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8,
       }}>
