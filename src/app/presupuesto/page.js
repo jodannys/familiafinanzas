@@ -327,6 +327,113 @@ export default function PresupuestoPage() {
           </div>
         )}
       </div>
+      {/* ── BANNER RESUMEN RÁPIDO ── */}
+{ingresoNum > 0 && !editando && (
+  <div className="mb-5 animate-enter" style={{
+    borderRadius: 20,
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border-glass)',
+    padding: '16px 20px',
+    display: 'flex', flexDirection: 'column', gap: 10,
+  }}>
+    {(() => {
+      const totalPresupuestado = Object.values(montosCats).reduce((s, v) => s + (parseFloat(v) || 0), 0)
+        + deudas.reduce((s, d) => s + (d.cuota || 0), 0)
+        + metas.filter(m => m.estado === 'activa').reduce((s, m) => s + ((m.pct_mensual / 100) * montoMetas), 0)
+        + inversiones.reduce((s, i) => s + ((i.pct_mensual / 100) * montoInversiones), 0)
+
+      const totalGastado = movs.filter(m => m.tipo === 'egreso').reduce((s, m) => s + parseFloat(m.monto), 0)
+      const restante = ingresoNum - totalGastado
+      const sinAsignar = ingresoNum - totalPresupuestado
+      const pctGastado = ingresoNum > 0 ? Math.min(100, (totalGastado / ingresoNum) * 100) : 0
+      const enRiesgo = restante < (ingresoNum * 0.1) // menos del 10% disponible
+      const sobreGiro = totalGastado > ingresoNum
+
+      return (
+        <>
+          {/* Fila principal */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <p className="text-[9px] uppercase tracking-widest font-semibold mb-0.5"
+                style={{ color: 'var(--text-muted)' }}>
+                Ingreso del mes
+              </p>
+              <p className="text-xl font-semibold tabular-nums"
+                style={{ color: 'var(--accent-green)', letterSpacing: '-0.02em' }}>
+                {formatCurrency(ingresoNum)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[9px] uppercase tracking-widest font-semibold mb-0.5"
+                style={{ color: 'var(--text-muted)' }}>
+                {sobreGiro ? '⚠ Sobre-giro' : restante >= 0 ? 'Disponible' : 'En negativo'}
+              </p>
+              <p className="text-xl font-semibold tabular-nums"
+                style={{
+                  color: sobreGiro ? 'var(--accent-rose)'
+                    : enRiesgo ? 'var(--accent-terra)'
+                    : 'var(--accent-green)',
+                  letterSpacing: '-0.02em',
+                }}>
+                {sobreGiro ? '-' : ''}{formatCurrency(Math.abs(restante))}
+              </p>
+            </div>
+          </div>
+
+          {/* Barra de progreso */}
+          <div>
+            <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+              <div className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${pctGastado}%`,
+                  background: sobreGiro ? 'var(--accent-rose)'
+                    : enRiesgo ? 'var(--accent-terra)'
+                    : 'var(--accent-green)',
+                }} />
+            </div>
+            <div className="flex justify-between mt-1 flex-wrap gap-1">
+  <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+    Gastado: <span className="font-semibold">{formatCurrency(totalGastado)}</span>
+    {' '}({Math.round(pctGastado)}%)
+  </span>
+  <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+    Presupuestado:{' '}
+    <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>
+      {formatCurrency(totalPresupuestado)}
+    </span>
+    {' '}·{' '}
+    {sinAsignar >= 0 ? 'Sobra' : 'Falta'}{' '}
+    <span className="font-semibold"
+      style={{ color: sinAsignar >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
+      {formatCurrency(Math.abs(sinAsignar))}
+    </span>
+  </span>
+</div>
+          </div>
+
+          {/* Aviso si está cerca del límite */}
+          {(enRiesgo || sobreGiro) && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl"
+              style={{
+                background: sobreGiro
+                  ? 'color-mix(in srgb, var(--accent-rose) 10%, transparent)'
+                  : 'color-mix(in srgb, var(--accent-terra) 10%, transparent)',
+                border: `1px solid color-mix(in srgb, ${sobreGiro ? 'var(--accent-rose)' : 'var(--accent-terra)'} 25%, transparent)`,
+              }}>
+              <AlertTriangle size={12} style={{ color: sobreGiro ? 'var(--accent-rose)' : 'var(--accent-terra)', flexShrink: 0 }} />
+              <p className="text-[10px] font-semibold"
+                style={{ color: sobreGiro ? 'var(--accent-rose)' : 'var(--accent-terra)' }}>
+                {sobreGiro
+                  ? `Has superado tu ingreso en ${formatCurrency(totalGastado - ingresoNum)}`
+                  : `Queda menos del 10% del ingreso disponible (${formatCurrency(restante)})`}
+              </p>
+            </div>
+          )}
+        </>
+      )
+    })()}
+  </div>
+)}
 
       {/* ── Panel de edición ── */}
       {editando && (
