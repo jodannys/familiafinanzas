@@ -559,7 +559,7 @@ export default function MetasPage() {
                                   color: 'var(--accent-green)', border: 'none', cursor: 'pointer',
                                 }}>
                                 <Plus size={11} strokeWidth={2.5} />
-                                Aportar {aporteMensual > 0 ? formatCurrency(aporteMensual) : ''}
+                                Aportar 
                               </button>
                             )}
                             {meta.estado === 'activa' && (meta.actual || 0) > 0 && (
@@ -833,7 +833,7 @@ export default function MetasPage() {
               <button type="submit" disabled={saving}
                 className="ff-btn-primary flex-1 flex items-center justify-center gap-2">
                 {saving && <Loader2 size={14} className="animate-spin" />}
-                {saving ? 'Guardando...' : 'Registrar aporte'}
+                {saving ? 'Guardando...' : 'Registrar'}
               </button>
             </div>
           </form>

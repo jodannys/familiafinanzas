@@ -89,48 +89,47 @@ export const THEMES = {
   // ─────────────────────────────────────────────────────────────────────────
   // 🌿 GREEN HARMONY — Dosel selvático, lima vibrante, tierra oscura
   // ─────────────────────────────────────────────────────────────────────────
-  greenHarmony: {
-    name: 'Green Harmony',
-    themeColor: '#2C8028',          // = --bg-primary
-    emoji: '🌿',
-    preview: ['#2C8028', '#82CB4E', '#1F2A23', '#F0FAF2'],
-    vars: {
-      '--bg-primary': '#2C8028',   // INTOCABLE ✓
-      // bg-secondary muy cercano al primary → no crea rectángulos visibles
-      '--bg-secondary': '#3A9035',
-      '--bg-pattern': '',
-      '--bg-pattern-size': '360px',
-      '--bg-card': '#82CB4E',   // INTOCABLE ✓
-      '--bg-dark-card': '#1A2A1E',
-      // Modal: blanco translúcido suave
-      '--bg-glass': 'rgba(255,255,255,0.86)',
-      '--border-glass': 'rgba(44,128,40,0.18)',
-      '--radius-xl': '28px',
-      '--sidebar-bg': '#F2FBF0',   // verde muy pálido (no blanco puro)
-      '--sidebar-border': 'rgba(44,128,40,0.12)',
-      '--progress-track': '#4EAA44',   // verde medio — armónico con primary
-      // CRÍTICO: blanco sólido — inputs visibles sobre lima
-      '--input-bg': '#FFFFFF',
-      // Acentos más oscuros/saturados para que los botones resalten sobre el lima
-      '--accent-main': '#1A6018',   // verde bosque para CTA principal
-      '--accent-green': '#157A38',
-      '--accent-terra': '#A87828',   // ocre cálido — contrasta con lima
-      '--accent-blue': '#2A7888',   // teal oscuro — claramente visible
-      '--accent-rose': '#A84848',   // carmín apagado
-      '--accent-violet': '#605898',   // violeta musgo
-      '--accent-gold': '#A88820',   // oro oliva
-      '--accent-danger': '#B81840',
-      // text-primary BLANCO sobre --bg-primary (fondo verde oscuro #2C8028)
-      '--text-primary': '#FFFFFF',
-      // text-secondary VERDE CASI NEGRO sobre --bg-card (lima #82CB4E) — WCAG AA ~10:1
-      '--text-secondary': '#0A1A0F',
-      // text-muted: verde bosque desaturado (no gris genérico)
-      '--text-muted': '#2D5038',
-      '--text-on-dark': '#FFFFFF',
-      '--glass-blur': '14px',
-    }
-  },
-
+  auroraGlass: {
+  name: 'Aurora Glass',
+  themeColor: '#0F172A',          // = --bg-primary
+  emoji: '🌌',
+  preview: ['#0F172A', '#00E5FF', '#1E293B', '#FFFFFF'],
+  vars: {
+    // Fondos — azul oscuro muy profundo, estilo dashboard financiero nocturno
+    '--bg-primary': '#0B1120',
+    '--bg-secondary': '#0F172A',
+    '--bg-pattern': '',
+    '--bg-pattern-size': '360px',
+    // Tarjetas — paneles oscuros para dar base al vidrio
+    '--bg-card': '#1E293B',
+    '--bg-dark-card': '#0B1120',
+    '--bg-glass': 'rgba(30, 41, 59, 0.65)',   // vidrio oscuro translúcido
+    '--border-glass': 'rgba(255, 255, 255, 0.12)', // reflejo blanco sutil en el borde
+    '--radius-xl': '24px',
+    // Navegación
+    '--sidebar-bg': '#0F172A',
+    '--sidebar-border': 'rgba(255, 255, 255, 0.08)',
+    '--progress-track': 'rgba(255, 255, 255, 0.1)', // gris semitransparente para el fondo de la barra
+    // Inputs
+    '--input-bg': 'rgba(15, 23, 42, 0.6)',
+    // Acentos — colores neón vibrantes que contrastan con la oscuridad
+    '--accent-main': '#00E5FF',     // Cyan brillante
+    '--accent-green': '#34D399',    // Verde neón de la barra de progreso
+    '--accent-terra': '#D97706',    // Tono ámbar/tierra para el fondo de la alerta
+    '--accent-blue': '#38BDF8',     // Azul vibrante de la barra "Sin asignar"
+    '--accent-rose': '#F43F5E',     // Rojo/rosa fuerte para errores
+    '--accent-violet': '#A78BFA',   
+    '--accent-gold': '#FCD34D',     // Amarillo claro del texto/icono de alerta
+    '--accent-danger': '#EF4444',
+    // Tipografía — blancos y grises claros para máxima legibilidad
+    '--text-primary': '#F8FAFC',    // Blanco puro para números grandes
+    '--text-secondary': '#CBD5E1',  // Gris claro para subtítulos
+    '--text-muted': '#94A3B8',      // Gris medio/azulado para etiquetas ("Ingreso del mes")
+    '--text-on-dark': '#FFFFFF',
+    // Efectos
+    '--glass-blur': '20px',         // Desenfoque alto para ese efecto "esmerilado" suave
+  }
+},
   // ─────────────────────────────────────────────────────────────────────────
   // 🕶️ FORGED CARBON — Acero bruñido, oro antiguo, carbono puro
   // ─────────────────────────────────────────────────────────────────────────
