@@ -25,9 +25,9 @@ import UserAvatar from '@/components/ui/UserAvatar'
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const CATS_EGRESO = [
-  { id: 'basicos', label: 'Básicos', color: 'var(--accent-blue)' },
+  { id: 'basicos', label: 'Gastos básicos', color: 'var(--accent-blue)' },
   { id: 'deseo', label: 'Estilo de vida', color: 'var(--accent-violet)' },
-  { id: 'ahorro', label: 'Ahorro', color: 'var(--accent-green)' },
+  { id: 'ahorro', label: 'Metas de ahorro', color: 'var(--accent-green)' },
   { id: 'inversion', label: 'Inversión', color: 'var(--accent-gold)' },
   { id: 'deuda', label: 'Deuda', color: 'var(--accent-rose)' },
 ]
@@ -206,13 +206,12 @@ export function FABModal({ onClose }) {
     setMetodoPago('efectivo'); setNumCuotas(1); setSelectedPerfil(null)
     setMonto('')
   }
-
-  function handleCat(id) {
-    const nuevo = cat === id ? null : id
-    setCat(nuevo); setCatDB(null); setSelectedItem(null)
-    setSelectedSubcat(null)
-  }
-
+function handleCat(id) {
+  const nuevo = cat === id ? null : id
+  setCat(nuevo); setCatDB(null); setSelectedItem(null)
+  setSelectedSubcat(null)
+  if (SPECIAL_CATS.includes(nuevo)) setMonto('')
+}
   useEffect(() => {
     if (metodoPago !== 'tarjeta_credito' || tipo !== 'egreso' || !cat) {
       setPerfilesTarj([]); setSelectedPerfil(null); return
@@ -426,7 +425,11 @@ export function FABModal({ onClose }) {
             <span style={{ fontSize: 20, fontWeight: 500, color: accentColor, opacity: 0.45 }}></span>
             <input
               type="number" inputMode="decimal" placeholder="0.00"
-              value={monto} onChange={e => setMonto(e.target.value)}
+              value={monto}
+              onChange={e => {
+                const v = e.target.value
+                if (v === '' || /^\d*\.?\d*$/.test(v)) setMonto(v)
+              }}
               autoFocus
               style={{
                 background: 'transparent', border: 'none', outline: 'none',
@@ -445,7 +448,7 @@ export function FABModal({ onClose }) {
             <Section label="Tipo">
               <CustomSelect
                 value={cat || ''}
-                onChange={id => { setMonto(''); handleCat(id) }}
+                onChange={id => handleCat(id)}
                 options={CATS_EGRESO.map(c => ({ id: c.id, label: c.label }))}
                 placeholder="— Seleccionar categoría —"
               />
@@ -507,12 +510,19 @@ export function FABModal({ onClose }) {
                       <button
                         key={item.id}
                         onClick={() => {
-                          setSelectedItem(isSel ? null : item)
-                          if (!isSel && !monto) {
-                            if (cat === 'deuda' && item.cuota > 0) setMonto(item.cuota.toString())
-                            else if (cat === 'inversion' && item.aporte > 0) setMonto(item.aporte.toString())
-                            else if (cat === 'ahorro' && item.pct_mensual > 0 && montoMetasDisp > 0)
+                          if (isSel) {
+                            setSelectedItem(null)
+                            setMonto('')
+                          } else {
+                            setSelectedItem(item)
+                            if (cat === 'deuda') {
+                              const montoSugerido = item.cuota > 0 ? item.cuota : item.pendiente
+                              setMonto(montoSugerido.toString())
+                            } else if (cat === 'inversion' && item.aporte > 0) {
+                              setMonto(item.aporte.toString())
+                            } else if (cat === 'ahorro' && item.pct_mensual > 0 && montoMetasDisp > 0) {
                               setMonto(parseFloat(((item.pct_mensual / 100) * montoMetasDisp).toFixed(2)).toString())
+                            }
                           }
                         }}
                         style={{
@@ -630,7 +640,7 @@ export function FABModal({ onClose }) {
                       <p style={{ margin: 0, fontSize: 9, fontWeight: 800, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Cuotas</p>
                       <input
                         type="number" min="1" value={numCuotas}
-                        onChange={e => setNumCuotas(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={e => setNumCuotas(Math.max(1, parseInt(e.target.value) || 1))}
                         style={{
                           width: 44, textAlign: 'center', fontWeight: 700, fontSize: 13,
                           background: 'var(--bg-card)', border: '1px solid var(--border-glass)',

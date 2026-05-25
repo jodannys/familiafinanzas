@@ -235,7 +235,7 @@ function InsightsPanel({ movsMes, metas, deudas, inversiones, formatCurrency }) 
 
 // ── Barra de salud financiera ─────────────────────────────────────────────────
 
-function HealthBar({ pctGastos, pctAhorro, pctDisp, saldoLibre, ingresosMes }) {
+function HealthBar({ pctGastos, pctAhorro, saldoLibre, ingresosMes }) {  // ✅ quitado pctDisp
   if (ingresosMes === 0) return null
   const pctLibre = Math.max(0, 100 - pctGastos - pctAhorro)
   const libreColor = saldoLibre >= 0 ? 'var(--accent-blue)' : 'var(--accent-rose)'
@@ -248,7 +248,7 @@ function HealthBar({ pctGastos, pctAhorro, pctDisp, saldoLibre, ingresosMes }) {
       }}>
         <div style={{ width: `${pctGastos}%`, background: 'var(--accent-rose)', opacity: 0.75, transition: 'width 1s ease-out', flexShrink: 0 }} />
         <div style={{ width: `${pctAhorro}%`, background: 'var(--accent-gold)', opacity: 0.75, transition: 'width 1s ease-out 0.1s', flexShrink: 0 }} />
-        <div style={{ width: `${pctLibre}%`, background: libreColor, opacity: 0.75, transition: 'width 1s ease-out 0.2s', flexShrink: 0 }} />
+        <div style={{ width: `${pctLibre}%`, background: libreColor, opacity: 0.75, transition: 'width 1s ease-out 0.2s', flexShrink: 0 }} />  {/* ✅ */}
       </div>
       <div className="flex items-center gap-5 mt-2">
         {[
