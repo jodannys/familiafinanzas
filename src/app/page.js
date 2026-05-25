@@ -55,7 +55,7 @@ function saludoBase(nombre, hora) {
   let emoji = ''
   if (h >= 6 && h < 12) { saludo = 'buenos días'; emoji = '☕' }
   else if (h >= 12 && h < 20) { saludo = 'buenas tardes'; emoji = '☀️' }
-  else { saludo = 'buenas noches'; emoji = (h >= 20 || h < 5) ? '🌙' : '✨' }
+  else { saludo = 'buenas noches'; emoji = h < 5 ? '✨' : '🌙' }
   return nombre
     ? `Hola ${nombre}, ${saludo} ${emoji}`
     : `${saludo.charAt(0).toUpperCase() + saludo.slice(1)} ${emoji}`
